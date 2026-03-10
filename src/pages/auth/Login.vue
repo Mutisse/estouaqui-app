@@ -1,0 +1,385 @@
+<template>
+  <q-page class="flex flex-center bg-grey-1">
+    <div class="login-container">
+      <q-card class="login-card" flat>
+        <!-- Header com gradiente -->
+        <q-card-section class="login-header">
+          <div class="header-icon">
+            <q-icon name="login" size="32px" color="white" />
+          </div>
+          <div class="header-title">Bem-vindo de volta!</div>
+          <div class="header-subtitle">Entre na sua conta</div>
+        </q-card-section>
+
+        <!-- Formulário -->
+        <q-card-section class="q-px-xl q-py-lg">
+          <div class="logo-mini q-mb-lg">
+            <span class="text-bold text-grey-9">Estou</span>
+            <span class="text-bold text-primary">Aqui</span>
+          </div>
+
+          <!-- Campo de Login (Email ou Telefone) -->
+          <div class="input-label">Email ou Telefone</div>
+          <q-input
+            v-model="login"
+            placeholder="seu@email.com ou 84 123 4567"
+            outlined
+            dense
+            class="custom-input"
+            :rules="[(val) => !!val || 'Email ou telefone é obrigatório']"
+            bg-color="white"
+          >
+            <template v-slot:prepend>
+              <q-icon name="person" color="grey-6" size="20px" />
+            </template>
+          </q-input>
+
+          <!-- Dica do formato esperado -->
+          <div class="input-hint" v-if="login && !isValidEmail(login) && !isValidPhone(login)">
+            Formato inválido. Use email (exemplo@email.com) ou telefone (84 123 4567)
+          </div>
+
+          <!-- Campo de Password -->
+          <div class="input-label q-mt-md">Palavra-passe</div>
+          <q-input
+            v-model="password"
+            :type="showPassword ? 'text' : 'password'"
+            placeholder="Digite sua palavra-passe"
+            outlined
+            dense
+            class="custom-input"
+            :rules="[(val) => !!val || 'Palavra-passe é obrigatória']"
+            bg-color="white"
+          >
+            <template v-slot:prepend>
+              <q-icon name="lock" color="grey-6" size="20px" />
+            </template>
+            <template v-slot:append>
+              <q-icon
+                :name="showPassword ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer"
+                color="grey-6"
+                @click="showPassword = !showPassword"
+              />
+            </template>
+          </q-input>
+
+          <!-- Link para recuperar senha -->
+          <div class="forgot-password">
+            <q-btn flat dense label="Esqueceu a palavra-passe?" class="forgot-btn" @click="forgotPassword" />
+          </div>
+
+          <!-- Botão de Login -->
+          <q-btn
+            label="Entrar"
+            class="login-btn q-mt-lg"
+            :loading="loading"
+            @click="handleLogin"
+            no-caps
+            :disable="!isFormValid"
+          />
+        </q-card-section>
+      </q-card>
+    </div>
+  </q-page>
+</template>
+
+<script setup lang="ts">
+defineOptions({
+  name: 'AuthLogin'
+})
+
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from 'src/stores/auth';
+import { useQuasar } from 'quasar';
+
+const router = useRouter();
+const authStore = useAuthStore();
+const $q = useQuasar();
+
+const login = ref('');
+const password = ref('');
+const showPassword = ref(false);
+const loading = ref(false);
+
+// Validações
+const isValidEmail = (value: string) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(value);
+};
+
+const isValidPhone = (value: string) => {
+  // Aceita formatos: 841234567, 84 123 4567, 84-123-4567
+  const phoneRegex = /^(\+258)?\s?[82][0-9]\s?[0-9]{3}\s?[0-9]{4}$|^[82][0-9]{8}$/;
+  return phoneRegex.test(value.replace(/\s/g, ''));
+};
+
+const normalizePhone = (value: string) => {
+  // Remove espaços e formata para o backend
+  return value.replace(/\s/g, '');
+};
+
+const isFormValid = computed(() => {
+  if (!login.value || !password.value) return false;
+  return isValidEmail(login.value) || isValidPhone(login.value);
+});
+
+const handleLogin = async () => {
+  if (!login.value || !password.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Preencha todos os campos',
+      position: 'top'
+    });
+    return;
+  }
+
+  if (!isValidEmail(login.value) && !isValidPhone(login.value)) {
+    $q.notify({
+      type: 'warning',
+      message: 'Use um email válido ou telefone (84 123 4567)',
+      position: 'top'
+    });
+    return;
+  }
+
+  loading.value = true;
+  try {
+    // Prepara os dados para o backend
+    const loginData = {
+      login: isValidEmail(login.value) ? login.value : normalizePhone(login.value),
+      password: password.value
+    };
+
+    const success = await authStore.login(loginData.login, loginData.password);
+    if (success) {
+      $q.notify({
+        type: 'positive',
+        message: 'Login efetuado com sucesso!',
+        position: 'top',
+        icon: 'check_circle'
+      });
+
+      const user = authStore.user;
+      if (user?.tipo === 'prestador') {
+        await router.push('/mobile/lista-prestadores');
+      } else if (user?.tipo === 'admin') {
+        await router.push('/admin/dashboard');
+      } else {
+        await router.push('/mobile/mapa');
+      }
+    }
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Erro ao fazer login',
+      position: 'top'
+    });
+  } finally {
+    loading.value = false;
+  }
+};
+
+const forgotPassword = () => {
+  $q.dialog({
+    title: 'Recuperar Palavra-passe',
+    message: 'Digite seu email ou número de telefone para receber instruções:',
+    prompt: {
+      model: '',
+      type: 'text',
+      isValid: (val: string) => isValidEmail(val) || isValidPhone(val)
+    },
+    cancel: true,
+    persistent: true
+  }).onOk((contacto) => {
+    $q.notify({
+      type: 'info',
+      message: `Instruções enviadas para ${contacto}`,
+      position: 'top'
+    });
+  });
+};
+</script>
+
+<style scoped lang="scss">
+$purple-primary: #667eea;
+$purple-secondary: #764ba2;
+$purple-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$gray-50: #fafafa;
+$gray-100: #f5f5f5;
+$gray-200: #eeeeee;
+$gray-300: #e0e0e0;
+$gray-400: #bdbdbd;
+$gray-500: #9e9e9e;
+$gray-600: #757575;
+$gray-700: #616161;
+$gray-800: #424242;
+$gray-900: #212121;
+
+.login-container {
+  width: 100%;
+  max-width: 450px;
+  padding: 20px;
+}
+
+.login-card {
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  background: white;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 30px 60px rgba(102, 126, 234, 0.15);
+  }
+}
+
+.login-header {
+  background: $purple-gradient;
+  padding: 40px 40px 30px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+  }
+
+  .header-icon {
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .header-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+
+  .header-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+  }
+}
+
+.logo-mini {
+  font-size: 1.5rem;
+  letter-spacing: -0.5px;
+  text-align: center;
+}
+
+.input-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: $gray-700;
+  margin-bottom: 5px;
+}
+
+.input-hint {
+  font-size: 0.75rem;
+  color: #f56565;
+  margin-top: 2px;
+  margin-left: 10px;
+}
+
+.custom-input {
+  :deep(.q-field__control) {
+    border-radius: 15px;
+    border: 1px solid $gray-200;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: $purple-primary;
+    }
+  }
+
+  :deep(.q-field__control:focus-within) {
+    border-color: $purple-primary;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  :deep(.q-field__prepend) {
+    padding-right: 10px;
+  }
+}
+
+.forgot-password {
+  text-align: right;
+  margin-top: 5px;
+
+  .forgot-btn {
+    color: $gray-600;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+
+    &:hover {
+      color: $purple-primary;
+    }
+  }
+}
+
+.login-btn {
+  width: 100%;
+  background: $purple-gradient;
+  color: white;
+  padding: 12px;
+  border-radius: 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 30px rgba(102, 126, 234, 0.4);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 599px) {
+  .login-header {
+    padding: 30px 20px;
+
+    .header-title {
+      font-size: 1.5rem;
+    }
+  }
+
+  .q-card-section {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+}
+</style>

@@ -1,0 +1,13 @@
+{
+  "name": "estouaqui-app",
+  "version": "0.0.1",
+  "description": "App para clientes e prestadores de serviços",
+  "author": "Edilson Mutisse <98753172+Mutisse@users.noreply.github.com>",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^7.6.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  }
+}

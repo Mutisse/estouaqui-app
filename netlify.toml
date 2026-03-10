@@ -1,0 +1,30 @@
+[build]
+  publish = "dist/spa"  # ← MUDOU DE pwa PARA spa
+  command = "npm run build"
+
+[build.environment]
+  QUASAR_PUBLIC_FOLDER = "public"
+
+# Redirecionamento para SPA (todas as rotas vão para index.html)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers para cache
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Cache para assets estáticos
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Opcional: headers para fontes
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
