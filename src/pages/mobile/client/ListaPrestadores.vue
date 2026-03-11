@@ -106,15 +106,7 @@
       </div>
     </div>
 
-    <!-- Botão do mapa -->
-    <q-btn
-      class="fixed-bottom-right q-mb-md q-mr-md"
-      color="primary"
-      round
-      icon="map"
-      to="/mobile/mapa"
-      size="lg"
-    />
+    
 
     <!-- Drawer de filtros -->
     <q-drawer

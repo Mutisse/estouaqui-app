@@ -1,4 +1,3 @@
-// router/routes.ts
 import type { RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
@@ -25,13 +24,13 @@ const routes: RouteRecordRaw[] = [
     ],
   },
 
-  // Rotas Mobile
+  // Rotas Mobile - Cliente (na pasta client/)
   {
     path: '/mobile',
-    component: () => import('layouts/MobileLayout.vue'),
-    meta: { requiresAuth: true },
+    component: () => import('layouts/MobileClientLayout.vue'),
+    meta: { requiresAuth: true ,requiresAdmin: true},
     children: [
-      { path: 'inicio', component: () => import('pages/mobile/client/MobileInicio.vue') }, // NOVA!
+      { path: 'inicio', component: () => import('pages/mobile/client/MobileInicio.vue') },
       { path: 'mapa', component: () => import('pages/mobile/client/Mapa.vue') },
       { path: 'lista-prestadores', component: () => import('pages/mobile/client/ListaPrestadores.vue') },
       { path: 'perfil-prestador/:id', component: () => import('pages/mobile/client/PerfilPrestador.vue') },
@@ -52,40 +51,26 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/admin',
     component: () => import('layouts/AdminLayout.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true },
+   // meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       { path: 'dashboard', component: () => import('pages/admin/Dashboard.vue') },
       { path: 'utilizadores', component: () => import('pages/admin/Utilizadores.vue') },
+      { path: 'prestadores', component: () => import('pages/admin/Prestadores.vue') },
+      { path: 'categorias', component: () => import('pages/admin/Categorias.vue') },
+      { path: 'servicos', component: () => import('pages/admin/Servicos.vue') },
       { path: 'estatisticas', component: () => import('pages/admin/Estatisticas.vue') },
+      { path: 'relatorios', component: () => import('pages/admin/Relatorios.vue') },
+      { path: 'financeiro', component: () => import('pages/admin/Financeiro.vue') },
+      { path: 'configuracoes', component: () => import('pages/admin/Configuracoes.vue') },
+      { path: 'logs', component: () => import('pages/admin/Logs.vue') },
+      { path: 'perfil', component: () => import('pages/admin/Perfil.vue') },
     ],
   },
-  /*
-  // router/routes.ts (atualização)
-// Rotas Admin Protegidas
-{
-  path: '/admin',
-  component: () => import('layouts/AdminLayout.vue'),
-  meta: { requiresAuth: true, requiresAdmin: true },
-  children: [
-    { path: 'dashboard', component: () => import('pages/admin/Dashboard.vue') },
-    { path: 'utilizadores', component: () => import('pages/admin/Utilizadores.vue') },
-    { path: 'prestadores', component: () => import('pages/admin/Prestadores.vue') }, // NOVO
-    { path: 'categorias', component: () => import('pages/admin/Categorias.vue') }, // NOVO
-    { path: 'servicos', component: () => import('pages/admin/Servicos.vue') }, // NOVO
-    { path: 'estatisticas', component: () => import('pages/admin/Estatisticas.vue') },
-    { path: 'relatorios', component: () => import('pages/admin/Relatorios.vue') }, // NOVO
-    { path: 'financeiro', component: () => import('pages/admin/Financeiro.vue') }, // NOVO
-    { path: 'configuracoes', component: () => import('pages/admin/Configuracoes.vue') }, // NOVO
-    { path: 'logs', component: () => import('pages/admin/Logs.vue') }, // NOVO
-    { path: 'perfil', component: () => import('pages/admin/Perfil.vue') }, // NOVO
-  ],
-},
-  */
- // Rotas Mobile - Prestador
- 
+
+  // Rotas Mobile - Prestador (na pasta prestador/)
   {
     path: '/mobile/prestador',
-    component: () => import('layouts/MobileLayout.vue'),
+    component: () => import('layouts/MobilePrestadorLayout.vue'),
     meta: { requiresAuth: true, requiresPrestador: true },
     children: [
       { path: 'dashboard', component: () => import('pages/mobile/prestador/PrestadorDashboard.vue') },
@@ -94,6 +79,9 @@ const routes: RouteRecordRaw[] = [
       { path: 'pedidos', component: () => import('pages/mobile/prestador/PrestadorPedidos.vue') },
       { path: 'historico', component: () => import('pages/mobile/prestador/PrestadorHistorico.vue') },
       { path: 'perfil', component: () => import('pages/mobile/prestador/PrestadorPerfil.vue') },
+      { path: 'ganhos', component: () => import('pages/mobile/prestador/PrestadorGanhos.vue') },
+      { path: 'saques', component: () => import('pages/mobile/prestador/PrestadorSaques.vue') },
+      { path: 'configuracoes', component: () => import('pages/mobile/prestador/PrestadorConfiguracoes.vue') },
     ],
   },
 

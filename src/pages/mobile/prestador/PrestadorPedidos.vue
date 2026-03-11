@@ -50,7 +50,7 @@
             <q-card-section>
               <div class="row items-center">
                 <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" />
+                  <img :src="pedido.clienteAvatar" alt="avatar" />
                 </q-avatar>
                 <div class="col">
                   <div class="pedido-cliente">{{ pedido.cliente }}</div>
@@ -126,7 +126,7 @@
             <q-card-section>
               <div class="row items-center">
                 <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" />
+                  <img :src="pedido.clienteAvatar" alt="avatar" />
                 </q-avatar>
                 <div class="col">
                   <div class="pedido-cliente">{{ pedido.cliente }}</div>
@@ -200,7 +200,7 @@
             <q-card-section>
               <div class="row items-center">
                 <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" />
+                  <img :src="pedido.clienteAvatar" alt="avatar" />
                 </q-avatar>
                 <div class="col">
                   <div class="pedido-cliente">{{ pedido.cliente }}</div>
@@ -257,7 +257,7 @@
             <q-card-section>
               <div class="row items-center">
                 <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" />
+                  <img :src="pedido.clienteAvatar" alt="avatar" />
                 </q-avatar>
                 <div class="col">
                   <div class="pedido-cliente">{{ pedido.cliente }}</div>
@@ -271,6 +271,9 @@
                   <q-icon name="cancel" size="16px" class="q-mr-xs" />
                   Cancelado
                 </div>
+              </div>
+              <div v-if="pedido.motivo" class="q-mt-sm text-caption text-grey-6">
+                Motivo: {{ pedido.motivo }}
               </div>
             </q-card-section>
           </q-card>
@@ -288,7 +291,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 
@@ -307,14 +310,6 @@ interface PedidoBase {
   duracao: number;
   valor: number;
   localizacao: string;
-}
-
-interface PedidoPendente extends PedidoBase {
-  // Sem campos extras
-}
-
-interface PedidoConfirmado extends PedidoBase {
-  // Sem campos extras
 }
 
 interface PedidoConcluido extends PedidoBase {
@@ -340,7 +335,7 @@ const $q = useQuasar();
 const tab = ref('pendentes');
 
 // Dados mockados
-const pedidosPendentes = ref<PedidoPendente[]>([
+const pedidosPendentes = ref<PedidoBase[]>([
   {
     id: 1,
     cliente: 'Maria Santos',
@@ -376,7 +371,7 @@ const pedidosPendentes = ref<PedidoPendente[]>([
   },
 ]);
 
-const pedidosConfirmados = ref<PedidoConfirmado[]>([
+const pedidosConfirmados = ref<PedidoBase[]>([
   {
     id: 4,
     cliente: 'Carlos Mendes',
@@ -442,8 +437,34 @@ const contadores = computed<Contadores>(() => ({
   cancelados: pedidosCancelados.value.length,
 }));
 
+// CORREÇÃO DEFINITIVA: Função auxiliar para encontrar e remover pedido
+// CORREÇÃO DEFINITIVA: Funções auxiliares com tipo explícito
+const encontrarERemoverPendente = (pedido: PedidoBase): PedidoBase | null => {
+  const index = pedidosPendentes.value.findIndex((p) => p.id === pedido.id);
+  if (index === -1) return null;
+
+  // CORREÇÃO: Garantir que não é undefined
+  const pedidoEncontrado = pedidosPendentes.value[index];
+  if (!pedidoEncontrado) return null;
+
+  pedidosPendentes.value.splice(index, 1);
+  return pedidoEncontrado;
+};
+
+const encontrarERemoverConfirmado = (pedido: PedidoBase): PedidoBase | null => {
+  const index = pedidosConfirmados.value.findIndex((p) => p.id === pedido.id);
+  if (index === -1) return null;
+
+  // CORREÇÃO: Garantir que não é undefined
+  const pedidoEncontrado = pedidosConfirmados.value[index];
+  if (!pedidoEncontrado) return null;
+
+  pedidosConfirmados.value.splice(index, 1);
+  return pedidoEncontrado;
+};
+
 // Ações
-const aceitarPedido = (pedido: PedidoPendente) => {
+const aceitarPedido = (pedido: PedidoBase): void => {
   $q.dialog({
     title: 'Confirmar aceitação',
     message: `Deseja aceitar o pedido de ${pedido.cliente}?`,
@@ -454,16 +475,9 @@ const aceitarPedido = (pedido: PedidoPendente) => {
       color: 'positive',
       unelevated: true,
     },
-    cancel: {
-      label: 'Cancelar',
-      color: 'grey-7',
-      flat: true,
-    },
   }).onOk(() => {
-    // Remover dos pendentes e adicionar aos confirmados
-    const index = pedidosPendentes.value.findIndex((p) => p.id === pedido.id);
-    if (index !== -1) {
-      const [pedidoAceito] = pedidosPendentes.value.splice(index, 1);
+    const pedidoAceito = encontrarERemoverPendente(pedido);
+    if (pedidoAceito) {
       pedidosConfirmados.value.push(pedidoAceito);
 
       $q.notify({
@@ -476,7 +490,7 @@ const aceitarPedido = (pedido: PedidoPendente) => {
   });
 };
 
-const recusarPedido = (pedido: PedidoPendente) => {
+const recusarPedido = (pedido: PedidoBase): void => {
   $q.dialog({
     title: 'Confirmar recusa',
     message: `Deseja recusar o pedido de ${pedido.cliente}?`,
@@ -487,20 +501,15 @@ const recusarPedido = (pedido: PedidoPendente) => {
       color: 'negative',
       unelevated: true,
     },
-    cancel: {
-      label: 'Cancelar',
-      color: 'grey-7',
-      flat: true,
-    },
   }).onOk(() => {
-    // Remover dos pendentes e adicionar aos cancelados
-    const index = pedidosPendentes.value.findIndex((p) => p.id === pedido.id);
-    if (index !== -1) {
-      const [pedidoRecusado] = pedidosPendentes.value.splice(index, 1);
-      pedidosCancelados.value.push({
+    const pedidoRecusado = encontrarERemoverPendente(pedido);
+    if (pedidoRecusado) {
+      const novoPedidoCancelado: PedidoCancelado = {
         ...pedidoRecusado,
         motivo: 'Recusado pelo prestador',
-      });
+      };
+
+      pedidosCancelados.value.push(novoPedidoCancelado);
 
       $q.notify({
         type: 'negative',
@@ -512,37 +521,35 @@ const recusarPedido = (pedido: PedidoPendente) => {
   });
 };
 
-const abrirChat = (pedido: PedidoConfirmado) => {
+const abrirChat = (pedido: PedidoBase): void => {
   void router.push(`/mobile/chat/${pedido.id}`);
 };
 
-const iniciarServico = (pedido: PedidoConfirmado) => {
+const iniciarServico = (pedido: PedidoBase): void => {
   $q.dialog({
     title: 'Iniciar serviço',
     message: 'Confirmar início do serviço?',
     cancel: true,
     persistent: true,
   }).onOk(() => {
-    // Remover dos confirmados e adicionar aos concluídos (simulado)
-    const index = pedidosConfirmados.value.findIndex((p) => p.id === pedido.id);
-    if (index !== -1) {
-      const [pedidoIniciado] = pedidosConfirmados.value.splice(index, 1);
-
+    const pedidoIniciado = encontrarERemoverConfirmado(pedido);
+    if (pedidoIniciado) {
       $q.notify({
         type: 'positive',
-        message: 'Serviço iniciado! Boa trabalho!',
+        message: 'Serviço iniciado! Bom trabalho!',
         position: 'top',
         icon: 'play_circle',
         timeout: 3000,
       });
 
-      // Simular conclusão após 3 segundos (apenas para demonstração)
       setTimeout(() => {
-        pedidosConcluidos.value.push({
+        const novoPedidoConcluido: PedidoConcluido = {
           ...pedidoIniciado,
           avaliacao: 5,
           totalAvaliacoes: 1,
-        });
+        };
+
+        pedidosConcluidos.value.push(novoPedidoConcluido);
 
         $q.notify({
           type: 'positive',
@@ -555,7 +562,7 @@ const iniciarServico = (pedido: PedidoConfirmado) => {
   });
 };
 
-const verDetalhes = (pedido: PedidoConcluido) => {
+const verDetalhes = (pedido: PedidoConcluido): void => {
   $q.notify({
     type: 'info',
     message: `Detalhes do serviço #${pedido.id}`,
@@ -563,7 +570,7 @@ const verDetalhes = (pedido: PedidoConcluido) => {
   });
 };
 
-const opcoes = () => {
+const opcoes = (): void => {
   $q.dialog({
     title: 'Opções',
     message: 'Configurações de pedidos',
@@ -587,7 +594,7 @@ const opcoes = () => {
   });
 };
 
-const configurarNotificacoes = () => {
+const configurarNotificacoes = (): void => {
   $q.notify({
     type: 'info',
     message: 'Configurações de notificação em breve',

@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="hHh lpR fFf" class="bg-grey-1 mobile-client-layout">
+  <q-layout view="hHh lpR fFf" class="bg-grey-1 mobile-prestador-layout">
     <!-- Header compacto para mobile -->
     <q-header elevated class="header-custom">
       <q-toolbar class="toolbar-compact">
@@ -13,13 +13,13 @@
           @click="leftDrawerOpen = !leftDrawerOpen"
         />
 
-        <!-- Logo centralizada -->
+        <!-- Logo centralizada com badge de prestador -->
         <q-toolbar-title class="text-center">
           <div class="logo-mini">
-            <q-icon name="location_on" size="16px" class="logo-icon" />
+            <q-icon name="handyman" size="16px" class="logo-icon" />
             <span class="logo-text">
-              <span class="text-light">estou</span>
-              <span class="text-bold">aqui</span>
+              <span class="text-light">modo</span>
+              <span class="text-bold">prestador</span>
             </span>
           </div>
         </q-toolbar-title>
@@ -32,7 +32,7 @@
       </q-toolbar>
     </q-header>
 
-    <!-- Drawer lateral -->
+    <!-- Drawer lateral com menu do prestador -->
     <q-drawer
       v-model="leftDrawerOpen"
       side="left"
@@ -47,64 +47,106 @@
             <img :src="userAvatar" alt="Avatar">
           </q-avatar>
           <div class="drawer-user-info">
-            <div class="user-name">{{ userName || 'Cliente' }}</div>
-            <div class="user-type">Cliente</div>
+            <div class="user-name">{{ userName || 'Prestador' }}</div>
+            <div class="user-type">Prestador de Serviços</div>
+            <div class="user-rating">
+              <q-rating v-model="userRating" size="14px" :max="5" color="yellow" readonly />
+              <span class="rating-count">({{ userTotalAvaliacoes }})</span>
+            </div>
           </div>
         </div>
 
         <q-list padding class="drawer-menu">
           <q-item-label header class="menu-header">
-            <q-icon name="menu" size="16px" />
-            Navegação
+            <q-icon name="dashboard" size="16px" />
+            Painel Principal
           </q-item-label>
 
-          <q-item clickable v-ripple to="/mobile/inicio" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item clickable v-ripple to="/mobile/prestador/dashboard" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
             <q-item-section avatar>
-              <q-icon name="home" class="menu-icon" />
+              <q-icon name="space_dashboard" class="menu-icon" />
             </q-item-section>
-            <q-item-section>Início</q-item-section>
+            <q-item-section>Dashboard</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/mapa" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item clickable v-ripple to="/mobile/prestador/pedidos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
             <q-item-section avatar>
-              <q-icon name="map" class="menu-icon" />
+              <q-icon name="assignment" class="menu-icon" />
             </q-item-section>
-            <q-item-section>Mapa</q-item-section>
-          </q-item>
-
-          <q-item clickable v-ripple to="/mobile/lista-prestadores" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
-            <q-item-section avatar>
-              <q-icon name="list" class="menu-icon" />
+            <q-item-section>Pedidos Recebidos</q-item-section>
+            <q-item-section side>
+              <q-badge color="red">{{ pedidosPendentes }}</q-badge>
             </q-item-section>
-            <q-item-section>Prestadores</q-item-section>
           </q-item>
 
           <q-separator spaced class="menu-separator" />
 
           <q-item-label header class="menu-header">
-            <q-icon name="person" size="16px" />
-            Minha Conta
+            <q-icon name="work" size="16px" />
+            Gestão de Serviços
           </q-item-label>
 
-          <q-item clickable v-ripple to="/mobile/perfil" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item clickable v-ripple to="/mobile/prestador/servicos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+            <q-item-section avatar>
+              <q-icon name="construction" class="menu-icon" />
+            </q-item-section>
+            <q-item-section>Meus Serviços</q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple to="/mobile/prestador/agenda" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+            <q-item-section avatar>
+              <q-icon name="schedule" class="menu-icon" />
+            </q-item-section>
+            <q-item-section>Minha Agenda</q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple to="/mobile/prestador/historico" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+            <q-item-section avatar>
+              <q-icon name="history" class="menu-icon" />
+            </q-item-section>
+            <q-item-section>Histórico</q-item-section>
+          </q-item>
+
+          <q-separator spaced class="menu-separator" />
+
+          <q-item-label header class="menu-header">
+            <q-icon name="payments" size="16px" />
+            Financeiro
+          </q-item-label>
+
+          <q-item clickable v-ripple to="/mobile/prestador/ganhos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+            <q-item-section avatar>
+              <q-icon name="account_balance_wallet" class="menu-icon" />
+            </q-item-section>
+            <q-item-section>Meus Ganhos</q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple to="/mobile/prestador/saques" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+            <q-item-section avatar>
+              <q-icon name="payments" class="menu-icon" />
+            </q-item-section>
+            <q-item-section>Realizar Saque</q-item-section>
+          </q-item>
+
+          <q-separator spaced class="menu-separator" />
+
+          <q-item-label header class="menu-header">
+            <q-icon name="settings" size="16px" />
+            Configurações
+          </q-item-label>
+
+          <q-item clickable v-ripple to="/mobile/prestador/perfil" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
             <q-item-section avatar>
               <q-icon name="person" class="menu-icon" />
             </q-item-section>
             <q-item-section>Meu Perfil</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/meus-pedidos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item clickable v-ripple to="/mobile/prestador/configuracoes" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
             <q-item-section avatar>
-              <q-icon name="assignment" class="menu-icon" />
+              <q-icon name="settings" class="menu-icon" />
             </q-item-section>
-            <q-item-section>Meus Pedidos</q-item-section>
-          </q-item>
-
-          <q-item clickable v-ripple to="/mobile/favoritos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
-            <q-item-section avatar>
-              <q-icon name="favorite" class="menu-icon" />
-            </q-item-section>
-            <q-item-section>Favoritos</q-item-section>
+            <q-item-section>Configurações</q-item-section>
           </q-item>
 
           <q-separator spaced class="menu-separator" />
@@ -124,42 +166,44 @@
       <router-view />
     </q-page-container>
 
-    <!-- Rodapé com 4 ícones - SEM CORES -->
+    <!-- Rodapé com navegação específica para prestador -->
     <q-footer class="footer-custom">
       <q-tabs
         class="tabs-custom"
         indicator-color="transparent"
         active-color="black"
-        active-bg-color="rgba(0,0,0,0.05)"
+        active-bg-color="rgba(102, 126, 234, 0.1)"
         narrow-indicator
         stretch
       >
         <q-route-tab
-          to="/mobile/inicio"
-          icon="home"
-          label="Início"
+          to="/mobile/prestador/dashboard"
+          icon="space_dashboard"
+          label="Dashboard"
           class="tab-item"
           active-class="tab-active"
         />
 
         <q-route-tab
-          to="/mobile/mapa"
-          icon="map"
-          label="Mapa"
+          to="/mobile/prestador/pedidos"
+          icon="assignment"
+          label="Pedidos"
+          class="tab-item"
+          active-class="tab-active"
+        >
+          <q-badge v-if="pedidosPendentes > 0" color="red" floating>{{ pedidosPendentes }}</q-badge>
+        </q-route-tab>
+
+        <q-route-tab
+          to="/mobile/prestador/servicos"
+          icon="construction"
+          label="Serviços"
           class="tab-item"
           active-class="tab-active"
         />
 
         <q-route-tab
-          to="/mobile/lista-prestadores"
-          icon="list"
-          label="Prestadores"
-          class="tab-item"
-          active-class="tab-active"
-        />
-
-        <q-route-tab
-          to="/mobile/perfil"
+          to="/mobile/prestador/perfil"
           icon="person"
           label="Perfil"
           class="tab-item"
@@ -182,11 +226,14 @@ const $q = useQuasar()
 
 const leftDrawerOpen = ref(false)
 
-// Dados do cliente - APENAS informações de cliente
-const userName = computed(() => authStore.user?.nome || 'Cliente')
+// Dados do prestador - APENAS informações de prestador
+const userName = computed(() => authStore.user?.nome || 'João Silva')
 const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png')
+const userRating = ref(4.8)
+const userTotalAvaliacoes = ref(87)
+const pedidosPendentes = ref(3) // Mock - depois virá da API
 
-// CORREÇÃO: userType removido pois não é necessário (sempre cliente)
+// CORREÇÃO: Variável userType removida pois não é usada neste layout
 
 const logout = () => {
   $q.dialog({
@@ -225,7 +272,7 @@ $gray-700: #616161;
 $gray-800: #424242;
 $gray-900: #212121;
 
-.mobile-client-layout {
+.mobile-prestador-layout {
   max-width: 100%;
   margin: 0 auto;
   height: 100vh;
@@ -235,7 +282,7 @@ $gray-900: #212121;
 
 /* Header */
 .header-custom {
-  background: $purple-gradient !important;
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
   box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
 }
 
@@ -311,7 +358,7 @@ $gray-900: #212121;
 
 .drawer-header {
   padding: 24px 16px;
-  background: $purple-gradient;
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
   text-align: center;
 }
 
@@ -332,6 +379,19 @@ $gray-900: #212121;
   .user-type {
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.9);
+  }
+
+  .user-rating {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 4px;
+
+    .rating-count {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
   }
 }
 
@@ -406,7 +466,7 @@ $gray-900: #212121;
   flex: 1;
 }
 
-/* Rodapé - SEM CORES */
+/* Rodapé */
 .footer-custom {
   background: white !important;
   border-top: 1px solid $gray-200;
@@ -428,6 +488,7 @@ $gray-900: #212121;
   min-height: 60px;
   transition: all 0.2s ease;
   color: $gray-600;
+  position: relative;
 
   :deep(.q-tab__icon) {
     font-size: 22px;
@@ -447,15 +508,15 @@ $gray-900: #212121;
 }
 
 .tab-active {
-  color: $gray-900 !important;
-  background: rgba(0, 0, 0, 0.05);
+  color: $purple-primary !important;
+  background: rgba(102, 126, 234, 0.1);
 
   :deep(.q-tab__icon) {
-    color: $gray-800 !important;
+    color: $purple-primary !important;
   }
 
   :deep(.q-tab__label) {
-    color: $gray-900 !important;
+    color: $purple-primary !important;
     font-weight: 600;
   }
 }
