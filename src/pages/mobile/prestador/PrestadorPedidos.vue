@@ -1,723 +1,404 @@
 <template>
-  <q-page class="prestador-pedidos bg-grey-1">
-    <!-- Cabeçalho -->
-    <div class="page-header q-pa-md">
-      <q-btn flat round icon="arrow_back" @click="router.back()" />
-      <div class="text-h5 text-bold">Pedidos Recebidos</div>
-      <q-btn flat round icon="more_vert" @click="opcoes" />
-    </div>
+  <q-layout view="lHh Lpr lFf" class="admin-login-layout">
+    <!-- Header com gradiente -->
+    <q-header class="admin-header">
+      <q-toolbar>
+        <q-toolbar-title class="text-center text-white">
+          <div class="row items-center justify-center q-gutter-sm">
+            <q-icon name="admin_panel_settings" size="32px" />
+            <span class="text-h6">EstouAqui Admin</span>
+          </div>
+        </q-toolbar-title>
+      </q-toolbar>
+    </q-header>
 
-    <!-- Tabs de filtro -->
-    <q-tabs
-      v-model="tab"
-      class="filter-tabs"
-      active-color="primary"
-      indicator-color="primary"
-      align="justify"
-    >
-      <q-tab name="pendentes" label="Pendentes">
-        <q-badge v-if="contadores.pendentes > 0" color="red" floating>{{
-          contadores.pendentes
-        }}</q-badge>
-      </q-tab>
-      <q-tab name="confirmados" label="Confirmados">
-        <q-badge v-if="contadores.confirmados > 0" color="green" floating>{{
-          contadores.confirmados
-        }}</q-badge>
-      </q-tab>
-      <q-tab name="concluidos" label="Concluídos" />
-      <q-tab name="cancelados" label="Cancelados" />
-    </q-tabs>
-
-    <!-- Lista de pedidos -->
-    <q-tab-panels v-model="tab" animated class="bg-transparent">
-      <!-- Pendentes -->
-      <q-tab-panel name="pendentes" class="q-pa-md">
-        <div v-if="pedidosPendentes.length === 0" class="empty-state">
-          <q-icon name="inbox" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido pendente</div>
-          <div class="text-grey-6 q-mt-sm">Quando receber novos pedidos, aparecerão aqui</div>
+    <q-page-container>
+      <q-page class="flex flex-center admin-page">
+        <!-- Background com efeito -->
+        <div class="admin-bg">
+          <div class="admin-bg-overlay"></div>
         </div>
 
-        <div v-else class="pedidos-list">
-          <q-card
-            v-for="pedido in pedidosPendentes"
-            :key="pedido.id"
-            class="pedido-card q-mb-md"
-            flat
-            bordered
-          >
-            <q-card-section>
-              <div class="row items-center">
-                <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" alt="avatar" />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-cliente">{{ pedido.cliente }}</div>
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-info">
-                    <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                    {{ pedido.data }} às {{ pedido.hora }}
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
+        <!-- Card de Login -->
+        <q-card class="admin-login-card" bordered>
+          <!-- Barra superior decorativa -->
+          <div class="admin-card-topbar"></div>
 
-            <q-card-section class="q-pt-none">
-              <div class="pedido-detalhes">
-                <div class="row q-col-gutter-sm">
-                  <div class="col-6">
-                    <div class="detalhe-label">Duração</div>
-                    <div class="detalhe-valor">{{ pedido.duracao }} min</div>
-                  </div>
-                  <div class="col-6">
-                    <div class="detalhe-label">Valor</div>
-                    <div class="detalhe-valor text-primary">{{ pedido.valor }} MZN</div>
-                  </div>
-                </div>
-                <div class="row q-mt-sm">
-                  <div class="col-12">
-                    <div class="detalhe-label">Localização</div>
-                    <div class="detalhe-valor flex items-center">
-                      <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
-                      {{ pedido.localizacao }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
+          <q-card-section class="text-center q-pt-xl">
+            <div class="admin-logo-wrapper">
+              <q-icon name="admin_panel_settings" size="64px" class="admin-logo-icon" />
+            </div>
+            <div class="text-h5 text-weight-bold q-mt-md">Acesso Restrito</div>
+            <div class="text-subtitle2 text-grey-7 q-mt-xs">Área administrativa</div>
+          </q-card-section>
 
-            <q-card-actions align="right" class="q-pa-md">
+          <q-card-section class="q-px-xl q-pb-xl">
+            <q-form @submit="handleAdminLogin" class="q-gutter-md">
+              <!-- Email -->
+              <q-input
+                v-model="email"
+                label="Email"
+                type="email"
+                outlined
+                dense
+                :rules="[(val) => !!val || 'Email é obrigatório']"
+                bg-color="white"
+                class="admin-input"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="email" class="admin-input-icon" />
+                </template>
+              </q-input>
+
+              <!-- Password -->
+              <q-input
+                v-model="password"
+                label="Palavra-passe"
+                :type="showPassword ? 'text' : 'password'"
+                outlined
+                dense
+                class="admin-input"
+                bg-color="white"
+                :rules="[(val) => !!val || 'Palavra-passe é obrigatória']"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="lock" class="admin-input-icon" />
+                </template>
+                <template v-slot:append>
+                  <q-icon
+                    :name="showPassword ? 'visibility_off' : 'visibility'"
+                    class="cursor-pointer"
+                    @click="showPassword = !showPassword"
+                  />
+                </template>
+              </q-input>
+
+              <!-- Lembrar-me -->
+              <div class="row items-center justify-between q-mt-sm">
+                <q-checkbox
+                  v-model="remember"
+                  label="Lembrar-me"
+                  color="admin-primary"
+                  size="sm"
+                />
+                <q-btn
+                  flat
+                  label="Esqueceu a palavra-passe?"
+                  color="admin-primary"
+                  size="sm"
+                  @click="recoverPassword"
+                  no-caps
+                />
+              </div>
+
+              <!-- Botão de Login -->
               <q-btn
-                flat
-                label="Recusar"
-                color="negative"
-                icon="close"
-                @click="recusarPedido(pedido)"
-              />
-              <q-btn
-                unelevated
-                label="Aceitar"
-                color="positive"
-                icon="check"
-                @click="aceitarPedido(pedido)"
-              />
-            </q-card-actions>
-          </q-card>
-        </div>
-      </q-tab-panel>
+                type="submit"
+                label="Acessar Painel"
+                color="admin-primary"
+                class="full-width admin-login-btn"
+                size="lg"
+                :loading="loading"
+                :disable="loading"
+                no-caps
+              >
+                <template v-slot:loading>
+                  <q-spinner-facebook />
+                </template>
+              </q-btn>
 
-      <!-- Confirmados -->
-      <q-tab-panel name="confirmados" class="q-pa-md">
-        <div v-if="pedidosConfirmados.length === 0" class="empty-state">
-          <q-icon name="check_circle" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido confirmado</div>
-          <div class="text-grey-6 q-mt-sm">Os pedidos que aceitar aparecerão aqui</div>
-        </div>
-
-        <div v-else class="pedidos-list">
-          <q-card
-            v-for="pedido in pedidosConfirmados"
-            :key="pedido.id"
-            class="pedido-card q-mb-md"
-            flat
-            bordered
-          >
-            <q-card-section>
-              <div class="row items-center">
-                <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" alt="avatar" />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-cliente">{{ pedido.cliente }}</div>
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-info">
-                    <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                    {{ pedido.data }} às {{ pedido.hora }}
-                  </div>
-                </div>
-                <div class="pedido-status confirmado">
-                  <q-icon name="check_circle" size="16px" class="q-mr-xs" />
-                  Confirmado
-                </div>
-              </div>
-            </q-card-section>
-
-            <q-card-section class="q-pt-none">
-              <div class="pedido-detalhes">
-                <div class="row q-col-gutter-sm">
-                  <div class="col-6">
-                    <div class="detalhe-label">Duração</div>
-                    <div class="detalhe-valor">{{ pedido.duracao }} min</div>
-                  </div>
-                  <div class="col-6">
-                    <div class="detalhe-label">Valor</div>
-                    <div class="detalhe-valor text-primary">{{ pedido.valor }} MZN</div>
-                  </div>
-                </div>
-                <div class="row q-mt-sm">
-                  <div class="col-12">
-                    <div class="detalhe-label">Localização</div>
-                    <div class="detalhe-valor flex items-center">
-                      <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
-                      {{ pedido.localizacao }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-
-            <q-card-actions align="right" class="q-pa-md">
-              <q-btn flat label="Chat" icon="chat" color="primary" @click="abrirChat(pedido)" />
-              <q-btn
-                flat
-                label="Iniciar"
-                icon="play_arrow"
-                color="positive"
-                @click="iniciarServico(pedido)"
-              />
-            </q-card-actions>
-          </q-card>
-        </div>
-      </q-tab-panel>
-
-      <!-- Concluídos -->
-      <q-tab-panel name="concluidos" class="q-pa-md">
-        <div v-if="pedidosConcluidos.length === 0" class="empty-state">
-          <q-icon name="task_alt" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido concluído</div>
-          <div class="text-grey-6 q-mt-sm">Histórico de serviços realizados</div>
-        </div>
-
-        <div v-else class="pedidos-list">
-          <q-card
-            v-for="pedido in pedidosConcluidos"
-            :key="pedido.id"
-            class="pedido-card q-mb-md"
-            flat
-            bordered
-          >
-            <q-card-section>
-              <div class="row items-center">
-                <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" alt="avatar" />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-cliente">{{ pedido.cliente }}</div>
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-info">
-                    <q-icon name="calendar_today" size="14px" class="q-mr-xs" />
-                    {{ pedido.data }}
-                  </div>
-                </div>
-                <div class="pedido-status concluido">
-                  <q-icon name="task_alt" size="16px" class="q-mr-xs" />
-                  Concluído
-                </div>
-              </div>
-            </q-card-section>
-
-            <q-card-section class="q-pt-none">
-              <div class="row items-center">
-                <q-rating v-model="pedido.avaliacao" size="16px" :max="5" color="yellow" readonly />
-                <span class="text-caption text-grey-6 q-ml-sm"
-                  >{{ pedido.avaliacao }} ({{ pedido.totalAvaliacoes }})</span
+              <!-- Aviso de segurança - VERMELHO -->
+              <div class="text-center q-mt-md">
+                <q-badge
+                  outline
+                  class="admin-security-badge q-pa-sm"
                 >
+                  <q-icon name="security" size="16px" class="q-mr-xs" />
+                  Acesso restrito a administradores
+                </q-badge>
               </div>
-            </q-card-section>
+            </q-form>
+          </q-card-section>
 
-            <q-card-actions align="right" class="q-pa-md">
-              <q-btn
-                flat
-                label="Ver detalhes"
-                icon="visibility"
-                color="primary"
-                @click="verDetalhes(pedido)"
-              />
-            </q-card-actions>
-          </q-card>
+          <!-- Informações de contato -->
+          <q-card-section class="bg-grey-2 text-center q-py-md">
+            <div class="text-caption text-grey-7">
+              <q-icon name="support_agent" size="16px" class="q-mr-xs" />
+              Suporte: admin@estouaqui.co.mz
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <!-- Footer -->
+        <div class="admin-footer">
+          <div class="text-caption text-white">
+            © 2026 EstouAqui - Todos os direitos reservados
+          </div>
         </div>
-      </q-tab-panel>
-
-      <!-- Cancelados -->
-      <q-tab-panel name="cancelados" class="q-pa-md">
-        <div v-if="pedidosCancelados.length === 0" class="empty-state">
-          <q-icon name="cancel" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido cancelado</div>
-        </div>
-
-        <div v-else class="pedidos-list">
-          <q-card
-            v-for="pedido in pedidosCancelados"
-            :key="pedido.id"
-            class="pedido-card q-mb-md"
-            flat
-            bordered
-          >
-            <q-card-section>
-              <div class="row items-center">
-                <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" alt="avatar" />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-cliente">{{ pedido.cliente }}</div>
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-info">
-                    <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                    {{ pedido.data }} às {{ pedido.hora }}
-                  </div>
-                </div>
-                <div class="pedido-status cancelado">
-                  <q-icon name="cancel" size="16px" class="q-mr-xs" />
-                  Cancelado
-                </div>
-              </div>
-              <div v-if="pedido.motivo" class="q-mt-sm text-caption text-grey-6">
-                Motivo: {{ pedido.motivo }}
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </q-tab-panel>
-    </q-tab-panels>
-
-    <!-- Botão flutuante para configurações -->
-    <q-page-sticky position="bottom-right" :offset="[18, 18]">
-      <q-btn fab icon="settings" color="primary" @click="configurarNotificacoes">
-        <q-tooltip>Configurar notificações</q-tooltip>
-      </q-btn>
-    </q-page-sticky>
-  </q-page>
+      </q-page>
+    </q-page-container>
+  </q-layout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
-
 defineOptions({
-  name: 'PrestadorPedidos',
-});
+  name: 'AdminLogin'
+})
 
-// Tipos
-interface PedidoBase {
-  id: number;
-  cliente: string;
-  clienteAvatar: string;
-  servico: string;
-  data: string;
-  hora: string;
-  duracao: number;
-  valor: number;
-  localizacao: string;
-}
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from 'src/stores/auth'
+import { useQuasar } from 'quasar'
 
-interface PedidoConcluido extends PedidoBase {
-  avaliacao: number;
-  totalAvaliacoes: number;
-}
+const router = useRouter()
+const authStore = useAuthStore()
+const $q = useQuasar()
 
-interface PedidoCancelado extends PedidoBase {
-  motivo?: string;
-}
+const email = ref('')
+const password = ref('')
+const showPassword = ref(false)
+const remember = ref(false)
+const loading = ref(false)
 
-interface Contadores {
-  pendentes: number;
-  confirmados: number;
-  concluidos: number;
-  cancelados: number;
-}
+const handleAdminLogin = async (): Promise<void> => {
+  if (!email.value || !password.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Preencha todos os campos',
+      position: 'top',
+      icon: 'warning'
+    })
+    return
+  }
 
-const router = useRouter();
-const $q = useQuasar();
+  loading.value = true
+  try {
+    const success = await authStore.login(email.value, password.value)
 
-// Estado
-const tab = ref('pendentes');
+    if (success) {
+      const user = authStore.user
 
-// Dados mockados
-const pedidosPendentes = ref<PedidoBase[]>([
-  {
-    id: 1,
-    cliente: 'Maria Santos',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar2.jpg',
-    servico: 'Reparação elétrica',
-    data: 'Hoje',
-    hora: '14:30',
-    duracao: 60,
-    valor: 1500,
-    localizacao: 'Av. 24 de Julho, Maputo',
-  },
-  {
-    id: 2,
-    cliente: 'Pedro Oliveira',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar3.jpg',
-    servico: 'Instalação de tomada',
-    data: 'Amanhã',
-    hora: '09:00',
-    duracao: 30,
-    valor: 800,
-    localizacao: 'Bairro Central, Matola',
-  },
-  {
-    id: 3,
-    cliente: 'Ana Costa',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar4.jpg',
-    servico: 'Troca de disjuntor',
-    data: '12 Mar',
-    hora: '15:30',
-    duracao: 45,
-    valor: 1200,
-    localizacao: 'Bairro da Coop, Maputo',
-  },
-]);
-
-const pedidosConfirmados = ref<PedidoBase[]>([
-  {
-    id: 4,
-    cliente: 'Carlos Mendes',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar5.jpg',
-    servico: 'Reparação geral',
-    data: 'Hoje',
-    hora: '16:00',
-    duracao: 90,
-    valor: 2000,
-    localizacao: 'Bairro dos Pescadores, Maputo',
-  },
-]);
-
-const pedidosConcluidos = ref<PedidoConcluido[]>([
-  {
-    id: 5,
-    cliente: 'Sofia Rodrigues',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar6.jpg',
-    servico: 'Instalação elétrica',
-    data: '10 Mar 2026',
-    hora: '10:00',
-    duracao: 120,
-    valor: 2500,
-    localizacao: 'Bairro Triunfo, Matola',
-    avaliacao: 5,
-    totalAvaliacoes: 12,
-  },
-  {
-    id: 6,
-    cliente: 'Ricardo Sousa',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar.png',
-    servico: 'Troca de fiação',
-    data: '8 Mar 2026',
-    hora: '14:00',
-    duracao: 180,
-    valor: 3500,
-    localizacao: 'Bairro Central, Maputo',
-    avaliacao: 4,
-    totalAvaliacoes: 8,
-  },
-]);
-
-const pedidosCancelados = ref<PedidoCancelado[]>([
-  {
-    id: 7,
-    cliente: 'Fernando Lima',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar3.jpg',
-    servico: 'Reparação emergencial',
-    data: '5 Mar 2026',
-    hora: '19:00',
-    duracao: 60,
-    valor: 1800,
-    localizacao: 'Bairro da Machava, Maputo',
-    motivo: 'Cliente desistiu',
-  },
-]);
-
-// Contadores
-const contadores = computed<Contadores>(() => ({
-  pendentes: pedidosPendentes.value.length,
-  confirmados: pedidosConfirmados.value.length,
-  concluidos: pedidosConcluidos.value.length,
-  cancelados: pedidosCancelados.value.length,
-}));
-
-// CORREÇÃO DEFINITIVA: Função auxiliar para encontrar e remover pedido
-// CORREÇÃO DEFINITIVA: Funções auxiliares com tipo explícito
-const encontrarERemoverPendente = (pedido: PedidoBase): PedidoBase | null => {
-  const index = pedidosPendentes.value.findIndex((p) => p.id === pedido.id);
-  if (index === -1) return null;
-
-  // CORREÇÃO: Garantir que não é undefined
-  const pedidoEncontrado = pedidosPendentes.value[index];
-  if (!pedidoEncontrado) return null;
-
-  pedidosPendentes.value.splice(index, 1);
-  return pedidoEncontrado;
-};
-
-const encontrarERemoverConfirmado = (pedido: PedidoBase): PedidoBase | null => {
-  const index = pedidosConfirmados.value.findIndex((p) => p.id === pedido.id);
-  if (index === -1) return null;
-
-  // CORREÇÃO: Garantir que não é undefined
-  const pedidoEncontrado = pedidosConfirmados.value[index];
-  if (!pedidoEncontrado) return null;
-
-  pedidosConfirmados.value.splice(index, 1);
-  return pedidoEncontrado;
-};
-
-// Ações
-const aceitarPedido = (pedido: PedidoBase): void => {
-  $q.dialog({
-    title: 'Confirmar aceitação',
-    message: `Deseja aceitar o pedido de ${pedido.cliente}?`,
-    cancel: true,
-    persistent: true,
-    ok: {
-      label: 'Aceitar',
-      color: 'positive',
-      unelevated: true,
-    },
-  }).onOk(() => {
-    const pedidoAceito = encontrarERemoverPendente(pedido);
-    if (pedidoAceito) {
-      pedidosConfirmados.value.push(pedidoAceito);
-
-      $q.notify({
-        type: 'positive',
-        message: 'Pedido aceito com sucesso!',
-        position: 'top',
-        icon: 'check_circle',
-      });
-    }
-  });
-};
-
-const recusarPedido = (pedido: PedidoBase): void => {
-  $q.dialog({
-    title: 'Confirmar recusa',
-    message: `Deseja recusar o pedido de ${pedido.cliente}?`,
-    cancel: true,
-    persistent: true,
-    ok: {
-      label: 'Recusar',
-      color: 'negative',
-      unelevated: true,
-    },
-  }).onOk(() => {
-    const pedidoRecusado = encontrarERemoverPendente(pedido);
-    if (pedidoRecusado) {
-      const novoPedidoCancelado: PedidoCancelado = {
-        ...pedidoRecusado,
-        motivo: 'Recusado pelo prestador',
-      };
-
-      pedidosCancelados.value.push(novoPedidoCancelado);
-
-      $q.notify({
-        type: 'negative',
-        message: 'Pedido recusado',
-        position: 'top',
-        icon: 'cancel',
-      });
-    }
-  });
-};
-
-const abrirChat = (pedido: PedidoBase): void => {
-  void router.push(`/mobile/chat/${pedido.id}`);
-};
-
-const iniciarServico = (pedido: PedidoBase): void => {
-  $q.dialog({
-    title: 'Iniciar serviço',
-    message: 'Confirmar início do serviço?',
-    cancel: true,
-    persistent: true,
-  }).onOk(() => {
-    const pedidoIniciado = encontrarERemoverConfirmado(pedido);
-    if (pedidoIniciado) {
-      $q.notify({
-        type: 'positive',
-        message: 'Serviço iniciado! Bom trabalho!',
-        position: 'top',
-        icon: 'play_circle',
-        timeout: 3000,
-      });
-
-      setTimeout(() => {
-        const novoPedidoConcluido: PedidoConcluido = {
-          ...pedidoIniciado,
-          avaliacao: 5,
-          totalAvaliacoes: 1,
-        };
-
-        pedidosConcluidos.value.push(novoPedidoConcluido);
-
+      if (user?.tipo === 'admin') {
         $q.notify({
           type: 'positive',
-          message: 'Serviço concluído!',
+          message: 'Bem-vindo ao painel administrativo!',
           position: 'top',
-          icon: 'task_alt',
-        });
-      }, 3000);
+          icon: 'check_circle'
+        })
+        void router.push('/admin/dashboard')
+      } else {
+        authStore.logout()
+        $q.notify({
+          type: 'negative',
+          message: 'Acesso negado. Esta área é apenas para administradores.',
+          position: 'top',
+          icon: 'block'
+        })
+      }
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'Email ou palavra-passe incorretos',
+        position: 'top',
+        icon: 'error'
+      })
     }
-  });
-};
+  } catch {
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao fazer login. Tente novamente.',
+      position: 'top',
+      icon: 'error'
+    })
+  } finally {
+    loading.value = false
+  }
+}
 
-const verDetalhes = (pedido: PedidoConcluido): void => {
-  $q.notify({
-    type: 'info',
-    message: `Detalhes do serviço #${pedido.id}`,
-    position: 'top',
-  });
-};
-
-const opcoes = (): void => {
+const recoverPassword = (): void => {
   $q.dialog({
-    title: 'Opções',
-    message: 'Configurações de pedidos',
-    options: {
-      type: 'radio',
-      model: 'notificacoes',
-      items: [
-        { label: 'Notificações em tempo real', value: 'notificacoes' },
-        { label: 'Modo não perturbe', value: 'dnd' },
-        { label: 'Aceitar automaticamente', value: 'auto' },
-      ],
+    title: 'Recuperar Palavra-passe',
+    message: 'Digite seu email para receber instruções de recuperação:',
+    prompt: {
+      model: '',
+      type: 'email',
+      isValid: (val: string) => /.+@.+\..+/.test(val)
     },
     cancel: true,
-    persistent: true,
-  }).onOk(() => {
+    persistent: true
+  }).onOk((email: string) => {
     $q.notify({
-      type: 'positive',
-      message: 'Configuração salva',
+      type: 'info',
+      message: `Instruções enviadas para ${email}`,
       position: 'top',
-    });
-  });
-};
-
-const configurarNotificacoes = (): void => {
-  $q.notify({
-    type: 'info',
-    message: 'Configurações de notificação em breve',
-    position: 'top',
-  });
-};
+      icon: 'mail'
+    })
+  })
+}
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
-$gray-50: #fafafa;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-$gray-700: #616161;
-$gray-800: #424242;
-$gray-900: #212121;
+// Cores exclusivas para o admin
+$admin-primary: #1e3c72;
+$admin-secondary: #2a5298;
+$admin-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+$admin-danger: #dc3545;
+$admin-warning: #f39c12;
+$admin-dark: #0a1a2f;
 
-.prestador-pedidos {
+.admin-login-layout {
+  background: $admin-dark;
+}
+
+.admin-header {
+  background: $admin-gradient !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-page {
   min-height: 100vh;
+  position: relative;
+  background: $admin-dark;
 }
 
-.page-header {
+.admin-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+
+  &-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 10% 20%, rgba(30, 60, 114, 0.4) 0%, rgba(10, 26, 47, 0.9) 90%);
+  }
+}
+
+.admin-login-card {
+  width: 450px;
+  max-width: 90vw;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+  animation: slideIn 0.5s ease-out;
+
+  .admin-card-topbar {
+    height: 8px;
+    background: $admin-gradient;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+  }
+}
+
+.admin-logo-wrapper {
+  width: 100px;
+  height: 100px;
+  background: rgba(30, 60, 114, 0.1);
+  border-radius: 30px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: white;
-  border-bottom: 1px solid $gray-200;
-}
-
-.filter-tabs {
-  background: white;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 50vh;
-  text-align: center;
+  margin: 0 auto;
+
+  .admin-logo-icon {
+    color: $admin-primary;
+    animation: pulse 2s infinite;
+  }
 }
 
-.pedido-card {
-  border-radius: 16px;
-  transition: transform 0.3s ease;
+.admin-input {
+  :deep(.q-field__control) {
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: rgba(30, 60, 114, 0.3);
+    }
+
+    &:focus-within {
+      border-color: $admin-primary;
+    }
+  }
+
+  :deep(.q-field__native) {
+    padding: 12px 0;
+  }
+
+  .admin-input-icon {
+    color: $admin-primary;
+  }
+}
+
+.admin-login-btn {
+  height: 56px;
+  border-radius: 28px;
+  background: $admin-gradient;
+  font-weight: 600;
+  text-transform: none;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px rgba(30, 60, 114, 0.3);
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 15px 30px rgba(30, 60, 114, 0.4);
   }
 
-  .pedido-cliente {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: $gray-800;
-  }
-
-  .pedido-servico {
-    font-size: 0.9rem;
-    color: $purple-primary;
-    margin: 2px 0;
-  }
-
-  .pedido-info {
-    font-size: 0.8rem;
-    color: $gray-600;
-    display: flex;
-    align-items: center;
+  &:active {
+    transform: translateY(0);
   }
 }
 
-.pedido-detalhes {
-  background: $gray-50;
-  border-radius: 12px;
-  padding: 12px;
-
-  .detalhe-label {
-    font-size: 0.7rem;
-    color: $gray-500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .detalhe-valor {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: $gray-800;
-  }
-}
-
-.pedido-status {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 20px;
-  display: flex;
+// Badge de segurança VERMELHO
+.admin-security-badge {
+  background: transparent !important;
+  border: 1px solid $admin-danger !important;
+  color: $admin-danger !important;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 30px;
+  display: inline-flex;
   align-items: center;
+  gap: 4px;
 
-  &.confirmado {
-    background: #e8f5e9;
-    color: #2e7d32;
+  .q-icon {
+    color: $admin-danger;
   }
 
-  &.concluido {
-    background: #e3f2fd;
-    color: #1976d2;
+  &:hover {
+    background: rgba($admin-danger, 0.05) !important;
   }
+}
 
-  &.cancelado {
-    background: #ffebee;
-    color: #c62828;
-  }
+.admin-footer {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
 }
 
 // Animações
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -725,16 +406,28 @@ $gray-900: #212121;
   }
 }
 
-.pedido-card {
-  animation: slideIn 0.3s ease;
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 // Responsividade
-@media (max-width: 599px) {
-  .pedido-card {
-    .row.q-col-gutter-sm > .col-6 {
-      width: 100%;
+@media (max-width: 768px) {
+  .admin-login-card {
+    margin: 20px;
+
+    .q-px-xl {
+      padding-left: 20px !important;
+      padding-right: 20px !important;
     }
+  }
+
+  .admin-footer {
+    bottom: 10px;
   }
 }
 </style>

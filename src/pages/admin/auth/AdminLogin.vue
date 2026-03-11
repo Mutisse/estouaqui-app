@@ -1,455 +1,488 @@
-<!-- pages/admin/auth/AdminLogin.vue -->
 <template>
-  <q-layout view="lHh Lpr lFf" class="admin-login-layout">
-    <!-- Header com gradiente -->
-    <q-header class="admin-header">
-      <q-toolbar>
-        <q-toolbar-title class="text-center text-white">
-          <div class="row items-center justify-center q-gutter-sm">
-            <q-icon name="admin_panel_settings" size="32px" />
-            <span class="text-h6">EstouAqui Admin</span>
+  <q-layout view="hHh LpR fFf" class="admin-layout">
+    <!-- Header -->
+    <q-header elevated class="admin-header text-white">
+      <q-toolbar class="q-px-md">
+        <q-btn
+          flat
+          round
+          dense
+          icon="menu"
+          @click="leftDrawerOpen = !leftDrawerOpen"
+          class="menu-btn"
+        />
+
+        <q-toolbar-title class="row items-center">
+          <div class="logo-wrapper">
+            <span class="text-bold">Estou</span>
+            <span class="text-bold text-primary">Aqui</span>
           </div>
+          <span class="admin-badge q-ml-md">Admin</span>
         </q-toolbar-title>
+
+        <!-- Info do admin -->
+        <div class="row items-center q-gutter-sm">
+          <q-chip dense class="bg-white text-primary" icon="notifications">
+            {{ notificacoesNaoLidas }}
+          </q-chip>
+
+          <q-btn flat round dense icon="notifications" class="notification-btn">
+            <q-menu>
+              <q-list style="min-width: 300px" class="notification-list">
+                <q-item-label header class="bg-grey-2 text-weight-bold">Notificações</q-item-label>
+                <q-item v-for="notif in notificacoes" :key="notif.id" clickable v-close-popup>
+                  <q-item-section avatar>
+                    <q-avatar :color="notif.lida ? 'grey-3' : 'primary'" text-color="white">
+                      <q-icon :name="notif.icone" size="18px" />
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ notif.titulo }}</q-item-label>
+                    <q-item-label caption>{{ notif.descricao }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item v-if="notificacoes.length === 0" disabled>
+                  <q-item-section class="text-center text-grey-6 q-py-md">
+                    Sem notificações
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+
+          <q-btn flat round dense icon="more_vert">
+            <q-menu>
+              <q-list style="min-width: 200px">
+                <q-item clickable v-close-popup to="/admin/perfil">
+                  <q-item-section avatar>
+                    <q-icon name="person" size="18px" />
+                  </q-item-section>
+                  <q-item-section>Meu Perfil</q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup to="/admin/configuracoes">
+                  <q-item-section avatar>
+                    <q-icon name="settings" size="18px" />
+                  </q-item-section>
+                  <q-item-section>Configurações</q-item-section>
+                </q-item>
+                <q-separator />
+                <q-item clickable v-close-popup @click="logout">
+                  <q-item-section avatar>
+                    <q-icon name="logout" size="18px" color="negative" />
+                  </q-item-section>
+                  <q-item-section class="text-negative">Sair</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+        </div>
       </q-toolbar>
     </q-header>
 
-    <q-page-container>
-      <q-page class="flex flex-center admin-page">
-        <!-- Background com efeito -->
-        <div class="admin-bg">
-          <div class="admin-bg-overlay"></div>
-        </div>
-
-        <!-- Card de Login -->
-        <q-card class="admin-login-card" bordered>
-          <!-- Barra superior decorativa -->
-          <div class="admin-card-topbar"></div>
-
-          <q-card-section class="text-center q-pt-xl">
-            <div class="admin-logo-wrapper">
-              <q-icon name="admin_panel_settings" size="64px" class="admin-logo-icon" />
+    <!-- Drawer - SEMPRE VISÍVEL -->
+    <q-drawer
+      v-model="leftDrawerOpen"
+      :show-if-above="true"
+      :width="300"
+      :breakpoint="0"
+      bordered
+      class="admin-drawer"
+    >
+      <q-scroll-area class="fit">
+        <!-- Perfil resumido no drawer -->
+        <div class="drawer-profile q-pa-md">
+          <div class="row items-center">
+            <q-avatar size="56px" class="profile-avatar">
+              <img :src="userAvatar" :alt="userNome">
+            </q-avatar>
+            <div class="q-ml-md">
+              <div class="profile-name">{{ userNome }}</div>
+              <div class="profile-role">Administrador</div>
             </div>
-            <div class="text-h5 text-weight-bold q-mt-md">Acesso Restrito</div>
-            <div class="text-subtitle2 text-grey-7 q-mt-xs">Área administrativa</div>
-          </q-card-section>
-
-          <q-card-section class="q-px-xl q-pb-xl">
-            <q-form @submit="handleAdminLogin" class="q-gutter-md">
-              <!-- Email -->
-              <q-input
-                v-model="email"
-                label="Email"
-                type="email"
-                outlined
-                dense
-                :rules="[(val) => !!val || 'Email é obrigatório']"
-                bg-color="white"
-                class="admin-input"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="email" class="admin-input-icon" />
-                </template>
-              </q-input>
-
-              <!-- Password -->
-              <q-input
-                v-model="password"
-                label="Palavra-passe"
-                :type="showPassword ? 'text' : 'password'"
-                outlined
-                dense
-                class="admin-input"
-                bg-color="white"
-                :rules="[(val) => !!val || 'Palavra-passe é obrigatória']"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="lock" class="admin-input-icon" />
-                </template>
-                <template v-slot:append>
-                  <q-icon
-                    :name="showPassword ? 'visibility_off' : 'visibility'"
-                    class="cursor-pointer"
-                    @click="showPassword = !showPassword"
-                  />
-                </template>
-              </q-input>
-
-              <!-- Lembrar-me -->
-              <div class="row items-center justify-between q-mt-sm">
-                <q-checkbox
-                  v-model="remember"
-                  label="Lembrar-me"
-                  color="admin-primary"
-                  size="sm"
-                />
-                <q-btn
-                  flat
-                  label="Esqueceu a palavra-passe?"
-                  color="admin-primary"
-                  size="sm"
-                  @click="recoverPassword"
-                  no-caps
-                />
-              </div>
-
-              <!-- Botão de Login -->
-              <q-btn
-                type="submit"
-                label="Acessar Painel"
-                color="admin-primary"
-                class="full-width admin-login-btn"
-                size="lg"
-                :loading="loading"
-                :disable="loading"
-                no-caps
-              >
-                <template v-slot:loading>
-                  <q-spinner-facebook />
-                </template>
-              </q-btn>
-
-              <!-- Aviso de segurança - VERMELHO -->
-              <div class="text-center q-mt-md">
-                <q-badge
-                  outline
-                  class="admin-security-badge q-pa-sm"
-                >
-                  <q-icon name="security" size="16px" class="q-mr-xs" />
-                  Acesso restrito a administradores
-                </q-badge>
-              </div>
-            </q-form>
-          </q-card-section>
-
-          <!-- Informações de contato -->
-          <q-card-section class="bg-grey-2 text-center q-py-md">
-            <div class="text-caption text-grey-7">
-              <q-icon name="support_agent" size="16px" class="q-mr-xs" />
-              Suporte: admin@estouaqui.co.mz
-            </div>
-          </q-card-section>
-        </q-card>
-
-        <!-- Footer -->
-        <div class="admin-footer">
-          <div class="text-caption text-white">
-            © 2026 EstouAqui - Todos os direitos reservados
           </div>
         </div>
-      </q-page>
+
+        <q-list padding class="menu-list">
+          <template v-for="(item, index) in menuItems" :key="index">
+            <q-item-label v-if="item.header" header class="text-grey-7 text-uppercase">
+              {{ item.header }}
+            </q-item-label>
+
+            <q-item
+              v-else
+              clickable
+              v-ripple
+              :to="item.to"
+              :active="item.to ? isActive(item.to) : false"
+              active-class="menu-item-active"
+              class="menu-item"
+              exact
+            >
+              <q-item-section avatar>
+                <q-icon :name="item.icon || ''" :color="item.to && isActive(item.to) ? 'primary' : 'grey-7'" />
+              </q-item-section>
+              <q-item-section>{{ item.label || '' }}</q-item-section>
+
+              <!-- Badge para contagens -->
+              <q-item-section v-if="item.badge" side>
+                <q-badge :color="item.badgeColor || 'primary'" rounded>
+                  {{ item.badge }}
+                </q-badge>
+              </q-item-section>
+            </q-item>
+
+            <q-separator v-if="item.separator" :key="'sep-' + index" class="q-my-sm" />
+          </template>
+        </q-list>
+      </q-scroll-area>
+
+      <!-- Footer do drawer -->
+      <div class="drawer-footer q-pa-md">
+        <div class="text-caption text-grey-6">
+          Versão 1.0.0
+        </div>
+      </div>
+    </q-drawer>
+
+    <q-page-container :style="{ marginLeft: leftDrawerOpen ? '300px' : '0' }">
+      <router-view />
     </q-page-container>
+
+    <!-- Loading global -->
+    <q-inner-loading :showing="globalLoading">
+      <q-spinner size="50px" color="primary" />
+    </q-inner-loading>
   </q-layout>
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useAuthStore } from 'src/stores/auth';
+import { useQuasar } from 'quasar';
+
 defineOptions({
-  name: 'AdminLogin'
-})
+  name: 'AdminLayout'
+});
 
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from 'src/stores/auth'
-import { useQuasar } from 'quasar'
+const router = useRouter();
+const route = useRoute();
+const $q = useQuasar();
+const authStore = useAuthStore();
 
-const router = useRouter()
-const authStore = useAuthStore()
-const $q = useQuasar()
+// Computed properties para o usuário
+const userNome = computed<string>(() => {
+  return authStore.user?.nome || 'Administrador';
+});
 
-const email = ref('')
-const password = ref('')
-const showPassword = ref(false)
-const remember = ref(false)
-const loading = ref(false)
+const userAvatar = computed<string>(() => {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(userNome.value)}&background=667eea&color=fff&size=56`;
+});
 
-const handleAdminLogin = async (): Promise<void> => {
-  if (!email.value || !password.value) {
-    $q.notify({
-      type: 'warning',
-      message: 'Preencha todos os campos',
-      position: 'top',
-      icon: 'warning'
-    })
-    return
-  }
+// Estados
+const leftDrawerOpen = ref<boolean>(true);
+const globalLoading = ref<boolean>(false);
 
-  loading.value = true
-  try {
-    const success = await authStore.login(email.value, password.value)
-
-    if (success) {
-      const user = authStore.user
-
-      if (user?.tipo === 'admin') {
-        $q.notify({
-          type: 'positive',
-          message: 'Bem-vindo ao painel administrativo!',
-          position: 'top',
-          icon: 'check_circle'
-        })
-        void router.push('/admin/dashboard')
-      } else {
-        authStore.logout()
-        $q.notify({
-          type: 'negative',
-          message: 'Acesso negado. Esta área é apenas para administradores.',
-          position: 'top',
-          icon: 'block'
-        })
-      }
-    } else {
-      $q.notify({
-        type: 'negative',
-        message: 'Email ou palavra-passe incorretos',
-        position: 'top',
-        icon: 'error'
-      })
-    }
-  } catch (err: unknown) {
-    // Agora a variável 'err' é usada para log
-    console.error('Erro no login:', err)
-
-    let errorMessage = 'Erro ao fazer login. Tente novamente.'
-
-    // Se for um erro de rede ou erro conhecido, podemos personalizar a mensagem
-    if (err instanceof Error) {
-      errorMessage = err.message
-    } else if (typeof err === 'string') {
-      errorMessage = err
-    }
-
-    $q.notify({
-      type: 'negative',
-      message: errorMessage,
-      position: 'top',
-      icon: 'error'
-    })
-  } finally {
-    loading.value = false
-  }
+// Interface para notificações
+interface Notificacao {
+  id: number;
+  icone: string;
+  titulo: string;
+  descricao: string;
+  lida: boolean;
 }
 
-const recoverPassword = (): void => {
+// Interface para items do menu - TODAS AS PROPRIEDADES OPCIONAIS
+interface MenuItem {
+  header?: string;
+  icon?: string;
+  label?: string;
+  to?: string;
+  badge?: string | number;
+  badgeColor?: string;
+  separator?: boolean;
+}
+
+// Dados mockados para notificações
+const notificacoes = ref<Notificacao[]>([
+  { id: 1, icone: 'person_add', titulo: 'Novo prestador', descricao: 'João Silva aguarda verificação', lida: false },
+  { id: 2, icone: 'assignment', titulo: 'Serviço concluído', descricao: 'Serviço #123 foi concluído', lida: false },
+  { id: 3, icone: 'star', titulo: 'Nova avaliação', descricao: 'Cliente avaliou serviço com 5 estrelas', lida: true }
+]);
+
+const notificacoesNaoLidas = computed<number>(() => {
+  return notificacoes.value.filter(n => !n.lida).length;
+});
+
+// Verificar se rota está ativa
+const isActive = (path: string): boolean => {
+  return route.path === path || route.path.startsWith(path + '/');
+};
+
+// Menu items organizados por seção - usando as rotas exatas do admin
+const menuItems = computed<MenuItem[]>(() => [
+  { header: 'PRINCIPAL' },
+  {
+    icon: 'dashboard',
+    label: 'Dashboard',
+    to: '/admin/dashboard'
+  },
+  { separator: true },
+
+  { header: 'GESTÃO' },
+  {
+    icon: 'people',
+    label: 'Utilizadores',
+    to: '/admin/utilizadores',
+    badge: '12',
+    badgeColor: 'positive'
+  },
+  {
+    icon: 'handyman',
+    label: 'Prestadores',
+    to: '/admin/prestadores',
+    badge: '5',
+    badgeColor: 'warning'
+  },
+  {
+    icon: 'category',
+    label: 'Categorias',
+    to: '/admin/categorias'
+  },
+  {
+    icon: 'assignment',
+    label: 'Serviços',
+    to: '/admin/servicos',
+    badge: '23',
+    badgeColor: 'info'
+  },
+  { separator: true },
+
+  { header: 'RELATÓRIOS' },
+  {
+    icon: 'bar_chart',
+    label: 'Estatísticas',
+    to: '/admin/estatisticas'
+  },
+  {
+    icon: 'assessment',
+    label: 'Relatórios',
+    to: '/admin/relatorios'
+  },
+  {
+    icon: 'payments',
+    label: 'Financeiro',
+    to: '/admin/financeiro'
+  },
+  { separator: true },
+
+  { header: 'SISTEMA' },
+  {
+    icon: 'settings',
+    label: 'Configurações',
+    to: '/admin/configuracoes'
+  },
+  {
+    icon: 'security',
+    label: 'Logs',
+    to: '/admin/logs'
+  },
+  { separator: true },
+
+  {
+    icon: 'person',
+    label: 'Meu Perfil',
+    to: '/admin/perfil'
+  }
+]);
+
+// Métodos
+const logout = (): void => {
   $q.dialog({
-    title: 'Recuperar Palavra-passe',
-    message: 'Digite seu email para receber instruções de recuperação:',
-    prompt: {
-      model: '',
-      type: 'email',
-      isValid: (val: string) => /.+@.+\..+/.test(val)
-    },
+    title: 'Confirmar saída',
+    message: 'Tem certeza que deseja sair da sua conta?',
     cancel: {
       label: 'Cancelar',
-      color: 'grey',
+      color: 'grey-7',
       flat: true
     },
     ok: {
-      label: 'Enviar',
-      color: 'admin-primary',
+      label: 'Sair',
+      color: 'negative',
       unelevated: true
     },
     persistent: true
-  }).onOk((email: string) => {
-    $q.notify({
-      type: 'info',
-      message: `Instruções enviadas para ${email}`,
-      position: 'top',
-      icon: 'mail'
-    })
-  })
-}
+  }).onOk(() => {
+    globalLoading.value = true;
+    authStore.logout();
+    setTimeout(() => {
+      globalLoading.value = false;
+      void router.push('/auth/login');
+    }, 500);
+  });
+};
+
+// Verificar permissões
+onMounted(() => {
+  // Verificar se o usuário está autenticado e é admin
+  if (!authStore.isAuthenticated || !authStore.isAdmin) {
+    void router.push('/admin/login');
+  }
+});
 </script>
 
 <style scoped lang="scss">
-// Cores exclusivas para o admin (diferentes do site principal)
-$admin-primary: #1e3c72;
-$admin-secondary: #2a5298;
-$admin-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-$admin-danger: #dc3545; // Vermelho para o badge
-$admin-warning: #f39c12;
-$admin-dark: #0a1a2f;
+$purple-primary: #667eea;
+$purple-secondary: #764ba2;
+$purple-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$gray-50: #fafafa;
+$gray-100: #f5f5f5;
+$gray-200: #eeeeee;
+$gray-300: #e0e0e0;
+$gray-400: #bdbdbd;
+$gray-500: #9e9e9e;
+$gray-600: #757575;
+$gray-700: #616161;
+$gray-800: #424242;
+$gray-900: #212121;
 
-.admin-login-layout {
-  background: $admin-dark;
+.admin-layout {
+  background: $gray-50;
 }
 
+// Header styles
 .admin-header {
-  background: $admin-gradient !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.admin-page {
-  min-height: 100vh;
-  position: relative;
-  background: $admin-dark;
-}
-
-.admin-bg {
-  position: absolute;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
-  background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+  z-index: 2000;
 
-  &-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 10% 20%, rgba(30, 60, 114, 0.4) 0%, rgba(10, 26, 47, 0.9) 90%);
-  }
-}
-
-.admin-login-card {
-  width: 450px;
-  max-width: 90vw;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  position: relative;
-  overflow: hidden;
-  animation: slideIn 0.5s ease-out;
-
-  .admin-card-topbar {
-    height: 8px;
-    background: $admin-gradient;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-  }
-}
-
-.admin-logo-wrapper {
-  width: 100px;
-  height: 100px;
-  background: rgba(30, 60, 114, 0.1);
-  border-radius: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-
-  .admin-logo-icon {
-    color: $admin-primary;
-    animation: pulse 2s infinite;
-  }
-}
-
-.admin-input {
-  :deep(.q-field__control) {
-    border-radius: 12px;
-    border: 2px solid transparent;
+  .menu-btn {
     transition: all 0.3s ease;
 
     &:hover {
-      border-color: rgba(30, 60, 114, 0.3);
-    }
-
-    &:focus-within {
-      border-color: $admin-primary;
+      background: rgba(255,255,255,0.1);
     }
   }
 
-  :deep(.q-field__native) {
-    padding: 12px 0;
+  .logo-wrapper {
+    font-size: 1.3rem;
+
+    .text-primary {
+      color: $purple-primary !important;
+    }
   }
 
-  .admin-input-icon {
-    color: $admin-primary;
-  }
-}
-
-.admin-login-btn {
-  height: 56px;
-  border-radius: 28px;
-  background: $admin-gradient;
-  font-weight: 600;
-  text-transform: none;
-  font-size: 1.1rem;
-  letter-spacing: 1px;
-  transition: all 0.3s ease;
-  box-shadow: 0 10px 20px rgba(30, 60, 114, 0.3);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 30px rgba(30, 60, 114, 0.4);
+  .admin-badge {
+    background: rgba($purple-primary, 0.2);
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    border: 1px solid rgba($purple-primary, 0.3);
   }
 
-  &:active {
-    transform: translateY(0);
+  .notification-btn {
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(255,255,255,0.1);
+    }
   }
 }
 
-// Badge de segurança VERMELHO
-.admin-security-badge {
-  background: transparent !important;
-  border: 1px solid $admin-danger !important;
-  color: $admin-danger !important;
-  font-weight: 500;
-  padding: 8px 16px;
-  border-radius: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-
-  .q-icon {
-    color: $admin-danger;
-  }
-
-  &:hover {
-    background: rgba($admin-danger, 0.05) !important;
-  }
-}
-
-.admin-footer {
-  position: absolute;
-  bottom: 20px;
+// Drawer styles
+.admin-drawer {
+  background: white;
+  border-right: 1px solid $gray-200;
+  position: fixed;
+  top: 60px;
   left: 0;
-  right: 0;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8rem;
+  height: calc(100vh - 60px);
+  z-index: 1999;
+  box-shadow: 4px 0 10px rgba(0,0,0,0.05);
+
+  .drawer-profile {
+    background: linear-gradient(135deg, $gray-100 0%, $gray-200 100%);
+    border-bottom: 1px solid $gray-300;
+
+    .profile-name {
+      font-weight: 600;
+      color: $gray-800;
+    }
+
+    .profile-role {
+      font-size: 0.8rem;
+      color: $gray-600;
+    }
+
+    .profile-avatar {
+      border: 2px solid white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+  }
+
+  .menu-list {
+    .menu-item {
+      margin: 4px 8px;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: $gray-100;
+        transform: translateX(5px);
+      }
+
+      &.menu-item-active {
+        background: rgba($purple-primary, 0.1);
+
+        .q-icon {
+          color: $purple-primary !important;
+        }
+
+        .q-item__section {
+          color: $purple-primary;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .drawer-footer {
+    border-top: 1px solid $gray-300;
+    text-align: center;
+  }
 }
 
-// Animações
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
+// Page container
+.q-page-container {
+  margin-top: 60px;
+  transition: margin-left 0.3s ease;
+  min-height: calc(100vh - 60px);
+  background: $gray-50;
 }
 
 // Responsividade
-@media (max-width: 768px) {
-  .admin-login-card {
-    margin: 20px;
+@media (max-width: 599px) {
+  .admin-header {
+    .logo-wrapper {
+      font-size: 1.1rem;
+    }
 
-    .q-px-xl {
-      padding-left: 20px !important;
-      padding-right: 20px !important;
+    .admin-badge {
+      display: none;
     }
   }
 
-  .admin-footer {
-    bottom: 10px;
+  .admin-drawer {
+    width: 280px !important;
+  }
+
+  .q-page-container {
+    margin-left: 0 !important;
   }
 }
 </style>
