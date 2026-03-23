@@ -25,9 +25,11 @@
         </q-toolbar-title>
 
         <!-- Notificações -->
-        <q-btn flat round dense class="notification-btn">
+        <q-btn flat round dense class="notification-btn" @click="openNotifications">
           <q-icon name="notifications" size="20px" />
-          <q-badge color="red" floating class="notification-badge">3</q-badge>
+          <q-badge v-if="unreadNotificationsCount > 0" color="red" floating class="notification-badge">
+            {{ unreadNotificationsCount }}
+          </q-badge>
         </q-btn>
       </q-toolbar>
     </q-header>
@@ -109,7 +111,7 @@
 
           <q-separator spaced class="menu-separator" />
 
-          <q-item clickable v-ripple @click="logout" class="menu-item logout-item">
+          <q-item clickable v-ripple @click="confirmLogout" class="menu-item logout-item">
             <q-item-section avatar>
               <q-icon name="logout" class="menu-icon" />
             </q-item-section>
@@ -124,7 +126,7 @@
       <router-view />
     </q-page-container>
 
-    <!-- Rodapé com 4 ícones - SEM CORES -->
+    <!-- Rodapé com 4 ícones -->
     <q-footer class="footer-custom">
       <q-tabs
         class="tabs-custom"
@@ -167,11 +169,73 @@
         />
       </q-tabs>
     </q-footer>
+
+    <!-- Modal de Notificações -->
+    <q-dialog v-model="notificationsDialog" position="top" class="notifications-dialog">
+      <q-card style="min-width: 350px; max-width: 500px;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Notificações</div>
+          <q-space />
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="q-pt-md" style="max-height: 60vh; overflow-y: auto;">
+          <div v-if="notifications.length === 0" class="text-center q-pa-md">
+            <q-icon name="notifications_none" size="48px" color="grey-5" />
+            <div class="text-grey-6 q-mt-sm">Nenhuma notificação</div>
+          </div>
+
+          <div v-else>
+            <q-list separator>
+              <q-item
+                v-for="notif in notifications"
+                :key="notif.id"
+                clickable
+                v-ripple
+                :class="{ 'notification-unread': !notif.lida }"
+                @click="markAsRead(notif.id)"
+              >
+                <q-item-section avatar>
+                  <q-icon :name="notif.icone" :color="notif.cor" size="32px" />
+                </q-item-section>
+
+                <q-item-section>
+                  <q-item-label lines="1" class="text-weight-medium">
+                    {{ notif.titulo }}
+                  </q-item-label>
+                  <q-item-label caption lines="2">
+                    {{ notif.mensagem }}
+                  </q-item-label>
+                  <q-item-label caption class="text-grey-6">
+                    {{ formatDate(notif.data) }}
+                  </q-item-label>
+                </q-item-section>
+
+                <q-item-section side v-if="!notif.lida">
+                  <q-badge color="primary" rounded>Nova</q-badge>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn
+            v-if="unreadNotificationsCount > 0"
+            flat
+            label="Marcar todas como lidas"
+            @click="markAllAsRead"
+            no-caps
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-layout>
 </template>
-
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 import { useQuasar } from 'quasar'
@@ -181,14 +245,106 @@ const authStore = useAuthStore()
 const $q = useQuasar()
 
 const leftDrawerOpen = ref(false)
+const notificationsDialog = ref(false)
 
-// Dados do cliente - APENAS informações de cliente
+interface Notification {
+  id: number
+  titulo: string
+  mensagem: string
+  icone: string
+  cor: string
+  data: string
+  lida: boolean
+}
+
+const notifications = ref<Notification[]>([])
+const unreadNotificationsCount = ref(0)
+
 const userName = computed(() => authStore.user?.nome || 'Cliente')
 const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png')
 
-// CORREÇÃO: userType removido pois não é necessário (sempre cliente)
+// Função sem async (sem await)
+const fetchNotifications = () => {
+  try {
+    notifications.value = [
+      {
+        id: 1,
+        titulo: 'Novo pedido',
+        mensagem: 'Maria Santos solicitou um serviço de reparação elétrica',
+        icone: 'assignment',
+        cor: 'primary',
+        data: '2026-03-23T10:30:00',
+        lida: false
+      },
+      {
+        id: 2,
+        titulo: 'Serviço concluído',
+        mensagem: 'Seu serviço de limpeza foi concluído com sucesso',
+        icone: 'check_circle',
+        cor: 'positive',
+        data: '2026-03-22T15:20:00',
+        lida: false
+      },
+      {
+        id: 3,
+        titulo: 'Avaliação recebida',
+        mensagem: 'João Silva avaliou seu trabalho com 5 estrelas',
+        icone: 'star',
+        cor: 'yellow',
+        data: '2026-03-21T09:15:00',
+        lida: true
+      }
+    ]
+    unreadNotificationsCount.value = notifications.value.filter(n => !n.lida).length
+  } catch {
+    console.error('Erro ao buscar notificações')
+  }
+}
 
-const logout = () => {
+const openNotifications = () => {
+  notificationsDialog.value = true
+}
+
+const markAsRead = (id: number) => {
+  try {
+    const notif = notifications.value.find(n => n.id === id)
+    if (notif && !notif.lida) {
+      notif.lida = true
+      unreadNotificationsCount.value--
+    }
+  } catch {
+    console.error('Erro ao marcar notificação como lida')
+  }
+}
+
+const markAllAsRead = () => {
+  try {
+    notifications.value.forEach(n => {
+      if (!n.lida) {
+        n.lida = true
+      }
+    })
+    unreadNotificationsCount.value = 0
+  } catch {
+    console.error('Erro ao marcar todas notificações como lidas')
+  }
+}
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+
+  if (diffHours < 24) {
+    return `Hoje às ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+  } else if (diffHours < 48) {
+    return 'Ontem'
+  } else {
+    return date.toLocaleDateString('pt-PT')
+  }
+}
+
+const confirmLogout = () => {
   $q.dialog({
     title: 'Confirmar saída',
     message: 'Tem certeza que deseja sair da sua conta?',
@@ -204,10 +360,27 @@ const logout = () => {
     },
     persistent: true
   }).onOk(() => {
-    authStore.logout()
-    void router.push('/auth/login')
+    void authStore.logout().then(() => {
+      $q.notify({
+        type: 'positive',
+        message: 'Logout efetuado com sucesso!',
+        position: 'top',
+        icon: 'check_circle'
+      })
+      void router.push('/auth/login')
+    }).catch(() => {
+      $q.notify({
+        type: 'negative',
+        message: 'Erro ao sair. Tente novamente.',
+        position: 'top'
+      })
+    })
   })
 }
+
+onMounted(() => {
+  fetchNotifications()
+})
 </script>
 
 <style scoped lang="scss">
@@ -406,7 +579,7 @@ $gray-900: #212121;
   flex: 1;
 }
 
-/* Rodapé - SEM CORES */
+/* Rodapé */
 .footer-custom {
   background: white !important;
   border-top: 1px solid $gray-200;
@@ -458,6 +631,18 @@ $gray-900: #212121;
     color: $gray-900 !important;
     font-weight: 600;
   }
+}
+
+/* Modal de Notificações */
+.notifications-dialog {
+  :deep(.q-dialog__inner) {
+    margin-top: 56px;
+  }
+}
+
+.notification-unread {
+  background: rgba(102, 126, 234, 0.05);
+  border-left: 3px solid $purple-primary;
 }
 
 /* Safe area */

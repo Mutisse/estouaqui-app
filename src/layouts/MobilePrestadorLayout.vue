@@ -251,8 +251,9 @@ const logout = () => {
     },
     persistent: true
   }).onOk(() => {
-    authStore.logout()
-    void router.push('/auth/login')
+    void authStore.logout().then(() => {
+      void router.push('/auth/login')
+    })
   })
 }
 </script>

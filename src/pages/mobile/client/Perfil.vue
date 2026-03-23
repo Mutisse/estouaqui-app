@@ -4,11 +4,13 @@
     <div class="profile-header q-pa-md">
       <div class="row items-center">
         <q-avatar size="80px" class="profile-avatar">
-          <img :src="userAvatar" alt="Avatar">
+          <img :src="userAvatar" alt="Avatar" />
         </q-avatar>
         <div class="q-ml-md">
           <div class="profile-name">{{ userData.nome }}</div>
-          <div class="profile-type">{{ userData.tipo === 'prestador' ? 'Prestador de Serviços' : 'Cliente' }}</div>
+          <div class="profile-type">
+            {{ userData.tipo === 'prestador' ? 'Prestador de Serviços' : 'Cliente' }}
+          </div>
           <div class="profile-phone">{{ userData.telefone }}</div>
         </div>
       </div>
@@ -119,54 +121,54 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from 'src/stores/auth'
-import { useQuasar } from 'quasar'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from 'src/stores/auth';
+import { useQuasar } from 'quasar';
 
 defineOptions({
-  name: 'MobilePerfil'
-})
+  name: 'MobilePerfil',
+});
 
-const router = useRouter()
-const authStore = useAuthStore()
-const $q = useQuasar()
+const router = useRouter();
+const authStore = useAuthStore();
+const $q = useQuasar();
 
 // Dados mockados - substituir pela API depois
-const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png')
+const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png');
 const userData = ref({
   nome: authStore.user?.nome || 'João Silva',
   telefone: authStore.user?.telefone || '+258 84 123 4567',
-  tipo: authStore.user?.tipo || 'cliente'
-})
+  tipo: authStore.user?.tipo || 'cliente',
+});
 
 const userStats = ref({
   servicos: 23,
   avaliacoes: 45,
-  anos: 2
-})
+  anos: 2,
+});
 
-// CORREÇÃO: Adicionar void para ignorar a Promise
 const goTo = (rota: string) => {
-  void router.push(`/mobile/${rota}`)
-}
+  void router.push(`/mobile/${rota}`);
+};
 
 const editarPerfil = () => {
   $q.notify({
     type: 'info',
     message: 'Funcionalidade em desenvolvimento',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
 const ajuda = () => {
   $q.notify({
     type: 'info',
     message: 'Ajuda disponível em breve',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
+// ✅ CORREÇÃO: tratar a Promise do logout
 const confirmLogout = () => {
   $q.dialog({
     title: 'Confirmar saída',
@@ -174,19 +176,36 @@ const confirmLogout = () => {
     cancel: {
       label: 'Cancelar',
       color: 'grey-7',
-      flat: true
+      flat: true,
     },
     ok: {
       label: 'Sair',
       color: 'negative',
-      unelevated: true
+      unelevated: true,
     },
-    persistent: true
+    persistent: true,
   }).onOk(() => {
-    authStore.logout()
-    void router.push('/auth/login')
-  })
-}
+    void authStore
+      .logout()
+      .then(() => {
+        void router.push('/auth/login');
+        $q.notify({
+          type: 'positive',
+          message: 'Logout realizado com sucesso',
+          position: 'top',
+          timeout: 2000,
+        });
+      })
+      .catch(() => {
+        $q.notify({
+          type: 'negative',
+          message: 'Erro ao realizar logout',
+          position: 'top',
+          timeout: 2000,
+        });
+      });
+  });
+};
 </script>
 
 <style scoped lang="scss">
@@ -249,7 +268,7 @@ $gray-900: #212121;
     border-radius: 12px;
     padding: 12px;
     text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     border: 1px solid $gray-200;
 
     .stat-value {

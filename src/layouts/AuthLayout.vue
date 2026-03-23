@@ -130,7 +130,7 @@ const goToRegister = (tipo: string) => {
 
 .auth-btn.cliente {
   border: 2px solid white;
-  color: white;
+  color: rgba(255, 255, 255, 0.456);
 }
 
 .auth-btn.cliente:hover {
@@ -141,12 +141,13 @@ const goToRegister = (tipo: string) => {
 }
 
 .auth-btn.prestador {
-  background: white;
-  color: #667eea;
+  color: rgba(255, 255, 255, 0.649);
+  border: 2px solid white;
 }
 
 .auth-btn.prestador:hover {
-  background: rgba(255, 255, 255, 0.9);
+  background: white;
+  color: #667eea;
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
 }

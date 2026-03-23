@@ -146,7 +146,6 @@ const handleLogin = async () => {
 
   loading.value = true;
   try {
-    // Prepara os dados para o backend
     const loginData = {
       login: isValidEmail(login.value) ? login.value : normalizePhone(login.value),
       password: password.value
@@ -162,12 +161,17 @@ const handleLogin = async () => {
       });
 
       const user = authStore.user;
-      if (user?.tipo === 'prestador') {
-        await router.push('/mobile/lista-prestadores');
-      } else if (user?.tipo === 'admin') {
+
+      // Redirecionamento baseado no tipo de usuário
+      if (user?.tipo === 'admin') {
+        // Admin vai para o dashboard administrativo
         await router.push('/admin/dashboard');
+      } else if (user?.tipo === 'prestador') {
+        // Prestador vai para o dashboard do prestador
+        await router.push('/mobile/prestador/dashboard');
       } else {
-        await router.push('/mobile/mapa');
+        // Cliente (default) vai para o mapa/início
+        await router.push('/mobile/inicio');
       }
     }
   } catch (error) {

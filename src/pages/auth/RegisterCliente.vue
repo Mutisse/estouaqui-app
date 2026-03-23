@@ -9,11 +9,11 @@
             <q-icon name="person_add" size="32px" color="white" />
           </div>
           <div class="header-title">Criar Conta de Cliente</div>
-          <div class="header-subtitle">Passo {{ currentStep }} de {{ totalSteps }}</div>
+          <div class="header-subtitle">Passo {{ store.currentStep }} de {{ store.totalSteps }}</div>
 
           <!-- Progress Bar -->
           <div class="progress-container">
-            <div class="progress-bar" :style="{ width: progressWidth + '%' }"></div>
+            <div class="progress-bar" :style="{ width: store.progressWidth + '%' }"></div>
           </div>
         </q-card-section>
 
@@ -24,13 +24,13 @@
             :key="step.number"
             class="step-item"
             :class="{
-              'active': step.number === currentStep,
-              'completed': step.number < currentStep
+              active: step.number === store.currentStep,
+              completed: step.number < store.currentStep,
             }"
             @click="goToStep(step.number)"
           >
             <div class="step-circle">
-              <q-icon v-if="step.number < currentStep" name="check" size="16px" />
+              <q-icon v-if="step.number < store.currentStep" name="check" size="16px" />
               <span v-else>{{ step.number }}</span>
             </div>
             <div class="step-label">{{ step.label }}</div>
@@ -40,7 +40,7 @@
         <!-- Formulário Multi-step -->
         <q-card-section class="q-px-xl q-py-lg">
           <!-- Step 1: Dados Pessoais -->
-          <div v-show="currentStep === 1">
+          <div v-show="store.currentStep === 1">
             <div class="step-content">
               <div class="step-title">Dados Pessoais</div>
 
@@ -49,12 +49,12 @@
                 <div class="col-12">
                   <div class="input-label">Nome Completo</div>
                   <q-input
-                    v-model="form.nome"
+                    v-model="store.form.nome"
                     placeholder="Seu nome completo"
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[val => !!val || 'Nome é obrigatório']"
+                    :rules="[(val) => !!val || 'Nome é obrigatório']"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -67,7 +67,7 @@
                 <div class="col-12 col-md-6">
                   <div class="input-label">Número de Telefone</div>
                   <q-input
-                    v-model="form.telefone"
+                    v-model="store.form.telefone"
                     placeholder="84 123 4567"
                     prefix="+258"
                     mask="## ### ####"
@@ -75,7 +75,7 @@
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[val => !!val || 'Telefone é obrigatório']"
+                    :rules="[(val) => !!val || 'Telefone é obrigatório']"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -85,14 +85,15 @@
                 </div>
 
                 <div class="col-12 col-md-6">
-                  <div class="input-label">Email <span class="optional">(opcional)</span></div>
+                  <div class="input-label">Email <span class="required">*</span></div>
                   <q-input
-                    v-model="form.email"
+                    v-model="store.form.email"
                     placeholder="seu@email.com"
                     type="email"
                     outlined
                     dense
                     class="custom-input"
+                    :rules="[(val) => !!val || 'Email é obrigatório']"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -105,7 +106,7 @@
           </div>
 
           <!-- Step 2: Segurança -->
-          <div v-show="currentStep === 2">
+          <div v-show="store.currentStep === 2">
             <div class="step-content">
               <div class="step-title">Segurança</div>
 
@@ -114,13 +115,13 @@
                 <div class="col-12">
                   <div class="input-label">Palavra-passe</div>
                   <q-input
-                    v-model="form.password"
-                    :type="showPassword ? 'text' : 'password'"
+                    v-model="store.form.password"
+                    :type="store.showPassword ? 'text' : 'password'"
                     placeholder="Mínimo 6 caracteres"
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[val => val.length >= 6 || 'Mínimo 6 caracteres']"
+                    :rules="[(val) => val.length >= 6 || 'Mínimo 6 caracteres']"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -128,16 +129,16 @@
                     </template>
                     <template v-slot:append>
                       <q-icon
-                        :name="showPassword ? 'visibility_off' : 'visibility'"
+                        :name="store.showPassword ? 'visibility_off' : 'visibility'"
                         class="cursor-pointer"
                         color="grey-6"
-                        @click="showPassword = !showPassword"
+                        @click="store.showPassword = !store.showPassword"
                       />
                     </template>
                   </q-input>
-                  <div class="password-strength" v-if="form.password">
+                  <div class="password-strength" v-if="store.form.password">
                     <div class="strength-bar" :class="passwordStrengthClass"></div>
-                    <div class="strength-text">{{ passwordStrengthText }}</div>
+                    <div class="strength-text">{{ store.passwordStrength.text }}</div>
                   </div>
                 </div>
 
@@ -145,13 +146,13 @@
                 <div class="col-12">
                   <div class="input-label">Confirmar Palavra-passe</div>
                   <q-input
-                    v-model="form.confirmPassword"
-                    :type="showConfirmPassword ? 'text' : 'password'"
+                    v-model="store.form.confirmPassword"
+                    :type="store.showConfirmPassword ? 'text' : 'password'"
                     placeholder="Digite novamente"
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[val => val === form.password || 'As palavras-passe não coincidem']"
+                    :rules="[(val) => val === store.form.password || 'As palavras-passe não coincidem']"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -159,10 +160,10 @@
                     </template>
                     <template v-slot:append>
                       <q-icon
-                        :name="showConfirmPassword ? 'visibility_off' : 'visibility'"
+                        :name="store.showConfirmPassword ? 'visibility_off' : 'visibility'"
                         class="cursor-pointer"
                         color="grey-6"
-                        @click="showConfirmPassword = !showConfirmPassword"
+                        @click="store.showConfirmPassword = !store.showConfirmPassword"
                       />
                     </template>
                   </q-input>
@@ -172,7 +173,7 @@
           </div>
 
           <!-- Step 3: Localização e Perfil -->
-          <div v-show="currentStep === 3">
+          <div v-show="store.currentStep === 3">
             <div class="step-content">
               <div class="step-title">Localização e Perfil</div>
 
@@ -181,7 +182,7 @@
                 <div class="col-12">
                   <div class="input-label">Endereço Principal</div>
                   <q-input
-                    v-model="form.endereco"
+                    v-model="store.form.endereco"
                     placeholder="Seu endereço principal"
                     outlined
                     dense
@@ -196,7 +197,9 @@
 
                 <!-- Foto de Perfil -->
                 <div class="col-12">
-                  <div class="input-label">Foto de Perfil <span class="optional">(opcional)</span></div>
+                  <div class="input-label">
+                    Foto de Perfil <span class="optional">(opcional)</span>
+                  </div>
                   <div class="photo-upload-area" @click="triggerFileInput">
                     <input
                       ref="fileInput"
@@ -205,9 +208,8 @@
                       @change="handleFileUpload"
                       style="display: none"
                     />
-                    <div class="photo-preview" v-if="form.foto">
-                      <!-- CORREÇÃO: Adicionada verificação para photoPreview -->
-                      <img v-if="photoPreview" :src="photoPreview" alt="Preview" />
+                    <div class="photo-preview" v-if="store.form.foto">
+                      <img v-if="store.photoPreview" :src="store.photoPreview" alt="Preview" />
                       <q-btn
                         flat
                         round
@@ -230,7 +232,7 @@
           </div>
 
           <!-- Step 4: Revisão -->
-          <div v-show="currentStep === 4">
+          <div v-show="store.currentStep === 4">
             <div class="step-content">
               <div class="step-title">Revise seus dados</div>
 
@@ -241,7 +243,7 @@
                   </div>
                   <div class="review-content">
                     <div class="review-label">Nome Completo</div>
-                    <div class="review-value">{{ form.nome || '—' }}</div>
+                    <div class="review-value">{{ store.form.nome || '—' }}</div>
                   </div>
                 </div>
 
@@ -251,7 +253,9 @@
                   </div>
                   <div class="review-content">
                     <div class="review-label">Telefone</div>
-                    <div class="review-value">{{ form.telefone ? '+258 ' + form.telefone : '—' }}</div>
+                    <div class="review-value">
+                      {{ store.form.telefone ? '+258 ' + store.form.telefone : '—' }}
+                    </div>
                   </div>
                 </div>
 
@@ -261,7 +265,7 @@
                   </div>
                   <div class="review-content">
                     <div class="review-label">Email</div>
-                    <div class="review-value">{{ form.email || 'Não informado' }}</div>
+                    <div class="review-value">{{ store.form.email || 'Não informado' }}</div>
                   </div>
                 </div>
 
@@ -271,7 +275,7 @@
                   </div>
                   <div class="review-content">
                     <div class="review-label">Endereço</div>
-                    <div class="review-value">{{ form.endereco || 'Não informado' }}</div>
+                    <div class="review-value">{{ store.form.endereco || 'Não informado' }}</div>
                   </div>
                 </div>
 
@@ -281,14 +285,16 @@
                   </div>
                   <div class="review-content">
                     <div class="review-label">Foto de Perfil</div>
-                    <div class="review-value">{{ form.foto ? form.foto.name : 'Não informada' }}</div>
+                    <div class="review-value">
+                      {{ store.form.foto ? store.form.foto.name : 'Não informada' }}
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div class="terms-checkbox">
                 <q-checkbox
-                  v-model="acceptTerms"
+                  v-model="store.acceptTerms"
                   label="Li e aceito os Termos de Uso e Política de Privacidade"
                   color="primary"
                 />
@@ -301,29 +307,29 @@
         <q-card-section class="q-px-xl q-pb-xl">
           <div class="row justify-between">
             <q-btn
-              v-if="currentStep > 1"
+              v-if="store.currentStep > 1"
               flat
               class="nav-btn prev-btn"
               label="Voltar"
               icon="arrow_back"
-              @click="prevStep"
+              @click="store.prevStep"
               no-caps
             />
             <div v-else></div>
 
             <q-btn
-              v-if="currentStep < totalSteps"
+              v-if="store.currentStep < store.totalSteps"
               class="nav-btn next-btn"
-              :label="'Continuar'"
+              label="Continuar"
               icon="arrow_forward"
-              @click="nextStep"
+              @click="store.nextStep"
               no-caps
             />
             <q-btn
               v-else
               class="register-btn"
               label="Criar Conta"
-              :loading="loading"
+              :loading="store.loading"
               @click="handleRegister"
               no-caps
             />
@@ -333,213 +339,111 @@
     </div>
   </q-page>
 </template>
-
 <script setup lang="ts">
 defineOptions({
-  name: 'RegisterCliente'
-})
+  name: 'RegisterCliente',
+});
 
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from 'src/stores/auth'
-import { useQuasar } from 'quasar'
+import { ref, computed } from 'vue';  // ← ADICIONAR ref aqui
+import { useRouter } from 'vue-router';
+import { useClienteRegisterStore } from 'src/stores/cliente-store';
+import { useQuasar } from 'quasar';  // ← REMOVER type QNotifyCreateOptions
 
-const router = useRouter()
-const authStore = useAuthStore()
-const $q = useQuasar()
+const router = useRouter();
+const store = useClienteRegisterStore();
+const $q = useQuasar();
 
-// Step control
-const currentStep = ref(1)
-const totalSteps = 4
+// Steps
 const steps = [
   { number: 1, label: 'Dados' },
   { number: 2, label: 'Segurança' },
   { number: 3, label: 'Perfil' },
-  { number: 4, label: 'Revisão' }
-]
+  { number: 4, label: 'Revisão' },
+];
 
-// Form state
-const showPassword = ref(false)
-const showConfirmPassword = ref(false)
-const loading = ref(false)
-const acceptTerms = ref(false)
-const fileInput = ref<HTMLInputElement | null>(null)
-const photoPreview = ref<string | null>(null)
-
-interface FormData {
-  nome: string
-  telefone: string
-  email: string
-  password: string
-  confirmPassword: string
-  endereco: string
-  foto: File | null
-  tipo: string
-}
-
-const form = ref<FormData>({
-  nome: '',
-  telefone: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-  endereco: '',
-  foto: null,
-  tipo: 'cliente'
-})
-
-// Progress bar
-const progressWidth = computed(() => {
-  return (currentStep.value / totalSteps) * 100
-})
-
-// Password strength
-const passwordStrength = computed(() => {
-  const pwd = form.value.password
-  if (!pwd) return 0
-  let strength = 0
-  if (pwd.length >= 6) strength += 25
-  if (pwd.length >= 8) strength += 25
-  if (/[A-Z]/.test(pwd)) strength += 25
-  if (/[0-9!@#$%^&*]/.test(pwd)) strength += 25
-  return strength
-})
-
+// Computed para password strength class
 const passwordStrengthClass = computed(() => {
-  const strength = passwordStrength.value
-  if (strength <= 25) return 'weak'
-  if (strength <= 50) return 'fair'
-  if (strength <= 75) return 'good'
-  return 'strong'
-})
-
-const passwordStrengthText = computed(() => {
-  const strength = passwordStrength.value
-  if (strength <= 25) return 'Fraca'
-  if (strength <= 50) return 'Razoável'
-  if (strength <= 75) return 'Boa'
-  return 'Forte'
-})
-
-// Navigation methods
-const nextStep = () => {
-  if (!validateStep()) return
-  currentStep.value++
-}
-
-const prevStep = () => {
-  currentStep.value--
-}
-
-const goToStep = (step: number) => {
-  if (step < currentStep.value) {
-    currentStep.value = step
-  }
-}
-
-// Validation
-const validateStep = () => {
-  switch (currentStep.value) {
-    case 1:
-      if (!form.value.nome || !form.value.telefone) {
-        $q.notify({
-          type: 'warning',
-          message: 'Preencha nome e telefone',
-          position: 'top'
-        })
-        return false
-      }
-      break
-    case 2:
-      if (!form.value.password || form.value.password.length < 6) {
-        $q.notify({
-          type: 'warning',
-          message: 'A palavra-passe deve ter pelo menos 6 caracteres',
-          position: 'top'
-        })
-        return false
-      }
-      if (form.value.password !== form.value.confirmPassword) {
-        $q.notify({
-          type: 'warning',
-          message: 'As palavras-passe não coincidem',
-          position: 'top'
-        })
-        return false
-      }
-      break
-  }
-  return true
-}
+  const strength = store.passwordStrength.strength;
+  if (strength <= 25) return 'weak';
+  if (strength <= 50) return 'fair';
+  if (strength <= 75) return 'good';
+  return 'strong';
+});
 
 // File handling
+const fileInput = ref<HTMLInputElement | null>(null);
+
 const triggerFileInput = () => {
-  fileInput.value?.click()
-}
+  fileInput.value?.click();
+};
 
 const handleFileUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
   if (file) {
-    if (file.size > 5 * 1024 * 1024) {
-      $q.notify({
-        type: 'negative',
-        message: 'A imagem deve ter no máximo 5MB',
-        position: 'top'
-      })
-      return
-    }
-    form.value.foto = file
-    photoPreview.value = URL.createObjectURL(file)
+    store.handleFileUpload(file);
   }
-}
+};
 
 const removePhoto = () => {
-  form.value.foto = null
-  photoPreview.value = null
+  store.removePhoto();
   if (fileInput.value) {
-    fileInput.value.value = ''
+    fileInput.value.value = '';
   }
-}
+};
 
-// Registration
+// Navigation
+const goToStep = (step: number) => {
+  store.goToStep(step);
+};
+
+// Register
 const handleRegister = async () => {
-  if (!acceptTerms.value) {
+  if (!store.acceptTerms) {
     $q.notify({
       type: 'warning',
       message: 'Aceite os termos para continuar',
-      position: 'top'
-    })
-    return
+      position: 'top',
+    });
+    return;
   }
 
-  loading.value = true
   try {
-    const success = await authStore.register(form.value)
+    const success = await store.register();
     if (success) {
       $q.notify({
         type: 'positive',
         message: 'Registo efetuado com sucesso!',
         position: 'top',
-        icon: 'check_circle'
-      })
-      void router.push('/auth/login')
+        icon: 'check_circle',
+        timeout: 3000,
+      });
+      setTimeout(() => {
+        void router.push('/auth/login');
+      }, 1500);
     }
-  } catch (error) {
+  } catch (err: unknown) {
+    let errorMessage = 'Erro ao registar';
+    if (err && typeof err === 'object') {
+      const axiosError = err as { response?: { data?: { error?: string } }; message?: string };
+      if (axiosError.response?.data?.error) {
+        errorMessage = axiosError.response.data.error;
+      } else if (axiosError.message) {
+        errorMessage = axiosError.message;
+      }
+    }
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'Erro ao registar',
-      position: 'top'
-    })
-  } finally {
-    loading.value = false
+      message: errorMessage,
+      position: 'top',
+      timeout: 3000,
+    });
   }
-}
-
-
+};
 </script>
 
 <style scoped lang="scss">
+/* Mantenha todos os seus estilos exatamente como estão */
 $purple-primary: #667eea;
 $purple-secondary: #764ba2;
 $purple-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -587,7 +491,7 @@ $gray-900: #212121;
     right: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
     animation: rotate 20s linear infinite;
   }
 
@@ -609,7 +513,7 @@ $gray-900: #212121;
     font-weight: 700;
     color: white;
     margin-bottom: 5px;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   }
 
   .header-subtitle {
@@ -812,7 +716,7 @@ $gray-900: #212121;
       top: -10px;
       right: -10px;
       background: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 
       &:hover {
         background: $gray-100;
@@ -859,7 +763,7 @@ $gray-900: #212121;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
     .review-content {
@@ -939,8 +843,12 @@ $gray-900: #212121;
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 599px) {

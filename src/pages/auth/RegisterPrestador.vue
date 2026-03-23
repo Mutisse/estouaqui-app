@@ -23,8 +23,8 @@
             :key="i"
             class="step-item"
             :class="{
-              'active': i === step,
-              'completed': i < step
+              active: i === step,
+              completed: i < step,
             }"
             @click="goToStep(i)"
           >
@@ -52,7 +52,7 @@
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[val => !!val || 'Nome é obrigatório']"
+                    :rules="[(val) => !!val || 'Nome é obrigatório']"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -72,7 +72,7 @@
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[val => !!val || 'Telefone é obrigatório']"
+                    :rules="[(val) => !!val || 'Telefone é obrigatório']"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -107,7 +107,7 @@
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[val => val.length >= 6 || 'Mínimo 6 caracteres']"
+                    :rules="[(val) => val.length >= 6 || 'Mínimo 6 caracteres']"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -119,6 +119,33 @@
                         class="cursor-pointer"
                         color="grey-6"
                         @click="showPassword = !showPassword"
+                      />
+                    </template>
+                  </q-input>
+                </div>
+
+                <!-- Confirmar Password -->
+                <div class="col-12">
+                  <div class="input-label">Confirmar Palavra-passe</div>
+                  <q-input
+                    v-model="form.confirmPassword"
+                    :type="showConfirmPassword ? 'text' : 'password'"
+                    placeholder="Digite novamente"
+                    outlined
+                    dense
+                    class="custom-input"
+                    :rules="[(val) => val === form.password || 'As palavras-passe não coincidem']"
+                    bg-color="white"
+                  >
+                    <template v-slot:prepend>
+                      <q-icon name="lock" color="grey-6" size="20px" />
+                    </template>
+                    <template v-slot:append>
+                      <q-icon
+                        :name="showConfirmPassword ? 'visibility_off' : 'visibility'"
+                        class="cursor-pointer"
+                        color="grey-6"
+                        @click="showConfirmPassword = !showConfirmPassword"
                       />
                     </template>
                   </q-input>
@@ -140,10 +167,10 @@
                       ref="fotoPerfilInput"
                       type="file"
                       accept="image/*"
-                      @change="(e) => handleFileUpload(e, 'fotoPerfil')"
+                      @change="(e) => handleFileUpload(e, 'foto')"
                       style="display: none"
                     />
-                    <div class="photo-preview" v-if="form.fotoPerfil">
+                    <div class="photo-preview" v-if="form.foto">
                       <img v-if="fotoPerfilPreview" :src="fotoPerfilPreview" alt="Preview" />
                       <q-btn
                         flat
@@ -164,7 +191,9 @@
                 </div>
 
                 <div class="col-12">
-                  <div class="input-label">Descrição do seu trabalho <span class="required">*</span></div>
+                  <div class="input-label">
+                    Descrição do seu trabalho <span class="required">*</span>
+                  </div>
                   <q-input
                     v-model="form.descricao"
                     placeholder="Descreva sua experiência e serviços oferecidos"
@@ -172,14 +201,16 @@
                     type="textarea"
                     dense
                     class="custom-input"
-                    :rules="[val => !!val || 'Descrição é obrigatória']"
+                    :rules="[(val) => !!val || 'Descrição é obrigatória']"
                     bg-color="white"
                     autogrow
                   />
                 </div>
 
                 <div class="col-12">
-                  <div class="input-label">Categorias de Serviço <span class="required">*</span></div>
+                  <div class="input-label">
+                    Categorias de Serviço <span class="required">*</span>
+                  </div>
                   <q-select
                     v-model="form.categorias"
                     :options="categoriasOptions"
@@ -191,7 +222,7 @@
                     emit-value
                     map-options
                     class="custom-input"
-                    :rules="[val => val && val.length > 0 || 'Selecione pelo menos uma']"
+                    :rules="[(val) => (val && val.length > 0) || 'Selecione pelo menos uma']"
                     bg-color="white"
                   />
                 </div>
@@ -209,16 +240,20 @@
                 <div v-for="n in 3" :key="n" class="col-12 col-md-4">
                   <div class="portfolio-item">
                     <div class="portfolio-label">Foto {{ n }}</div>
-                    <div class="photo-upload-area small" @click="triggerPortfolioInput(n-1)">
+                    <div class="photo-upload-area small" @click="triggerPortfolioInput(n - 1)">
                       <input
-                        :ref="el => setPortfolioInputRef(el as HTMLInputElement | null, n-1)"
+                        :ref="(el) => setPortfolioInputRef(el as HTMLInputElement | null, n - 1)"
                         type="file"
                         accept="image/*"
-                        @change="(e) => handlePortfolioUpload(e, n-1)"
+                        @change="(e) => handlePortfolioUpload(e, n - 1)"
                         style="display: none"
                       />
-                      <div class="photo-preview small" v-if="form.portfolio[n-1]">
-                        <img v-if="portfolioPreviews[n-1]" :src="portfolioPreviews[n-1] ?? ''" alt="Preview" />
+                      <div class="photo-preview small" v-if="form.portfolio[n - 1]">
+                        <img
+                          v-if="portfolioPreviews[n - 1]"
+                          :src="portfolioPreviews[n - 1] ?? ''"
+                          alt="Preview"
+                        />
                         <q-btn
                           flat
                           round
@@ -226,7 +261,7 @@
                           icon="close"
                           size="xs"
                           class="remove-photo small"
-                          @click.stop="removePortfolioPhoto(n-1)"
+                          @click.stop="removePortfolioPhoto(n - 1)"
                         />
                       </div>
                       <div class="photo-placeholder small" v-else>
@@ -246,7 +281,9 @@
 
               <div class="row q-col-gutter-md">
                 <div class="col-12">
-                  <div class="input-label">Raio de atuação (km) <span class="required">*</span></div>
+                  <div class="input-label">
+                    Raio de atuação (km) <span class="required">*</span>
+                  </div>
                   <q-select
                     v-model="form.raio"
                     :options="raioOptions"
@@ -254,7 +291,7 @@
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[val => !!val || 'Selecione o raio']"
+                    :rules="[(val) => !!val || 'Selecione o raio']"
                     bg-color="white"
                     emit-value
                     map-options
@@ -293,7 +330,9 @@
 
               <div class="row q-col-gutter-md">
                 <div class="col-12">
-                  <div class="input-label">Documento de Identificação <span class="optional">(opcional)</span></div>
+                  <div class="input-label">
+                    Documento de Identificação <span class="required">*</span>
+                  </div>
                   <div class="document-upload" @click="triggerDocumentoInput">
                     <input
                       ref="documentoInput"
@@ -303,7 +342,11 @@
                       style="display: none"
                     />
                     <div class="document-preview" v-if="form.documento">
-                      <q-icon :name="getDocumentIcon(form.documento.name)" size="32px" color="primary" />
+                      <q-icon
+                        :name="getDocumentIcon(form.documento.name)"
+                        size="32px"
+                        color="primary"
+                      />
                       <div class="document-name">{{ form.documento.name }}</div>
                       <q-btn
                         flat
@@ -419,65 +462,67 @@
 
 <script setup lang="ts">
 defineOptions({
-  name: 'RegisterPrestador'
-})
+  name: 'RegisterPrestador',
+});
 
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from 'src/stores/auth'
-import { useQuasar } from 'quasar'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { usePrestadorRegisterStore } from 'src/stores/prestador-store';
+import { useQuasar } from 'quasar';
 
-const router = useRouter()
-const authStore = useAuthStore()
-const $q = useQuasar()
+const router = useRouter();
+const prestadorRegisterStore = usePrestadorRegisterStore();
+const $q = useQuasar();
 
 // Step control
-const step = ref(1)
-const showPassword = ref(false)
-const loading = ref(false)
-const acceptTerms = ref(false)
+const step = ref(1);
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
+const loading = ref(false);
+const acceptTerms = ref(false);
 
 // File refs
-const fotoPerfilInput = ref<HTMLInputElement | null>(null)
-const documentoInput = ref<HTMLInputElement | null>(null)
+const fotoPerfilInput = ref<HTMLInputElement | null>(null);
+const documentoInput = ref<HTMLInputElement | null>(null);
 
 // Refs individuais para portfólio
-const portfolioInput1 = ref<HTMLInputElement | null>(null)
-const portfolioInput2 = ref<HTMLInputElement | null>(null)
-const portfolioInput3 = ref<HTMLInputElement | null>(null)
+const portfolioInput1 = ref<HTMLInputElement | null>(null);
+const portfolioInput2 = ref<HTMLInputElement | null>(null);
+const portfolioInput3 = ref<HTMLInputElement | null>(null);
 
 // Photo previews
-const fotoPerfilPreview = ref<string | null>(null)
-const portfolioPreviews = ref<(string | null)[]>([null, null, null])
+const fotoPerfilPreview = ref<string | null>(null);
+const portfolioPreviews = ref<(string | null)[]>([null, null, null]);
 
 export interface DisponibilidadeDia {
-  ativo: boolean
-  horario: string
+  ativo: boolean;
+  horario: string;
 }
 
 export interface Disponibilidade {
-  segunda: DisponibilidadeDia
-  terca: DisponibilidadeDia
-  quarta: DisponibilidadeDia
-  quinta: DisponibilidadeDia
-  sexta: DisponibilidadeDia
-  sabado: DisponibilidadeDia
-  domingo: DisponibilidadeDia
+  segunda: DisponibilidadeDia;
+  terca: DisponibilidadeDia;
+  quarta: DisponibilidadeDia;
+  quinta: DisponibilidadeDia;
+  sexta: DisponibilidadeDia;
+  sabado: DisponibilidadeDia;
+  domingo: DisponibilidadeDia;
 }
 
 interface FormData {
-  nome: string
-  telefone: string
-  email: string
-  password: string
-  fotoPerfil: File | null
-  descricao: string
-  categorias: string[]
-  portfolio: (File | null)[]
-  raio: number | null
-  disponibilidade: Disponibilidade
-  documento: File | null
-  tipo: string
+  nome: string;
+  telefone: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  foto: File | null;
+  descricao: string;
+  categorias: string[];
+  portfolio: (File | null)[];
+  raio: number | null;
+  disponibilidade: Disponibilidade;
+  documento: File | null;
+  tipo: string;
 }
 
 const form = ref<FormData>({
@@ -485,7 +530,8 @@ const form = ref<FormData>({
   telefone: '',
   email: '',
   password: '',
-  fotoPerfil: null,
+  confirmPassword: '',
+  foto: null,
   descricao: '',
   categorias: [],
   portfolio: [null, null, null],
@@ -497,11 +543,11 @@ const form = ref<FormData>({
     quinta: { ativo: false, horario: '' },
     sexta: { ativo: false, horario: '' },
     sabado: { ativo: false, horario: '' },
-    domingo: { ativo: false, horario: '' }
+    domingo: { ativo: false, horario: '' },
   },
   documento: null,
-  tipo: 'prestador'
-})
+  tipo: 'prestador',
+});
 
 // Opções para selects
 const categoriasOptions = [
@@ -514,8 +560,8 @@ const categoriasOptions = [
   { label: 'Limpeza', value: 'Limpeza' },
   { label: 'Baby-sitter', value: 'Baby-sitter' },
   { label: 'Motorista', value: 'Motorista' },
-  { label: 'Costureira', value: 'Costureira' }
-]
+  { label: 'Costureira', value: 'Costureira' },
+];
 
 const raioOptions = [
   { label: '2 km', value: 2 },
@@ -523,8 +569,8 @@ const raioOptions = [
   { label: '10 km', value: 10 },
   { label: '15 km', value: 15 },
   { label: '20 km', value: 20 },
-  { label: '30 km', value: 30 }
-]
+  { label: '30 km', value: 30 },
+];
 
 const diasSemana = [
   { label: 'Segunda', value: 'segunda' as const },
@@ -533,8 +579,8 @@ const diasSemana = [
   { label: 'Quinta', value: 'quinta' as const },
   { label: 'Sexta', value: 'sexta' as const },
   { label: 'Sábado', value: 'sabado' as const },
-  { label: 'Domingo', value: 'domingo' as const }
-]
+  { label: 'Domingo', value: 'domingo' as const },
+];
 
 // Helper functions
 const getStepTitle = (stepNum: number) => {
@@ -543,189 +589,230 @@ const getStepTitle = (stepNum: number) => {
     'Perfil Profissional',
     'Portfólio',
     'Área e Disponibilidade',
-    'Documentos e Revisão'
-  ]
-  return titles[stepNum - 1]
-}
+    'Documentos e Revisão',
+  ];
+  return titles[stepNum - 1];
+};
 
 const getStepLabel = (stepNum: number) => {
-  const labels = ['Dados', 'Perfil', 'Portfólio', 'Área', 'Revisão']
-  return labels[stepNum - 1]
-}
+  const labels = ['Dados', 'Perfil', 'Portfólio', 'Área', 'Revisão'];
+  return labels[stepNum - 1];
+};
 
 // Navigation
 const goToStep = (targetStep: number) => {
   if (targetStep < step.value) {
-    step.value = targetStep
+    step.value = targetStep;
   }
-}
+};
 
 const prevStep = () => {
-  step.value--
-}
+  step.value--;
+};
 
 const nextStep = () => {
-  if (!validateStep()) return
-  step.value++
-}
+  if (!validateStep()) return;
+  step.value++;
+};
 
 // Validation
 const validateStep = () => {
   switch (step.value) {
-    case 1:
+    case 1: {
       if (!form.value.nome || !form.value.telefone || !form.value.password) {
         $q.notify({
           type: 'warning',
           message: 'Preencha todos os campos obrigatórios',
-          position: 'top'
-        })
-        return false
+          position: 'top',
+        });
+        return false;
       }
       if (form.value.password.length < 6) {
         $q.notify({
           type: 'warning',
           message: 'A palavra-passe deve ter pelo menos 6 caracteres',
-          position: 'top'
-        })
-        return false
+          position: 'top',
+        });
+        return false;
       }
-      break
-    case 2:
-      if (!form.value.fotoPerfil || !form.value.descricao || form.value.categorias.length === 0) {
+      if (form.value.password !== form.value.confirmPassword) {
         $q.notify({
           type: 'warning',
-          message: 'Preencha todos os campos obrigatórios',
-          position: 'top'
-        })
-        return false
+          message: 'As palavras-passe não coincidem',
+          position: 'top',
+        });
+        return false;
       }
-      break
-    case 4:
+      break;
+    }
+    case 2: {
+      if (!form.value.foto || !form.value.descricao || form.value.categorias.length === 0) {
+        $q.notify({
+          type: 'warning',
+          message: 'Preencha todos os campos obrigatórios (foto, descrição e categorias)',
+          position: 'top',
+        });
+        return false;
+      }
+      break;
+    }
+    case 3: {
+      const portfolioCompleto = form.value.portfolio.every((item) => item !== null);
+      if (!portfolioCompleto) {
+        $q.notify({
+          type: 'warning',
+          message: 'Adicione as 3 fotos do portfólio',
+          position: 'top',
+        });
+        return false;
+      }
+      break;
+    }
+    case 4: {
       if (!form.value.raio) {
         $q.notify({
           type: 'warning',
           message: 'Selecione o raio de atuação',
-          position: 'top'
-        })
-        return false
+          position: 'top',
+        });
+        return false;
       }
-      break
+      break;
+    }
+    case 5: {
+      if (!form.value.documento) {
+        $q.notify({
+          type: 'warning',
+          message: 'Adicione o documento de identificação',
+          position: 'top',
+        });
+        return false;
+      }
+      if (!acceptTerms.value) {
+        $q.notify({
+          type: 'warning',
+          message: 'Aceite os termos para continuar',
+          position: 'top',
+        });
+        return false;
+      }
+      break;
+    }
   }
-  return true
-}
+  return true;
+};
 
 // File handling methods
 const triggerFotoPerfilInput = () => {
-  fotoPerfilInput.value?.click()
-}
+  fotoPerfilInput.value?.click();
+};
 
 const triggerDocumentoInput = () => {
-  documentoInput.value?.click()
-}
+  documentoInput.value?.click();
+};
 
-// CORREÇÃO: Tipagem correta para o parâmetro el
 const setPortfolioInputRef = (el: HTMLInputElement | null, index: number) => {
-  if (index === 0) portfolioInput1.value = el
-  else if (index === 1) portfolioInput2.value = el
-  else if (index === 2) portfolioInput3.value = el
-}
+  if (index === 0) portfolioInput1.value = el;
+  else if (index === 1) portfolioInput2.value = el;
+  else if (index === 2) portfolioInput3.value = el;
+};
 
 const triggerPortfolioInput = (index: number) => {
-  if (index === 0) portfolioInput1.value?.click()
-  else if (index === 1) portfolioInput2.value?.click()
-  else if (index === 2) portfolioInput3.value?.click()
-}
+  if (index === 0) portfolioInput1.value?.click();
+  else if (index === 1) portfolioInput2.value?.click();
+  else if (index === 2) portfolioInput3.value?.click();
+};
 
 const handleFileUpload = (event: Event, field: string) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
 
   if (file.size > 5 * 1024 * 1024) {
     $q.notify({
       type: 'negative',
       message: 'O arquivo deve ter no máximo 5MB',
-      position: 'top'
-    })
-    return
+      position: 'top',
+    });
+    return;
   }
 
-  if (field === 'fotoPerfil') {
-    form.value.fotoPerfil = file
-    fotoPerfilPreview.value = URL.createObjectURL(file)
+  if (field === 'foto') {
+    form.value.foto = file;
+    fotoPerfilPreview.value = URL.createObjectURL(file);
   }
-}
+};
 
 const handlePortfolioUpload = (event: Event, index: number) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
 
   if (file.size > 5 * 1024 * 1024) {
     $q.notify({
       type: 'negative',
       message: 'O arquivo deve ter no máximo 5MB',
-      position: 'top'
-    })
-    return
+      position: 'top',
+    });
+    return;
   }
 
-  form.value.portfolio[index] = file
-  portfolioPreviews.value[index] = URL.createObjectURL(file)
-}
+  form.value.portfolio[index] = file;
+  portfolioPreviews.value[index] = URL.createObjectURL(file);
+};
 
 const handleDocumentUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
 
   if (file.size > 5 * 1024 * 1024) {
     $q.notify({
       type: 'negative',
       message: 'O arquivo deve ter no máximo 5MB',
-      position: 'top'
-    })
-    return
+      position: 'top',
+    });
+    return;
   }
 
-  form.value.documento = file
-}
+  form.value.documento = file;
+};
 
 const removeFotoPerfil = () => {
-  form.value.fotoPerfil = null
-  fotoPerfilPreview.value = null
+  form.value.foto = null;
+  fotoPerfilPreview.value = null;
   if (fotoPerfilInput.value) {
-    fotoPerfilInput.value.value = ''
+    fotoPerfilInput.value.value = '';
   }
-}
+};
 
 const removePortfolioPhoto = (index: number) => {
-  form.value.portfolio[index] = null
-  portfolioPreviews.value[index] = null
+  form.value.portfolio[index] = null;
+  portfolioPreviews.value[index] = null;
 
   if (index === 0 && portfolioInput1.value) {
-    portfolioInput1.value.value = ''
+    portfolioInput1.value.value = '';
   } else if (index === 1 && portfolioInput2.value) {
-    portfolioInput2.value.value = ''
+    portfolioInput2.value.value = '';
   } else if (index === 2 && portfolioInput3.value) {
-    portfolioInput3.value.value = ''
+    portfolioInput3.value.value = '';
   }
-}
+};
 
 const removeDocument = () => {
-  form.value.documento = null
+  form.value.documento = null;
   if (documentoInput.value) {
-    documentoInput.value.value = ''
+    documentoInput.value.value = '';
   }
-}
+};
 
 // Preview helpers
 const getDocumentIcon = (filename: string) => {
-  const ext = filename.split('.').pop()?.toLowerCase()
-  if (ext === 'pdf') return 'picture_as_pdf'
-  if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') return 'image'
-  return 'description'
-}
+  const ext = filename.split('.').pop()?.toLowerCase();
+  if (ext === 'pdf') return 'picture_as_pdf';
+  if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') return 'image';
+  return 'description';
+};
 
 // Registration
 const handleRegister = async () => {
@@ -733,32 +820,58 @@ const handleRegister = async () => {
     $q.notify({
       type: 'warning',
       message: 'Aceite os termos para continuar',
-      position: 'top'
-    })
-    return
+      position: 'top',
+    });
+    return;
   }
 
-  loading.value = true
+  // Sincronizar o store com os dados do componente
+  prestadorRegisterStore.form.nome = form.value.nome;
+  prestadorRegisterStore.form.telefone = form.value.telefone;
+  prestadorRegisterStore.form.email = form.value.email;
+  prestadorRegisterStore.form.password = form.value.password;
+  prestadorRegisterStore.form.confirmPassword = form.value.confirmPassword;
+  prestadorRegisterStore.form.foto = form.value.foto;
+  prestadorRegisterStore.form.descricao = form.value.descricao;
+  prestadorRegisterStore.form.categorias = form.value.categorias;
+  prestadorRegisterStore.form.portfolio = form.value.portfolio;
+  prestadorRegisterStore.form.raio = form.value.raio;
+  prestadorRegisterStore.form.disponibilidade = form.value.disponibilidade;
+  prestadorRegisterStore.form.documento = form.value.documento;
+  prestadorRegisterStore.acceptTerms = acceptTerms.value;
+
+  loading.value = true;
   try {
-    const success = await authStore.register(form.value)
+    const success = await prestadorRegisterStore.register();
     if (success) {
       $q.notify({
         type: 'positive',
         message: 'Registo efetuado com sucesso! Aguarde aprovação.',
-        position: 'top'
-      })
-      void router.push('/auth/login')
+        position: 'top',
+      });
+      setTimeout(() => {
+        void router.push('/auth/login');
+      }, 1500);
     }
-  } catch (error) {
+  } catch (err: unknown) {
+    let errorMessage = 'Erro ao registar';
+    if (err && typeof err === 'object') {
+      const axiosError = err as { response?: { data?: { error?: string } }; message?: string };
+      if (axiosError.response?.data?.error) {
+        errorMessage = axiosError.response.data.error;
+      } else if (axiosError.message) {
+        errorMessage = axiosError.message;
+      }
+    }
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'Erro ao registar',
-      position: 'top'
-    })
+      message: errorMessage,
+      position: 'top',
+    });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 </script>
 
 <style scoped lang="scss">
@@ -809,7 +922,7 @@ $gray-900: #212121;
     right: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
     animation: rotate 20s linear infinite;
   }
 
@@ -831,7 +944,7 @@ $gray-900: #212121;
     font-weight: 700;
     color: white;
     margin-bottom: 5px;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   }
 
   .header-subtitle {
@@ -1021,7 +1134,7 @@ $gray-900: #212121;
       top: -10px;
       right: -10px;
       background: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 
       &.small {
         top: -5px;
@@ -1115,7 +1228,7 @@ $gray-900: #212121;
 
     .remove-document {
       background: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
   }
 
@@ -1165,7 +1278,7 @@ $gray-900: #212121;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     }
 
     .review-content {
@@ -1249,8 +1362,12 @@ $gray-900: #212121;
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 599px) {

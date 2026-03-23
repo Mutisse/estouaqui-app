@@ -93,7 +93,7 @@
         <div class="drawer-profile q-pa-md">
           <div class="row items-center">
             <q-avatar size="56px" class="profile-avatar">
-              <img :src="userAvatar" :alt="userNome">
+              <img :src="userAvatar" :alt="userNome" />
             </q-avatar>
             <div class="q-ml-md">
               <div class="profile-name">{{ userNome }}</div>
@@ -119,7 +119,10 @@
               exact
             >
               <q-item-section avatar>
-                <q-icon :name="item.icon || ''" :color="item.to && isActive(item.to) ? 'primary' : 'grey-7'" />
+                <q-icon
+                  :name="item.icon || ''"
+                  :color="item.to && isActive(item.to) ? 'primary' : 'grey-7'"
+                />
               </q-item-section>
               <q-item-section>{{ item.label || '' }}</q-item-section>
 
@@ -138,9 +141,7 @@
 
       <!-- Footer do drawer -->
       <div class="drawer-footer q-pa-md">
-        <div class="text-caption text-grey-6">
-          Versão 1.0.0
-        </div>
+        <div class="text-caption text-grey-6">Versão 1.0.0</div>
       </div>
     </q-drawer>
 
@@ -154,7 +155,6 @@
     </q-inner-loading>
   </q-layout>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -162,7 +162,7 @@ import { useAuthStore } from 'src/stores/auth';
 import { useQuasar } from 'quasar';
 
 defineOptions({
-  name: 'AdminLayout'
+  name: 'AdminLayout',
 });
 
 const router = useRouter();
@@ -192,7 +192,7 @@ interface Notificacao {
   lida: boolean;
 }
 
-// Interface para items do menu - TODAS AS PROPRIEDADES OPCIONAIS
+// Interface para items do menu
 interface MenuItem {
   header?: string;
   icon?: string;
@@ -205,13 +205,31 @@ interface MenuItem {
 
 // Dados mockados para notificações
 const notificacoes = ref<Notificacao[]>([
-  { id: 1, icone: 'person_add', titulo: 'Novo prestador', descricao: 'João Silva aguarda verificação', lida: false },
-  { id: 2, icone: 'assignment', titulo: 'Serviço concluído', descricao: 'Serviço #123 foi concluído', lida: false },
-  { id: 3, icone: 'star', titulo: 'Nova avaliação', descricao: 'Cliente avaliou serviço com 5 estrelas', lida: true }
+  {
+    id: 1,
+    icone: 'person_add',
+    titulo: 'Novo prestador',
+    descricao: 'João Silva aguarda verificação',
+    lida: false,
+  },
+  {
+    id: 2,
+    icone: 'assignment',
+    titulo: 'Serviço concluído',
+    descricao: 'Serviço #123 foi concluído',
+    lida: false,
+  },
+  {
+    id: 3,
+    icone: 'star',
+    titulo: 'Nova avaliação',
+    descricao: 'Cliente avaliou serviço com 5 estrelas',
+    lida: true,
+  },
 ]);
 
 const notificacoesNaoLidas = computed<number>(() => {
-  return notificacoes.value.filter(n => !n.lida).length;
+  return notificacoes.value.filter((n) => !n.lida).length;
 });
 
 // Verificar se rota está ativa
@@ -219,13 +237,13 @@ const isActive = (path: string): boolean => {
   return route.path === path || route.path.startsWith(path + '/');
 };
 
-// Menu items organizados por seção - usando as rotas exatas do admin
+// Menu items organizados por seção
 const menuItems = computed<MenuItem[]>(() => [
   { header: 'PRINCIPAL' },
   {
     icon: 'dashboard',
     label: 'Dashboard',
-    to: '/admin/dashboard'
+    to: '/admin/dashboard',
   },
   { separator: true },
 
@@ -235,26 +253,26 @@ const menuItems = computed<MenuItem[]>(() => [
     label: 'Utilizadores',
     to: '/admin/utilizadores',
     badge: '12',
-    badgeColor: 'positive'
+    badgeColor: 'positive',
   },
   {
     icon: 'handyman',
     label: 'Prestadores',
     to: '/admin/prestadores',
     badge: '5',
-    badgeColor: 'warning'
+    badgeColor: 'warning',
   },
   {
     icon: 'category',
     label: 'Categorias',
-    to: '/admin/categorias'
+    to: '/admin/categorias',
   },
   {
     icon: 'assignment',
     label: 'Serviços',
     to: '/admin/servicos',
     badge: '23',
-    badgeColor: 'info'
+    badgeColor: 'info',
   },
   { separator: true },
 
@@ -262,17 +280,17 @@ const menuItems = computed<MenuItem[]>(() => [
   {
     icon: 'bar_chart',
     label: 'Estatísticas',
-    to: '/admin/estatisticas'
+    to: '/admin/estatisticas',
   },
   {
     icon: 'assessment',
     label: 'Relatórios',
-    to: '/admin/relatorios'
+    to: '/admin/relatorios',
   },
   {
     icon: 'payments',
     label: 'Financeiro',
-    to: '/admin/financeiro'
+    to: '/admin/financeiro',
   },
   { separator: true },
 
@@ -280,23 +298,23 @@ const menuItems = computed<MenuItem[]>(() => [
   {
     icon: 'settings',
     label: 'Configurações',
-    to: '/admin/configuracoes'
+    to: '/admin/configuracoes',
   },
   {
     icon: 'security',
     label: 'Logs',
-    to: '/admin/logs'
+    to: '/admin/logs',
   },
   { separator: true },
 
   {
     icon: 'person',
     label: 'Meu Perfil',
-    to: '/admin/perfil'
-  }
+    to: '/admin/perfil',
+  },
 ]);
 
-// Métodos
+// Métodos - CORRIGIDO: tratamento correto da Promise
 const logout = (): void => {
   $q.dialog({
     title: 'Confirmar saída',
@@ -304,27 +322,46 @@ const logout = (): void => {
     cancel: {
       label: 'Cancelar',
       color: 'grey-7',
-      flat: true
+      flat: true,
     },
     ok: {
       label: 'Sair',
       color: 'negative',
-      unelevated: true
+      unelevated: true,
     },
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     globalLoading.value = true;
-    authStore.logout();
-    setTimeout(() => {
-      globalLoading.value = false;
-      void router.push('/auth/login');
-    }, 500);
+
+    // ✅ CORREÇÃO: tratar a Promise com .then() e .catch()
+    void authStore
+      .logout()
+      .then(() => {
+        setTimeout(() => {
+          globalLoading.value = false;
+          void router.push('/auth/login');
+          $q.notify({
+            type: 'positive',
+            message: 'Logout realizado com sucesso',
+            position: 'top',
+            timeout: 2000,
+          });
+        }, 500);
+      })
+      .catch(() => {
+        globalLoading.value = false;
+        $q.notify({
+          type: 'negative',
+          message: 'Erro ao realizar logout',
+          position: 'top',
+          timeout: 2000,
+        });
+      });
   });
 };
 
 // Verificar permissões
 onMounted(() => {
-  // Verificar se o usuário está autenticado e é admin
   if (!authStore.isAuthenticated || !authStore.isAdmin) {
     void router.push('/admin/login');
   }
@@ -353,7 +390,7 @@ $gray-900: #212121;
 // Header styles
 .admin-header {
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   position: fixed;
   top: 0;
   left: 0;
@@ -364,7 +401,7 @@ $gray-900: #212121;
     transition: all 0.3s ease;
 
     &:hover {
-      background: rgba(255,255,255,0.1);
+      background: rgba(255, 255, 255, 0.1);
     }
   }
 
@@ -389,7 +426,7 @@ $gray-900: #212121;
     transition: all 0.3s ease;
 
     &:hover {
-      background: rgba(255,255,255,0.1);
+      background: rgba(255, 255, 255, 0.1);
     }
   }
 }
@@ -403,7 +440,7 @@ $gray-900: #212121;
   left: 0;
   height: calc(100vh - 60px);
   z-index: 1999;
-  box-shadow: 4px 0 10px rgba(0,0,0,0.05);
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
 
   .drawer-profile {
     background: linear-gradient(135deg, $gray-100 0%, $gray-200 100%);
@@ -421,7 +458,7 @@ $gray-900: #212121;
 
     .profile-avatar {
       border: 2px solid white;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
   }
 

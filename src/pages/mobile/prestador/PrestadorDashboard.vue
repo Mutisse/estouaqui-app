@@ -6,9 +6,6 @@
         <div class="greeting-small">Bem-vindo de volta,</div>
         <div class="greeting-name">{{ prestadorNome }}</div>
       </div>
-      <q-btn flat round icon="notifications" class="notification-btn">
-        <q-badge color="red" floating>2</q-badge>
-      </q-btn>
     </div>
 
     <!-- Cards de resumo -->
@@ -275,10 +272,6 @@ $gray-900: #212121;
     font-size: 1.5rem;
     font-weight: 700;
     color: $gray-900;
-  }
-
-  .notification-btn {
-    color: $gray-700;
   }
 }
 
