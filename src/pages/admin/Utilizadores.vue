@@ -1,130 +1,927 @@
 ﻿<template>
-  <q-page class="q-pa-md">
-    <div class="text-h4 q-mb-md">Gestão de Utilizadores</div>
+  <q-page class="admin-users-page">
+    <div class="page-header">
+      <div class="page-title-section">
+        <div class="page-title">
+          <q-icon name="people" size="32px" class="q-mr-sm" />
+          Gestão de Utilizadores
+        </div>
+        <div class="page-subtitle">Gerencie todos os utilizadores da plataforma</div>
+      </div>
+      <q-btn
+        label="Novo Utilizador"
+        icon="person_add"
+        color="primary"
+        glossy
+        @click="novoUtilizador"
+      />
+    </div>
 
-    <q-card>
+    <!-- Filtros -->
+    <q-card class="filters-card">
       <q-card-section>
-        <q-input
-          v-model="search"
-          placeholder="Pesquisar utilizadores..."
-          dense
-          outlined
-        >
-          <template v-slot:prepend>
-            <q-icon name="search" />
-          </template>
-        </q-input>
+        <div class="row q-col-gutter-md">
+          <div class="col-12 col-md-4">
+            <q-input
+              v-model="filters.busca"
+              placeholder="Pesquisar utilizadores..."
+              dense
+              outlined
+              @update:model-value="handleFilterChange"
+              class="search-input"
+            >
+              <template v-slot:prepend>
+                <q-icon name="search" color="primary" />
+              </template>
+              <template v-slot:append v-if="filters.busca">
+                <q-icon name="close" class="cursor-pointer" @click="clearSearch" />
+              </template>
+            </q-input>
+          </div>
+          <div class="col-12 col-md-3">
+            <q-select
+              v-model="filters.tipo"
+              :options="tipoOptions"
+              label="Tipo"
+              dense
+              outlined
+              clearable
+              @update:model-value="handleFilterChange"
+              class="filter-select"
+            >
+              <template v-slot:prepend>
+                <q-icon name="category" color="primary" />
+              </template>
+            </q-select>
+          </div>
+          <div class="col-12 col-md-3">
+            <q-select
+              v-model="filters.status"
+              :options="statusOptions"
+              label="Status"
+              dense
+              outlined
+              clearable
+              @update:model-value="handleFilterChange"
+              class="filter-select"
+            >
+              <template v-slot:prepend>
+                <q-icon name="toggle_on" color="primary" />
+              </template>
+            </q-select>
+          </div>
+          <div class="col-12 col-md-2">
+            <q-btn
+              label="Atualizar"
+              icon="refresh"
+              color="primary"
+              dense
+              @click="carregarUtilizadores"
+              :loading="adminStore.loading"
+              class="full-width"
+            />
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <!-- Tabela de Utilizadores -->
+    <q-card class="users-table-card">
+      <q-card-section class="table-header">
+        <div class="row justify-between items-center">
+          <div class="total-info">
+            <q-icon name="info" size="18px" class="q-mr-xs" />
+            <span class="text-subtitle1">Total: <strong>{{ pagination.total }}</strong> utilizadores</span>
+          </div>
+          <div class="pagination-controls">
+            <q-pagination
+              v-model="pagination.page"
+              :max="pagination.lastPage"
+              :max-pages="5"
+              direction-links
+              boundary-links
+              color="primary"
+              @update:model-value="carregarUtilizadores"
+              size="sm"
+            />
+          </div>
+        </div>
       </q-card-section>
 
       <q-table
-        :rows="users"
+        :rows="adminStore.utilizadores"
         :columns="columns"
         row-key="id"
-        :filter="search"
-        :rows-per-page-options="[10, 20, 50]"
+        :loading="adminStore.loading"
+        hide-bottom
+        class="users-table"
+        :rows-per-page-options="[0]"
       >
+        <template v-slot:loading>
+          <q-inner-loading showing color="primary" />
+        </template>
+
         <template v-slot:body-cell-status="props">
           <q-td :props="props">
-            <q-badge :color="props.value ? 'positive' : 'grey'">
-              {{ props.value ? 'Ativo' : 'Inativo' }}
+            <q-badge
+              :color="!props.row.blocked_at ? 'positive' : 'negative'"
+              :outline="!props.row.blocked_at"
+              class="status-badge"
+            >
+              <q-icon :name="!props.row.blocked_at ? 'check_circle' : 'cancel'" size="12px" class="q-mr-xs" />
+              {{ !props.row.blocked_at ? 'Ativo' : 'Bloqueado' }}
             </q-badge>
           </q-td>
         </template>
 
         <template v-slot:body-cell-tipo="props">
           <q-td :props="props">
-            <q-badge :color="props.value === 'prestador' ? 'secondary' : 'primary'">
-              {{ props.value }}
+            <q-badge
+              :color="getTipoColor(props.row.tipo)"
+              class="tipo-badge"
+            >
+              <q-icon :name="getTipoIcon(props.row.tipo)" size="12px" class="q-mr-xs" />
+              {{ getTipoLabel(props.row.tipo) }}
+            </q-badge>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-verificado="props">
+          <q-td :props="props">
+            <q-badge
+              :color="props.row.verificado ? 'positive' : 'warning'"
+              class="verificado-badge"
+            >
+              <q-icon :name="props.row.verificado ? 'verified' : 'pending'" size="12px" class="q-mr-xs" />
+              {{ props.row.verificado ? 'Verificado' : 'Pendente' }}
             </q-badge>
           </q-td>
         </template>
 
         <template v-slot:body-cell-acoes="props">
           <q-td :props="props">
-            <q-btn flat round icon="visibility" size="sm" color="primary">
-              <q-tooltip>Ver detalhes</q-tooltip>
-            </q-btn>
-            <q-btn flat round icon="edit" size="sm" color="secondary">
-              <q-tooltip>Editar</q-tooltip>
-            </q-btn>
-            <q-btn flat round icon="block" size="sm" color="negative">
-              <q-tooltip>Bloquear</q-tooltip>
-            </q-btn>
+            <div class="action-buttons">
+              <q-btn
+                flat
+                round
+                icon="visibility"
+                size="sm"
+                color="primary"
+                @click="verDetalhes(props.row.id)"
+              >
+                <q-tooltip>Ver detalhes</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                round
+                icon="edit"
+                size="sm"
+                color="secondary"
+                @click="editarUtilizador(props.row)"
+              >
+                <q-tooltip>Editar</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="!props.row.blocked_at"
+                flat
+                round
+                icon="block"
+                size="sm"
+                color="negative"
+                @click="bloquearUtilizador(props.row.id, props.row.nome)"
+              >
+                <q-tooltip>Bloquear</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-else
+                flat
+                round
+                icon="lock_open"
+                size="sm"
+                color="positive"
+                @click="desbloquearUtilizador(props.row.id, props.row.nome)"
+              >
+                <q-tooltip>Desbloquear</q-tooltip>
+              </q-btn>
+            </div>
           </q-td>
         </template>
       </q-table>
+
+      <q-card-section v-if="pagination.total > pagination.perPage" class="table-footer">
+        <div class="row justify-center">
+          <q-pagination
+            v-model="pagination.page"
+            :max="pagination.lastPage"
+            :max-pages="5"
+            direction-links
+            boundary-links
+            color="primary"
+            @update:model-value="carregarUtilizadores"
+            size="sm"
+          />
+        </div>
+      </q-card-section>
     </q-card>
+
+    <!-- Diálogo de Edição -->
+    <q-dialog v-model="dialogEdit" transition="scale">
+      <q-card class="edit-dialog">
+        <q-card-section class="dialog-header">
+          <div class="text-h6">
+            <q-icon name="edit" class="q-mr-sm" />
+            Editar Utilizador
+          </div>
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input
+            v-model="editForm.nome"
+            label="Nome"
+            dense
+            outlined
+            class="q-mb-md"
+          >
+            <template v-slot:prepend>
+              <q-icon name="person" color="primary" />
+            </template>
+          </q-input>
+
+          <q-input
+            v-model="editForm.email"
+            label="Email"
+            dense
+            outlined
+            class="q-mb-md"
+            type="email"
+          >
+            <template v-slot:prepend>
+              <q-icon name="email" color="primary" />
+            </template>
+          </q-input>
+
+          <q-input
+            v-model="editForm.telefone"
+            label="Telefone"
+            dense
+            outlined
+            class="q-mb-md"
+          >
+            <template v-slot:prepend>
+              <q-icon name="phone" color="primary" />
+            </template>
+          </q-input>
+
+          <q-select
+            v-model="editForm.tipo"
+            :options="tipoOptions"
+            label="Tipo"
+            dense
+            outlined
+          >
+            <template v-slot:prepend>
+              <q-icon name="category" color="primary" />
+            </template>
+          </q-select>
+        </q-card-section>
+
+        <q-card-actions align="right" class="dialog-actions">
+          <q-btn flat label="Cancelar" color="grey" v-close-popup />
+          <q-btn flat label="Salvar" color="primary" @click="salvarEdicao" :loading="salvando" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Diálogo de Detalhes -->
+    <q-dialog v-model="dialogDetails" transition="scale">
+      <q-card class="details-dialog">
+        <q-card-section class="dialog-header">
+          <div class="text-h6">
+            <q-icon name="account_circle" class="q-mr-sm" />
+            Detalhes do Utilizador
+          </div>
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+
+        <q-card-section v-if="detalhes" class="details-content">
+          <div class="detail-row">
+            <div class="detail-label">
+              <q-icon name="person" size="16px" />
+              <span>Nome</span>
+            </div>
+            <div class="detail-value">{{ detalhes.nome }}</div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">
+              <q-icon name="email" size="16px" />
+              <span>Email</span>
+            </div>
+            <div class="detail-value">{{ detalhes.email }}</div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">
+              <q-icon name="phone" size="16px" />
+              <span>Telefone</span>
+            </div>
+            <div class="detail-value">{{ detalhes.telefone }}</div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">
+              <q-icon name="category" size="16px" />
+              <span>Tipo</span>
+            </div>
+            <div class="detail-value">
+              <q-badge :color="getTipoColor(detalhes.tipo)" class="detail-badge">
+                <q-icon :name="getTipoIcon(detalhes.tipo)" size="12px" class="q-mr-xs" />
+                {{ getTipoLabel(detalhes.tipo) }}
+              </q-badge>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">
+              <q-icon name="toggle_on" size="16px" />
+              <span>Status</span>
+            </div>
+            <div class="detail-value">
+              <q-badge :color="!detalhes.blocked_at ? 'positive' : 'negative'" class="detail-badge">
+                <q-icon :name="!detalhes.blocked_at ? 'check_circle' : 'cancel'" size="12px" class="q-mr-xs" />
+                {{ !detalhes.blocked_at ? 'Ativo' : 'Bloqueado' }}
+              </q-badge>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">
+              <q-icon name="verified" size="16px" />
+              <span>Verificação</span>
+            </div>
+            <div class="detail-value">
+              <q-badge :color="detalhes.verificado ? 'positive' : 'warning'" class="detail-badge">
+                <q-icon :name="detalhes.verificado ? 'verified' : 'pending'" size="12px" class="q-mr-xs" />
+                {{ detalhes.verificado ? 'Verificado' : 'Pendente' }}
+              </q-badge>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">
+              <q-icon name="calendar_today" size="16px" />
+              <span>Cadastro</span>
+            </div>
+            <div class="detail-value">{{ formatDate(detalhes.created_at) }}</div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="dialog-actions">
+          <q-btn flat label="Fechar" color="grey" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup lang="ts">
-defineOptions({
-  name: 'AdminUtilizadores'  // CORREÇÃO 1: Nome com múltiplas palavras
-})
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useQuasar, type QTableColumn } from 'quasar'
+import { useAdminStore } from 'src/stores/admin-store'
 
-import { ref } from 'vue'
-import type { QTableColumn } from 'quasar'  // CORREÇÃO 2: import type
-
-interface User {
+// Interface local para UserData
+interface UserData {
   id: number
   nome: string
+  email: string
   telefone: string
-  tipo: 'cliente' | 'prestador' | 'admin'
-  status: boolean
+  tipo: string
+  avatar?: string
+  data?: string
+  created_at?: string
+  blocked_at?: string | null
+  verificado?: boolean
 }
 
-const search = ref('')
+defineOptions({
+  name: 'AdminUtilizadores'
+})
 
-const columns: QTableColumn[] = [
-  {
-    name: 'id',
-    label: 'ID',
-    field: 'id',
-    align: 'left',
-    sortable: true
-  },
-  {
-    name: 'nome',
-    label: 'Nome',
-    field: 'nome',
-    align: 'left',
-    sortable: true
-  },
-  {
-    name: 'telefone',
-    label: 'Telefone',
-    field: 'telefone',
-    align: 'left',
-    sortable: false
-  },
-  {
-    name: 'tipo',
-    label: 'Tipo',
-    field: 'tipo',
-    align: 'center' as const,
-    sortable: false
-  },
-  {
-    name: 'status',
-    label: 'Status',
-    field: 'status',
-    align: 'center' as const,
-    sortable: false
-  },
-  {
-    name: 'acoes',
-    label: 'Ações',
-    field: 'acoes',
-    align: 'center' as const,
-    sortable: false
-  }
+const $q = useQuasar()
+const adminStore = useAdminStore()
+
+// Estado local
+const dialogEdit = ref(false)
+const dialogDetails = ref(false)
+const salvando = ref(false)
+const detalhes = ref<UserData | null>(null)
+
+// Filtros
+const filters = reactive({
+  busca: '',
+  tipo: null as string | null,
+  status: null as string | null
+})
+
+// Paginação
+const pagination = reactive({
+  page: 1,
+  perPage: 20,
+  total: 0,
+  lastPage: 1
+})
+
+// Formulário de edição
+const editForm = reactive({
+  id: 0,
+  nome: '',
+  email: '',
+  telefone: '',
+  tipo: ''
+})
+
+// Opções
+const tipoOptions = [
+  { label: 'Cliente', value: 'cliente' },
+  { label: 'Prestador', value: 'prestador' },
+  { label: 'Administrador', value: 'admin' }
 ]
 
-const users = ref<User[]>([
-  { id: 1, nome: 'João Silva', telefone: '+258 84 123 4567', tipo: 'cliente', status: true },
-  { id: 2, nome: 'Maria Santos', telefone: '+258 82 987 6543', tipo: 'prestador', status: true },
-  { id: 3, nome: 'Pedro Oliveira', telefone: '+258 86 555 1234', tipo: 'prestador', status: false },
-  { id: 4, nome: 'Ana Costa', telefone: '+258 84 333 2221', tipo: 'cliente', status: true },
-  { id: 5, nome: 'Carlos Mendes', telefone: '+258 87 444 5555', tipo: 'admin', status: true }
-])
+const statusOptions = [
+  { label: 'Ativos', value: 'ativo' },
+  { label: 'Bloqueados', value: 'bloqueado' }
+]
+
+// Colunas da tabela
+const columns: QTableColumn[] = [
+  { name: 'id', label: 'ID', field: 'id', align: 'left', sortable: true },
+  { name: 'nome', label: 'Nome', field: 'nome', align: 'left', sortable: true },
+  { name: 'email', label: 'Email', field: 'email', align: 'left', sortable: true },
+  { name: 'telefone', label: 'Telefone', field: 'telefone', align: 'left', sortable: false },
+  { name: 'tipo', label: 'Tipo', field: 'tipo', align: 'center', sortable: false },
+  { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: false },
+  { name: 'verificado', label: 'Verificado', field: 'verificado', align: 'center', sortable: false },
+  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center', sortable: false }
+]
+
+// Métodos auxiliares
+const getTipoLabel = (tipo: string) => {
+  const labels: Record<string, string> = {
+    cliente: 'Cliente',
+    prestador: 'Prestador',
+    admin: 'Administrador'
+  }
+  return labels[tipo] || tipo
+}
+
+const getTipoColor = (tipo: string) => {
+  const colors: Record<string, string> = {
+    cliente: 'primary',
+    prestador: 'secondary',
+    admin: 'grey-8'
+  }
+  return colors[tipo] || 'grey'
+}
+
+const getTipoIcon = (tipo: string) => {
+  const icons: Record<string, string> = {
+    cliente: 'person',
+    prestador: 'handyman',
+    admin: 'admin_panel_settings'
+  }
+  return icons[tipo] || 'person'
+}
+
+const formatDate = (date?: string) => {
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const clearSearch = () => {
+  filters.busca = ''
+  handleFilterChange()
+}
+
+const novoUtilizador = () => {
+  $q.notify({
+    type: 'info',
+    message: 'Funcionalidade em desenvolvimento',
+    position: 'top'
+  })
+}
+
+// Carregar utilizadores
+const carregarUtilizadores = async () => {
+  try {
+    const params: {
+      page: number
+      per_page: number
+      busca?: string
+      tipo?: string
+      status?: string
+    } = {
+      page: pagination.page,
+      per_page: pagination.perPage
+    }
+
+    if (filters.busca) params.busca = filters.busca
+    if (filters.tipo) params.tipo = filters.tipo
+    if (filters.status) params.status = filters.status
+
+    const result = await adminStore.fetchUtilizadores(params)
+
+    if (result) {
+      pagination.total = result.total
+      pagination.lastPage = result.last_page
+      pagination.page = result.current_page
+    }
+  } catch (err) {
+    console.error('Erro ao carregar utilizadores:', err)
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar utilizadores'
+    })
+  }
+}
+
+// Handler para mudança de filtro
+const handleFilterChange = () => {
+  pagination.page = 1
+  void carregarUtilizadores()
+}
+
+// Ver detalhes
+const verDetalhes = async (id: number) => {
+  try {
+    const user = await adminStore.fetchUtilizadorDetalhes(id)
+    if (user) {
+      detalhes.value = user
+      dialogDetails.value = true
+    }
+  } catch (err) {
+    console.error('Erro ao carregar detalhes:', err)
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar detalhes do utilizador'
+    })
+  }
+}
+
+// Editar utilizador
+const editarUtilizador = (user: UserData) => {
+  editForm.id = user.id
+  editForm.nome = user.nome
+  editForm.email = user.email
+  editForm.telefone = user.telefone
+  editForm.tipo = user.tipo
+  dialogEdit.value = true
+}
+
+// Salvar edição
+const salvarEdicao = async () => {
+  salvando.value = true
+  try {
+    const result = await adminStore.updateUtilizador(editForm.id, {
+      nome: editForm.nome,
+      email: editForm.email,
+      telefone: editForm.telefone,
+      tipo: editForm.tipo
+    })
+
+    if (result) {
+      $q.notify({
+        type: 'positive',
+        message: 'Utilizador atualizado com sucesso!'
+      })
+      dialogEdit.value = false
+      await carregarUtilizadores()
+    }
+  } catch (err) {
+    console.error('Erro ao atualizar:', err)
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao atualizar utilizador'
+    })
+  } finally {
+    salvando.value = false
+  }
+}
+
+// Bloquear utilizador
+const bloquearUtilizador = (id: number, nome: string) => {
+  $q.dialog({
+    title: 'Confirmar',
+    message: `Tem certeza que deseja bloquear o utilizador ${nome}?`,
+    cancel: true,
+    persistent: true
+  }).onOk(() => {
+    void (async () => {
+      try {
+        const result = await adminStore.blockUtilizador(id)
+        if (result) {
+          $q.notify({
+            type: 'positive',
+            message: 'Utilizador bloqueado com sucesso!'
+          })
+          await carregarUtilizadores()
+        }
+      } catch (err) {
+        console.error('Erro ao bloquear:', err)
+        $q.notify({
+          type: 'negative',
+          message: 'Erro ao bloquear utilizador'
+        })
+      }
+    })()
+  })
+}
+
+// Desbloquear utilizador
+const desbloquearUtilizador = (id: number, nome: string) => {
+  $q.dialog({
+    title: 'Confirmar',
+    message: `Tem certeza que deseja desbloquear o utilizador ${nome}?`,
+    cancel: true,
+    persistent: true
+  }).onOk(() => {
+    void (async () => {
+      try {
+        const result = await adminStore.unblockUtilizador(id)
+        if (result) {
+          $q.notify({
+            type: 'positive',
+            message: 'Utilizador desbloqueado com sucesso!'
+          })
+          await carregarUtilizadores()
+        }
+      } catch (err) {
+        console.error('Erro ao desbloquear:', err)
+        $q.notify({
+          type: 'negative',
+          message: 'Erro ao desbloquear utilizador'
+        })
+      }
+    })()
+  })
+}
+
+// Observar mudanças nos filtros
+watch([() => filters.busca, () => filters.tipo, () => filters.status], () => {
+  pagination.page = 1
+  void carregarUtilizadores()
+})
+
+// Carregar dados ao montar
+onMounted(() => {
+  void carregarUtilizadores()
+})
 </script>
+
+<style scoped lang="scss">
+.admin-users-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f5f7fa;
+  min-height: 100vh;
+}
+
+// Header
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  .page-title-section {
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      display: flex;
+      align-items: center;
+    }
+
+    .page-subtitle {
+      font-size: 0.875rem;
+      color: #6c757d;
+      margin-top: 4px;
+    }
+  }
+}
+
+// Cards
+.filters-card,
+.users-table-card {
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 24px;
+
+  :deep(.q-card__section) {
+    padding: 20px;
+  }
+}
+
+// Inputs
+.search-input,
+.filter-select {
+  :deep(.q-field__control) {
+    border-radius: 8px;
+  }
+}
+
+// Table header
+.table-header {
+  border-bottom: 1px solid #e9ecef;
+
+  .total-info {
+    display: flex;
+    align-items: center;
+    color: #495057;
+    font-size: 0.875rem;
+  }
+
+  .pagination-controls {
+    :deep(.q-pagination) {
+      .q-btn {
+        min-width: 32px;
+        height: 32px;
+      }
+    }
+  }
+}
+
+// Table
+.users-table {
+  :deep(.q-table) {
+    thead tr th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #495057;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    tbody tr {
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: #f8f9fa;
+      }
+    }
+
+    td {
+      padding: 12px 16px;
+    }
+  }
+}
+
+// Badges
+.status-badge,
+.tipo-badge,
+.verificado-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+}
+
+// Action buttons
+.action-buttons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+
+  .q-btn {
+    &:hover {
+      transform: scale(1.05);
+      transition: transform 0.2s ease;
+    }
+  }
+}
+
+// Table footer
+.table-footer {
+  border-top: 1px solid #e9ecef;
+  padding: 16px;
+}
+
+// Dialogs
+.edit-dialog,
+.details-dialog {
+  min-width: 450px;
+  border-radius: 16px;
+
+  .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 16px 20px;
+
+    .text-h6 {
+      display: flex;
+      align-items: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+  }
+
+  .dialog-actions {
+    padding: 12px 20px;
+    border-top: 1px solid #e9ecef;
+  }
+}
+
+.details-content {
+  padding: 20px;
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .detail-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: #6c757d;
+      font-size: 0.875rem;
+      min-width: 100px;
+
+      i {
+        font-size: 16px;
+      }
+    }
+
+    .detail-value {
+      flex: 1;
+      text-align: right;
+      color: #2c3e50;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    .detail-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .admin-users-page {
+    padding: 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .edit-dialog,
+  .details-dialog {
+    min-width: 90vw;
+    max-width: 90vw;
+  }
+
+  .details-content .detail-row {
+    flex-direction: column;
+    gap: 8px;
+
+    .detail-label {
+      min-width: auto;
+    }
+
+    .detail-value {
+      text-align: left;
+    }
+  }
+}
+</style>

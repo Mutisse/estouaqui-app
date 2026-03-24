@@ -6,10 +6,10 @@ import { ADMIN_ENDPOINTS } from 'src/router/Api/admin-endpoints';
 import type { AxiosError } from 'axios';
 
 // ==========================================
-// INTERFACES COMPLETAS
+// INTERFACES COMPLETAS (TODAS EXPORTADAS)
 // ==========================================
 
-interface DashboardData {
+export interface DashboardData {
   total_users: number;
   total_clientes: number;
   total_prestadores: number;
@@ -21,13 +21,13 @@ interface DashboardData {
   total_avaliacoes: number;
 }
 
-interface AtividadeData {
+export interface AtividadeData {
   dia: string;
   valor: number;
   data: string;
 }
 
-interface UserData {
+export interface UserData {
   id: number;
   nome: string;
   email: string;
@@ -41,13 +41,13 @@ interface UserData {
 }
 
 // Interface para categorias do prestador
-interface PrestadorCategoria {
+export interface PrestadorCategoria {
   id: number;
   nome: string;
   icone?: string;
 }
 
-interface PrestadorData {
+export interface PrestadorData {
   id: number;
   nome: string;
   email: string;
@@ -58,7 +58,7 @@ interface PrestadorData {
   categorias?: PrestadorCategoria[];
 }
 
-interface CategoriaData {
+export interface CategoriaData {
   id: number;
   nome: string;
   slug: string;
@@ -69,7 +69,7 @@ interface CategoriaData {
   servicos_count: number;
 }
 
-interface ServicoData {
+export interface ServicoData {
   id: number;
   nome: string;
   descricao: string;
@@ -80,7 +80,7 @@ interface ServicoData {
   categoria?: CategoriaData;
 }
 
-interface AvaliacaoData {
+export interface AvaliacaoData {
   id: number;
   nota: number;
   comentario: string;
@@ -88,7 +88,7 @@ interface AvaliacaoData {
   cliente?: UserData;
 }
 
-interface PedidoData {
+export interface PedidoData {
   id: number;
   numero: string;
   cliente_id: number;
@@ -104,7 +104,7 @@ interface PedidoData {
   avaliacao?: AvaliacaoData;
 }
 
-interface TransacaoData {
+export interface TransacaoData {
   id: number;
   numero: string;
   user_id: number;
@@ -117,7 +117,7 @@ interface TransacaoData {
   user?: UserData;
 }
 
-interface StatsData {
+export interface StatsData {
   total_usuarios: number;
   total_clientes: number;
   total_prestadores: number;
@@ -127,14 +127,14 @@ interface StatsData {
   receita_total: number;
 }
 
-interface ResumoFinanceiroData {
+export interface ResumoFinanceiroData {
   saldo_atual: number;
   pendente: number;
   processado_mes: number;
   comissoes: number;
 }
 
-interface RelatorioServicosData {
+export interface RelatorioServicosData {
   periodo: string;
   total_servicos: number;
   receita_total: number;
@@ -147,7 +147,7 @@ interface RelatorioServicosData {
   };
 }
 
-interface RelatorioPrestadoresData {
+export interface RelatorioPrestadoresData {
   total: number;
   verificados: number;
   nao_verificados: number;
@@ -155,7 +155,7 @@ interface RelatorioPrestadoresData {
   top_prestadores: PrestadorData[];
 }
 
-interface RelatorioFinanceiroData {
+export interface RelatorioFinanceiroData {
   periodo: string;
   entradas: number;
   saidas: number;
@@ -163,7 +163,7 @@ interface RelatorioFinanceiroData {
   comissoes: number;
 }
 
-interface ConfiguracoesData {
+export interface ConfiguracoesData {
   nome: string;
   email: string;
   telefone: string;
@@ -173,7 +173,7 @@ interface ConfiguracoesData {
 }
 
 // Interface para serviço recente formatado
-interface ServicoRecente {
+export interface ServicoRecente {
   id: number;
   servico: string;
   cliente: string;
@@ -185,7 +185,7 @@ interface ServicoRecente {
 }
 
 // Interface para log
-interface LogData {
+export interface LogData {
   id: number;
   data: string;
   nivel: string;
@@ -195,7 +195,7 @@ interface LogData {
 }
 
 // Interface para criação de serviço
-interface CreateServicoData {
+export interface CreateServicoData {
   prestador_id: number;
   categoria_id: number;
   nome: string;
@@ -227,7 +227,7 @@ export const useAdminStore = defineStore('admin', () => {
     servicos_hoje: 0,
     servicos_pendentes: 0,
     avaliacao_media: 0,
-    total_avaliacoes: 0
+    total_avaliacoes: 0,
   });
 
   // Atividade semanal
@@ -259,7 +259,7 @@ export const useAdminStore = defineStore('admin', () => {
     saldo_atual: 0,
     pendente: 0,
     processado_mes: 0,
-    comissoes: 0
+    comissoes: 0,
   });
 
   // Estatísticas
@@ -270,7 +270,7 @@ export const useAdminStore = defineStore('admin', () => {
     total_servicos: 0,
     total_pedidos: 0,
     total_avaliacoes: 0,
-    receita_total: 0
+    receita_total: 0,
   });
 
   // Relatórios
@@ -285,7 +285,7 @@ export const useAdminStore = defineStore('admin', () => {
     telefone: '',
     endereco: '',
     comissao_padrao: 0,
-    tipo_comissao: ''
+    tipo_comissao: '',
   });
 
   // Logs
@@ -332,10 +332,15 @@ export const useAdminStore = defineStore('admin', () => {
   // 2. GESTÃO DE UTILIZADORES
   // ==========================================
 
-  const fetchUtilizadores = async (params?: { tipo?: string; status?: string; busca?: string }) => {
+  const fetchUtilizadores = async (params?: {
+    tipo?: string;
+    status?: string;
+    busca?: string;
+    per_page?: number;
+  }) => {
     try {
       const response = await api.get(ADMIN_ENDPOINTS.USERS, { params });
-      utilizadores.value = response.data.data.data;
+      utilizadores.value = response.data.data.data || [];
       return response.data.data;
     } catch (error) {
       showError(error);
@@ -345,10 +350,13 @@ export const useAdminStore = defineStore('admin', () => {
 
   const fetchUltimosUtilizadores = async (limit: number = 5) => {
     try {
-      const response = await api.get(`${ADMIN_ENDPOINTS.USERS}?per_page=${limit}`);
-      ultimosUtilizadores.value = response.data.data.data;
+      const response = await api.get(ADMIN_ENDPOINTS.USERS, {
+        params: { per_page: limit },
+      });
+      ultimosUtilizadores.value = response.data.data.data || [];
       return true;
     } catch (error) {
+      console.error('Erro em fetchUltimosUtilizadores:', error);
       showError(error);
       return false;
     }
@@ -420,7 +428,11 @@ export const useAdminStore = defineStore('admin', () => {
   // 3. GESTÃO DE PRESTADORES
   // ==========================================
 
-  const fetchPrestadores = async (params?: { verificado?: boolean; categoria?: number; avaliacao_min?: number }) => {
+  const fetchPrestadores = async (params?: {
+    verificado?: boolean;
+    categoria?: number;
+    avaliacao_min?: number;
+  }) => {
     try {
       const response = await api.get(ADMIN_ENDPOINTS.PRESTADORES, { params });
       prestadores.value = response.data.data.data;
@@ -477,7 +489,12 @@ export const useAdminStore = defineStore('admin', () => {
     }
   };
 
-  const createCategoria = async (data: { nome: string; descricao?: string; icone?: string; cor?: string }) => {
+  const createCategoria = async (data: {
+    nome: string;
+    descricao?: string;
+    icone?: string;
+    cor?: string;
+  }) => {
     try {
       const response = await api.post(ADMIN_ENDPOINTS.CREATE_CATEGORIA, data);
       return response.data;
@@ -524,8 +541,10 @@ export const useAdminStore = defineStore('admin', () => {
 
   const fetchServicosRecentes = async (limit: number = 5) => {
     try {
-      const response = await api.get(`${ADMIN_ENDPOINTS.PEDIDOS}?per_page=${limit}`);
-      const pedidosData = response.data.data.data;
+      const response = await api.get(ADMIN_ENDPOINTS.PEDIDOS, {
+        params: { per_page: limit },
+      });
+      const pedidosData = response.data.data.data || [];
       servicosRecentes.value = pedidosData.map((pedido: PedidoData) => ({
         id: pedido.id,
         servico: pedido.servico?.nome || 'Serviço',
@@ -534,10 +553,11 @@ export const useAdminStore = defineStore('admin', () => {
         valor: pedido.valor || 0,
         status: getStatusText(pedido.status),
         statusCor: getStatusColor(pedido.status),
-        icone: getStatusIcon(pedido.status)
+        icone: getStatusIcon(pedido.status),
       }));
       return true;
     } catch (error) {
+      console.error('Erro em fetchServicosRecentes:', error);
       showError(error);
       return false;
     }
@@ -557,10 +577,10 @@ export const useAdminStore = defineStore('admin', () => {
   // 6. GESTÃO DE PEDIDOS
   // ==========================================
 
-  const fetchPedidos = async (params?: { status?: string }) => {
+  const fetchPedidos = async (params?: { status?: string; per_page?: number }) => {
     try {
       const response = await api.get(ADMIN_ENDPOINTS.PEDIDOS, { params });
-      pedidos.value = response.data.data.data;
+      pedidos.value = response.data.data.data || [];
       return response.data.data;
     } catch (error) {
       showError(error);
@@ -725,7 +745,7 @@ export const useAdminStore = defineStore('admin', () => {
         fetchUltimosUtilizadores(5),
         fetchServicosRecentes(5),
         fetchStats(),
-        fetchResumoFinanceiro()
+        fetchResumoFinanceiro(),
       ]);
       return true;
     } catch (error) {
@@ -742,7 +762,7 @@ export const useAdminStore = defineStore('admin', () => {
       aceito: 'Aceito',
       em_andamento: 'Em andamento',
       concluido: 'Concluído',
-      cancelado: 'Cancelado'
+      cancelado: 'Cancelado',
     };
     return statusMap[status] || status;
   };
@@ -753,7 +773,7 @@ export const useAdminStore = defineStore('admin', () => {
       aceito: 'primary',
       em_andamento: 'warning',
       concluido: 'positive',
-      cancelado: 'negative'
+      cancelado: 'negative',
     };
     return colorMap[status] || 'grey';
   };
@@ -764,19 +784,23 @@ export const useAdminStore = defineStore('admin', () => {
       aceito: 'check_circle',
       em_andamento: 'play_circle',
       concluido: 'task_alt',
-      cancelado: 'cancel'
+      cancelado: 'cancel',
     };
     return iconMap[status] || 'help';
   };
 
   const showError = (error: unknown) => {
     const err = error as AxiosError<{ error?: string; message?: string }>;
-    const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Erro ao carregar dados';
+    const message =
+      err.response?.data?.error ||
+      err.response?.data?.message ||
+      err.message ||
+      'Erro ao carregar dados';
     $q.notify({
       type: 'negative',
       message,
       position: 'top',
-      timeout: 3000
+      timeout: 3000,
     });
   };
 
@@ -789,31 +813,98 @@ export const useAdminStore = defineStore('admin', () => {
       dia: item.dia,
       valor: item.valor,
       altura: item.valor * 2,
-      cor: index < 5 ? '#667eea' : '#764ba2'
+      cor: index < 5 ? '#667eea' : '#764ba2',
     }));
   };
 
   const cardsPrincipais = () => [
-    { title: 'Total Utilizadores', value: dashboard.value.total_users, icon: 'people', iconColor: 'white', bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', trend: 12 },
-    { title: 'Prestadores', value: dashboard.value.total_prestadores, icon: 'handyman', iconColor: 'white', bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', trend: 8 },
-    { title: 'Serviços Hoje', value: dashboard.value.servicos_hoje, icon: 'assignment', iconColor: 'white', bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', trend: 5 },
-    { title: 'Avaliação Média', value: dashboard.value.avaliacao_media.toFixed(1), icon: 'star', iconColor: 'white', bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', trend: 3 }
+    {
+      title: 'Total Utilizadores',
+      value: dashboard.value.total_users,
+      icon: 'people',
+      iconColor: 'white',
+      bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      trend: 12,
+    },
+    {
+      title: 'Prestadores',
+      value: dashboard.value.total_prestadores,
+      icon: 'handyman',
+      iconColor: 'white',
+      bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      trend: 8,
+    },
+    {
+      title: 'Serviços Hoje',
+      value: dashboard.value.servicos_hoje,
+      icon: 'assignment',
+      iconColor: 'white',
+      bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      trend: 5,
+    },
+    {
+      title: 'Avaliação Média',
+      value: dashboard.value.avaliacao_media.toFixed(1),
+      icon: 'star',
+      iconColor: 'white',
+      bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      trend: 3,
+    },
   ];
 
   const cardsSecundarios = () => [
-    { title: 'Receita Total', value: estatisticas.value.receita_total, icon: 'payments', iconColor: '#2e7d32', bgColor: '#e8f5e9' },
-    { title: 'Categorias', value: categorias.value.length, icon: 'category', iconColor: '#f57c00', bgColor: '#fff3e0' },
-    { title: 'Serviços', value: estatisticas.value.total_servicos, icon: 'construction', iconColor: '#1976d2', bgColor: '#e3f2fd' },
-    { title: 'Avaliações', value: dashboard.value.total_avaliacoes, icon: 'chat', iconColor: '#9c27b0', bgColor: '#f3e5f5' }
+    {
+      title: 'Receita Total',
+      value: estatisticas.value.receita_total,
+      icon: 'payments',
+      iconColor: '#2e7d32',
+      bgColor: '#e8f5e9',
+    },
+    {
+      title: 'Categorias',
+      value: categorias.value.length,
+      icon: 'category',
+      iconColor: '#f57c00',
+      bgColor: '#fff3e0',
+    },
+    {
+      title: 'Serviços',
+      value: estatisticas.value.total_servicos,
+      icon: 'construction',
+      iconColor: '#1976d2',
+      bgColor: '#e3f2fd',
+    },
+    {
+      title: 'Avaliações',
+      value: dashboard.value.total_avaliacoes,
+      icon: 'chat',
+      iconColor: '#9c27b0',
+      bgColor: '#f3e5f5',
+    },
   ];
 
   const distribuicaoPorTipo = () => {
     const total = dashboard.value.total_users;
     if (total === 0) return [];
     return [
-      { label: 'Clientes', value: dashboard.value.total_clientes, percent: dashboard.value.total_clientes / total, color: 'primary' },
-      { label: 'Prestadores', value: dashboard.value.total_prestadores, percent: dashboard.value.total_prestadores / total, color: 'secondary' },
-      { label: 'Administradores', value: dashboard.value.total_admins, percent: dashboard.value.total_admins / total, color: 'grey' }
+      {
+        label: 'Clientes',
+        value: dashboard.value.total_clientes,
+        percent: dashboard.value.total_clientes / total,
+        color: 'primary',
+      },
+      {
+        label: 'Prestadores',
+        value: dashboard.value.total_prestadores,
+        percent: dashboard.value.total_prestadores / total,
+        color: 'secondary',
+      },
+      {
+        label: 'Administradores',
+        value: dashboard.value.total_admins,
+        percent: dashboard.value.total_admins / total,
+        color: 'grey',
+      },
     ];
   };
 
@@ -911,6 +1002,6 @@ export const useAdminStore = defineStore('admin', () => {
     atividadeFormatada,
     cardsPrincipais,
     cardsSecundarios,
-    distribuicaoPorTipo
+    distribuicaoPorTipo,
   };
 });
