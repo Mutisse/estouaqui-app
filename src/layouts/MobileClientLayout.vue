@@ -27,7 +27,12 @@
         <!-- Notificações -->
         <q-btn flat round dense class="notification-btn" @click="openNotifications">
           <q-icon name="notifications" size="20px" />
-          <q-badge v-if="unreadNotificationsCount > 0" color="red" floating class="notification-badge">
+          <q-badge
+            v-if="unreadNotificationsCount > 0"
+            color="red"
+            floating
+            class="notification-badge"
+          >
             {{ unreadNotificationsCount }}
           </q-badge>
         </q-btn>
@@ -46,7 +51,7 @@
       <q-scroll-area class="fit">
         <div class="drawer-header">
           <q-avatar size="70px" class="drawer-avatar">
-            <img :src="userAvatar" alt="Avatar">
+            <img :src="userAvatar" alt="Avatar" />
           </q-avatar>
           <div class="drawer-user-info">
             <div class="user-name">{{ userName || 'Cliente' }}</div>
@@ -60,21 +65,42 @@
             Navegação
           </q-item-label>
 
-          <q-item clickable v-ripple to="/mobile/inicio" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/inicio"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="home" class="menu-icon" />
             </q-item-section>
             <q-item-section>Início</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/mapa" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/mapa"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="map" class="menu-icon" />
             </q-item-section>
             <q-item-section>Mapa</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/lista-prestadores" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/lista-prestadores"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="list" class="menu-icon" />
             </q-item-section>
@@ -88,21 +114,42 @@
             Minha Conta
           </q-item-label>
 
-          <q-item clickable v-ripple to="/mobile/perfil" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/perfil"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="person" class="menu-icon" />
             </q-item-section>
             <q-item-section>Meu Perfil</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/meus-pedidos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/meus-pedidos"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="assignment" class="menu-icon" />
             </q-item-section>
             <q-item-section>Meus Pedidos</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/favoritos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/favoritos"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="favorite" class="menu-icon" />
             </q-item-section>
@@ -172,7 +219,7 @@
 
     <!-- Modal de Notificações -->
     <q-dialog v-model="notificationsDialog" position="top" class="notifications-dialog">
-      <q-card style="min-width: 350px; max-width: 500px;">
+      <q-card style="min-width: 350px; max-width: 500px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Notificações</div>
           <q-space />
@@ -181,7 +228,7 @@
 
         <q-separator />
 
-        <q-card-section class="q-pt-md" style="max-height: 60vh; overflow-y: auto;">
+        <q-card-section class="q-pt-md" style="max-height: 60vh; overflow-y: auto">
           <div v-if="notifications.length === 0" class="text-center q-pa-md">
             <q-icon name="notifications_none" size="48px" color="grey-5" />
             <div class="text-grey-6 q-mt-sm">Nenhuma notificação</div>
@@ -235,33 +282,33 @@
   </q-layout>
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from 'src/stores/auth'
-import { useQuasar } from 'quasar'
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from 'src/stores/auth-store';
+import { useQuasar } from 'quasar';
 
-const router = useRouter()
-const authStore = useAuthStore()
-const $q = useQuasar()
+const router = useRouter();
+const authStore = useAuthStore();
+const $q = useQuasar();
 
-const leftDrawerOpen = ref(false)
-const notificationsDialog = ref(false)
+const leftDrawerOpen = ref(false);
+const notificationsDialog = ref(false);
 
 interface Notification {
-  id: number
-  titulo: string
-  mensagem: string
-  icone: string
-  cor: string
-  data: string
-  lida: boolean
+  id: number;
+  titulo: string;
+  mensagem: string;
+  icone: string;
+  cor: string;
+  data: string;
+  lida: boolean;
 }
 
-const notifications = ref<Notification[]>([])
-const unreadNotificationsCount = ref(0)
+const notifications = ref<Notification[]>([]);
+const unreadNotificationsCount = ref(0);
 
-const userName = computed(() => authStore.user?.nome || 'Cliente')
-const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png')
+const userName = computed(() => authStore.user?.nome || 'Cliente');
+const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png');
 
 // Função sem async (sem await)
 const fetchNotifications = () => {
@@ -274,7 +321,7 @@ const fetchNotifications = () => {
         icone: 'assignment',
         cor: 'primary',
         data: '2026-03-23T10:30:00',
-        lida: false
+        lida: false,
       },
       {
         id: 2,
@@ -283,7 +330,7 @@ const fetchNotifications = () => {
         icone: 'check_circle',
         cor: 'positive',
         data: '2026-03-22T15:20:00',
-        lida: false
+        lida: false,
       },
       {
         id: 3,
@@ -292,57 +339,57 @@ const fetchNotifications = () => {
         icone: 'star',
         cor: 'yellow',
         data: '2026-03-21T09:15:00',
-        lida: true
-      }
-    ]
-    unreadNotificationsCount.value = notifications.value.filter(n => !n.lida).length
+        lida: true,
+      },
+    ];
+    unreadNotificationsCount.value = notifications.value.filter((n) => !n.lida).length;
   } catch {
-    console.error('Erro ao buscar notificações')
+    console.error('Erro ao buscar notificações');
   }
-}
+};
 
 const openNotifications = () => {
-  notificationsDialog.value = true
-}
+  notificationsDialog.value = true;
+};
 
 const markAsRead = (id: number) => {
   try {
-    const notif = notifications.value.find(n => n.id === id)
+    const notif = notifications.value.find((n) => n.id === id);
     if (notif && !notif.lida) {
-      notif.lida = true
-      unreadNotificationsCount.value--
+      notif.lida = true;
+      unreadNotificationsCount.value--;
     }
   } catch {
-    console.error('Erro ao marcar notificação como lida')
+    console.error('Erro ao marcar notificação como lida');
   }
-}
+};
 
 const markAllAsRead = () => {
   try {
-    notifications.value.forEach(n => {
+    notifications.value.forEach((n) => {
       if (!n.lida) {
-        n.lida = true
+        n.lida = true;
       }
-    })
-    unreadNotificationsCount.value = 0
+    });
+    unreadNotificationsCount.value = 0;
   } catch {
-    console.error('Erro ao marcar todas notificações como lidas')
+    console.error('Erro ao marcar todas notificações como lidas');
   }
-}
+};
 
 const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
   if (diffHours < 24) {
-    return `Hoje às ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+    return `Hoje às ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   } else if (diffHours < 48) {
-    return 'Ontem'
+    return 'Ontem';
   } else {
-    return date.toLocaleDateString('pt-PT')
+    return date.toLocaleDateString('pt-PT');
   }
-}
+};
 
 const confirmLogout = () => {
   $q.dialog({
@@ -351,36 +398,39 @@ const confirmLogout = () => {
     cancel: {
       label: 'Cancelar',
       color: 'grey-7',
-      flat: true
+      flat: true,
     },
     ok: {
       label: 'Sair',
       color: 'negative',
-      unelevated: true
+      unelevated: true,
     },
-    persistent: true
+    persistent: true,
   }).onOk(() => {
-    void authStore.logout().then(() => {
-      $q.notify({
-        type: 'positive',
-        message: 'Logout efetuado com sucesso!',
-        position: 'top',
-        icon: 'check_circle'
+    void authStore
+      .logout()
+      .then(() => {
+        $q.notify({
+          type: 'positive',
+          message: 'Logout efetuado com sucesso!',
+          position: 'top',
+          icon: 'check_circle',
+        });
+        void router.push('/auth/login');
       })
-      void router.push('/auth/login')
-    }).catch(() => {
-      $q.notify({
-        type: 'negative',
-        message: 'Erro ao sair. Tente novamente.',
-        position: 'top'
-      })
-    })
-  })
-}
+      .catch(() => {
+        $q.notify({
+          type: 'negative',
+          message: 'Erro ao sair. Tente novamente.',
+          position: 'top',
+        });
+      });
+  });
+};
 
 onMounted(() => {
-  fetchNotifications()
-})
+  fetchNotifications();
+});
 </script>
 
 <style scoped lang="scss">
@@ -657,8 +707,13 @@ $gray-900: #212121;
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
 }
 
 @media (max-width: 360px) {

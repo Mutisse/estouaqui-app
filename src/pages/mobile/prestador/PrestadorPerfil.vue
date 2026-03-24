@@ -10,7 +10,7 @@
     <!-- Foto e informações principais -->
     <div class="profile-header q-pa-md text-center">
       <q-avatar size="120px" class="profile-avatar">
-        <img :src="perfil.avatar" alt="Avatar">
+        <img :src="perfil.avatar" alt="Avatar" />
         <q-badge floating color="positive" rounded />
       </q-avatar>
       <div class="profile-name q-mt-md">{{ perfil.nome }}</div>
@@ -146,18 +146,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
-import { useAuthStore } from 'src/stores/auth'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
+import { useAuthStore } from 'src/stores/auth-store';
 
 defineOptions({
-  name: 'PrestadorPerfil'
-})
+  name: 'PrestadorPerfil',
+});
 
-const router = useRouter()
-const $q = useQuasar()
-const authStore = useAuthStore()
+const router = useRouter();
+const $q = useQuasar();
+const authStore = useAuthStore();
 
 // CORREÇÃO: Usar dados mockados completos
 const perfil = ref({
@@ -170,74 +170,75 @@ const perfil = ref({
   clientes: 98,
   experiencia: 5,
   telefone: authStore.user?.telefone || '+258 84 123 4567',
-  email: 'joao.silva@email.com',  // Valor fixo
+  email: 'joao.silva@email.com', // Valor fixo
   localizacao: 'Maputo, Moçambique',
-  sobre: 'Sou eletricista com mais de 5 anos de experiência em instalações e reparações residenciais e comerciais. Trabalho com qualidade, segurança e pontualidade.'
-})
+  sobre:
+    'Sou eletricista com mais de 5 anos de experiência em instalações e reparações residenciais e comerciais. Trabalho com qualidade, segurança e pontualidade.',
+});
 
 const editarPerfil = () => {
   $q.notify({
     type: 'info',
     message: 'Editar perfil em breve',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
 const editarTelefone = () => {
   $q.notify({
     type: 'info',
     message: 'Editar telefone em breve',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
 const editarEmail = () => {
   $q.notify({
     type: 'info',
     message: 'Editar email em breve',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
 const editarLocalizacao = () => {
   $q.notify({
     type: 'info',
     message: 'Editar localização em breve',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
 const editarSobre = () => {
   $q.notify({
     type: 'info',
     message: 'Editar sobre em breve',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
 const verPortfolio = (n: number) => {
   $q.notify({
     type: 'info',
     message: `Ver foto ${n} do portfólio`,
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
 const verPortfolioCompleto = () => {
   $q.notify({
     type: 'info',
     message: 'Portfólio completo em breve',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
 const uploadDocumento = () => {
   $q.notify({
     type: 'info',
     message: 'Upload de documento em breve',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 </script>
 
 <style scoped lang="scss">
@@ -310,7 +311,8 @@ $gray-900: #212121;
   color: $gray-800;
 }
 
-.info-list, .docs-list {
+.info-list,
+.docs-list {
   border-radius: 12px;
   overflow: hidden;
 }

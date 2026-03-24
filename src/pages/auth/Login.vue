@@ -66,7 +66,13 @@
 
           <!-- Link para recuperar senha -->
           <div class="forgot-password">
-            <q-btn flat dense label="Esqueceu a palavra-passe?" class="forgot-btn" @click="forgotPassword" />
+            <q-btn
+              flat
+              dense
+              label="Esqueceu a palavra-passe?"
+              class="forgot-btn"
+              @click="forgotPassword"
+            />
           </div>
 
           <!-- Botão de Login -->
@@ -86,12 +92,12 @@
 
 <script setup lang="ts">
 defineOptions({
-  name: 'AuthLogin'
-})
+  name: 'AuthLogin',
+});
 
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from 'src/stores/auth';
+import { useAuthStore } from 'src/stores/auth-store';
 import { useQuasar } from 'quasar';
 
 const router = useRouter();
@@ -130,7 +136,7 @@ const handleLogin = async () => {
     $q.notify({
       type: 'warning',
       message: 'Preencha todos os campos',
-      position: 'top'
+      position: 'top',
     });
     return;
   }
@@ -139,7 +145,7 @@ const handleLogin = async () => {
     $q.notify({
       type: 'warning',
       message: 'Use um email válido ou telefone (84 123 4567)',
-      position: 'top'
+      position: 'top',
     });
     return;
   }
@@ -148,7 +154,7 @@ const handleLogin = async () => {
   try {
     const loginData = {
       login: isValidEmail(login.value) ? login.value : normalizePhone(login.value),
-      password: password.value
+      password: password.value,
     };
 
     const success = await authStore.login(loginData.login, loginData.password);
@@ -157,7 +163,7 @@ const handleLogin = async () => {
         type: 'positive',
         message: 'Login efetuado com sucesso!',
         position: 'top',
-        icon: 'check_circle'
+        icon: 'check_circle',
       });
 
       const user = authStore.user;
@@ -178,7 +184,7 @@ const handleLogin = async () => {
     $q.notify({
       type: 'negative',
       message: error instanceof Error ? error.message : 'Erro ao fazer login',
-      position: 'top'
+      position: 'top',
     });
   } finally {
     loading.value = false;
@@ -192,15 +198,15 @@ const forgotPassword = () => {
     prompt: {
       model: '',
       type: 'text',
-      isValid: (val: string) => isValidEmail(val) || isValidPhone(val)
+      isValid: (val: string) => isValidEmail(val) || isValidPhone(val),
     },
     cancel: true,
-    persistent: true
+    persistent: true,
   }).onOk((contacto) => {
     $q.notify({
       type: 'info',
       message: `Instruções enviadas para ${contacto}`,
-      position: 'top'
+      position: 'top',
     });
   });
 };
@@ -254,7 +260,7 @@ $gray-900: #212121;
     right: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
     animation: rotate 20s linear infinite;
   }
 
@@ -276,7 +282,7 @@ $gray-900: #212121;
     font-weight: 700;
     color: white;
     margin-bottom: 5px;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   }
 
   .header-subtitle {
@@ -368,8 +374,12 @@ $gray-900: #212121;
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 599px) {

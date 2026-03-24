@@ -54,7 +54,14 @@
     <div class="section q-px-md q-mb-md">
       <div class="section-header">
         <div class="section-title">Próximos serviços</div>
-        <q-btn flat dense label="Ver todos" class="section-link" to="/mobile/prestador/agenda" no-caps />
+        <q-btn
+          flat
+          dense
+          label="Ver todos"
+          class="section-link"
+          to="/mobile/prestador/agenda"
+          no-caps
+        />
       </div>
 
       <q-list bordered separator>
@@ -67,7 +74,7 @@
         >
           <q-item-section avatar>
             <q-avatar>
-              <img :src="servico.clienteAvatar" :alt="servico.cliente">
+              <img :src="servico.clienteAvatar" :alt="servico.cliente" />
             </q-avatar>
           </q-item-section>
 
@@ -136,14 +143,21 @@
     <div class="section q-px-md q-mb-md">
       <div class="section-header">
         <div class="section-title">Avaliações recentes</div>
-        <q-btn flat dense label="Ver todas" class="section-link" to="/mobile/prestador/avaliacoes" no-caps />
+        <q-btn
+          flat
+          dense
+          label="Ver todas"
+          class="section-link"
+          to="/mobile/prestador/avaliacoes"
+          no-caps
+        />
       </div>
 
       <q-list bordered separator>
         <q-item v-for="avaliacao in avaliacoesRecentes" :key="avaliacao.id">
           <q-item-section avatar>
             <q-avatar>
-              <img :src="avaliacao.clienteAvatar" :alt="avaliacao.cliente">
+              <img :src="avaliacao.clienteAvatar" :alt="avaliacao.cliente" />
             </q-avatar>
           </q-item-section>
 
@@ -153,9 +167,7 @@
               <q-rating v-model="avaliacao.nota" size="14px" :max="5" color="yellow" readonly />
               <span class="q-ml-xs">{{ avaliacao.data }}</span>
             </q-item-label>
-            <q-item-label caption lines="2">
-              "{{ avaliacao.comentario }}"
-            </q-item-label>
+            <q-item-label caption lines="2"> "{{ avaliacao.comentario }}" </q-item-label>
           </q-item-section>
         </q-item>
       </q-list>
@@ -164,26 +176,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from 'src/stores/auth'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from 'src/stores/auth-store';
 
 defineOptions({
-  name: 'PrestadorDashboard'
-})
+  name: 'PrestadorDashboard',
+});
 
-const router = useRouter()
-const authStore = useAuthStore()
+const router = useRouter();
+const authStore = useAuthStore();
 
-const prestadorNome = ref(authStore.user?.nome || 'João Silva')
+const prestadorNome = ref(authStore.user?.nome || 'João Silva');
 
 // Dados mockados
 const resumo = ref({
   pedidosPendentes: 3,
   servicosHoje: 2,
   avaliacaoMedia: 4.8,
-  ganhosMes: 12500
-})
+  ganhosMes: 12500,
+});
 
 const proximosServicos = ref([
   {
@@ -192,7 +204,7 @@ const proximosServicos = ref([
     clienteAvatar: 'https://cdn.quasar.dev/img/avatar2.jpg',
     horario: 'Hoje, 14:30',
     servico: 'Reparação elétrica',
-    status: 'confirmado'
+    status: 'confirmado',
   },
   {
     id: 2,
@@ -200,7 +212,7 @@ const proximosServicos = ref([
     clienteAvatar: 'https://cdn.quasar.dev/img/avatar3.jpg',
     horario: 'Hoje, 16:00',
     servico: 'Instalação de tomada',
-    status: 'pendente'
+    status: 'pendente',
   },
   {
     id: 3,
@@ -208,9 +220,9 @@ const proximosServicos = ref([
     clienteAvatar: 'https://cdn.quasar.dev/img/avatar4.jpg',
     horario: 'Amanhã, 09:30',
     servico: 'Troca de disjuntor',
-    status: 'confirmado'
-  }
-])
+    status: 'confirmado',
+  },
+]);
 
 const avaliacoesRecentes = ref([
   {
@@ -219,7 +231,7 @@ const avaliacoesRecentes = ref([
     clienteAvatar: 'https://cdn.quasar.dev/img/avatar5.jpg',
     nota: 5,
     data: '2 dias atrás',
-    comentario: 'Excelente profissional, muito atencioso e pontual.'
+    comentario: 'Excelente profissional, muito atencioso e pontual.',
   },
   {
     id: 2,
@@ -227,17 +239,17 @@ const avaliacoesRecentes = ref([
     clienteAvatar: 'https://cdn.quasar.dev/img/avatar6.jpg',
     nota: 4,
     data: '5 dias atrás',
-    comentario: 'Bom trabalho, recomendo.'
-  }
-])
+    comentario: 'Bom trabalho, recomendo.',
+  },
+]);
 
 const verServico = (id: number) => {
-  void router.push(`/mobile/prestador/pedidos/${id}`)
-}
+  void router.push(`/mobile/prestador/pedidos/${id}`);
+};
 
 const irPara = (rota: string) => {
-  void router.push(`/mobile/prestador/${rota}`)
-}
+  void router.push(`/mobile/prestador/${rota}`);
+};
 </script>
 
 <style scoped lang="scss">
@@ -320,7 +332,7 @@ $gray-900: #212121;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   }
 
   .action-label {

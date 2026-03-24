@@ -44,7 +44,7 @@
       <q-scroll-area class="fit">
         <div class="drawer-header">
           <q-avatar size="70px" class="drawer-avatar">
-            <img :src="userAvatar" alt="Avatar">
+            <img :src="userAvatar" alt="Avatar" />
           </q-avatar>
           <div class="drawer-user-info">
             <div class="user-name">{{ userName || 'Prestador' }}</div>
@@ -62,14 +62,28 @@
             Painel Principal
           </q-item-label>
 
-          <q-item clickable v-ripple to="/mobile/prestador/dashboard" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/prestador/dashboard"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="space_dashboard" class="menu-icon" />
             </q-item-section>
             <q-item-section>Dashboard</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/prestador/pedidos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/prestador/pedidos"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="assignment" class="menu-icon" />
             </q-item-section>
@@ -86,21 +100,42 @@
             Gestão de Serviços
           </q-item-label>
 
-          <q-item clickable v-ripple to="/mobile/prestador/servicos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/prestador/servicos"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="construction" class="menu-icon" />
             </q-item-section>
             <q-item-section>Meus Serviços</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/prestador/agenda" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/prestador/agenda"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="schedule" class="menu-icon" />
             </q-item-section>
             <q-item-section>Minha Agenda</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/prestador/historico" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/prestador/historico"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="history" class="menu-icon" />
             </q-item-section>
@@ -114,14 +149,28 @@
             Financeiro
           </q-item-label>
 
-          <q-item clickable v-ripple to="/mobile/prestador/ganhos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/prestador/ganhos"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="account_balance_wallet" class="menu-icon" />
             </q-item-section>
             <q-item-section>Meus Ganhos</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/prestador/saques" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/prestador/saques"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="payments" class="menu-icon" />
             </q-item-section>
@@ -135,14 +184,28 @@
             Configurações
           </q-item-label>
 
-          <q-item clickable v-ripple to="/mobile/prestador/perfil" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/prestador/perfil"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="person" class="menu-icon" />
             </q-item-section>
             <q-item-section>Meu Perfil</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple to="/mobile/prestador/configuracoes" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/prestador/configuracoes"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
             <q-item-section avatar>
               <q-icon name="settings" class="menu-icon" />
             </q-item-section>
@@ -215,23 +278,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from 'src/stores/auth'
-import { useQuasar } from 'quasar'
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from 'src/stores/auth-store';
+import { useQuasar } from 'quasar';
 
-const router = useRouter()
-const authStore = useAuthStore()
-const $q = useQuasar()
+const router = useRouter();
+const authStore = useAuthStore();
+const $q = useQuasar();
 
-const leftDrawerOpen = ref(false)
+const leftDrawerOpen = ref(false);
 
 // Dados do prestador - APENAS informações de prestador
-const userName = computed(() => authStore.user?.nome || 'João Silva')
-const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png')
-const userRating = ref(4.8)
-const userTotalAvaliacoes = ref(87)
-const pedidosPendentes = ref(3) // Mock - depois virá da API
+const userName = computed(() => authStore.user?.nome || 'João Silva');
+const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png');
+const userRating = ref(4.8);
+const userTotalAvaliacoes = ref(87);
+const pedidosPendentes = ref(3); // Mock - depois virá da API
 
 // CORREÇÃO: Variável userType removida pois não é usada neste layout
 
@@ -242,20 +305,20 @@ const logout = () => {
     cancel: {
       label: 'Cancelar',
       color: 'grey-7',
-      flat: true
+      flat: true,
     },
     ok: {
       label: 'Sair',
       color: 'negative',
-      unelevated: true
+      unelevated: true,
     },
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     void authStore.logout().then(() => {
-      void router.push('/auth/login')
-    })
-  })
-}
+      void router.push('/auth/login');
+    });
+  });
+};
 </script>
 
 <style scoped lang="scss">
@@ -534,8 +597,13 @@ $gray-900: #212121;
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
 }
 
 @media (max-width: 360px) {

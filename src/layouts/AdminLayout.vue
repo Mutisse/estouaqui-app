@@ -117,7 +117,10 @@
             class="menu-item"
           >
             <q-item-section avatar>
-              <q-icon name="dashboard" :color="isActive('/admin/dashboard') ? 'primary' : 'grey-7'" />
+              <q-icon
+                name="dashboard"
+                :color="isActive('/admin/dashboard') ? 'primary' : 'grey-7'"
+              />
             </q-item-section>
             <q-item-section>Dashboard</q-item-section>
           </q-item>
@@ -138,7 +141,10 @@
             class="menu-item"
           >
             <q-item-section avatar>
-              <q-icon name="people" :color="isActive('/admin/utilizadores') ? 'primary' : 'grey-7'" />
+              <q-icon
+                name="people"
+                :color="isActive('/admin/utilizadores') ? 'primary' : 'grey-7'"
+              />
             </q-item-section>
             <q-item-section>Utilizadores</q-item-section>
             <q-item-section side>
@@ -155,7 +161,10 @@
             class="menu-item"
           >
             <q-item-section avatar>
-              <q-icon name="handyman" :color="isActive('/admin/prestadores') ? 'primary' : 'grey-7'" />
+              <q-icon
+                name="handyman"
+                :color="isActive('/admin/prestadores') ? 'primary' : 'grey-7'"
+              />
             </q-item-section>
             <q-item-section>Prestadores</q-item-section>
             <q-item-section side>
@@ -172,7 +181,10 @@
             class="menu-item"
           >
             <q-item-section avatar>
-              <q-icon name="category" :color="isActive('/admin/categorias') ? 'primary' : 'grey-7'" />
+              <q-icon
+                name="category"
+                :color="isActive('/admin/categorias') ? 'primary' : 'grey-7'"
+              />
             </q-item-section>
             <q-item-section>Categorias</q-item-section>
           </q-item>
@@ -186,7 +198,10 @@
             class="menu-item"
           >
             <q-item-section avatar>
-              <q-icon name="assignment" :color="isActive('/admin/servicos') ? 'primary' : 'grey-7'" />
+              <q-icon
+                name="assignment"
+                :color="isActive('/admin/servicos') ? 'primary' : 'grey-7'"
+              />
             </q-item-section>
             <q-item-section>Serviços</q-item-section>
             <q-item-section side>
@@ -210,7 +225,10 @@
             class="menu-item"
           >
             <q-item-section avatar>
-              <q-icon name="bar_chart" :color="isActive('/admin/estatisticas') ? 'primary' : 'grey-7'" />
+              <q-icon
+                name="bar_chart"
+                :color="isActive('/admin/estatisticas') ? 'primary' : 'grey-7'"
+              />
             </q-item-section>
             <q-item-section>Estatísticas</q-item-section>
           </q-item>
@@ -224,7 +242,10 @@
             class="menu-item"
           >
             <q-item-section avatar>
-              <q-icon name="assessment" :color="isActive('/admin/relatorios') ? 'primary' : 'grey-7'" />
+              <q-icon
+                name="assessment"
+                :color="isActive('/admin/relatorios') ? 'primary' : 'grey-7'"
+              />
             </q-item-section>
             <q-item-section>Relatórios</q-item-section>
           </q-item>
@@ -238,7 +259,10 @@
             class="menu-item"
           >
             <q-item-section avatar>
-              <q-icon name="payments" :color="isActive('/admin/financeiro') ? 'primary' : 'grey-7'" />
+              <q-icon
+                name="payments"
+                :color="isActive('/admin/financeiro') ? 'primary' : 'grey-7'"
+              />
             </q-item-section>
             <q-item-section>Financeiro</q-item-section>
           </q-item>
@@ -259,7 +283,10 @@
             class="menu-item"
           >
             <q-item-section avatar>
-              <q-icon name="settings" :color="isActive('/admin/configuracoes') ? 'primary' : 'grey-7'" />
+              <q-icon
+                name="settings"
+                :color="isActive('/admin/configuracoes') ? 'primary' : 'grey-7'"
+              />
             </q-item-section>
             <q-item-section>Configurações</q-item-section>
           </q-item>
@@ -297,8 +324,6 @@
           <q-separator class="q-my-sm" />
         </q-list>
       </q-scroll-area>
-
-     
     </q-drawer>
 
     <!-- ✅ PAGE CONTAINER - CORRIGIDO -->
@@ -316,7 +341,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useAuthStore } from 'src/stores/auth';
+import { useAuthStore } from 'src/stores/auth-store';
 import { useQuasar } from 'quasar';
 
 defineOptions({
@@ -330,7 +355,10 @@ const authStore = useAuthStore();
 
 // Computed properties para o usuário
 const userNome = computed(() => authStore.user?.nome || 'Administrador');
-const userAvatar = computed(() => `https://ui-avatars.com/api/?name=${encodeURIComponent(userNome.value)}&background=667eea&color=fff&size=56`);
+const userAvatar = computed(
+  () =>
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(userNome.value)}&background=667eea&color=fff&size=56`,
+);
 
 // Estados
 const leftDrawerOpen = ref(true);
@@ -346,12 +374,30 @@ interface Notificacao {
 }
 
 const notificacoes = ref<Notificacao[]>([
-  { id: 1, icone: 'person_add', titulo: 'Novo prestador', descricao: 'João Silva aguarda verificação', lida: false },
-  { id: 2, icone: 'assignment', titulo: 'Serviço concluído', descricao: 'Serviço #123 foi concluído', lida: false },
-  { id: 3, icone: 'star', titulo: 'Nova avaliação', descricao: 'Cliente avaliou serviço com 5 estrelas', lida: true }
+  {
+    id: 1,
+    icone: 'person_add',
+    titulo: 'Novo prestador',
+    descricao: 'João Silva aguarda verificação',
+    lida: false,
+  },
+  {
+    id: 2,
+    icone: 'assignment',
+    titulo: 'Serviço concluído',
+    descricao: 'Serviço #123 foi concluído',
+    lida: false,
+  },
+  {
+    id: 3,
+    icone: 'star',
+    titulo: 'Nova avaliação',
+    descricao: 'Cliente avaliou serviço com 5 estrelas',
+    lida: true,
+  },
 ]);
 
-const notificacoesNaoLidas = computed(() => notificacoes.value.filter(n => !n.lida).length);
+const notificacoesNaoLidas = computed(() => notificacoes.value.filter((n) => !n.lida).length);
 
 // Verificar se rota está ativa
 const isActive = (path: string): boolean => {
@@ -365,29 +411,32 @@ const logout = (): void => {
     message: 'Tem certeza que deseja sair da sua conta?',
     cancel: { label: 'Cancelar', color: 'grey-7', flat: true },
     ok: { label: 'Sair', color: 'negative', unelevated: true },
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     globalLoading.value = true;
-    void authStore.logout().then(() => {
-      setTimeout(() => {
+    void authStore
+      .logout()
+      .then(() => {
+        setTimeout(() => {
+          globalLoading.value = false;
+          void router.push('/auth/login');
+          $q.notify({
+            type: 'positive',
+            message: 'Logout realizado com sucesso',
+            position: 'top',
+            timeout: 2000,
+          });
+        }, 500);
+      })
+      .catch(() => {
         globalLoading.value = false;
-        void router.push('/auth/login');
         $q.notify({
-          type: 'positive',
-          message: 'Logout realizado com sucesso',
+          type: 'negative',
+          message: 'Erro ao realizar logout',
           position: 'top',
-          timeout: 2000
+          timeout: 2000,
         });
-      }, 500);
-    }).catch(() => {
-      globalLoading.value = false;
-      $q.notify({
-        type: 'negative',
-        message: 'Erro ao realizar logout',
-        position: 'top',
-        timeout: 2000
       });
-    });
   });
 };
 
@@ -425,10 +474,30 @@ $gray-900: #212121;
   right: 0;
   z-index: 2000;
 
-  .menu-btn { transition: all 0.3s ease; &:hover { background: rgba(255,255,255,0.1); } }
-  .logo-wrapper { font-size: 1.3rem; .text-primary { color: $purple-primary !important; } }
-  .admin-badge { background: rgba($purple-primary, 0.2); padding: 4px 8px; border-radius: 20px; font-size: 0.7rem; }
-  .notification-btn { transition: all 0.3s ease; &:hover { background: rgba(255,255,255,0.1); } }
+  .menu-btn {
+    transition: all 0.3s ease;
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+  .logo-wrapper {
+    font-size: 1.3rem;
+    .text-primary {
+      color: $purple-primary !important;
+    }
+  }
+  .admin-badge {
+    background: rgba($purple-primary, 0.2);
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+  }
+  .notification-btn {
+    transition: all 0.3s ease;
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
 }
 
 .admin-drawer {
@@ -443,24 +512,52 @@ $gray-900: #212121;
   .drawer-profile {
     background: linear-gradient(135deg, $gray-100 0%, $gray-200 100%);
     border-bottom: 1px solid $gray-300;
-    .profile-name { font-weight: 600; color: $gray-800; }
-    .profile-role { font-size: 0.8rem; color: $gray-600; }
-    .profile-avatar { border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .profile-name {
+      font-weight: 600;
+      color: $gray-800;
+    }
+    .profile-role {
+      font-size: 0.8rem;
+      color: $gray-600;
+    }
+    .profile-avatar {
+      border: 2px solid white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
   }
 
   .menu-list {
-    .menu-header { font-size: 0.7rem; letter-spacing: 0.5px; padding: 12px 16px 4px; color: $gray-600; }
+    .menu-header {
+      font-size: 0.7rem;
+      letter-spacing: 0.5px;
+      padding: 12px 16px 4px;
+      color: $gray-600;
+    }
     .menu-item {
       margin: 4px 8px;
       border-radius: 10px;
       transition: all 0.3s ease;
-      &:hover { background: $gray-100; transform: translateX(5px); }
-      &.menu-item-active { background: rgba($purple-primary, 0.1); }
-      &.menu-item-active .q-icon { color: $purple-primary !important; }
+      &:hover {
+        background: $gray-100;
+        transform: translateX(5px);
+      }
+      &.menu-item-active {
+        background: rgba($purple-primary, 0.1);
+      }
+      &.menu-item-active .q-icon {
+        color: $purple-primary !important;
+      }
     }
   }
 
-  .drawer-footer { border-top: 1px solid $gray-300; text-align: center; position: absolute; bottom: 0; left: 0; right: 0; }
+  .drawer-footer {
+    border-top: 1px solid $gray-300;
+    text-align: center;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
 }
 
 .q-page-container {
@@ -470,9 +567,17 @@ $gray-900: #212121;
 }
 
 @media (max-width: 599px) {
-  .admin-header .logo-wrapper { font-size: 1.1rem; }
-  .admin-header .admin-badge { display: none; }
-  .admin-drawer { width: 280px !important; }
-  .q-page-container { margin-left: 0 !important; }
+  .admin-header .logo-wrapper {
+    font-size: 1.1rem;
+  }
+  .admin-header .admin-badge {
+    display: none;
+  }
+  .admin-drawer {
+    width: 280px !important;
+  }
+  .q-page-container {
+    margin-left: 0 !important;
+  }
 }
 </style>

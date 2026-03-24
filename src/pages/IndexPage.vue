@@ -93,7 +93,7 @@
 
             <div class="row q-gutter-md">
               <q-btn flat class="action-btn-outline" label="Saiba Mais" icon="info" to="/sobre" no-caps />
-              <q-btn unelevated class="action-btn-primary" label="Ver Serviços" icon="list" to="/mobile/lista-prestadores" no-caps />
+              <q-btn unelevated class="action-btn-primary" label="Ver Serviços" icon="list" to="/servicos" no-caps />
             </div>
           </div>
           <div class="col-12 col-md-6">
