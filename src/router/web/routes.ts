@@ -28,12 +28,18 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/mobile',
     component: () => import('layouts/MobileClientLayout.vue'),
-    meta: { requiresAuth: true ,requiresAdmin: true},
+    meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       { path: 'inicio', component: () => import('pages/mobile/client/MobileInicio.vue') },
       { path: 'mapa', component: () => import('pages/mobile/client/Mapa.vue') },
-      { path: 'lista-prestadores', component: () => import('pages/mobile/client/ListaPrestadores.vue') },
-      { path: 'perfil-prestador/:id', component: () => import('pages/mobile/client/PerfilPrestador.vue') },
+      {
+        path: 'lista-prestadores',
+        component: () => import('pages/mobile/client/ListaPrestadores.vue'),
+      },
+      {
+        path: 'perfil-prestador/:id',
+        component: () => import('pages/mobile/client/PerfilPrestador.vue'),
+      },
       { path: 'chat/:id', component: () => import('pages/mobile/client/Chat.vue') },
       { path: 'avaliacao/:id', component: () => import('pages/mobile/client/Avaliacao.vue') },
       { path: 'perfil', component: () => import('pages/mobile/client/Perfil.vue') },
@@ -51,7 +57,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/admin',
     component: () => import('layouts/AdminLayout.vue'),
-   // meta: { requiresAuth: true, requiresAdmin: true },
+    meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       { path: 'dashboard', component: () => import('pages/admin/Dashboard.vue') },
       { path: 'utilizadores', component: () => import('pages/admin/Utilizadores.vue') },
@@ -73,15 +79,24 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/MobilePrestadorLayout.vue'),
     meta: { requiresAuth: true, requiresPrestador: true },
     children: [
-      { path: 'dashboard', component: () => import('pages/mobile/prestador/PrestadorDashboard.vue') },
+      {
+        path: 'dashboard',
+        component: () => import('pages/mobile/prestador/PrestadorDashboard.vue'),
+      },
       { path: 'agenda', component: () => import('pages/mobile/prestador/PrestadorAgenda.vue') },
       { path: 'servicos', component: () => import('pages/mobile/prestador/PrestadorServicos.vue') },
       { path: 'pedidos', component: () => import('pages/mobile/prestador/PrestadorPedidos.vue') },
-      { path: 'historico', component: () => import('pages/mobile/prestador/PrestadorHistorico.vue') },
+      {
+        path: 'historico',
+        component: () => import('pages/mobile/prestador/PrestadorHistorico.vue'),
+      },
       { path: 'perfil', component: () => import('pages/mobile/prestador/PrestadorPerfil.vue') },
       { path: 'ganhos', component: () => import('pages/mobile/prestador/PrestadorGanhos.vue') },
       { path: 'saques', component: () => import('pages/mobile/prestador/PrestadorSaques.vue') },
-      { path: 'configuracoes', component: () => import('pages/mobile/prestador/PrestadorConfiguracoes.vue') },
+      {
+        path: 'configuracoes',
+        component: () => import('pages/mobile/prestador/PrestadorConfiguracoes.vue'),
+      },
     ],
   },
 
