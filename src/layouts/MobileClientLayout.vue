@@ -28,12 +28,12 @@
         <q-btn flat round dense class="notification-btn" @click="openNotifications">
           <q-icon name="notifications" size="20px" />
           <q-badge
-            v-if="unreadNotificationsCount > 0"
+            v-if="unreadCount > 0"
             color="red"
             floating
             class="notification-badge"
           >
-            {{ unreadNotificationsCount }}
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
           </q-badge>
         </q-btn>
       </q-toolbar>
@@ -229,7 +229,12 @@
         <q-separator />
 
         <q-card-section class="q-pt-md" style="max-height: 60vh; overflow-y: auto">
-          <div v-if="notifications.length === 0" class="text-center q-pa-md">
+          <div v-if="loadingNotificacoes" class="text-center q-pa-md">
+            <q-spinner color="primary" size="40px" />
+            <div class="text-grey-6 q-mt-sm">Carregando notificações...</div>
+          </div>
+
+          <div v-else-if="notificacoesLista.length === 0" class="text-center q-pa-md">
             <q-icon name="notifications_none" size="48px" color="grey-5" />
             <div class="text-grey-6 q-mt-sm">Nenhuma notificação</div>
           </div>
@@ -237,15 +242,15 @@
           <div v-else>
             <q-list separator>
               <q-item
-                v-for="notif in notifications"
+                v-for="notif in notificacoesLista"
                 :key="notif.id"
                 clickable
                 v-ripple
                 :class="{ 'notification-unread': !notif.lida }"
-                @click="markAsRead(notif.id)"
+                @click="marcarNotificacaoLida(notif.id)"
               >
                 <q-item-section avatar>
-                  <q-icon :name="notif.icone" :color="notif.cor" size="32px" />
+                  <q-icon :name="getNotificacaoIcone(notif)" :color="getNotificacaoCor(notif)" size="32px" />
                 </q-item-section>
 
                 <q-item-section>
@@ -256,7 +261,7 @@
                     {{ notif.mensagem }}
                   </q-item-label>
                   <q-item-label caption class="text-grey-6">
-                    {{ formatDate(notif.data) }}
+                    {{ formatarData(notif.created_at) }}
                   </q-item-label>
                 </q-item-section>
 
@@ -270,10 +275,10 @@
 
         <q-card-actions align="right" class="q-pa-md q-pt-none">
           <q-btn
-            v-if="unreadNotificationsCount > 0"
+            v-if="unreadCount > 0"
             flat
             label="Marcar todas como lidas"
-            @click="markAllAsRead"
+            @click="marcarTodasComoLidas"
             no-caps
           />
         </q-card-actions>
@@ -281,116 +286,156 @@
     </q-dialog>
   </q-layout>
 </template>
+
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
+import { useClienteStore, type NotificacaoData } from 'src/stores/cliente-store';
 import { useQuasar } from 'quasar';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const clienteStore = useClienteStore();
 const $q = useQuasar();
 
 const leftDrawerOpen = ref(false);
 const notificationsDialog = ref(false);
+const loadingNotificacoes = ref(false);
+let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-interface Notification {
-  id: number;
-  titulo: string;
-  mensagem: string;
-  icone: string;
-  cor: string;
-  data: string;
-  lida: boolean;
-}
-
-const notifications = ref<Notification[]>([]);
-const unreadNotificationsCount = ref(0);
-
+// Computed
 const userName = computed(() => authStore.user?.nome || 'Cliente');
-const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png');
+const userAvatar = computed(() => authStore.user?.foto || 'https://cdn.quasar.dev/img/avatar.png');
 
-// Função sem async (sem await)
-const fetchNotifications = () => {
-  try {
-    notifications.value = [
-      {
-        id: 1,
-        titulo: 'Novo pedido',
-        mensagem: 'Maria Santos solicitou um serviço de reparação elétrica',
-        icone: 'assignment',
-        cor: 'primary',
-        data: '2026-03-23T10:30:00',
-        lida: false,
-      },
-      {
-        id: 2,
-        titulo: 'Serviço concluído',
-        mensagem: 'Seu serviço de limpeza foi concluído com sucesso',
-        icone: 'check_circle',
-        cor: 'positive',
-        data: '2026-03-22T15:20:00',
-        lida: false,
-      },
-      {
-        id: 3,
-        titulo: 'Avaliação recebida',
-        mensagem: 'João Silva avaliou seu trabalho com 5 estrelas',
-        icone: 'star',
-        cor: 'yellow',
-        data: '2026-03-21T09:15:00',
-        lida: true,
-      },
-    ];
-    unreadNotificationsCount.value = notifications.value.filter((n) => !n.lida).length;
-  } catch {
-    console.error('Erro ao buscar notificações');
+// ✅ CORREÇÃO: Garantir que notificacoesLista seja sempre um array
+const notificacoesLista = computed<NotificacaoData[]>(() => {
+  if (Array.isArray(clienteStore.notificacoes)) {
+    return clienteStore.notificacoes;
   }
+  return [];
+});
+
+// ✅ CORREÇÃO: unreadCount seguro
+const unreadCount = computed(() => {
+  if (!Array.isArray(clienteStore.notificacoes)) return 0;
+  return clienteStore.notificacoes.filter((n: NotificacaoData) => !n.lida).length;
+});
+
+// Funções auxiliares
+const getNotificacaoIcone = (notif: NotificacaoData) => {
+  const tipo = notif.tipo || 'default';
+  const icones: Record<string, string> = {
+    pedido: 'assignment',
+    avaliacao: 'star',
+    promocao: 'local_offer',
+    sistema: 'info',
+    default: 'notifications',
+  };
+  return icones[tipo] || icones.default;
 };
 
-const openNotifications = () => {
-  notificationsDialog.value = true;
+const getNotificacaoCor = (notif: NotificacaoData) => {
+  const tipo = notif.tipo || 'default';
+  const cores: Record<string, string> = {
+    pedido: 'primary',
+    avaliacao: 'yellow',
+    promocao: 'orange',
+    sistema: 'grey',
+    default: 'primary',
+  };
+  return cores[tipo] || cores.default;
 };
 
-const markAsRead = (id: number) => {
-  try {
-    const notif = notifications.value.find((n) => n.id === id);
-    if (notif && !notif.lida) {
-      notif.lida = true;
-      unreadNotificationsCount.value--;
-    }
-  } catch {
-    console.error('Erro ao marcar notificação como lida');
-  }
-};
-
-const markAllAsRead = () => {
-  try {
-    notifications.value.forEach((n) => {
-      if (!n.lida) {
-        n.lida = true;
-      }
-    });
-    unreadNotificationsCount.value = 0;
-  } catch {
-    console.error('Erro ao marcar todas notificações como lidas');
-  }
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
+const formatarData = (dataString: string) => {
+  const date = new Date(dataString);
   const now = new Date();
   const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
-  if (diffHours < 24) {
+  if (diffHours < 1) {
+    const diffMinutes = Math.floor(diffHours * 60);
+    return `${diffMinutes} min atrás`;
+  } else if (diffHours < 24) {
     return `Hoje às ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   } else if (diffHours < 48) {
     return 'Ontem';
   } else {
-    return date.toLocaleDateString('pt-PT');
+    return date.toLocaleDateString('pt-PT', {
+      day: '2-digit',
+      month: '2-digit',
+    });
   }
 };
 
+// Ações de notificações
+const carregarNotificacoes = async () => {
+  loadingNotificacoes.value = true;
+  try {
+    await clienteStore.fetchNotificacoes();
+  } catch (error) {
+    console.error('Erro ao carregar notificações:', error);
+  } finally {
+    loadingNotificacoes.value = false;
+  }
+};
+
+const marcarNotificacaoLida = async (id: number) => {
+  try {
+    const success = await clienteStore.marcarNotificacaoLida(id);
+    if (success) {
+      await carregarNotificacoes();
+    }
+  } catch (error) {
+    console.error('Erro ao marcar notificação como lida:', error);
+  }
+};
+
+const marcarTodasComoLidas = async () => {
+  try {
+    const success = await clienteStore.marcarTodasNotificacoesLidas();
+    if (success) {
+      await carregarNotificacoes();
+      $q.notify({
+        type: 'positive',
+        message: 'Todas notificações marcadas como lidas',
+        position: 'top',
+        timeout: 2000,
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao marcar todas notificações:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao marcar notificações',
+      position: 'top',
+    });
+  }
+};
+
+const openNotifications = async () => {
+  notificationsDialog.value = true;
+  await carregarNotificacoes();
+};
+
+// Polling para buscar novas notificações a cada 30 segundos
+const iniciarPolling = () => {
+  if (pollingInterval) clearInterval(pollingInterval);
+
+  pollingInterval = setInterval(() => {
+    if (document.hasFocus()) {
+      void carregarNotificacoes();
+    }
+  }, 30000);
+};
+
+const pararPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+};
+
+// Logout
 const confirmLogout = () => {
   $q.dialog({
     title: 'Confirmar saída',
@@ -429,7 +474,12 @@ const confirmLogout = () => {
 };
 
 onMounted(() => {
-  fetchNotifications();
+  void carregarNotificacoes();
+  iniciarPolling();
+});
+
+onUnmounted(() => {
+  pararPolling();
 });
 </script>
 

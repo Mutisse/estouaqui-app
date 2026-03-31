@@ -23,29 +23,66 @@
         <!-- Info do admin -->
         <div class="row items-center q-gutter-sm">
           <q-chip dense class="bg-white text-primary" icon="notifications">
-            {{ notificacoesNaoLidas }}
+            {{ unreadNotificationsCount }}
           </q-chip>
 
-          <q-btn flat round dense icon="notifications" class="notification-btn">
+          <q-btn flat round dense icon="notifications" class="notification-btn" @click="openNotifications">
             <q-menu>
-              <q-list style="min-width: 300px" class="notification-list">
-                <q-item-label header class="bg-grey-2 text-weight-bold">Notificações</q-item-label>
-                <q-item v-for="notif in notificacoes" :key="notif.id" clickable v-close-popup>
-                  <q-item-section avatar>
-                    <q-avatar :color="notif.lida ? 'grey-3' : 'primary'" text-color="white">
-                      <q-icon :name="notif.icone" size="18px" />
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>{{ notif.titulo }}</q-item-label>
-                    <q-item-label caption>{{ notif.descricao }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item v-if="notificacoes.length === 0" disabled>
-                  <q-item-section class="text-center text-grey-6 q-py-md">
-                    Sem notificações
-                  </q-item-section>
-                </q-item>
+              <q-list style="min-width: 350px" class="notification-list">
+                <q-item-label header class="bg-grey-2 text-weight-bold">
+                  <div class="row items-center justify-between">
+                    <span>Notificações</span>
+                    <q-btn
+                      v-if="unreadNotificationsCount > 0"
+                      flat
+                      dense
+                      label="Marcar todas como lidas"
+                      size="sm"
+                      @click="marcarTodasComoLidas"
+                      no-caps
+                    />
+                  </div>
+                </q-item-label>
+
+                <q-scroll-area style="height: 400px">
+                  <div v-if="loadingNotificacoes" class="text-center q-pa-md">
+                    <q-spinner color="primary" size="32px" />
+                  </div>
+
+                  <div v-else-if="notificacoes.length === 0" class="text-center q-pa-md text-grey-6">
+                    <q-icon name="notifications_none" size="48px" />
+                    <div>Sem notificações</div>
+                  </div>
+
+                  <q-item
+                    v-for="notif in notificacoes"
+                    :key="notif.id"
+                    clickable
+                    v-close-popup
+                    :class="{ 'notification-unread': !notif.lida }"
+                    @click="marcarNotificacaoLida(notif.id)"
+                  >
+                    <q-item-section avatar>
+                      <q-avatar :color="getNotificacaoCor(notif)" text-color="white" size="40px">
+                        <q-icon :name="getNotificacaoIcone(notif)" size="20px" />
+                      </q-avatar>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label lines="1" class="text-weight-medium">
+                        {{ notif.titulo }}
+                      </q-item-label>
+                      <q-item-label caption lines="2">
+                        {{ notif.mensagem }}
+                      </q-item-label>
+                      <q-item-label caption class="text-grey-6">
+                        {{ formatarData(notif.created_at) }}
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side v-if="!notif.lida">
+                      <q-badge color="primary" rounded>Nova</q-badge>
+                    </q-item-section>
+                  </q-item>
+                </q-scroll-area>
               </q-list>
             </q-menu>
           </q-btn>
@@ -147,9 +184,6 @@
               />
             </q-item-section>
             <q-item-section>Utilizadores</q-item-section>
-            <q-item-section side>
-              <q-badge color="positive" rounded>12</q-badge>
-            </q-item-section>
           </q-item>
 
           <q-item
@@ -167,9 +201,6 @@
               />
             </q-item-section>
             <q-item-section>Prestadores</q-item-section>
-            <q-item-section side>
-              <q-badge color="warning" rounded>5</q-badge>
-            </q-item-section>
           </q-item>
 
           <q-item
@@ -204,9 +235,6 @@
               />
             </q-item-section>
             <q-item-section>Serviços</q-item-section>
-            <q-item-section side>
-              <q-badge color="info" rounded>23</q-badge>
-            </q-item-section>
           </q-item>
 
           <q-separator class="q-my-sm" />
@@ -326,7 +354,7 @@
       </q-scroll-area>
     </q-drawer>
 
-    <!-- ✅ PAGE CONTAINER - CORRIGIDO -->
+    <!-- ✅ PAGE CONTAINER -->
     <q-page-container>
       <router-view />
     </q-page-container>
@@ -339,9 +367,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
+import { useAdminStore, type NotificacaoData } from 'src/stores/admin-store';
 import { useQuasar } from 'quasar';
 
 defineOptions({
@@ -352,6 +381,7 @@ const router = useRouter();
 const route = useRoute();
 const $q = useQuasar();
 const authStore = useAuthStore();
+const adminStore = useAdminStore();
 
 // Computed properties para o usuário
 const userNome = computed(() => authStore.user?.nome || 'Administrador');
@@ -363,41 +393,137 @@ const userAvatar = computed(
 // Estados
 const leftDrawerOpen = ref(true);
 const globalLoading = ref(false);
+const loadingNotificacoes = ref(false);
+let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
 // Notificações
-interface Notificacao {
-  id: number;
-  icone: string;
-  titulo: string;
-  descricao: string;
-  lida: boolean;
-}
+const notificacoes = ref<NotificacaoData[]>([]);
+const unreadNotificationsCount = computed(() => {
+  return notificacoes.value.filter((n) => !n.lida).length;
+});
 
-const notificacoes = ref<Notificacao[]>([
-  {
-    id: 1,
-    icone: 'person_add',
-    titulo: 'Novo prestador',
-    descricao: 'João Silva aguarda verificação',
-    lida: false,
-  },
-  {
-    id: 2,
-    icone: 'assignment',
-    titulo: 'Serviço concluído',
-    descricao: 'Serviço #123 foi concluído',
-    lida: false,
-  },
-  {
-    id: 3,
-    icone: 'star',
-    titulo: 'Nova avaliação',
-    descricao: 'Cliente avaliou serviço com 5 estrelas',
-    lida: true,
-  },
-]);
+// Funções auxiliares para notificações
+const getNotificacaoIcone = (notif: NotificacaoData) => {
+  const tipo = notif.tipo || 'default';
+  const icones: Record<string, string> = {
+    pedido: 'assignment',
+    avaliacao: 'star',
+    promocao: 'local_offer',
+    prestador: 'handyman',
+    sistema: 'info',
+    default: 'notifications',
+  };
+  return icones[tipo] || icones.default;
+};
 
-const notificacoesNaoLidas = computed(() => notificacoes.value.filter((n) => !n.lida).length);
+const getNotificacaoCor = (notif: NotificacaoData) => {
+  const tipo = notif.tipo || 'default';
+  const cores: Record<string, string> = {
+    pedido: 'primary',
+    avaliacao: 'yellow-8',
+    promocao: 'orange',
+    prestador: 'purple',
+    sistema: 'grey-7',
+    default: 'primary',
+  };
+  return cores[tipo] || cores.default;
+};
+
+const formatarData = (dataString: string) => {
+  const date = new Date(dataString);
+  const now = new Date();
+  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+  if (diffHours < 1) {
+    const diffMinutes = Math.floor(diffHours * 60);
+    return `${diffMinutes} min atrás`;
+  } else if (diffHours < 24) {
+    return `Hoje às ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  } else if (diffHours < 48) {
+    return 'Ontem';
+  } else {
+    return date.toLocaleDateString('pt-PT', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+  }
+};
+
+// Ações de notificações
+const carregarNotificacoes = async () => {
+  loadingNotificacoes.value = true;
+  try {
+    // Usar o endpoint de notificações do admin
+    const response = await adminStore.fetchNotificacoesAdmin();
+    if (response) {
+      notificacoes.value = response;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar notificações:', error);
+  } finally {
+    loadingNotificacoes.value = false;
+  }
+};
+
+const marcarNotificacaoLida = async (id: number) => {
+  try {
+    const success = await adminStore.marcarNotificacaoLida(id);
+    if (success) {
+      const notif = notificacoes.value.find((n) => n.id === id);
+      if (notif) {
+        notif.lida = true;
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao marcar notificação como lida:', error);
+  }
+};
+
+const marcarTodasComoLidas = async () => {
+  try {
+    const success = await adminStore.marcarTodasNotificacoesLidas();
+    if (success) {
+      notificacoes.value.forEach((n) => {
+        n.lida = true;
+      });
+      $q.notify({
+        type: 'positive',
+        message: 'Todas notificações marcadas como lidas',
+        position: 'top',
+        timeout: 2000,
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao marcar todas notificações:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao marcar notificações',
+      position: 'top',
+    });
+  }
+};
+
+const openNotifications = () => {
+  void carregarNotificacoes();
+};
+
+// Polling para buscar novas notificações a cada 30 segundos
+const iniciarPolling = () => {
+  if (pollingInterval) clearInterval(pollingInterval);
+
+  pollingInterval = setInterval(() => {
+    if (document.hasFocus()) {
+      void carregarNotificacoes();
+    }
+  }, 30000);
+};
+
+const pararPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+};
 
 // Verificar se rota está ativa
 const isActive = (path: string): boolean => {
@@ -445,6 +571,12 @@ onMounted(() => {
   if (!authStore.isAuthenticated || !authStore.isAdmin) {
     void router.push('/admin/login');
   }
+  void carregarNotificacoes();
+  iniciarPolling();
+});
+
+onUnmounted(() => {
+  pararPolling();
 });
 </script>
 
@@ -549,21 +681,17 @@ $gray-900: #212121;
       }
     }
   }
-
-  .drawer-footer {
-    border-top: 1px solid $gray-300;
-    text-align: center;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-  }
 }
 
 .q-page-container {
   margin-top: 60px;
   min-height: calc(100vh - 60px);
   background: $gray-50;
+}
+
+.notification-unread {
+  background: rgba(102, 126, 234, 0.05);
+  border-left: 3px solid $purple-primary;
 }
 
 @media (max-width: 599px) {

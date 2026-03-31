@@ -1,0 +1,33 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Fundo -->
+    <path
+        android:fillColor="#0B3C6D"
+        android:pathData="M0,0h512v512h-512z"/>
+
+    <!-- Pin -->
+    <path
+        android:fillColor="#F57C00"
+        android:pathData="M256,100
+                         C170,100 140,200 256,380
+                         C372,200 342,100 256,100 Z"/>
+
+    <!-- Parte azul -->
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M256,100
+                         C200,100 170,180 256,260
+                         C300,200 300,120 256,100 Z"/>
+
+    <!-- Centro -->
+    <circle
+        android:fillColor="#FFFFFF"
+        android:cx="256"
+        android:cy="220"
+        android:r="50"/>
+
+</vector>

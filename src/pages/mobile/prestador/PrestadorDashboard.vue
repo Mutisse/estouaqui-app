@@ -1,184 +1,208 @@
 <template>
   <q-page class="prestador-dashboard bg-grey-1">
-    <!-- Cabeçalho com saudação -->
-    <div class="header-greeting q-pa-md">
-      <div>
-        <div class="greeting-small">Bem-vindo de volta,</div>
-        <div class="greeting-name">{{ prestadorNome }}</div>
-      </div>
+    <!-- Loading -->
+    <div v-if="loading" class="text-center q-pa-xl">
+      <q-spinner color="primary" size="50px" />
+      <p class="q-mt-md text-grey-7">A carregar dashboard...</p>
     </div>
 
-    <!-- Cards de resumo -->
-    <div class="summary-cards q-px-md q-mb-md">
-      <div class="row q-col-gutter-sm">
-        <div class="col-6">
-          <q-card class="summary-card" flat bordered>
-            <q-card-section class="text-center">
-              <q-icon name="pending_actions" size="32px" color="primary" />
-              <div class="summary-value">{{ resumo.pedidosPendentes }}</div>
-              <div class="summary-label">Pedidos pendentes</div>
-            </q-card-section>
-          </q-card>
+    <template v-else>
+      <!-- Cabeçalho com saudação -->
+      <div class="header-greeting q-pa-md">
+        <div>
+          <div class="greeting-small">Bem-vindo de volta,</div>
+          <div class="greeting-name">{{ prestadorNome }}</div>
         </div>
-        <div class="col-6">
-          <q-card class="summary-card" flat bordered>
-            <q-card-section class="text-center">
-              <q-icon name="check_circle" size="32px" color="positive" />
-              <div class="summary-value">{{ resumo.servicosHoje }}</div>
-              <div class="summary-label">Serviços hoje</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-6">
-          <q-card class="summary-card" flat bordered>
-            <q-card-section class="text-center">
-              <q-icon name="star" size="32px" color="yellow" />
-              <div class="summary-value">{{ resumo.avaliacaoMedia }}</div>
-              <div class="summary-label">Avaliação média</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-6">
-          <q-card class="summary-card" flat bordered>
-            <q-card-section class="text-center">
-              <q-icon name="payments" size="32px" color="secondary" />
-              <div class="summary-value">{{ resumo.ganhosMes }} MZN</div>
-              <div class="summary-label">Ganhos do mês</div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-    </div>
-
-    <!-- Próximos serviços -->
-    <div class="section q-px-md q-mb-md">
-      <div class="section-header">
-        <div class="section-title">Próximos serviços</div>
         <q-btn
           flat
-          dense
-          label="Ver todos"
-          class="section-link"
-          to="/mobile/prestador/agenda"
-          no-caps
+          round
+          icon="refresh"
+          @click="recarregarDados"
+          :loading="recarregando"
         />
       </div>
 
-      <q-list bordered separator>
-        <q-item
-          v-for="servico in proximosServicos"
-          :key="servico.id"
-          clickable
-          v-ripple
-          @click="verServico(servico.id)"
-        >
-          <q-item-section avatar>
-            <q-avatar>
-              <img :src="servico.clienteAvatar" :alt="servico.cliente" />
-            </q-avatar>
-          </q-item-section>
-
-          <q-item-section>
-            <q-item-label>{{ servico.cliente }}</q-item-label>
-            <q-item-label caption>
-              <q-icon name="schedule" size="14px" /> {{ servico.horario }}
-            </q-item-label>
-            <q-item-label caption class="text-primary">
-              {{ servico.servico }}
-            </q-item-label>
-          </q-item-section>
-
-          <q-item-section side>
-            <q-badge :color="servico.status === 'confirmado' ? 'positive' : 'warning'">
-              {{ servico.status }}
-            </q-badge>
-          </q-item-section>
-        </q-item>
-      </q-list>
-    </div>
-
-    <!-- Ações rápidas -->
-    <div class="quick-actions q-px-md q-mb-md">
-      <div class="section-header">
-        <div class="section-title">Ações rápidas</div>
-      </div>
-
-      <div class="row q-col-gutter-sm">
-        <div class="col-6">
-          <q-card class="action-card" flat bordered @click="irPara('disponibilidade')">
-            <q-card-section class="text-center">
-              <q-icon name="schedule" size="32px" color="primary" />
-              <div class="action-label">Definir disponibilidade</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-6">
-          <q-card class="action-card" flat bordered @click="irPara('servicos')">
-            <q-card-section class="text-center">
-              <q-icon name="construction" size="32px" color="secondary" />
-              <div class="action-label">Gerir serviços</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-6">
-          <q-card class="action-card" flat bordered @click="irPara('portfolio')">
-            <q-card-section class="text-center">
-              <q-icon name="photo_library" size="32px" color="positive" />
-              <div class="action-label">Portfólio</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-6">
-          <q-card class="action-card" flat bordered @click="irPara('precos')">
-            <q-card-section class="text-center">
-              <q-icon name="attach_money" size="32px" color="warning" />
-              <div class="action-label">Definir preços</div>
-            </q-card-section>
-          </q-card>
+      <!-- Cards de resumo com dados do store -->
+      <div class="summary-cards q-px-md q-mb-md">
+        <div class="row q-col-gutter-sm">
+          <div class="col-6">
+            <q-card class="summary-card" flat bordered>
+              <q-card-section class="text-center">
+                <q-icon name="pending_actions" size="32px" color="primary" />
+                <div class="summary-value">{{ stats.pedidos_pendentes || 0 }}</div>
+                <div class="summary-label">Pedidos pendentes</div>
+              </q-card-section>
+            </q-card>
+          </div>
+          <div class="col-6">
+            <q-card class="summary-card" flat bordered>
+              <q-card-section class="text-center">
+                <q-icon name="check_circle" size="32px" color="positive" />
+                <div class="summary-value">{{ stats.servicos_hoje || 0 }}</div>
+                <div class="summary-label">Serviços hoje</div>
+              </q-card-section>
+            </q-card>
+          </div>
+          <div class="col-6">
+            <q-card class="summary-card" flat bordered>
+              <q-card-section class="text-center">
+                <q-icon name="star" size="32px" color="yellow" />
+                <div class="summary-value">{{ stats.avaliacao_media?.toFixed(1) || 0 }}</div>
+                <div class="summary-label">Avaliação média</div>
+              </q-card-section>
+            </q-card>
+          </div>
+          <div class="col-6">
+            <q-card class="summary-card" flat bordered>
+              <q-card-section class="text-center">
+                <q-icon name="payments" size="32px" color="secondary" />
+                <div class="summary-value">{{ formatMoney(ganhos.mes || 0) }}</div>
+                <div class="summary-label">Ganhos do mês</div>
+              </q-card-section>
+            </q-card>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Avaliações recentes -->
-    <div class="section q-px-md q-mb-md">
-      <div class="section-header">
-        <div class="section-title">Avaliações recentes</div>
-        <q-btn
-          flat
-          dense
-          label="Ver todas"
-          class="section-link"
-          to="/mobile/prestador/avaliacoes"
-          no-caps
-        />
+      <!-- Próximos serviços -->
+      <div class="section q-px-md q-mb-md" v-if="proximosServicosList.length > 0">
+        <div class="section-header">
+          <div class="section-title">Próximos serviços</div>
+          <q-btn
+            flat
+            dense
+            label="Ver todos"
+            class="section-link"
+            to="/mobile/prestador/agenda"
+            no-caps
+          />
+        </div>
+
+        <q-list bordered separator>
+          <q-item
+            v-for="servico in proximosServicosList"
+            :key="servico.id"
+            clickable
+            v-ripple
+            @click="verPedido(servico.id)"
+          >
+            <q-item-section avatar>
+              <q-avatar>
+                <img :src="servico.cliente?.foto || getAvatarUrl(servico.cliente?.nome || 'Cliente')" />
+              </q-avatar>
+            </q-item-section>
+
+            <q-item-section>
+              <q-item-label>{{ servico.cliente?.nome || 'Cliente' }}</q-item-label>
+              <q-item-label caption>
+                <q-icon name="schedule" size="14px" /> {{ formatarData(servico.data) }}
+              </q-item-label>
+              <q-item-label caption class="text-primary">
+                {{ servico.servico?.nome || 'Serviço' }}
+              </q-item-label>
+            </q-item-section>
+
+            <q-item-section side>
+              <q-badge :color="getStatusCor(servico.status)">
+                {{ getStatusTexto(servico.status) }}
+              </q-badge>
+            </q-item-section>
+          </q-item>
+        </q-list>
       </div>
 
-      <q-list bordered separator>
-        <q-item v-for="avaliacao in avaliacoesRecentes" :key="avaliacao.id">
-          <q-item-section avatar>
-            <q-avatar>
-              <img :src="avaliacao.clienteAvatar" :alt="avaliacao.cliente" />
-            </q-avatar>
-          </q-item-section>
+      <!-- Ações rápidas -->
+      <div class="quick-actions q-px-md q-mb-md">
+        <div class="section-header">
+          <div class="section-title">Ações rápidas</div>
+        </div>
 
-          <q-item-section>
-            <q-item-label>{{ avaliacao.cliente }}</q-item-label>
-            <q-item-label caption>
-              <q-rating v-model="avaliacao.nota" size="14px" :max="5" color="yellow" readonly />
-              <span class="q-ml-xs">{{ avaliacao.data }}</span>
-            </q-item-label>
-            <q-item-label caption lines="2"> "{{ avaliacao.comentario }}" </q-item-label>
-          </q-item-section>
-        </q-item>
-      </q-list>
-    </div>
+        <div class="row q-col-gutter-sm">
+          <div class="col-6">
+            <q-card class="action-card" flat bordered @click="irPara('agenda')">
+              <q-card-section class="text-center">
+                <q-icon name="schedule" size="32px" color="primary" />
+                <div class="action-label">Definir disponibilidade</div>
+              </q-card-section>
+            </q-card>
+          </div>
+          <div class="col-6">
+            <q-card class="action-card" flat bordered @click="irPara('servicos')">
+              <q-card-section class="text-center">
+                <q-icon name="construction" size="32px" color="secondary" />
+                <div class="action-label">Gerir serviços</div>
+              </q-card-section>
+            </q-card>
+          </div>
+          <div class="col-6">
+            <q-card class="action-card" flat bordered @click="irPara('portfolio')">
+              <q-card-section class="text-center">
+                <q-icon name="photo_library" size="32px" color="positive" />
+                <div class="action-label">Portfólio</div>
+              </q-card-section>
+            </q-card>
+          </div>
+          <div class="col-6">
+            <q-card class="action-card" flat bordered @click="irPara('precos')">
+              <q-card-section class="text-center">
+                <q-icon name="attach_money" size="32px" color="warning" />
+                <div class="action-label">Definir preços</div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </div>
+      </div>
+
+      <!-- Avaliações recentes -->
+      <div class="section q-px-md q-mb-md" v-if="avaliacoesRecentesList.length > 0">
+        <div class="section-header">
+          <div class="section-title">Avaliações recentes</div>
+          <q-btn
+            flat
+            dense
+            label="Ver todas"
+            class="section-link"
+            to="/mobile/prestador/avaliacoes"
+            no-caps
+          />
+        </div>
+
+        <q-list bordered separator>
+          <q-item v-for="avaliacao in avaliacoesRecentesList" :key="avaliacao.id">
+            <q-item-section avatar>
+              <q-avatar>
+                <img :src="avaliacao.cliente?.foto || getAvatarUrl(avaliacao.cliente?.nome || 'Cliente')" />
+              </q-avatar>
+            </q-item-section>
+
+            <q-item-section>
+              <q-item-label>{{ avaliacao.cliente?.nome || 'Cliente' }}</q-item-label>
+              <q-item-label caption>
+                <q-rating v-model="avaliacao.nota" size="14px" :max="5" color="yellow" readonly />
+                <span class="q-ml-xs">{{ formatarDataAvaliacao(avaliacao.created_at) }}</span>
+              </q-item-label>
+              <q-item-label caption lines="2"> "{{ avaliacao.comentario }}" </q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+
+      <!-- Mensagem quando não há dados -->
+      <div v-if="!proximosServicosList.length && !avaliacoesRecentesList.length" class="empty-state q-pa-xl text-center">
+        <q-icon name="dashboard" size="64px" color="grey-4" />
+        <div class="text-h6 text-grey-7 q-mt-md">Bem-vindo ao seu dashboard!</div>
+        <div class="text-grey-6">Você ainda não tem serviços agendados.</div>
+      </div>
+    </template>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
+import { usePrestadorStore } from 'src/stores/prestador-store';
+import { useQuasar } from 'quasar';
 
 defineOptions({
   name: 'PrestadorDashboard',
@@ -186,70 +210,129 @@ defineOptions({
 
 const router = useRouter();
 const authStore = useAuthStore();
+const prestadorStore = usePrestadorStore();
+const $q = useQuasar();
 
-const prestadorNome = ref(authStore.user?.nome || 'João Silva');
+const recarregando = ref(false);
+const loading = ref(true);
 
-// Dados mockados
-const resumo = ref({
-  pedidosPendentes: 3,
-  servicosHoje: 2,
-  avaliacaoMedia: 4.8,
-  ganhosMes: 12500,
-});
+// Computed com dados do store
+const prestadorNome = computed(() => authStore.user?.nome || 'Prestador');
+const stats = computed(() => prestadorStore.stats);
+const ganhos = computed(() => prestadorStore.ganhos);
+const proximosServicosList = computed(() => prestadorStore.proximosServicos || []);
+const avaliacoesRecentesList = computed(() => prestadorStore.avaliacoesRecentes || []);
 
-const proximosServicos = ref([
-  {
-    id: 1,
-    cliente: 'Maria Santos',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar2.jpg',
-    horario: 'Hoje, 14:30',
-    servico: 'Reparação elétrica',
-    status: 'confirmado',
-  },
-  {
-    id: 2,
-    cliente: 'Pedro Oliveira',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar3.jpg',
-    horario: 'Hoje, 16:00',
-    servico: 'Instalação de tomada',
-    status: 'pendente',
-  },
-  {
-    id: 3,
-    cliente: 'Ana Costa',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar4.jpg',
-    horario: 'Amanhã, 09:30',
-    servico: 'Troca de disjuntor',
-    status: 'confirmado',
-  },
-]);
-
-const avaliacoesRecentes = ref([
-  {
-    id: 1,
-    cliente: 'Carlos Mendes',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar5.jpg',
-    nota: 5,
-    data: '2 dias atrás',
-    comentario: 'Excelente profissional, muito atencioso e pontual.',
-  },
-  {
-    id: 2,
-    cliente: 'Sofia Rodrigues',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar6.jpg',
-    nota: 4,
-    data: '5 dias atrás',
-    comentario: 'Bom trabalho, recomendo.',
-  },
-]);
-
-const verServico = (id: number) => {
-  void router.push(`/mobile/prestador/pedidos/${id}`);
+// Funções auxiliares
+const formatMoney = (value: number) => {
+  return new Intl.NumberFormat('pt-PT', {
+    style: 'currency',
+    currency: 'MZN',
+    minimumFractionDigits: 0,
+  }).format(value);
 };
 
+const formatarData = (data: string) => {
+  if (!data) return 'Data não informada';
+  const date = new Date(data);
+  const hoje = new Date();
+  const amanha = new Date(hoje);
+  amanha.setDate(hoje.getDate() + 1);
+
+  if (date.toDateString() === hoje.toDateString()) {
+    return `Hoje, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
+  } else if (date.toDateString() === amanha.toDateString()) {
+    return `Amanhã, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  return date.toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const formatarDataAvaliacao = (data: string) => {
+  if (!data) return '';
+  const date = new Date(data);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Hoje';
+  if (diffDays === 1) return 'Ontem';
+  if (diffDays < 7) return `${diffDays} dias atrás`;
+  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+};
+
+const getStatusTexto = (status: string) => {
+  const statusMap: Record<string, string> = {
+    pendente: 'Pendente',
+    aceito: 'Aceito',
+    confirmado: 'Confirmado',
+    em_andamento: 'Em andamento',
+    concluido: 'Concluído',
+    cancelado: 'Cancelado',
+  };
+  return statusMap[status] || status;
+};
+
+const getStatusCor = (status: string) => {
+  const corMap: Record<string, string> = {
+    pendente: 'warning',
+    aceito: 'info',
+    confirmado: 'positive',
+    em_andamento: 'primary',
+    concluido: 'grey',
+    cancelado: 'negative',
+  };
+  return corMap[status] || 'grey';
+};
+
+const getAvatarUrl = (nome: string) => {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=667eea&color=fff`;
+};
+
+// Navegação
 const irPara = (rota: string) => {
   void router.push(`/mobile/prestador/${rota}`);
 };
+
+const verPedido = (id: number) => {
+  void router.push(`/mobile/prestador/pedidos/${id}`);
+};
+
+// Recarregar dados
+const recarregarDados = async () => {
+  recarregando.value = true;
+  await carregarDados();
+  recarregando.value = false;
+};
+
+// Carregar dados
+const carregarDados = async () => {
+  loading.value = true;
+  try {
+    await Promise.all([
+      prestadorStore.fetchStats(),
+      prestadorStore.fetchGanhos(),
+      prestadorStore.fetchProximosServicos(5),
+      prestadorStore.fetchAvaliacoesRecentes(5),
+    ]);
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar dashboard',
+      position: 'top',
+    });
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  void carregarDados();
+});
 </script>
 
 <style scoped lang="scss">
@@ -267,6 +350,7 @@ $gray-900: #212121;
 
 .prestador-dashboard {
   min-height: 100vh;
+  padding-bottom: 70px;
 }
 
 .header-greeting {
@@ -289,6 +373,11 @@ $gray-900: #212121;
 
 .summary-card {
   border-radius: 12px;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
 
   .summary-value {
     font-size: 1.4rem;
@@ -329,6 +418,7 @@ $gray-900: #212121;
   border-radius: 12px;
   margin-bottom: 8px;
   transition: all 0.3s ease;
+  cursor: pointer;
 
   &:hover {
     transform: translateY(-2px);
@@ -341,5 +431,11 @@ $gray-900: #212121;
     color: $gray-700;
     margin-top: 8px;
   }
+}
+
+.empty-state {
+  background: white;
+  border-radius: 16px;
+  margin: 20px;
 }
 </style>

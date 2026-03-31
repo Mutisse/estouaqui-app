@@ -8,11 +8,11 @@
             <q-icon name="handyman" size="32px" color="white" />
           </div>
           <div class="header-title">Criar Conta de Prestador</div>
-          <div class="header-subtitle">Passo {{ step }} de 5 • {{ getStepTitle(step) }}</div>
+          <div class="header-subtitle">Passo {{ currentStep }} de 5 • {{ getStepTitle(currentStep) }}</div>
 
           <!-- Progress Bar -->
           <div class="progress-container">
-            <div class="progress-bar" :style="{ width: (step / 5) * 100 + '%' }"></div>
+            <div class="progress-bar" :style="{ width: progressWidth }"></div>
           </div>
         </q-card-section>
 
@@ -23,13 +23,13 @@
             :key="i"
             class="step-item"
             :class="{
-              active: i === step,
-              completed: i < step,
+              active: i === currentStep,
+              completed: i < currentStep,
             }"
             @click="goToStep(i)"
           >
             <div class="step-circle">
-              <q-icon v-if="i < step" name="check" size="16px" />
+              <q-icon v-if="i < currentStep" name="check" size="16px" />
               <span v-else>{{ i }}</span>
             </div>
             <div class="step-label">{{ getStepLabel(i) }}</div>
@@ -39,7 +39,7 @@
         <!-- Form -->
         <q-card-section class="q-px-xl q-py-lg">
           <!-- Step 1: Dados Básicos -->
-          <div v-show="step === 1">
+          <div v-show="currentStep === 1">
             <div class="step-content">
               <div class="step-title">Dados Pessoais</div>
 
@@ -47,7 +47,7 @@
                 <div class="col-12">
                   <div class="input-label">Nome Completo</div>
                   <q-input
-                    v-model="form.nome"
+                    v-model="formData.nome"
                     placeholder="Seu nome completo"
                     outlined
                     dense
@@ -64,7 +64,7 @@
                 <div class="col-12 col-md-6">
                   <div class="input-label">Número de Telefone</div>
                   <q-input
-                    v-model="form.telefone"
+                    v-model="formData.telefone"
                     placeholder="84 123 4567"
                     prefix="+258"
                     mask="## ### ####"
@@ -82,14 +82,15 @@
                 </div>
 
                 <div class="col-12 col-md-6">
-                  <div class="input-label">Email <span class="optional">(opcional)</span></div>
+                  <div class="input-label">Email</div>
                   <q-input
-                    v-model="form.email"
+                    v-model="formData.email"
                     placeholder="seu@email.com"
                     type="email"
                     outlined
                     dense
                     class="custom-input"
+                    :rules="[(val) => !!val || 'Email é obrigatório']"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -101,13 +102,16 @@
                 <div class="col-12">
                   <div class="input-label">Palavra-passe</div>
                   <q-input
-                    v-model="form.password"
+                    v-model="formData.password"
                     :type="showPassword ? 'text' : 'password'"
                     placeholder="Mínimo 6 caracteres"
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[(val) => val.length >= 6 || 'Mínimo 6 caracteres']"
+                    :rules="[
+                      (val) => !!val || 'Palavra-passe é obrigatória',
+                      (val) => val.length >= 6 || 'Mínimo 6 caracteres'
+                    ]"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -122,19 +126,34 @@
                       />
                     </template>
                   </q-input>
+
+                  <div class="password-strength q-mt-sm" v-if="formData.password">
+                    <div class="strength-bar">
+                      <div
+                        class="strength-fill"
+                        :class="passwordStrength.class"
+                        :style="{ width: passwordStrength.strength + '%' }"
+                      ></div>
+                    </div>
+                    <div class="strength-text" :class="passwordStrength.class">
+                      {{ passwordStrength.text }}
+                    </div>
+                  </div>
                 </div>
 
-                <!-- Confirmar Password -->
                 <div class="col-12">
                   <div class="input-label">Confirmar Palavra-passe</div>
                   <q-input
-                    v-model="form.confirmPassword"
+                    v-model="formData.confirmPassword"
                     :type="showConfirmPassword ? 'text' : 'password'"
-                    placeholder="Digite novamente"
+                    placeholder="Digite novamente a sua palavra-passe"
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[(val) => val === form.password || 'As palavras-passe não coincidem']"
+                    :rules="[
+                      (val) => !!val || 'Confirmação de palavra-passe é obrigatória',
+                      (val) => val === formData.password || 'As palavras-passe não coincidem'
+                    ]"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -149,13 +168,28 @@
                       />
                     </template>
                   </q-input>
+
+                  <div
+                    v-if="formData.confirmPassword && formData.password !== formData.confirmPassword"
+                    class="confirm-error q-mt-sm"
+                  >
+                    <q-icon name="error" size="14px" />
+                    <span>As palavras-passe não coincidem</span>
+                  </div>
+                  <div
+                    v-else-if="formData.confirmPassword && formData.password === formData.confirmPassword"
+                    class="confirm-success q-mt-sm"
+                  >
+                    <q-icon name="check_circle" size="14px" />
+                    <span>Palavras-passe coincidem</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Step 2: Perfil Profissional -->
-          <div v-show="step === 2">
+          <div v-show="currentStep === 2">
             <div class="step-content">
               <div class="step-title">Perfil Profissional</div>
 
@@ -167,10 +201,10 @@
                       ref="fotoPerfilInput"
                       type="file"
                       accept="image/*"
-                      @change="(e) => handleFileUpload(e, 'foto')"
+                      @change="handleFileUpload"
                       style="display: none"
                     />
-                    <div class="photo-preview" v-if="form.foto">
+                    <div class="photo-preview" v-if="formData.foto">
                       <img v-if="fotoPerfilPreview" :src="fotoPerfilPreview" alt="Preview" />
                       <q-btn
                         flat
@@ -195,7 +229,7 @@
                     Descrição do seu trabalho <span class="required">*</span>
                   </div>
                   <q-input
-                    v-model="form.descricao"
+                    v-model="formData.descricao"
                     placeholder="Descreva sua experiência e serviços oferecidos"
                     outlined
                     type="textarea"
@@ -212,7 +246,7 @@
                     Categorias de Serviço <span class="required">*</span>
                   </div>
                   <q-select
-                    v-model="form.categorias"
+                    v-model="formData.categorias"
                     :options="categoriasOptions"
                     label="Selecione as categorias"
                     multiple
@@ -231,7 +265,7 @@
           </div>
 
           <!-- Step 3: Portfólio -->
-          <div v-show="step === 3">
+          <div v-show="currentStep === 3">
             <div class="step-content">
               <div class="step-title">Portfólio</div>
               <div class="step-subtitle">Adicione pelo menos 3 fotos dos seus trabalhos</div>
@@ -248,10 +282,10 @@
                         @change="(e) => handlePortfolioUpload(e, n - 1)"
                         style="display: none"
                       />
-                      <div class="photo-preview small" v-if="form.portfolio[n - 1]">
+                      <div class="photo-preview small" v-if="formData.portfolio[n - 1]">
                         <img
                           v-if="portfolioPreviews[n - 1]"
-                          :src="portfolioPreviews[n - 1] ?? ''"
+                          :src="portfolioPreviews[n - 1] || ''"
                           alt="Preview"
                         />
                         <q-btn
@@ -275,7 +309,7 @@
           </div>
 
           <!-- Step 4: Área e Disponibilidade -->
-          <div v-show="step === 4">
+          <div v-show="currentStep === 4">
             <div class="step-content">
               <div class="step-title">Área e Disponibilidade</div>
 
@@ -285,7 +319,7 @@
                     Raio de atuação (km) <span class="required">*</span>
                   </div>
                   <q-select
-                    v-model="form.raio"
+                    v-model="formData.raio"
                     :options="raioOptions"
                     label="Selecione o raio"
                     outlined
@@ -304,13 +338,15 @@
                     <div v-for="dia in diasSemana" :key="dia.value" class="availability-item">
                       <div class="day-label">{{ dia.label }}</div>
                       <q-checkbox
-                        v-model="form.disponibilidade[dia.value].ativo"
+                        :model-value="getDisponibilidadeAtivo(dia.value)"
+                        @update:model-value="(val: boolean) => setDisponibilidadeAtivo(dia.value, val)"
                         label="Disponível"
                         dense
                       />
                       <q-input
-                        v-if="form.disponibilidade[dia.value].ativo"
-                        v-model="form.disponibilidade[dia.value].horario"
+                        v-if="getDisponibilidadeAtivo(dia.value)"
+                        :model-value="getDisponibilidadeHorario(dia.value)"
+                        @update:model-value="(val: string | number | null) => setDisponibilidadeHorario(dia.value, val === null ? '' : String(val))"
                         placeholder="8h-17h"
                         dense
                         outlined
@@ -324,7 +360,7 @@
           </div>
 
           <!-- Step 5: Documentos e Revisão -->
-          <div v-show="step === 5">
+          <div v-show="currentStep === 5">
             <div class="step-content">
               <div class="step-title">Documentos e Revisão</div>
 
@@ -341,13 +377,13 @@
                       @change="handleDocumentUpload"
                       style="display: none"
                     />
-                    <div class="document-preview" v-if="form.documento">
+                    <div class="document-preview" v-if="formData.documento">
                       <q-icon
-                        :name="getDocumentIcon(form.documento.name)"
+                        :name="getDocumentIcon(formData.documento.name)"
                         size="32px"
                         color="primary"
                       />
-                      <div class="document-name">{{ form.documento.name }}</div>
+                      <div class="document-name">{{ formData.documento.name }}</div>
                       <q-btn
                         flat
                         round
@@ -374,7 +410,7 @@
                       <div class="review-icon"><q-icon name="person" size="16px" /></div>
                       <div class="review-content">
                         <div class="review-label">Nome</div>
-                        <div class="review-value">{{ form.nome || '—' }}</div>
+                        <div class="review-value">{{ formData.nome || '—' }}</div>
                       </div>
                     </div>
 
@@ -382,7 +418,7 @@
                       <div class="review-icon"><q-icon name="phone" size="16px" /></div>
                       <div class="review-content">
                         <div class="review-label">Telefone</div>
-                        <div class="review-value">{{ form.telefone || '—' }}</div>
+                        <div class="review-value">{{ formData.telefone || '—' }}</div>
                       </div>
                     </div>
 
@@ -391,10 +427,10 @@
                       <div class="review-content">
                         <div class="review-label">Categorias</div>
                         <div class="review-value">
-                          <q-chip v-for="cat in form.categorias" :key="cat" size="sm" dense>
+                          <q-chip v-for="cat in formData.categorias" :key="cat" size="sm" dense>
                             {{ cat }}
                           </q-chip>
-                          <span v-if="!form.categorias.length">—</span>
+                          <span v-if="!formData.categorias.length">—</span>
                         </div>
                       </div>
                     </div>
@@ -403,7 +439,7 @@
                       <div class="review-icon"><q-icon name="location_on" size="16px" /></div>
                       <div class="review-content">
                         <div class="review-label">Raio de atuação</div>
-                        <div class="review-value">{{ form.raio ? form.raio + ' km' : '—' }}</div>
+                        <div class="review-value">{{ formData.raio ? formData.raio + ' km' : '—' }}</div>
                       </div>
                     </div>
                   </div>
@@ -427,7 +463,7 @@
         <q-card-section class="q-px-xl q-pb-xl">
           <div class="row justify-between">
             <q-btn
-              v-if="step > 1"
+              v-if="currentStep > 1"
               flat
               class="nav-btn prev-btn"
               label="Voltar"
@@ -438,7 +474,7 @@
             <div v-else></div>
 
             <q-btn
-              v-if="step < 5"
+              v-if="currentStep < 5"
               class="nav-btn next-btn"
               label="Continuar"
               icon="arrow_forward"
@@ -465,48 +501,75 @@ defineOptions({
   name: 'RegisterPrestador',
 });
 
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { usePrestadorRegisterStore } from 'src/stores/prestador-store';
+import { api } from 'src/boot/axios';
+import { PRESTADOR_ENDPOINTS } from 'src/router/Api/prestador-endpoints';
+import { usePrestadorStore } from 'src/stores/prestador-store';
 import { useQuasar } from 'quasar';
 
 const router = useRouter();
-const prestadorRegisterStore = usePrestadorRegisterStore();
 const $q = useQuasar();
+const prestadorStore = usePrestadorStore();
 
-// Step control
-const step = ref(1);
+const currentStep = ref(1);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const loading = ref(false);
 const acceptTerms = ref(false);
 
-// File refs
+const categoriasOptions = ref<{ label: string; value: string }[]>([]);
+const raioOptions = ref<{ label: string; value: number }[]>([]);
+const diasSemana = ref<{ label: string; value: string }[]>([]);
+
+const progressWidth = computed(() => (currentStep.value / 5) * 100 + '%');
+
+const passwordStrength = computed(() => {
+  const pwd = formData.value.password;
+  if (!pwd) return { strength: 0, class: 'weak', text: 'Fraca' };
+
+  let strength = 0;
+  if (pwd.length >= 6) strength += 25;
+  if (pwd.length >= 8) strength += 25;
+  if (/[A-Z]/.test(pwd)) strength += 25;
+  if (/[0-9!@#$%^&*]/.test(pwd)) strength += 25;
+
+  let strengthClass = 'weak';
+  let strengthText = 'Fraca';
+
+  if (strength <= 25) {
+    strengthClass = 'weak';
+    strengthText = 'Fraca';
+  } else if (strength <= 50) {
+    strengthClass = 'fair';
+    strengthText = 'Razoável';
+  } else if (strength <= 75) {
+    strengthClass = 'good';
+    strengthText = 'Boa';
+  } else {
+    strengthClass = 'strong';
+    strengthText = 'Forte';
+  }
+
+  return { strength, class: strengthClass, text: strengthText };
+});
+
 const fotoPerfilInput = ref<HTMLInputElement | null>(null);
 const documentoInput = ref<HTMLInputElement | null>(null);
-
-// Refs individuais para portfólio
 const portfolioInput1 = ref<HTMLInputElement | null>(null);
 const portfolioInput2 = ref<HTMLInputElement | null>(null);
 const portfolioInput3 = ref<HTMLInputElement | null>(null);
 
-// Photo previews
 const fotoPerfilPreview = ref<string | null>(null);
 const portfolioPreviews = ref<(string | null)[]>([null, null, null]);
 
-export interface DisponibilidadeDia {
+interface DisponibilidadeDia {
   ativo: boolean;
   horario: string;
 }
 
-export interface Disponibilidade {
-  segunda: DisponibilidadeDia;
-  terca: DisponibilidadeDia;
-  quarta: DisponibilidadeDia;
-  quinta: DisponibilidadeDia;
-  sexta: DisponibilidadeDia;
-  sabado: DisponibilidadeDia;
-  domingo: DisponibilidadeDia;
+interface Disponibilidade {
+  [key: string]: DisponibilidadeDia;
 }
 
 interface FormData {
@@ -525,7 +588,7 @@ interface FormData {
   tipo: string;
 }
 
-const form = ref<FormData>({
+const formData = ref<FormData>({
   nome: '',
   telefone: '',
   email: '',
@@ -536,61 +599,35 @@ const form = ref<FormData>({
   categorias: [],
   portfolio: [null, null, null],
   raio: null,
-  disponibilidade: {
-    segunda: { ativo: false, horario: '' },
-    terca: { ativo: false, horario: '' },
-    quarta: { ativo: false, horario: '' },
-    quinta: { ativo: false, horario: '' },
-    sexta: { ativo: false, horario: '' },
-    sabado: { ativo: false, horario: '' },
-    domingo: { ativo: false, horario: '' },
-  },
+  disponibilidade: {},
   documento: null,
   tipo: 'prestador',
 });
 
-// Opções para selects
-const categoriasOptions = [
-  { label: 'Eletricista', value: 'Eletricista' },
-  { label: 'Canalizador', value: 'Canalizador' },
-  { label: 'Pintor', value: 'Pintor' },
-  { label: 'Informático', value: 'Informático' },
-  { label: 'Cabeleireiro', value: 'Cabeleireiro' },
-  { label: 'Manicure', value: 'Manicure' },
-  { label: 'Limpeza', value: 'Limpeza' },
-  { label: 'Baby-sitter', value: 'Baby-sitter' },
-  { label: 'Motorista', value: 'Motorista' },
-  { label: 'Costureira', value: 'Costureira' },
-];
+const getDisponibilidadeAtivo = (diaKey: string): boolean => {
+  return formData.value.disponibilidade[diaKey]?.ativo ?? false;
+};
 
-const raioOptions = [
-  { label: '2 km', value: 2 },
-  { label: '5 km', value: 5 },
-  { label: '10 km', value: 10 },
-  { label: '15 km', value: 15 },
-  { label: '20 km', value: 20 },
-  { label: '30 km', value: 30 },
-];
+const setDisponibilidadeAtivo = (diaKey: string, value: boolean): void => {
+  if (!formData.value.disponibilidade[diaKey]) {
+    formData.value.disponibilidade[diaKey] = { ativo: false, horario: '' };
+  }
+  formData.value.disponibilidade[diaKey].ativo = value;
+};
 
-const diasSemana = [
-  { label: 'Segunda', value: 'segunda' as const },
-  { label: 'Terça', value: 'terca' as const },
-  { label: 'Quarta', value: 'quarta' as const },
-  { label: 'Quinta', value: 'quinta' as const },
-  { label: 'Sexta', value: 'sexta' as const },
-  { label: 'Sábado', value: 'sabado' as const },
-  { label: 'Domingo', value: 'domingo' as const },
-];
+const getDisponibilidadeHorario = (diaKey: string): string => {
+  return formData.value.disponibilidade[diaKey]?.horario ?? '';
+};
 
-// Helper functions
+const setDisponibilidadeHorario = (diaKey: string, value: string): void => {
+  if (!formData.value.disponibilidade[diaKey]) {
+    formData.value.disponibilidade[diaKey] = { ativo: false, horario: '' };
+  }
+  formData.value.disponibilidade[diaKey].horario = value;
+};
+
 const getStepTitle = (stepNum: number) => {
-  const titles = [
-    'Dados Básicos',
-    'Perfil Profissional',
-    'Portfólio',
-    'Área e Disponibilidade',
-    'Documentos e Revisão',
-  ];
+  const titles = ['Dados Básicos', 'Perfil Profissional', 'Portfólio', 'Área e Disponibilidade', 'Documentos e Revisão'];
   return titles[stepNum - 1];
 };
 
@@ -599,117 +636,91 @@ const getStepLabel = (stepNum: number) => {
   return labels[stepNum - 1];
 };
 
-// Navigation
 const goToStep = (targetStep: number) => {
-  if (targetStep < step.value) {
-    step.value = targetStep;
+  if (targetStep < currentStep.value) {
+    currentStep.value = targetStep;
   }
 };
 
 const prevStep = () => {
-  step.value--;
+  currentStep.value--;
 };
 
 const nextStep = () => {
   if (!validateStep()) return;
-  step.value++;
+  currentStep.value++;
 };
 
-// Validation
 const validateStep = () => {
-  switch (step.value) {
-    case 1: {
-      if (!form.value.nome || !form.value.telefone || !form.value.password) {
-        $q.notify({
-          type: 'warning',
-          message: 'Preencha todos os campos obrigatórios',
-          position: 'top',
-        });
+  switch (currentStep.value) {
+    case 1:
+      if (!formData.value.nome) {
+        $q.notify({ type: 'warning', message: 'Preencha o nome completo', position: 'top' });
         return false;
       }
-      if (form.value.password.length < 6) {
-        $q.notify({
-          type: 'warning',
-          message: 'A palavra-passe deve ter pelo menos 6 caracteres',
-          position: 'top',
-        });
+      if (!formData.value.telefone) {
+        $q.notify({ type: 'warning', message: 'Preencha o telefone', position: 'top' });
         return false;
       }
-      if (form.value.password !== form.value.confirmPassword) {
-        $q.notify({
-          type: 'warning',
-          message: 'As palavras-passe não coincidem',
-          position: 'top',
-        });
+      if (!formData.value.email) {
+        $q.notify({ type: 'warning', message: 'Preencha o email', position: 'top' });
         return false;
       }
-      break;
-    }
-    case 2: {
-      if (!form.value.foto || !form.value.descricao || form.value.categorias.length === 0) {
-        $q.notify({
-          type: 'warning',
-          message: 'Preencha todos os campos obrigatórios (foto, descrição e categorias)',
-          position: 'top',
-        });
+      if (!formData.value.password) {
+        $q.notify({ type: 'warning', message: 'Preencha a palavra-passe', position: 'top' });
+        return false;
+      }
+      if (formData.value.password.length < 6) {
+        $q.notify({ type: 'warning', message: 'A palavra-passe deve ter pelo menos 6 caracteres', position: 'top' });
+        return false;
+      }
+      if (formData.value.password !== formData.value.confirmPassword) {
+        $q.notify({ type: 'warning', message: 'As palavras-passe não coincidem', position: 'top' });
         return false;
       }
       break;
-    }
-    case 3: {
-      const portfolioCompleto = form.value.portfolio.every((item) => item !== null);
-      if (!portfolioCompleto) {
-        $q.notify({
-          type: 'warning',
-          message: 'Adicione as 3 fotos do portfólio',
-          position: 'top',
-        });
+    case 2:
+      if (!formData.value.foto) {
+        $q.notify({ type: 'warning', message: 'Adicione uma foto de perfil', position: 'top' });
+        return false;
+      }
+      if (!formData.value.descricao) {
+        $q.notify({ type: 'warning', message: 'Preencha a descrição do seu trabalho', position: 'top' });
+        return false;
+      }
+      if (formData.value.categorias.length === 0) {
+        $q.notify({ type: 'warning', message: 'Selecione pelo menos uma categoria', position: 'top' });
         return false;
       }
       break;
-    }
-    case 4: {
-      if (!form.value.raio) {
-        $q.notify({
-          type: 'warning',
-          message: 'Selecione o raio de atuação',
-          position: 'top',
-        });
+    case 3:
+      if (!formData.value.portfolio[0] || !formData.value.portfolio[1] || !formData.value.portfolio[2]) {
+        $q.notify({ type: 'warning', message: 'Adicione as 3 fotos do portfólio', position: 'top' });
         return false;
       }
       break;
-    }
-    case 5: {
-      if (!form.value.documento) {
-        $q.notify({
-          type: 'warning',
-          message: 'Adicione o documento de identificação',
-          position: 'top',
-        });
+    case 4:
+      if (!formData.value.raio) {
+        $q.notify({ type: 'warning', message: 'Selecione o raio de atuação', position: 'top' });
+        return false;
+      }
+      break;
+    case 5:
+      if (!formData.value.documento) {
+        $q.notify({ type: 'warning', message: 'Adicione o documento de identificação', position: 'top' });
         return false;
       }
       if (!acceptTerms.value) {
-        $q.notify({
-          type: 'warning',
-          message: 'Aceite os termos para continuar',
-          position: 'top',
-        });
+        $q.notify({ type: 'warning', message: 'Aceite os termos para continuar', position: 'top' });
         return false;
       }
       break;
-    }
   }
   return true;
 };
 
-// File handling methods
-const triggerFotoPerfilInput = () => {
-  fotoPerfilInput.value?.click();
-};
-
-const triggerDocumentoInput = () => {
-  documentoInput.value?.click();
-};
+const triggerFotoPerfilInput = () => fotoPerfilInput.value?.click();
+const triggerDocumentoInput = () => documentoInput.value?.click();
 
 const setPortfolioInputRef = (el: HTMLInputElement | null, index: number) => {
   if (index === 0) portfolioInput1.value = el;
@@ -723,24 +734,18 @@ const triggerPortfolioInput = (index: number) => {
   else if (index === 2) portfolioInput3.value?.click();
 };
 
-const handleFileUpload = (event: Event, field: string) => {
+const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
 
   if (file.size > 5 * 1024 * 1024) {
-    $q.notify({
-      type: 'negative',
-      message: 'O arquivo deve ter no máximo 5MB',
-      position: 'top',
-    });
+    $q.notify({ type: 'negative', message: 'O arquivo deve ter no máximo 5MB', position: 'top' });
     return;
   }
 
-  if (field === 'foto') {
-    form.value.foto = file;
-    fotoPerfilPreview.value = URL.createObjectURL(file);
-  }
+  formData.value.foto = file;
+  fotoPerfilPreview.value = URL.createObjectURL(file);
 };
 
 const handlePortfolioUpload = (event: Event, index: number) => {
@@ -749,15 +754,11 @@ const handlePortfolioUpload = (event: Event, index: number) => {
   if (!file) return;
 
   if (file.size > 5 * 1024 * 1024) {
-    $q.notify({
-      type: 'negative',
-      message: 'O arquivo deve ter no máximo 5MB',
-      position: 'top',
-    });
+    $q.notify({ type: 'negative', message: 'O arquivo deve ter no máximo 5MB', position: 'top' });
     return;
   }
 
-  form.value.portfolio[index] = file;
+  formData.value.portfolio[index] = file;
   portfolioPreviews.value[index] = URL.createObjectURL(file);
 };
 
@@ -767,111 +768,126 @@ const handleDocumentUpload = (event: Event) => {
   if (!file) return;
 
   if (file.size > 5 * 1024 * 1024) {
-    $q.notify({
-      type: 'negative',
-      message: 'O arquivo deve ter no máximo 5MB',
-      position: 'top',
-    });
+    $q.notify({ type: 'negative', message: 'O arquivo deve ter no máximo 5MB', position: 'top' });
     return;
   }
 
-  form.value.documento = file;
+  formData.value.documento = file;
 };
 
 const removeFotoPerfil = () => {
-  form.value.foto = null;
+  if (fotoPerfilPreview.value) URL.revokeObjectURL(fotoPerfilPreview.value);
+  formData.value.foto = null;
   fotoPerfilPreview.value = null;
-  if (fotoPerfilInput.value) {
-    fotoPerfilInput.value.value = '';
-  }
+  if (fotoPerfilInput.value) fotoPerfilInput.value.value = '';
 };
 
 const removePortfolioPhoto = (index: number) => {
-  form.value.portfolio[index] = null;
+  if (portfolioPreviews.value[index]) URL.revokeObjectURL(portfolioPreviews.value[index]);
+  formData.value.portfolio[index] = null;
   portfolioPreviews.value[index] = null;
-
-  if (index === 0 && portfolioInput1.value) {
-    portfolioInput1.value.value = '';
-  } else if (index === 1 && portfolioInput2.value) {
-    portfolioInput2.value.value = '';
-  } else if (index === 2 && portfolioInput3.value) {
-    portfolioInput3.value.value = '';
-  }
+  if (index === 0 && portfolioInput1.value) portfolioInput1.value.value = '';
+  else if (index === 1 && portfolioInput2.value) portfolioInput2.value.value = '';
+  else if (index === 2 && portfolioInput3.value) portfolioInput3.value.value = '';
 };
 
 const removeDocument = () => {
-  form.value.documento = null;
-  if (documentoInput.value) {
-    documentoInput.value.value = '';
-  }
+  formData.value.documento = null;
+  if (documentoInput.value) documentoInput.value.value = '';
 };
 
-// Preview helpers
 const getDocumentIcon = (filename: string) => {
   const ext = filename.split('.').pop()?.toLowerCase();
   if (ext === 'pdf') return 'picture_as_pdf';
-  if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') return 'image';
-  return 'description';
+  return 'image';
 };
 
-// Registration
+const carregarDadosAuxiliares = async () => {
+  try {
+    await prestadorStore.fetchServicoTiposOptions();
+    categoriasOptions.value = prestadorStore.servicoTiposOptions.map(opt => ({
+      label: opt.label,
+      value: opt.value
+    }));
+
+    await prestadorStore.fetchRaioOpcoesOptions();
+    raioOptions.value = prestadorStore.raioOpcoesOptions.map(opt => ({
+      label: opt.label,
+      value: opt.value
+    }));
+
+    await prestadorStore.fetchDiasOptions();
+    diasSemana.value = prestadorStore.diasOptions.map(opt => ({
+      label: opt.label,
+      value: opt.value
+    }));
+
+    const disponibilidadeInicial: Disponibilidade = {};
+    diasSemana.value.forEach(dia => {
+      disponibilidadeInicial[dia.value] = { ativo: false, horario: '' };
+    });
+    formData.value.disponibilidade = disponibilidadeInicial;
+  } catch (error) {
+    console.error('Erro ao carregar dados auxiliares:', error);
+  }
+};
+
 const handleRegister = async () => {
   if (!acceptTerms.value) {
-    $q.notify({
-      type: 'warning',
-      message: 'Aceite os termos para continuar',
-      position: 'top',
-    });
+    $q.notify({ type: 'warning', message: 'Aceite os termos para continuar', position: 'top' });
     return;
   }
 
-  // Sincronizar o store com os dados do componente
-  prestadorRegisterStore.form.nome = form.value.nome;
-  prestadorRegisterStore.form.telefone = form.value.telefone;
-  prestadorRegisterStore.form.email = form.value.email;
-  prestadorRegisterStore.form.password = form.value.password;
-  prestadorRegisterStore.form.confirmPassword = form.value.confirmPassword;
-  prestadorRegisterStore.form.foto = form.value.foto;
-  prestadorRegisterStore.form.descricao = form.value.descricao;
-  prestadorRegisterStore.form.categorias = form.value.categorias;
-  prestadorRegisterStore.form.portfolio = form.value.portfolio;
-  prestadorRegisterStore.form.raio = form.value.raio;
-  prestadorRegisterStore.form.disponibilidade = form.value.disponibilidade;
-  prestadorRegisterStore.form.documento = form.value.documento;
-  prestadorRegisterStore.acceptTerms = acceptTerms.value;
-
   loading.value = true;
   try {
-    const success = await prestadorRegisterStore.register();
-    if (success) {
-      $q.notify({
-        type: 'positive',
-        message: 'Registo efetuado com sucesso! Aguarde aprovação.',
-        position: 'top',
-      });
+    const formDataToSend = new FormData();
+    formDataToSend.append('nome', formData.value.nome);
+    formDataToSend.append('telefone', formData.value.telefone);
+    formDataToSend.append('email', formData.value.email);
+    formDataToSend.append('password', formData.value.password);
+    formDataToSend.append('tipo', 'prestador');
+    formDataToSend.append('descricao', formData.value.descricao);
+    formDataToSend.append('categorias', JSON.stringify(formData.value.categorias));
+    formDataToSend.append('raio', String(formData.value.raio));
+    formDataToSend.append('disponibilidade', JSON.stringify(formData.value.disponibilidade));
+
+    if (formData.value.foto) {
+      formDataToSend.append('foto', formData.value.foto);
+    }
+
+    formData.value.portfolio.forEach((file, i) => {
+      if (file) {
+        formDataToSend.append(`portfolio[${i}]`, file);
+      }
+    });
+
+    if (formData.value.documento) {
+      formDataToSend.append('documento', formData.value.documento);
+    }
+
+    const response = await api.post(PRESTADOR_ENDPOINTS.REGISTER, formDataToSend, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+
+    if (response.data.success) {
+      $q.notify({ type: 'positive', message: 'Registo efetuado com sucesso!', position: 'top' });
       setTimeout(() => {
         void router.push('/auth/login');
       }, 1500);
+    } else {
+      $q.notify({ type: 'negative', message: response.data.error || 'Erro ao registar', position: 'top' });
     }
-  } catch (err: unknown) {
-    let errorMessage = 'Erro ao registar';
-    if (err && typeof err === 'object') {
-      const axiosError = err as { response?: { data?: { error?: string } }; message?: string };
-      if (axiosError.response?.data?.error) {
-        errorMessage = axiosError.response.data.error;
-      } else if (axiosError.message) {
-        errorMessage = axiosError.message;
-      }
-    }
-    $q.notify({
-      type: 'negative',
-      message: errorMessage,
-      position: 'top',
-    });
+  } catch (err) {
+    console.error('Erro no registro:', err);
+    $q.notify({ type: 'negative', message: 'Erro ao registar. Tente novamente.', position: 'top' });
   } finally {
     loading.value = false;
   }
 };
+
+onMounted(async () => {
+  await carregarDadosAuxiliares();
+});
 </script>
 
 <style scoped lang="scss">
@@ -901,7 +917,6 @@ $gray-900: #212121;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
   background: white;
   transition: transform 0.3s ease;
-
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 30px 60px rgba(102, 126, 234, 0.15);
@@ -914,7 +929,6 @@ $gray-900: #212121;
   text-align: center;
   position: relative;
   overflow: hidden;
-
   &::before {
     content: '';
     position: absolute;
@@ -925,7 +939,6 @@ $gray-900: #212121;
     background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
     animation: rotate 20s linear infinite;
   }
-
   .header-icon {
     width: 60px;
     height: 60px;
@@ -938,7 +951,6 @@ $gray-900: #212121;
     margin: 0 auto 15px;
     border: 2px solid rgba(255, 255, 255, 0.3);
   }
-
   .header-title {
     font-size: 1.8rem;
     font-weight: 700;
@@ -946,7 +958,6 @@ $gray-900: #212121;
     margin-bottom: 5px;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   }
-
   .header-subtitle {
     color: rgba(255, 255, 255, 0.9);
     font-size: 0.9rem;
@@ -960,7 +971,6 @@ $gray-900: #212121;
   border-radius: 2px;
   overflow: hidden;
   margin-top: 15px;
-
   .progress-bar {
     height: 100%;
     background: white;
@@ -973,7 +983,6 @@ $gray-900: #212121;
   padding: 20px 40px;
   background: $gray-50;
   border-bottom: 1px solid $gray-200;
-
   .step-item {
     flex: 1;
     display: flex;
@@ -981,7 +990,6 @@ $gray-900: #212121;
     align-items: center;
     cursor: pointer;
     position: relative;
-
     &:not(:last-child)::after {
       content: '';
       position: absolute;
@@ -991,11 +999,9 @@ $gray-900: #212121;
       height: 2px;
       background: $gray-300;
     }
-
     &.completed:not(:last-child)::after {
       background: $purple-primary;
     }
-
     .step-circle {
       width: 40px;
       height: 40px;
@@ -1010,7 +1016,6 @@ $gray-900: #212121;
       margin-bottom: 8px;
       transition: all 0.3s ease;
     }
-
     &.active .step-circle {
       border-color: $purple-primary;
       background: $purple-primary;
@@ -1018,19 +1023,16 @@ $gray-900: #212121;
       transform: scale(1.1);
       box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
     }
-
     &.completed .step-circle {
       border-color: $purple-primary;
       background: $purple-primary;
       color: white;
     }
-
     .step-label {
       font-size: 0.8rem;
       color: $gray-600;
       font-weight: 500;
     }
-
     &.active .step-label {
       color: $purple-primary;
       font-weight: 600;
@@ -1040,14 +1042,12 @@ $gray-900: #212121;
 
 .step-content {
   min-height: 400px;
-
   .step-title {
     font-size: 1.3rem;
     font-weight: 600;
     color: $gray-800;
     margin-bottom: 10px;
   }
-
   .step-subtitle {
     color: $gray-600;
     margin-bottom: 25px;
@@ -1061,13 +1061,11 @@ $gray-900: #212121;
   font-weight: 600;
   color: $gray-700;
   margin-bottom: 5px;
-
   .optional {
     color: $gray-500;
     font-weight: normal;
     font-size: 0.8rem;
   }
-
   .required {
     color: #f56565;
     font-weight: normal;
@@ -1080,20 +1078,58 @@ $gray-900: #212121;
     border-radius: 15px;
     border: 1px solid $gray-200;
     transition: all 0.3s ease;
-
     &:hover {
       border-color: $purple-primary;
     }
   }
-
   :deep(.q-field__control:focus-within) {
     border-color: $purple-primary;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
-
   :deep(.q-field__prepend) {
     padding-right: 10px;
   }
+}
+
+.password-strength {
+  .strength-bar {
+    height: 4px;
+    background: $gray-200;
+    border-radius: 2px;
+    overflow: hidden;
+    .strength-fill {
+      height: 100%;
+      transition: width 0.3s ease;
+      &.weak { background: #f56565; }
+      &.fair { background: #ed8936; }
+      &.good { background: #48bb78; }
+      &.strong { background: #38a169; }
+    }
+  }
+  .strength-text {
+    font-size: 0.7rem;
+    margin-top: 4px;
+    &.weak { color: #f56565; }
+    &.fair { color: #ed8936; }
+    &.good { color: #48bb78; }
+    &.strong { color: #38a169; }
+  }
+}
+
+.confirm-error {
+  color: #f56565;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.confirm-success {
+  color: #48bb78;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .photo-upload-area {
@@ -1103,63 +1139,52 @@ $gray-900: #212121;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
-
   &:hover {
     border-color: $purple-primary;
     background: rgba(102, 126, 234, 0.05);
   }
-
   &.small {
     padding: 10px;
   }
-
   .photo-preview {
     position: relative;
     display: inline-block;
-
     img {
       width: 120px;
       height: 120px;
       border-radius: 15px;
       object-fit: cover;
     }
-
     &.small img {
       width: 80px;
       height: 80px;
     }
-
     .remove-photo {
       position: absolute;
       top: -10px;
       right: -10px;
       background: white;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-
       &.small {
         top: -5px;
         right: -5px;
       }
-
       &:hover {
         background: $gray-100;
       }
     }
   }
-
   .photo-placeholder {
     .placeholder-text {
       margin-top: 10px;
       color: $gray-600;
       font-weight: 500;
     }
-
     .placeholder-hint {
       font-size: 0.8rem;
       color: $gray-500;
       margin-top: 5px;
     }
-
     &.small .placeholder-text {
       margin-top: 5px;
       font-size: 0.8rem;
@@ -1181,7 +1206,6 @@ $gray-900: #212121;
   flex-direction: column;
   gap: 12px;
   margin-top: 10px;
-
   .availability-item {
     display: flex;
     align-items: center;
@@ -1189,13 +1213,11 @@ $gray-900: #212121;
     padding: 10px;
     background: $gray-50;
     border-radius: 12px;
-
     .day-label {
       min-width: 80px;
       font-weight: 500;
       color: $gray-700;
     }
-
     .time-input {
       width: 120px;
     }
@@ -1209,36 +1231,30 @@ $gray-900: #212121;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
-
   &:hover {
     border-color: $purple-primary;
     background: rgba(102, 126, 234, 0.05);
   }
-
   .document-preview {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 15px;
-
     .document-name {
       color: $gray-700;
       font-weight: 500;
     }
-
     .remove-document {
       background: white;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
   }
-
   .document-placeholder {
     .placeholder-text {
       margin-top: 10px;
       color: $gray-600;
       font-weight: 500;
     }
-
     .placeholder-hint {
       font-size: 0.8rem;
       color: $gray-500;
@@ -1251,25 +1267,21 @@ $gray-900: #212121;
   border-radius: 20px;
   padding: 20px;
   margin-top: 20px;
-
   .review-title {
     font-size: 1.1rem;
     font-weight: 600;
     color: $gray-800;
     margin-bottom: 15px;
   }
-
   .review-section {
     display: flex;
     align-items: flex-start;
     gap: 12px;
     padding: 12px 0;
     border-bottom: 1px solid $gray-200;
-
     &:last-child {
       border-bottom: none;
     }
-
     .review-icon {
       width: 30px;
       height: 30px;
@@ -1280,21 +1292,17 @@ $gray-900: #212121;
       justify-content: center;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     }
-
     .review-content {
       flex: 1;
-
       .review-label {
         font-size: 0.8rem;
         color: $gray-500;
         margin-bottom: 2px;
       }
-
       .review-value {
         font-size: 0.95rem;
         font-weight: 500;
         color: $gray-800;
-
         :deep(.q-chip) {
           margin: 2px;
         }
@@ -1305,7 +1313,6 @@ $gray-900: #212121;
 
 .terms-checkbox {
   margin-top: 20px;
-
   :deep(.q-checkbox__label) {
     font-size: 0.9rem;
     color: $gray-600;
@@ -1318,22 +1325,18 @@ $gray-900: #212121;
   border-radius: 30px;
   font-weight: 600;
   transition: all 0.3s ease;
-
   &.prev-btn {
     color: $gray-600;
     border: 2px solid $gray-300;
-
     &:hover {
       border-color: $purple-primary;
       color: $purple-primary;
     }
   }
-
   &.next-btn {
     background: $purple-gradient;
     color: white;
     box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 20px 30px rgba(102, 126, 234, 0.4);
@@ -1350,59 +1353,46 @@ $gray-900: #212121;
   color: white;
   box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
   transition: all 0.3s ease;
-
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 20px 30px rgba(102, 126, 234, 0.4);
   }
-
   &:active {
     transform: translateY(0);
   }
 }
 
 @keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 599px) {
   .register-header {
     padding: 20px;
-
     .header-title {
       font-size: 1.5rem;
     }
   }
-
   .step-indicators {
     padding: 15px;
-
     .step-item {
       .step-circle {
         width: 30px;
         height: 30px;
         font-size: 0.9rem;
       }
-
       .step-label {
         font-size: 0.7rem;
       }
-
       &:not(:last-child)::after {
         width: 30px;
         right: -15px;
       }
     }
   }
-
   .availability-item {
     flex-wrap: wrap;
-
     .time-input {
       width: 100% !important;
     }

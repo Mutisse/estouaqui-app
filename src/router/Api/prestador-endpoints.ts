@@ -1,61 +1,35 @@
 /**
  * Endpoints completos da API para Prestador
  * ALINHADOS COM AS ROTAS DO BACKEND LARAVEL
- * (Sem rotas de autenticação - movidas para auth-endpoints.ts)
  */
 export const PRESTADOR_ENDPOINTS = {
   // ==========================================
   // 1. REGISTRO DO PRESTADOR
   // ==========================================
-
-  // Registro inicial
   REGISTER: '/register/prestador',
 
   // ==========================================
-  // 2. PERFIL DO PRESTADOR (compartilhado com UsuarioController)
+  // 2. PERFIL DO PRESTADOR
   // ==========================================
-
-  // Obter perfil
   GET_PROFILE: '/me',
-
-  // Atualizar perfil
   UPDATE_PROFILE: '/me',
-
-  // Atualizar foto de perfil
   UPDATE_AVATAR: '/avatar',
-
-  // Remover foto de perfil
   REMOVE_AVATAR: '/avatar',
-
-  // Alterar senha
   CHANGE_PASSWORD: '/password',
-
-  // Deletar conta
   DELETE_ACCOUNT: '/me',
-
-  // Upload temporário de foto
   UPLOAD_PHOTO: '/upload-temp',
 
   // ==========================================
   // 3. DASHBOARD E ESTATÍSTICAS
   // ==========================================
-
-  // Dashboard principal
   DASHBOARD: '/dashboard',
-
-  // Estatísticas do prestador
   PRESTADOR_STATS: '/prestador/stats',
-
-  // Atividades recentes
   RECENT_ACTIVITIES: '/activities/recent',
-
-  // Histórico completo
   ACTIVITIES_HISTORY: '/activities',
 
   // ==========================================
-  // 4. NOTIFICAÇÕES (compartilhado)
+  // 4. NOTIFICAÇÕES
   // ==========================================
-
   NOTIFICATIONS: '/notifications',
   MARK_NOTIFICATION_READ: (id: string) => `/notifications/${id}/read`,
   MARK_ALL_NOTIFICATIONS_READ: '/notifications/read-all',
@@ -63,76 +37,43 @@ export const PRESTADOR_ENDPOINTS = {
   // ==========================================
   // 5. SERVIÇOS DO PRESTADOR
   // ==========================================
-
-  // Listar serviços
   SERVICOS: '/prestador/servicos',
-
-  // Criar serviço
   CRIAR_SERVICO: '/prestador/servicos',
-
-  // Atualizar serviço
   ATUALIZAR_SERVICO: (id: string) => `/prestador/servicos/${id}`,
-
-  // Deletar serviço
   DELETAR_SERVICO: (id: string) => `/prestador/servicos/${id}`,
-
-  // Ativar/Desativar serviço
   TOGGLE_SERVICO: (id: string) => `/prestador/servicos/${id}/toggle`,
 
   // ==========================================
   // 6. AGENDA DO PRESTADOR
   // ==========================================
-
-  // Listar agenda
   AGENDA: '/prestador/agenda',
-
-  // Bloquear horário
   BLOQUEAR_HORARIO: '/prestador/agenda/bloquear',
-
-  // Desbloquear horário
   DESBLOQUEAR_HORARIO: (id: string) => `/prestador/agenda/${id}`,
 
   // ==========================================
   // 7. SOLICITAÇÕES/PEDIDOS
   // ==========================================
-
-  // Listar solicitações
   SOLICITACOES: '/prestador/solicitacoes',
-
-  // Filtrar por status
   SOLICITACOES_BY_STATUS: (status: string) => `/prestador/solicitacoes?status=${status}`,
-
-  // Aceitar solicitação
   ACEITAR_SOLICITACAO: (id: string) => `/prestador/solicitacoes/${id}/aceitar`,
-
-  // Recusar solicitação
   RECUSAR_SOLICITACAO: (id: string) => `/prestador/solicitacoes/${id}/recusar`,
 
   // ==========================================
   // 8. CATEGORIAS DO PRESTADOR
   // ==========================================
-
-  // Listar categorias que atende
   MINHAS_CATEGORIAS: '/prestador/categorias',
-
-  // Adicionar categoria
   ADICIONAR_CATEGORIA: (categoriaId: string) => `/prestador/categorias/${categoriaId}`,
-
-  // Remover categoria
   REMOVER_CATEGORIA: (categoriaId: string) => `/prestador/categorias/${categoriaId}`,
 
   // ==========================================
   // 9. CONFIGURAÇÕES E PREFERÊNCIAS
   // ==========================================
-
-  // Preferências (compartilhado)
   PREFERENCES: '/preferences',
   UPDATE_PREFERENCES: '/preferences',
 
   // ==========================================
-  // 10. ENDEREÇOS (compartilhado)
+  // 10. ENDEREÇOS
   // ==========================================
-
   ADDRESSES: '/addresses',
   CREATE_ADDRESS: '/addresses',
   GET_ADDRESS: (id: string) => `/addresses/${id}`,
@@ -143,43 +84,60 @@ export const PRESTADOR_ENDPOINTS = {
   // ==========================================
   // 11. PRESTADORES (consulta pública)
   // ==========================================
-
-  // Listar prestadores
   PRESTADORES_LIST: '/prestadores',
-
-  // Filtrar por categoria
   PRESTADORES_BY_CATEGORIA: (categoriaId: number) => `/prestadores?categoria=${categoriaId}`,
-
-  // Buscar por nome
   PRESTADORES_BY_BUSCA: (busca: string) => `/prestadores?busca=${encodeURIComponent(busca)}`,
-
-  // Detalhes do prestador
   PRESTADOR_DETALHES: (id: string) => `/prestadores/${id}`,
-
-  // Avaliações do prestador
   PRESTADOR_AVALIACOES: (id: string) => `/prestadores/${id}/avaliacoes`,
-
-  // Prestadores em destaque
   PRESTADORES_DESTAQUE: '/prestadores/destaque',
-
-  // Mais bem avaliados
   PRESTADORES_TOP: '/prestadores/top',
-
-  // Prestadores próximos
   PRESTADORES_PROXIMOS: (lat: number, lng: number) => `/prestadores/proximos?lat=${lat}&lng=${lng}`,
-
-  // Categorias de prestadores (público)
+  PROXIMOS_SERVICOS: '/prestador/proximos-servicos',
+  AVALIACOES_RECENTES: '/prestador/avaliacoes/recentes',
   PRESTADORES_CATEGORIAS: '/prestadores/categorias',
 
   // ==========================================
   // 12. FINANCEIRO DO PRESTADOR
   // ==========================================
-
-  // Ganhos
   GANHOS: '/prestador/ganhos',
   SAQUES: '/prestador/saques',
   SOLICITAR_SAQUE: '/prestador/saques',
   HISTORICO_SAQUES: '/prestador/saques/historico',
+
+  // ==========================================
+  // 13. INTERVALOS DO PRESTADOR (NOVO)
+  // ==========================================
+  INTERVALOS: '/prestador/intervalos',
+  CRIAR_INTERVALO: '/prestador/intervalos',
+  ATUALIZAR_INTERVALO: (id: string) => `/prestador/intervalos/${id}`,
+  DELETAR_INTERVALO: (id: string) => `/prestador/intervalos/${id}`,
+
+  // ==========================================
+  // 14. DISPONIBILIDADE DO PRESTADOR (NOVO)
+  // ==========================================
+  DISPONIBILIDADE: '/prestador/disponibilidade',
+  ATUALIZAR_DISPONIBILIDADE: '/prestador/disponibilidade',
+
+  // ==========================================
+  // 15. DADOS AUXILIARES (NOVOS - PÚBLICOS)
+  // ==========================================
+  AUX_DIAS_SEMANA: '/auxiliar/dias-semana',
+  AUX_MESES: '/auxiliar/meses',
+  AUX_DIAS_OPTIONS: '/auxiliar/dias-options',
+  AUX_HORARIOS_PADRAO: '/auxiliar/horarios-padrao',
+  AUX_HORARIOS_OPTIONS: '/auxiliar/horarios-options',
+
+  // ==========================================
+  // 16. TIPOS DE SERVIÇO (NOVO)
+  // ==========================================
+  SERVICO_TIPOS: '/servico-tipos',
+  SERVICO_TIPOS_OPTIONS: '/servico-tipos/options',
+
+  // ==========================================
+  // 17. OPÇÕES DE RAIO (NOVO)
+  // ==========================================
+  RAIO_OPCOES: '/raio-opcoes',
+  RAIO_OPCOES_OPTIONS: '/raio-opcoes/options',
 } as const;
 
 export type PrestadorEndpoints = typeof PRESTADOR_ENDPOINTS;

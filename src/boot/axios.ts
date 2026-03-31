@@ -1,3 +1,5 @@
+// src/boot/axios.ts
+
 import { defineBoot } from '#q-app/wrappers';
 import axios, { type AxiosInstance, type AxiosError } from 'axios';
 
@@ -8,47 +10,91 @@ declare module 'vue' {
   }
 }
 
-// SEM FALLBACK - usa apenas o .env
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+// ==========================================
+// CONTROLE DE INATIVIDADE (OTIMIZADO)
+// ==========================================
+
+let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
+const INACTIVITY_TIMEOUT = 5 * 60 * 60 * 1000; // 5 horas
+let lastActivity = Date.now();
+
+const resetInactivityTimer = () => {
+  lastActivity = Date.now();
+
+  if (inactivityTimer) {
+    clearTimeout(inactivityTimer);
+  }
+
+  inactivityTimer = setTimeout(() => {
+    const now = Date.now();
+    const inactiveTime = now - lastActivity;
+
+    if (inactiveTime >= INACTIVITY_TIMEOUT) {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        localStorage.removeItem('auth_token');
+
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes('/login') && !currentPath.includes('/admin/login')) {
+          const loginPath = currentPath.startsWith('/admin') ? '/admin/login' : '/login';
+          window.location.href = loginPath;
+        }
+      }
+    }
+  }, INACTIVITY_TIMEOUT);
+};
+
+const monitorUserActivity = () => {
+  const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+  events.forEach((event) => {
+    window.addEventListener(event, resetInactivityTimer);
+  });
+  resetInactivityTimer();
+};
+
+monitorUserActivity();
+
+// ==========================================
+// CONFIGURAÇÃO DO AXIOS (OTIMIZADA)
+// ==========================================
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000, // ✅ ALTERADO: 10s -> 30s (para aguentar o TiDB cold start)
+  timeout: 30000, // Reduzido de 120s para 30s
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// ✅ INTERCEPTOR DE REQUISIÇÃO - CORRIGIDO
+// Interceptor de requisição
 api.interceptors.request.use(
   (config) => {
-    // ✅ CORREÇÃO: usar 'auth_token' em vez de 'token'
+    resetInactivityTimer();
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error: AxiosError) => {
-    return Promise.reject(error);
-  },
+  (error: AxiosError) => Promise.reject(error)
 );
 
-// ✅ INTERCEPTOR DE RESPOSTA - TRATAMENTO DE ERROS
+// Interceptor de resposta (OTIMIZADO)
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error: AxiosError) => {
-    // ✅ Tratamento específico para timeout
+    // Tratamento de timeout
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-      console.warn('⏱️ Timeout na requisição:', error.config?.url);
-      // Não fazer redirect, apenas rejeitar
+      // Silencioso - sem log
     }
 
-    // ✅ Tratamento para 401 (não autorizado)
+    // Tratamento de 401 (não autorizado)
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');
+      delete api.defaults.headers.common['Authorization'];
+
       const currentPath = window.location.pathname;
       if (!currentPath.includes('/login') && !currentPath.includes('/admin/login')) {
         const loginPath = currentPath.startsWith('/admin') ? '/admin/login' : '/login';
@@ -57,7 +103,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  },
+  }
 );
 
 export default defineBoot(({ app }) => {

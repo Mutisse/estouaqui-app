@@ -129,11 +129,12 @@
           </q-td>
         </template>
 
+        <!-- CORREÇÃO: Avaliação com fallback para 0 -->
         <template v-slot:body-cell-avaliacao="props">
           <q-td :props="props">
             <div class="rating-container">
               <q-rating
-                v-model="props.row.media_avaliacao"
+                :model-value="props.row.media_avaliacao || 0"
                 size="16px"
                 :max="5"
                 color="amber"
@@ -141,7 +142,7 @@
                 icon="star"
                 icon-selected="star"
               />
-              <span class="rating-count">({{ props.row.total_avaliacoes }})</span>
+              <span class="rating-count">({{ props.row.total_avaliacoes || 0 }})</span>
             </div>
           </q-td>
         </template>
@@ -337,12 +338,13 @@
                   </q-item-section>
                 </q-item>
 
+                <!-- CORREÇÃO: Avaliação no detalhe com fallback para 0 -->
                 <q-item>
                   <q-item-section>
                     <q-item-label caption>Avaliação</q-item-label>
                     <q-item-label>
-                      <q-rating v-model="prestadorSelecionado.media_avaliacao" size="20px" :max="5" color="amber" readonly />
-                      <span class="q-ml-sm">({{ prestadorSelecionado.total_avaliacoes }} avaliações)</span>
+                      <q-rating :model-value="prestadorSelecionado.media_avaliacao || 0" size="20px" :max="5" color="amber" readonly />
+                      <span class="q-ml-sm">({{ prestadorSelecionado.total_avaliacoes || 0 }} avaliações)</span>
                     </q-item-label>
                   </q-item-section>
                 </q-item>

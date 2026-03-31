@@ -1,12 +1,14 @@
+// src/stores/admin-store.ts
+
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { api } from 'src/boot/axios';
 import { ADMIN_ENDPOINTS } from 'src/router/Api/admin-endpoints';
 import type { AxiosError } from 'axios';
 
 // ==========================================
-// INTERFACES COMPLETAS (TODAS EXPORTADAS)
+// INTERFACES COMPLETAS
 // ==========================================
 
 export interface DashboardData {
@@ -38,9 +40,11 @@ export interface UserData {
   created_at?: string;
   blocked_at?: string | null;
   verificado?: boolean;
+  ativo?: boolean;
+  media_avaliacao?: number;
+  total_avaliacoes?: number;
 }
 
-// Interface para categorias do prestador
 export interface PrestadorCategoria {
   id: number;
   nome: string;
@@ -56,6 +60,8 @@ export interface PrestadorData {
   media_avaliacao: number;
   total_avaliacoes: number;
   categorias?: PrestadorCategoria[];
+  ativo?: boolean;
+  blocked_at?: string | null;
 }
 
 export interface CategoriaData {
@@ -78,6 +84,7 @@ export interface ServicoData {
   ativo: boolean;
   prestador?: UserData;
   categoria?: CategoriaData;
+  created_at?: string;
 }
 
 export interface AvaliacaoData {
@@ -86,6 +93,7 @@ export interface AvaliacaoData {
   comentario: string;
   created_at: string;
   cliente?: UserData;
+  prestador?: UserData;
 }
 
 export interface PedidoData {
@@ -102,6 +110,7 @@ export interface PedidoData {
   prestador?: UserData;
   servico?: ServicoData;
   avaliacao?: AvaliacaoData;
+  created_at?: string;
 }
 
 export interface TransacaoData {
@@ -151,8 +160,11 @@ export interface RelatorioPrestadoresData {
   total: number;
   verificados: number;
   nao_verificados: number;
+  ativos: number;
+  bloqueados: number;
   media_avaliacao_geral: number;
   top_prestadores: PrestadorData[];
+  periodo: string;
 }
 
 export interface RelatorioFinanceiroData {
@@ -172,7 +184,6 @@ export interface ConfiguracoesData {
   tipo_comissao: string;
 }
 
-// Interface para serviço recente formatado
 export interface ServicoRecente {
   id: number;
   servico: string;
@@ -184,7 +195,6 @@ export interface ServicoRecente {
   icone: string;
 }
 
-// Interface para log
 export interface LogData {
   id: number;
   data: string;
@@ -194,7 +204,6 @@ export interface LogData {
   ip: string;
 }
 
-// Interface para criação de serviço
 export interface CreateServicoData {
   prestador_id: number;
   categoria_id: number;
@@ -204,8 +213,19 @@ export interface CreateServicoData {
   duracao: number;
 }
 
+export interface NotificacaoData {
+  id: number;
+  titulo: string;
+  mensagem: string;
+  lida: boolean;
+  created_at: string;
+  tipo?: 'pedido' | 'avaliacao' | 'promocao' | 'prestador' | 'sistema';
+  icone?: string;
+  cor?: string;
+}
+
 // ==========================================
-// STORE
+// STORE DO ADMIN
 // ==========================================
 
 export const useAdminStore = defineStore('admin', () => {
@@ -216,8 +236,6 @@ export const useAdminStore = defineStore('admin', () => {
   // ==========================================
 
   const loading = ref(false);
-
-  // Dashboard
   const dashboard = ref<DashboardData>({
     total_users: 0,
     total_clientes: 0,
@@ -230,30 +248,17 @@ export const useAdminStore = defineStore('admin', () => {
     total_avaliacoes: 0,
   });
 
-  // Atividade semanal
   const atividadeSemanal = ref<AtividadeData[]>([]);
-
-  // Utilizadores
   const ultimosUtilizadores = ref<UserData[]>([]);
   const utilizadores = ref<UserData[]>([]);
   const utilizadorDetalhes = ref<UserData | null>(null);
-
-  // Prestadores
   const prestadores = ref<PrestadorData[]>([]);
   const prestadoresPendentes = ref<PrestadorData[]>([]);
-
-  // Categorias
   const categorias = ref<CategoriaData[]>([]);
-
-  // Serviços
   const servicos = ref<ServicoData[]>([]);
   const servicosRecentes = ref<ServicoRecente[]>([]);
-
-  // Pedidos
   const pedidos = ref<PedidoData[]>([]);
   const pedidoDetalhes = ref<PedidoData | null>(null);
-
-  // Transações
   const transacoes = ref<TransacaoData[]>([]);
   const resumoFinanceiro = ref<ResumoFinanceiroData>({
     saldo_atual: 0,
@@ -261,8 +266,6 @@ export const useAdminStore = defineStore('admin', () => {
     processado_mes: 0,
     comissoes: 0,
   });
-
-  // Estatísticas
   const estatisticas = ref<StatsData>({
     total_usuarios: 0,
     total_clientes: 0,
@@ -272,13 +275,9 @@ export const useAdminStore = defineStore('admin', () => {
     total_avaliacoes: 0,
     receita_total: 0,
   });
-
-  // Relatórios
   const relatorioServicos = ref<RelatorioServicosData | null>(null);
   const relatorioPrestadores = ref<RelatorioPrestadoresData | null>(null);
   const relatorioFinanceiro = ref<RelatorioFinanceiroData | null>(null);
-
-  // Configurações
   const configuracoes = ref<ConfiguracoesData>({
     nome: '',
     email: '',
@@ -287,9 +286,28 @@ export const useAdminStore = defineStore('admin', () => {
     comissao_padrao: 0,
     tipo_comissao: '',
   });
-
-  // Logs
   const logs = ref<LogData[]>([]);
+  const notificacoesAdmin = ref<NotificacaoData[]>([]);
+
+  // Cache para evitar requisições duplicadas
+  const pendingRequests = new Map<string, Promise<unknown>>();
+
+  // ==========================================
+  // MÉTODO AUXILIAR PARA EVITAR REQUISIÇÕES DUPLICADAS
+  // ==========================================
+
+  async function dedupeRequest<T>(key: string, request: () => Promise<T>): Promise<T> {
+    if (pendingRequests.has(key)) {
+      return pendingRequests.get(key) as Promise<T>;
+    }
+
+    const promise = request().finally(() => {
+      pendingRequests.delete(key);
+    });
+
+    pendingRequests.set(key, promise);
+    return promise;
+  }
 
   // ==========================================
   // 1. DASHBOARD E ESTATÍSTICAS
@@ -338,44 +356,56 @@ export const useAdminStore = defineStore('admin', () => {
     busca?: string;
     per_page?: number;
   }) => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.USERS, { params });
-      utilizadores.value = response.data.data.data || [];
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    const cacheKey = `utilizadores_${JSON.stringify(params)}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.USERS, { params });
+        utilizadores.value = response.data.data.data || [];
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const fetchUltimosUtilizadores = async (limit: number = 5) => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.USERS, {
-        params: { per_page: limit },
-      });
-      ultimosUtilizadores.value = response.data.data.data || [];
-      return true;
-    } catch (error) {
-      console.error('Erro em fetchUltimosUtilizadores:', error);
-      showError(error);
-      return false;
-    }
+    return dedupeRequest('ultimos_utilizadores', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.USERS, {
+          params: { per_page: limit },
+        });
+        ultimosUtilizadores.value = response.data.data.data || [];
+        return true;
+      } catch (error) {
+        console.error('Erro em fetchUltimosUtilizadores:', error);
+        showError(error);
+        return false;
+      }
+    });
   };
 
   const fetchUtilizadorDetalhes = async (id: number) => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.USER_DETAILS(id));
-      utilizadorDetalhes.value = response.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    const cacheKey = `utilizador_${id}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.USER_DETAILS(id));
+        utilizadorDetalhes.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const updateUtilizador = async (id: number, data: Partial<UserData>) => {
     try {
       const response = await api.put(ADMIN_ENDPOINTS.UPDATE_USER(id), data);
+      if (response.data.success) {
+        await fetchUtilizadores();
+        await fetchUltimosUtilizadores();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -386,6 +416,10 @@ export const useAdminStore = defineStore('admin', () => {
   const blockUtilizador = async (id: number) => {
     try {
       const response = await api.post(ADMIN_ENDPOINTS.BLOCK_USER(id));
+      if (response.data.success) {
+        await fetchUtilizadores();
+        await fetchUltimosUtilizadores();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -396,6 +430,10 @@ export const useAdminStore = defineStore('admin', () => {
   const unblockUtilizador = async (id: number) => {
     try {
       const response = await api.post(ADMIN_ENDPOINTS.UNBLOCK_USER(id));
+      if (response.data.success) {
+        await fetchUtilizadores();
+        await fetchUltimosUtilizadores();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -407,6 +445,10 @@ export const useAdminStore = defineStore('admin', () => {
     try {
       const url = force ? ADMIN_ENDPOINTS.FORCE_DELETE_USER(id) : ADMIN_ENDPOINTS.DELETE_USER(id);
       const response = await api.delete(url);
+      if (response.data.success) {
+        await fetchUtilizadores();
+        await fetchUltimosUtilizadores();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -415,13 +457,16 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   const getUtilizadorByEmail = async (email: string) => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.USER_BY_EMAIL(email));
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    const cacheKey = `utilizador_email_${email}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.USER_BY_EMAIL(email));
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   // ==========================================
@@ -429,34 +474,45 @@ export const useAdminStore = defineStore('admin', () => {
   // ==========================================
 
   const fetchPrestadores = async (params?: {
+    busca?: string;
     verificado?: boolean;
     categoria?: number;
     avaliacao_min?: number;
+    per_page?: number;
   }) => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.PRESTADORES, { params });
-      prestadores.value = response.data.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    const cacheKey = `prestadores_${JSON.stringify(params)}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.PRESTADORES, { params });
+        prestadores.value = response.data.data.data || [];
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const fetchPrestadoresPendentes = async () => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.PRESTADORES_PENDENTES);
-      prestadoresPendentes.value = response.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    return dedupeRequest('prestadores_pendentes', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.PRESTADORES_PENDENTES);
+        prestadoresPendentes.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const aprovarPrestador = async (id: number) => {
     try {
       const response = await api.put(ADMIN_ENDPOINTS.APROVAR_PRESTADOR(id));
+      if (response.data.success) {
+        await fetchPrestadores();
+        await fetchPrestadoresPendentes();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -467,6 +523,10 @@ export const useAdminStore = defineStore('admin', () => {
   const reprovarPrestador = async (id: number) => {
     try {
       const response = await api.put(ADMIN_ENDPOINTS.REPROVAR_PRESTADOR(id));
+      if (response.data.success) {
+        await fetchPrestadores();
+        await fetchPrestadoresPendentes();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -479,14 +539,16 @@ export const useAdminStore = defineStore('admin', () => {
   // ==========================================
 
   const fetchCategorias = async () => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.CATEGORIAS);
-      categorias.value = response.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return [];
-    }
+    return dedupeRequest('categorias', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.CATEGORIAS);
+        categorias.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return [];
+      }
+    });
   };
 
   const createCategoria = async (data: {
@@ -497,6 +559,9 @@ export const useAdminStore = defineStore('admin', () => {
   }) => {
     try {
       const response = await api.post(ADMIN_ENDPOINTS.CREATE_CATEGORIA, data);
+      if (response.data.success) {
+        await fetchCategorias();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -507,6 +572,9 @@ export const useAdminStore = defineStore('admin', () => {
   const updateCategoria = async (id: number, data: Partial<CategoriaData>) => {
     try {
       const response = await api.put(ADMIN_ENDPOINTS.UPDATE_CATEGORIA(id), data);
+      if (response.data.success) {
+        await fetchCategorias();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -517,6 +585,9 @@ export const useAdminStore = defineStore('admin', () => {
   const deleteCategoria = async (id: number) => {
     try {
       const response = await api.delete(ADMIN_ENDPOINTS.DELETE_CATEGORIA(id));
+      if (response.data.success) {
+        await fetchCategorias();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -528,44 +599,56 @@ export const useAdminStore = defineStore('admin', () => {
   // 5. GESTÃO DE SERVIÇOS
   // ==========================================
 
-  const fetchServicos = async (params?: { categoria?: number; ativo?: boolean }) => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.SERVICOS, { params });
-      servicos.value = response.data.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+  const fetchServicos = async (params?: {
+    categoria?: number;
+    ativo?: boolean;
+    per_page?: number;
+  }) => {
+    const cacheKey = `servicos_${JSON.stringify(params)}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.SERVICOS, { params });
+        servicos.value = response.data.data.data || [];
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const fetchServicosRecentes = async (limit: number = 5) => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.PEDIDOS, {
-        params: { per_page: limit },
-      });
-      const pedidosData = response.data.data.data || [];
-      servicosRecentes.value = pedidosData.map((pedido: PedidoData) => ({
-        id: pedido.id,
-        servico: pedido.servico?.nome || 'Serviço',
-        cliente: pedido.cliente?.nome || 'Cliente',
-        prestador: pedido.prestador?.nome || 'Prestador',
-        valor: pedido.valor || 0,
-        status: getStatusText(pedido.status),
-        statusCor: getStatusColor(pedido.status),
-        icone: getStatusIcon(pedido.status),
-      }));
-      return true;
-    } catch (error) {
-      console.error('Erro em fetchServicosRecentes:', error);
-      showError(error);
-      return false;
-    }
+    return dedupeRequest('servicos_recentes', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.PEDIDOS, {
+          params: { per_page: limit },
+        });
+        const pedidosData = response.data.data.data || [];
+        servicosRecentes.value = pedidosData.map((pedido: PedidoData) => ({
+          id: pedido.id,
+          servico: pedido.servico?.nome || 'Serviço',
+          cliente: pedido.cliente?.nome || 'Cliente',
+          prestador: pedido.prestador?.nome || 'Prestador',
+          valor: pedido.valor || 0,
+          status: getStatusText(pedido.status),
+          statusCor: getStatusColor(pedido.status),
+          icone: getStatusIcon(pedido.status),
+        }));
+        return true;
+      } catch (error) {
+        console.error('Erro em fetchServicosRecentes:', error);
+        showError(error);
+        return false;
+      }
+    });
   };
 
   const createServico = async (data: CreateServicoData) => {
     try {
       const response = await api.post(ADMIN_ENDPOINTS.CREATE_SERVICO, data);
+      if (response.data.success) {
+        await fetchServicos();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -578,30 +661,39 @@ export const useAdminStore = defineStore('admin', () => {
   // ==========================================
 
   const fetchPedidos = async (params?: { status?: string; per_page?: number }) => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.PEDIDOS, { params });
-      pedidos.value = response.data.data.data || [];
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    const cacheKey = `pedidos_${JSON.stringify(params)}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.PEDIDOS, { params });
+        pedidos.value = response.data.data.data || [];
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const fetchPedidoDetalhes = async (id: number) => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.PEDIDO_DETAILS(id));
-      pedidoDetalhes.value = response.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    const cacheKey = `pedido_${id}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.PEDIDO_DETAILS(id));
+        pedidoDetalhes.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const updatePedidoStatus = async (id: number, status: string) => {
     try {
       const response = await api.put(ADMIN_ENDPOINTS.UPDATE_PEDIDO_STATUS(id), { status });
+      if (response.data.success) {
+        await fetchPedidos();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -612,6 +704,9 @@ export const useAdminStore = defineStore('admin', () => {
   const cancelPedido = async (id: number) => {
     try {
       const response = await api.delete(ADMIN_ENDPOINTS.CANCELAR_PEDIDO(id));
+      if (response.data.success) {
+        await fetchPedidos();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -624,25 +719,34 @@ export const useAdminStore = defineStore('admin', () => {
   // ==========================================
 
   const fetchResumoFinanceiro = async () => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.RESUMO_FINANCEIRO);
-      resumoFinanceiro.value = response.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    return dedupeRequest('resumo_financeiro', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.RESUMO_FINANCEIRO);
+        resumoFinanceiro.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
-  const fetchTransacoes = async (params?: { tipo?: string; status?: string }) => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.TRANSACOES, { params });
-      transacoes.value = response.data.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+  const fetchTransacoes = async (params?: {
+    tipo?: string;
+    status?: string;
+    per_page?: number;
+  }) => {
+    const cacheKey = `transacoes_${JSON.stringify(params)}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.TRANSACOES, { params });
+        transacoes.value = response.data.data.data || [];
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   // ==========================================
@@ -650,36 +754,44 @@ export const useAdminStore = defineStore('admin', () => {
   // ==========================================
 
   const fetchRelatorioServicos = async (periodo: string = 'mes') => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_SERVICOS(periodo));
-      relatorioServicos.value = response.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    const cacheKey = `relatorio_servicos_${periodo}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_SERVICOS(periodo));
+        relatorioServicos.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const fetchRelatorioPrestadores = async () => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_PRESTADORES);
-      relatorioPrestadores.value = response.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    return dedupeRequest('relatorio_prestadores', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_PRESTADORES);
+        relatorioPrestadores.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const fetchRelatorioFinanceiro = async (periodo: string = 'mes') => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_FINANCEIRO(periodo));
-      relatorioFinanceiro.value = response.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    const cacheKey = `relatorio_financeiro_${periodo}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_FINANCEIRO(periodo));
+        relatorioFinanceiro.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const exportRelatorio = async (tipo: string = 'usuarios') => {
@@ -697,19 +809,24 @@ export const useAdminStore = defineStore('admin', () => {
   // ==========================================
 
   const fetchConfiguracoes = async () => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.CONFIGURACOES);
-      configuracoes.value = response.data.data;
-      return response.data.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
+    return dedupeRequest('configuracoes', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.CONFIGURACOES);
+        configuracoes.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
   };
 
   const updateConfiguracoes = async (data: Partial<ConfiguracoesData>) => {
     try {
       const response = await api.put(ADMIN_ENDPOINTS.UPDATE_CONFIGURACOES, data);
+      if (response.data.success) {
+        await fetchConfiguracoes();
+      }
       return response.data;
     } catch (error) {
       showError(error);
@@ -722,18 +839,64 @@ export const useAdminStore = defineStore('admin', () => {
   // ==========================================
 
   const fetchLogs = async () => {
+    return dedupeRequest('logs', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.LOGS);
+        logs.value = response.data.data || [];
+        return logs.value;
+      } catch (error) {
+        showError(error);
+        return [];
+      }
+    });
+  };
+
+  // ==========================================
+  // 11. NOTIFICAÇÕES DO ADMIN
+  // ==========================================
+
+  const fetchNotificacoesAdmin = async () => {
+    return dedupeRequest('notificacoes_admin', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.NOTIFICACOES);
+        notificacoesAdmin.value = response.data.data || [];
+        return notificacoesAdmin.value;
+      } catch (error) {
+        console.error('Erro ao carregar notificações admin:', error);
+        notificacoesAdmin.value = [];
+        return [];
+      }
+    });
+  };
+
+  const marcarNotificacaoLida = async (id: number) => {
     try {
-      const response = await api.get(ADMIN_ENDPOINTS.LOGS);
-      logs.value = response.data.data;
-      return response.data.data;
+      const response = await api.put(ADMIN_ENDPOINTS.MARK_NOTIFICATION_READ(id));
+      if (response.data.success) {
+        await fetchNotificacoesAdmin();
+      }
+      return response.data.success;
     } catch (error) {
       showError(error);
-      return [];
+      return false;
+    }
+  };
+
+  const marcarTodasNotificacoesLidas = async () => {
+    try {
+      const response = await api.put(ADMIN_ENDPOINTS.MARK_ALL_NOTIFICATIONS_READ);
+      if (response.data.success) {
+        await fetchNotificacoesAdmin();
+      }
+      return response.data.success;
+    } catch (error) {
+      showError(error);
+      return false;
     }
   };
 
   // ==========================================
-  // 11. MÉTODOS AUXILIARES
+  // 12. MÉTODOS AUXILIARES
   // ==========================================
 
   const carregarTodosDados = async () => {
@@ -804,20 +967,34 @@ export const useAdminStore = defineStore('admin', () => {
     });
   };
 
+  const clearCache = () => {
+    pendingRequests.clear();
+    console.log('🗑️ Cache do admin limpo');
+  };
+
+  const formatMoney = (value: number): string => {
+    return new Intl.NumberFormat('pt-PT', {
+      style: 'currency',
+      currency: 'MZN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
   // ==========================================
-  // GETTERS FORMATADOS
+  // GETTERS FORMATADOS (como propriedades computadas)
   // ==========================================
 
-  const atividadeFormatada = () => {
+  const atividadeFormatada = computed(() => {
     return atividadeSemanal.value.map((item, index) => ({
       dia: item.dia,
       valor: item.valor,
-      altura: item.valor * 2,
+      altura: Math.min(item.valor * 2, 120),
       cor: index < 5 ? '#667eea' : '#764ba2',
     }));
-  };
+  });
 
-  const cardsPrincipais = () => [
+  const cardsPrincipais = computed(() => [
     {
       title: 'Total Utilizadores',
       value: dashboard.value.total_users,
@@ -850,12 +1027,12 @@ export const useAdminStore = defineStore('admin', () => {
       bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
       trend: 3,
     },
-  ];
+  ]);
 
-  const cardsSecundarios = () => [
+  const cardsSecundarios = computed(() => [
     {
       title: 'Receita Total',
-      value: estatisticas.value.receita_total,
+      value: formatMoney(estatisticas.value.receita_total),
       icon: 'payments',
       iconColor: '#2e7d32',
       bgColor: '#e8f5e9',
@@ -881,32 +1058,32 @@ export const useAdminStore = defineStore('admin', () => {
       iconColor: '#9c27b0',
       bgColor: '#f3e5f5',
     },
-  ];
+  ]);
 
-  const distribuicaoPorTipo = () => {
+  const distribuicaoPorTipo = computed(() => {
     const total = dashboard.value.total_users;
     if (total === 0) return [];
     return [
       {
         label: 'Clientes',
         value: dashboard.value.total_clientes,
-        percent: dashboard.value.total_clientes / total,
+        percent: (dashboard.value.total_clientes / total) * 100,
         color: 'primary',
       },
       {
         label: 'Prestadores',
         value: dashboard.value.total_prestadores,
-        percent: dashboard.value.total_prestadores / total,
+        percent: (dashboard.value.total_prestadores / total) * 100,
         color: 'secondary',
       },
       {
         label: 'Administradores',
         value: dashboard.value.total_admins,
-        percent: dashboard.value.total_admins / total,
+        percent: (dashboard.value.total_admins / total) * 100,
         color: 'grey',
       },
     ];
-  };
+  });
 
   // ==========================================
   // RETORNO
@@ -935,6 +1112,7 @@ export const useAdminStore = defineStore('admin', () => {
     relatorioFinanceiro,
     configuracoes,
     logs,
+    notificacoesAdmin,
 
     // Dashboard
     fetchDashboard,
@@ -991,14 +1169,21 @@ export const useAdminStore = defineStore('admin', () => {
     // Logs
     fetchLogs,
 
+    // Notificações
+    fetchNotificacoesAdmin,
+    marcarNotificacaoLida,
+    marcarTodasNotificacoesLidas,
+
     // Utilitários
     carregarTodosDados,
     getStatusText,
     getStatusColor,
     getStatusIcon,
     showError,
+    clearCache,
+    formatMoney,
 
-    // Getters formatados
+    // Getters formatados (como propriedades)
     atividadeFormatada,
     cardsPrincipais,
     cardsSecundarios,

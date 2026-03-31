@@ -5,9 +5,15 @@
       <div class="text-h5 text-bold">Meus Favoritos</div>
     </div>
 
+    <!-- Loading -->
+    <div v-if="clienteStore.loading" class="text-center q-pa-xl">
+      <q-spinner color="primary" size="50px" />
+      <p class="q-mt-md text-grey-7">A carregar favoritos...</p>
+    </div>
+
     <!-- Lista de favoritos -->
-    <div class="q-pa-md">
-      <div v-if="favoritos.length === 0" class="empty-state">
+    <div v-else class="q-pa-md">
+      <div v-if="favoritosList.length === 0" class="empty-state">
         <q-icon name="favorite_border" size="64px" color="grey-4" />
         <div class="text-h6 text-grey-7 q-mt-md">Nenhum favorito</div>
         <div class="text-grey-6 q-mb-md">Adicione prestadores aos favoritos para vê-los aqui</div>
@@ -15,25 +21,44 @@
       </div>
 
       <div v-else class="row q-col-gutter-md">
-        <div v-for="item in favoritos" :key="item.id" class="col-12">
+        <div v-for="favorito in favoritosList" :key="favorito.id" class="col-12">
           <q-card class="favorito-card" flat bordered>
             <q-card-section class="row items-center">
               <q-avatar size="60px" class="q-mr-sm">
-                <img :src="item.avatar" />
+                <img
+                  :src="favorito.prestador.foto || getAvatarUrl(favorito.prestador.nome)"
+                  :alt="favorito.prestador.nome"
+                />
               </q-avatar>
               <div class="col">
-                <div class="favorito-nome">{{ item.nome }}</div>
-                <div class="favorito-categoria">{{ item.categoria }}</div>
+                <div class="favorito-nome">
+                  {{ favorito.prestador.nome }}
+                  <q-icon
+                    v-if="favorito.prestador.verificado"
+                    name="verified"
+                    color="primary"
+                    size="16px"
+                  />
+                </div>
+                <div class="favorito-categoria">
+                  {{ favorito.prestador.categorias?.[0]?.nome || favorito.prestador.profissao || 'Profissional' }}
+                </div>
                 <div class="favorito-rating">
-                  <q-rating v-model="item.rating" size="14px" :max="5" color="yellow" readonly />
-                  <span class="rating-count">({{ item.avaliacoes }})</span>
+                  <q-rating
+                    v-model="favorito.prestador.media_avaliacao"
+                    size="14px"
+                    :max="5"
+                    color="yellow"
+                    readonly
+                  />
+                  <span class="rating-count">({{ favorito.prestador.total_avaliacoes || 0 }})</span>
                 </div>
               </div>
               <div>
                 <q-btn flat round icon="more_vert">
                   <q-menu>
                     <q-list style="min-width: 150px">
-                      <q-item clickable v-close-popup @click="removerFavorito(item)">
+                      <q-item clickable v-close-popup @click="confirmarRemover(favorito)">
                         <q-item-section avatar>
                           <q-icon name="delete" color="negative" />
                         </q-item-section>
@@ -45,8 +70,8 @@
               </div>
             </q-card-section>
             <q-card-actions align="right">
-              <q-btn flat dense icon="chat" label="Chat" @click="abrirChat(item)" />
-              <q-btn flat dense icon="calendar_month" label="Agendar" @click="agendar" />
+              <q-btn flat dense icon="chat" label="Chat" @click="abrirChat(favorito.prestador.id)" />
+              <q-btn flat dense icon="calendar_month" label="Agendar" @click="agendarServico(favorito.prestador.id)" />
             </q-card-actions>
           </q-card>
         </div>
@@ -56,87 +81,102 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
+import { useClienteStore, type FavoritoData } from 'src/stores/cliente-store';
 
 defineOptions({
-  name: 'MobileFavoritos'
-})
+  name: 'MobileFavoritos',
+});
 
-// Interface para tipagem dos favoritos
-interface Favorito {
-  id: number
-  nome: string
-  avatar: string
-  categoria: string
-  rating: number
-  avaliacoes: number
-  preco: number
-}
+const router = useRouter();
+const $q = useQuasar();
+const clienteStore = useClienteStore();
 
-const router = useRouter()
-const $q = useQuasar()
+// Computed para acessar os favoritos do store
+const favoritosList = computed(() => {
+  return clienteStore.favoritos || [];
+});
 
-// Dados mockados com tipagem correta
-const favoritos = ref<Favorito[]>([
-  {
-    id: 1,
-    nome: 'João Silva',
-    avatar: 'https://cdn.quasar.dev/img/avatar.png',
-    categoria: 'Eletricista',
-    rating: 4.9,
-    avaliacoes: 87,
-    preco: 1500
-  },
-  {
-    id: 2,
-    nome: 'Maria Santos',
-    avatar: 'https://cdn.quasar.dev/img/avatar2.jpg',
-    categoria: 'Limpeza',
-    rating: 4.8,
-    avaliacoes: 92,
-    preco: 1200
-  },
-  {
-    id: 3,
-    nome: 'Pedro Oliveira',
-    avatar: 'https://cdn.quasar.dev/img/avatar3.jpg',
-    categoria: 'Canalizador',
-    rating: 4.9,
-    avaliacoes: 76,
-    preco: 1800
+// Gerar URL de avatar baseada no nome
+const getAvatarUrl = (nome: string) => {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=667eea&color=fff&size=60`;
+};
+
+// Remover favorito
+const removerFavorito = async (favorito: FavoritoData) => {
+  try {
+    const success = await clienteStore.removerFavorito(favorito.prestador.id);
+    if (success) {
+      $q.notify({
+        type: 'positive',
+        message: `${favorito.prestador.nome} removido dos favoritos`,
+        position: 'top',
+        timeout: 2000,
+      });
+      // Atualizar lista
+      await clienteStore.fetchFavoritos();
+    }
+  } catch (error) {
+    console.error('Erro ao remover favorito:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao remover favorito',
+      position: 'top',
+    });
   }
-])
+};
 
-// Funções com tipagem correta
-const removerFavorito = (item: Favorito) => {
+// Confirmar remoção com dialog
+const confirmarRemover = (favorito: FavoritoData) => {
   $q.dialog({
     title: 'Remover favorito',
-    message: `Deseja remover ${item.nome} dos favoritos?`,
-    cancel: true,
-    persistent: true
+    message: `Deseja remover ${favorito.prestador.nome} dos favoritos?`,
+    cancel: {
+      label: 'Cancelar',
+      color: 'grey-7',
+      flat: true,
+    },
+    ok: {
+      label: 'Remover',
+      color: 'negative',
+      unelevated: true,
+    },
+    persistent: true,
   }).onOk(() => {
-    favoritos.value = favoritos.value.filter(f => f.id !== item.id)
+    void removerFavorito(favorito);
+  });
+};
+
+// Abrir chat com o prestador
+const abrirChat = (prestadorId: number) => {
+  void router.push(`/mobile/chat/${prestadorId}`);
+};
+
+// Agendar serviço
+const agendarServico = (prestadorId: number) => {
+  void router.push(`/mobile/agendar/${prestadorId}`);
+};
+
+// Carregar favoritos
+const carregarFavoritos = async () => {
+  try {
+    await clienteStore.fetchFavoritos();
+  } catch (error) {
+    console.error('Erro ao carregar favoritos:', error);
     $q.notify({
-      type: 'positive',
-      message: 'Removido dos favoritos',
-      position: 'top'
-    })
-  })
-}
+      type: 'negative',
+      message: 'Erro ao carregar favoritos',
+      position: 'top',
+    });
+  }
+};
 
-const abrirChat = (item: Favorito) => {
-  void router.push(`/mobile/chat/${item.id}`)
-}
-
-const agendar = () => {
-  $q.notify({
-    type: 'info',
-    message: 'Agendamento em breve',
-    position: 'top'
-  })
-}
+// Carregar dados ao montar
+onMounted(() => {
+  void carregarFavoritos();
+});
 </script>
 
 <style scoped lang="scss">
@@ -173,11 +213,19 @@ $gray-900: #212121;
 .favorito-card {
   border-radius: 12px;
   margin-bottom: 12px;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
 
   .favorito-nome {
     font-size: 1rem;
     font-weight: 600;
     color: $gray-800;
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .favorito-categoria {

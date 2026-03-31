@@ -49,7 +49,7 @@
                 <div class="col-12">
                   <div class="input-label">Nome Completo</div>
                   <q-input
-                    v-model="store.form.nome"
+                    v-model="store.registerForm.nome"
                     placeholder="Seu nome completo"
                     outlined
                     dense
@@ -67,7 +67,7 @@
                 <div class="col-12 col-md-6">
                   <div class="input-label">Número de Telefone</div>
                   <q-input
-                    v-model="store.form.telefone"
+                    v-model="store.registerForm.telefone"
                     placeholder="84 123 4567"
                     prefix="+258"
                     mask="## ### ####"
@@ -87,7 +87,7 @@
                 <div class="col-12 col-md-6">
                   <div class="input-label">Email <span class="required">*</span></div>
                   <q-input
-                    v-model="store.form.email"
+                    v-model="store.registerForm.email"
                     placeholder="seu@email.com"
                     type="email"
                     outlined
@@ -115,7 +115,7 @@
                 <div class="col-12">
                   <div class="input-label">Palavra-passe</div>
                   <q-input
-                    v-model="store.form.password"
+                    v-model="store.registerForm.password"
                     :type="store.showPassword ? 'text' : 'password'"
                     placeholder="Mínimo 6 caracteres"
                     outlined
@@ -136,7 +136,7 @@
                       />
                     </template>
                   </q-input>
-                  <div class="password-strength" v-if="store.form.password">
+                  <div class="password-strength" v-if="store.registerForm.password">
                     <div class="strength-bar" :class="passwordStrengthClass"></div>
                     <div class="strength-text">{{ store.passwordStrength.text }}</div>
                   </div>
@@ -146,13 +146,13 @@
                 <div class="col-12">
                   <div class="input-label">Confirmar Palavra-passe</div>
                   <q-input
-                    v-model="store.form.confirmPassword"
+                    v-model="store.registerForm.confirmPassword"
                     :type="store.showConfirmPassword ? 'text' : 'password'"
                     placeholder="Digite novamente"
                     outlined
                     dense
                     class="custom-input"
-                    :rules="[(val) => val === store.form.password || 'As palavras-passe não coincidem']"
+                    :rules="[(val) => val === store.registerForm.password || 'As palavras-passe não coincidem']"
                     bg-color="white"
                   >
                     <template v-slot:prepend>
@@ -182,7 +182,7 @@
                 <div class="col-12">
                   <div class="input-label">Endereço Principal</div>
                   <q-input
-                    v-model="store.form.endereco"
+                    v-model="store.registerForm.endereco"
                     placeholder="Seu endereço principal"
                     outlined
                     dense
@@ -208,7 +208,7 @@
                       @change="handleFileUpload"
                       style="display: none"
                     />
-                    <div class="photo-preview" v-if="store.form.foto">
+                    <div class="photo-preview" v-if="store.registerForm.foto">
                       <img v-if="store.photoPreview" :src="store.photoPreview" alt="Preview" />
                       <q-btn
                         flat
@@ -243,7 +243,7 @@
                   </div>
                   <div class="review-content">
                     <div class="review-label">Nome Completo</div>
-                    <div class="review-value">{{ store.form.nome || '—' }}</div>
+                    <div class="review-value">{{ store.registerForm.nome || '—' }}</div>
                   </div>
                 </div>
 
@@ -254,7 +254,7 @@
                   <div class="review-content">
                     <div class="review-label">Telefone</div>
                     <div class="review-value">
-                      {{ store.form.telefone ? '+258 ' + store.form.telefone : '—' }}
+                      {{ store.registerForm.telefone ? '+258 ' + store.registerForm.telefone : '—' }}
                     </div>
                   </div>
                 </div>
@@ -265,7 +265,7 @@
                   </div>
                   <div class="review-content">
                     <div class="review-label">Email</div>
-                    <div class="review-value">{{ store.form.email || 'Não informado' }}</div>
+                    <div class="review-value">{{ store.registerForm.email || 'Não informado' }}</div>
                   </div>
                 </div>
 
@@ -275,7 +275,7 @@
                   </div>
                   <div class="review-content">
                     <div class="review-label">Endereço</div>
-                    <div class="review-value">{{ store.form.endereco || 'Não informado' }}</div>
+                    <div class="review-value">{{ store.registerForm.endereco || 'Não informado' }}</div>
                   </div>
                 </div>
 
@@ -286,7 +286,7 @@
                   <div class="review-content">
                     <div class="review-label">Foto de Perfil</div>
                     <div class="review-value">
-                      {{ store.form.foto ? store.form.foto.name : 'Não informada' }}
+                      {{ store.registerForm.foto ? store.registerForm.foto.name : 'Não informada' }}
                     </div>
                   </div>
                 </div>
@@ -329,7 +329,7 @@
               v-else
               class="register-btn"
               label="Criar Conta"
-              :loading="store.loading"
+              :loading="store.registerLoading"
               @click="handleRegister"
               no-caps
             />
@@ -339,18 +339,19 @@
     </div>
   </q-page>
 </template>
+
 <script setup lang="ts">
 defineOptions({
   name: 'RegisterCliente',
 });
 
-import { ref, computed } from 'vue';  // ← ADICIONAR ref aqui
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useClienteRegisterStore } from 'src/stores/cliente-store';
-import { useQuasar } from 'quasar';  // ← REMOVER type QNotifyCreateOptions
+import { useClienteStore } from 'src/stores/cliente-store';
+import { useQuasar } from 'quasar';
 
 const router = useRouter();
-const store = useClienteRegisterStore();
+const store = useClienteStore();
 const $q = useQuasar();
 
 // Steps

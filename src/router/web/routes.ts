@@ -1,3 +1,5 @@
+// src/router/web/routes.ts
+
 import type { RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
@@ -28,7 +30,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/mobile',
     component: () => import('layouts/MobileClientLayout.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true },
+    meta: { requiresAuth: true }, // ✅ SÓ REQUER AUTENTICAÇÃO, NÃO ADMIN
     children: [
       { path: 'inicio', component: () => import('pages/mobile/client/MobileInicio.vue') },
       { path: 'mapa', component: () => import('pages/mobile/client/Mapa.vue') },
@@ -45,6 +47,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'perfil', component: () => import('pages/mobile/client/Perfil.vue') },
       { path: 'meus-pedidos', component: () => import('pages/mobile/client/MeusPedidos.vue') },
       { path: 'favoritos', component: () => import('pages/mobile/client/Favoritos.vue') },
+      { path: 'promocoes', component: () => import('pages/mobile/client/Promocoes.vue') },
     ],
   },
 

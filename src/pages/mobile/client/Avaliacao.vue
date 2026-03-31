@@ -1,4 +1,4 @@
-﻿<!-- pages/mobile/Avaliacao.vue -->
+﻿<!-- pages/mobile/client/Avaliacao.vue -->
 <template>
   <q-page class="avaliacao-page">
     <!-- Header -->
@@ -9,19 +9,25 @@
 
     <div v-if="loading" class="text-center q-pa-xl">
       <q-spinner color="primary" size="50px" />
-      <p class="q-mt-md text-grey-7">A carregar...</p>
+      <p class="q-mt-md text-grey-7">A carregar dados do serviço...</p>
+    </div>
+
+    <div v-else-if="erro" class="text-center q-pa-xl">
+      <q-icon name="error" size="64px" color="negative" />
+      <p class="text-h6 q-mt-md">{{ erro }}</p>
+      <q-btn flat color="primary" label="Voltar" @click="router.back()" />
     </div>
 
     <div v-else class="content q-pa-md">
       <!-- Info do prestador -->
       <div class="provider-info q-mb-lg">
         <q-avatar size="60px">
-          <img :src="prestador?.avatar" :alt="prestador?.nome">
+          <img :src="prestador?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(prestador?.nome || '')}&background=667eea&color=fff`" :alt="prestador?.nome">
         </q-avatar>
         <div class="provider-details">
-          <div class="provider-name">{{ prestador?.nome }}</div>
-          <div class="service-name">{{ servico?.nome }}</div>
-          <div class="service-date">{{ servico?.data }}</div>
+          <div class="provider-name">{{ prestador?.nome || 'Prestador' }}</div>
+          <div class="service-name">{{ servico?.nome || 'Serviço' }}</div>
+          <div class="service-date">{{ formatarData(servico?.data) }}</div>
         </div>
       </div>
 
@@ -32,21 +38,21 @@
           <q-icon
             v-for="n in 5"
             :key="n"
-            :name="n <= rating ? 'star' : 'star_border'"
+            :name="n <= avaliacao.nota ? 'star' : 'star_border'"
             size="48px"
-            :color="n <= rating ? 'yellow-8' : 'grey-4'"
+            :color="n <= avaliacao.nota ? 'yellow-8' : 'grey-4'"
             class="star-icon"
-            @click="rating = n"
+            @click="avaliacao.nota = n"
           />
         </div>
-        <div class="rating-label">{{ ratingLabels[rating - 1] || 'Selecione uma nota' }}</div>
+        <div class="rating-label">{{ ratingLabels[avaliacao.nota - 1] || 'Selecione uma nota' }}</div>
       </div>
 
       <!-- Comentário -->
       <div class="comment-section q-mb-lg">
         <h3 class="section-title">Deixe um comentário (opcional)</h3>
         <q-input
-          v-model="comentario"
+          v-model="avaliacao.comentario"
           outlined
           type="textarea"
           :rows="4"
@@ -61,21 +67,21 @@
         <h3 class="section-title">Recomendaria este profissional?</h3>
         <div class="row q-gutter-sm">
           <q-btn
-            :outline="recomenda !== true"
-            :flat="recomenda !== true"
+            :outline="!avaliacao.recomenda"
+            :flat="!avaliacao.recomenda"
             color="positive"
             label="Sim"
             icon="thumb_up"
-            @click="recomenda = true"
+            @click="avaliacao.recomenda = true"
             no-caps
           />
           <q-btn
-            :outline="recomenda !== false"
-            :flat="recomenda !== false"
+            :outline="avaliacao.recomenda !== false"
+            :flat="avaliacao.recomenda !== false"
             color="negative"
             label="Não"
             icon="thumb_down"
-            @click="recomenda = false"
+            @click="avaliacao.recomenda = false"
             no-caps
           />
         </div>
@@ -84,7 +90,7 @@
       <!-- Categorias de avaliação (opcional) -->
       <div class="categories-section q-mb-lg">
         <h3 class="section-title">Avalie em detalhe (opcional)</h3>
-        <div v-for="cat in categorias" :key="cat.nome" class="category-item">
+        <div v-for="cat in categoriasAvaliacao" :key="cat.nome" class="category-item">
           <span class="category-label">{{ cat.nome }}</span>
           <q-rating
             v-model="cat.valor"
@@ -104,7 +110,7 @@
         label="Enviar avaliação"
         size="lg"
         class="full-width submit-btn"
-        :disable="rating === 0"
+        :disable="avaliacao.nota === 0"
         :loading="submitting"
         @click="enviarAvaliacao"
         no-caps
@@ -114,9 +120,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
+import { api } from 'src/boot/axios';
+import { useAuthStore } from 'src/stores/auth-store';
+import { CLIENTE_ENDPOINTS } from 'src/router/Api/cliente-endpoints';
 
 defineOptions({
   name: 'AvaliacaoPage'
@@ -125,17 +134,20 @@ defineOptions({
 const router = useRouter();
 const route = useRoute();
 const $q = useQuasar();
+const authStore = useAuthStore();
 
 // Tipos
 interface PrestadorAvaliacao {
   id: string | number;
   nome: string;
-  avatar: string;
+  foto: string | null;
 }
 
 interface ServicoAvaliado {
+  id: string | number;
   nome: string;
   data: string;
+  prestador_id: string | number;
 }
 
 interface CategoriaAvaliacao {
@@ -144,25 +156,22 @@ interface CategoriaAvaliacao {
 }
 
 // Estados
-const loading = ref<boolean>(true);
-const submitting = ref<boolean>(false);
-const rating = ref<number>(0);
-const comentario = ref<string>('');
-const recomenda = ref<boolean | null>(null);
-
-// Dados com tipos definidos
+const loading = ref(true);
+const submitting = ref(false);
+const erro = ref<string | null>(null);
 const prestador = ref<PrestadorAvaliacao | null>(null);
 const servico = ref<ServicoAvaliado | null>(null);
+const jaAvaliou = ref(false);
 
-const ratingLabels: string[] = [
-  'Péssimo',
-  'Ruim',
-  'Razoável',
-  'Bom',
-  'Excelente!'
-];
+// Formulário de avaliação
+const avaliacao = reactive({
+  nota: 0,
+  comentario: '',
+  recomenda: null as boolean | null
+});
 
-const categorias = ref<CategoriaAvaliacao[]>([
+// Categorias de avaliação
+const categoriasAvaliacao = ref<CategoriaAvaliacao[]>([
   { nome: 'Pontualidade', valor: 0 },
   { nome: 'Qualidade do trabalho', valor: 0 },
   { nome: 'Preço justo', valor: 0 },
@@ -170,25 +179,92 @@ const categorias = ref<CategoriaAvaliacao[]>([
   { nome: 'Limpeza', valor: 0 }
 ]);
 
-// Carregar dados
-onMounted((): void => {
-  setTimeout((): void => {
-    prestador.value = {
-      id: route.params.id as string,
-      nome: 'João Silva',
-      avatar: 'https://i.pravatar.cc/150?img=1'
-    };
-    servico.value = {
-      nome: 'Reparação Elétrica',
-      data: '10 de Março de 2026'
-    };
-    loading.value = false;
-  }, 1000);
-});
+const ratingLabels = [
+  'Péssimo',
+  'Ruim',
+  'Razoável',
+  'Bom',
+  'Excelente!'
+];
 
-// Métodos
-const enviarAvaliacao = (): void => {
-  if (rating.value === 0) {
+// Funções auxiliares
+const formatarData = (data?: string): string => {
+  if (!data) return 'Data não informada';
+  try {
+    return new Date(data).toLocaleDateString('pt-PT', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+  } catch {
+    return data;
+  }
+};
+
+const getCategoriasArray = (): string[] => {
+  return categoriasAvaliacao.value
+    .filter(cat => cat.valor > 0)
+    .map(cat => cat.nome);
+};
+
+// Carregar dados do serviço
+const carregarDados = async (): Promise<void> => {
+  loading.value = true;
+  erro.value = null;
+
+  const pedidoId = route.params.id as string;
+
+  if (!pedidoId) {
+    erro.value = 'ID do pedido não informado';
+    loading.value = false;
+    return;
+  }
+
+  try {
+    // Buscar detalhes do pedido
+    const response = await api.get(CLIENTE_ENDPOINTS.PEDIDO_DETALHES(pedidoId));
+
+    if (response.data.success) {
+      const pedido = response.data.data;
+      servico.value = {
+        id: pedido.id,
+        nome: pedido.servico?.nome || 'Serviço',
+        data: pedido.created_at,
+        prestador_id: pedido.prestador_id
+      };
+
+      // Buscar detalhes do prestador
+      const prestadorResponse = await api.get(CLIENTE_ENDPOINTS.PRESTADOR_DETALHES(pedido.prestador_id));
+      if (prestadorResponse.data.success) {
+        prestador.value = {
+          id: prestadorResponse.data.data.id,
+          nome: prestadorResponse.data.data.nome,
+          foto: prestadorResponse.data.data.foto
+        };
+      }
+
+      // Verificar se já avaliou este pedido
+      const checkResponse = await api.get(CLIENTE_ENDPOINTS.CHECK_PEDIDO_AVALIACAO(pedidoId));
+      if (checkResponse.data.success && checkResponse.data.data.avaliado) {
+        jaAvaliou.value = true;
+        erro.value = 'Você já avaliou este serviço.';
+        loading.value = false;
+        return;
+      }
+    } else {
+      erro.value = response.data.error || 'Erro ao carregar dados do pedido';
+    }
+  } catch (err) {
+    console.error('Erro ao carregar dados:', err);
+    erro.value = 'Erro ao carregar dados. Verifique sua conexão.';
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Enviar avaliação
+const enviarAvaliacao = async (): Promise<void> => {
+  if (avaliacao.nota === 0) {
     $q.notify({
       type: 'warning',
       message: 'Por favor, selecione uma nota',
@@ -197,18 +273,86 @@ const enviarAvaliacao = (): void => {
     return;
   }
 
-  submitting.value = true;
-
-  setTimeout((): void => {
-    submitting.value = false;
+  if (!servico.value?.prestador_id) {
     $q.notify({
-      type: 'positive',
-      message: 'Avaliação enviada com sucesso! Obrigado pelo seu feedback.',
+      type: 'negative',
+      message: 'Erro: Prestador não identificado',
       position: 'top'
     });
-    void router.push('/mobile/lista-prestadores');
-  }, 2000);
+    return;
+  }
+
+  submitting.value = true;
+
+  try {
+    const payload = {
+      pedido_id: route.params.id,
+      prestador_id: servico.value.prestador_id,
+      nota: avaliacao.nota,
+      comentario: avaliacao.comentario,
+      categorias: getCategoriasArray(),
+      recomenda: avaliacao.recomenda
+    };
+
+    const response = await api.post(CLIENTE_ENDPOINTS.CRIAR_AVALIACAO, payload);
+
+    if (response.data.success) {
+      $q.notify({
+        type: 'positive',
+        message: 'Avaliação enviada com sucesso! Obrigado pelo seu feedback.',
+        position: 'top'
+      });
+
+      // Voltar para a página anterior após 2 segundos
+      setTimeout(() => {
+        void router.push('/mobile/meus-pedidos');
+      }, 2000);
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: response.data.error || 'Erro ao enviar avaliação',
+        position: 'top'
+      });
+    }
+  } catch (err) {
+    const error = err as { response?: { data?: { error?: string } }; message?: string };
+    console.error('Erro ao enviar avaliação:', error);
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.error || error.message || 'Erro ao enviar avaliação',
+      position: 'top'
+    });
+  } finally {
+    submitting.value = false;
+  }
 };
+
+// Carregar dados ao montar
+onMounted(() => {
+  // Verificar se está autenticado
+  if (!authStore.isAuthenticated) {
+    $q.notify({
+      type: 'warning',
+      message: 'Faça login para avaliar',
+      position: 'top'
+    });
+    void router.push('/auth/login');
+    return;
+  }
+
+  // Verificar se é cliente
+  if (!authStore.isCliente) {
+    $q.notify({
+      type: 'negative',
+      message: 'Apenas clientes podem avaliar serviços',
+      position: 'top'
+    });
+    void router.push('/mobile/home');
+    return;
+  }
+
+  void carregarDados();
+});
 </script>
 
 <style scoped lang="scss">

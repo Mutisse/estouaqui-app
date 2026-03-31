@@ -3,6 +3,18 @@
  * ALINHADOS COM AS ROTAS DO BACKEND LARAVEL
  */
 export const ADMIN_ENDPOINTS = {
+
+
+
+
+  // src/router/Api/admin-endpoints.ts (adicione)
+
+// ==========================================
+// 11. NOTIFICAÇÕES
+// ==========================================
+NOTIFICACOES: '/admin/notifications',
+MARK_NOTIFICATION_READ: (id: number) => `/admin/notifications/${id}/read`,
+MARK_ALL_NOTIFICATIONS_READ: '/admin/notifications/read-all',
   // ==========================================
   // 1. DASHBOARD E ESTATÍSTICAS
   // ==========================================

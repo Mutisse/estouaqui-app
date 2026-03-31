@@ -12,14 +12,21 @@
       active-color="primary"
       indicator-color="primary"
       align="justify"
+      @update:model-value="carregarPedidosPorTab"
     >
       <q-tab name="ativos" label="Ativos" />
       <q-tab name="concluidos" label="Concluídos" />
       <q-tab name="cancelados" label="Cancelados" />
     </q-tabs>
 
+    <!-- Loading -->
+    <div v-if="carregando" class="text-center q-pa-xl">
+      <q-spinner color="primary" size="50px" />
+      <p class="q-mt-md text-grey-7">A carregar seus pedidos...</p>
+    </div>
+
     <!-- Lista de pedidos -->
-    <q-tab-panels v-model="tab" animated class="bg-transparent">
+    <q-tab-panels v-model="tab" animated class="bg-transparent" v-else>
       <!-- Pedidos Ativos -->
       <q-tab-panel name="ativos" class="q-pa-md">
         <div v-if="pedidosAtivos.length === 0" class="empty-state">
@@ -33,20 +40,26 @@
             <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
               <q-card-section class="row items-center">
                 <q-avatar size="50px" class="q-mr-sm">
-                  <img :src="pedido.prestadorAvatar" />
+                  <img :src="pedido.prestador?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`" />
                 </q-avatar>
                 <div class="col">
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-prestador">{{ pedido.prestador }}</div>
-                  <div class="pedido-data">{{ pedido.data }}</div>
+                  <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                  <div class="pedido-prestador">{{ pedido.prestador?.nome || 'Prestador' }}</div>
+                  <div class="pedido-data">{{ formatarData(pedido.data) }}</div>
                 </div>
-                <div class="pedido-status" :class="pedido.statusClass">
-                  {{ pedido.status }}
+                <div class="pedido-status" :class="getStatusClass(pedido.status)">
+                  {{ getStatusTexto(pedido.status) }}
                 </div>
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat dense icon="chat" label="Chat" @click.stop="abrirChat(pedido)" />
-                <q-btn flat dense icon="cancel" label="Cancelar" color="negative" @click.stop="cancelarPedido(pedido)" />
+                <q-btn
+                  v-if="pedido.status === 'pendente' || pedido.status === 'aceito'"
+                  flat dense icon="cancel"
+                  label="Cancelar"
+                  color="negative"
+                  @click.stop="cancelarPedido(pedido.id)"
+                />
               </q-card-actions>
             </q-card>
           </div>
@@ -65,17 +78,23 @@
             <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
               <q-card-section class="row items-center">
                 <q-avatar size="50px" class="q-mr-sm">
-                  <img :src="pedido.prestadorAvatar" />
+                  <img :src="pedido.prestador?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`" />
                 </q-avatar>
                 <div class="col">
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-prestador">{{ pedido.prestador }}</div>
-                  <div class="pedido-data">{{ pedido.data }}</div>
+                  <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                  <div class="pedido-prestador">{{ pedido.prestador?.nome || 'Prestador' }}</div>
+                  <div class="pedido-data">{{ formatarData(pedido.data) }}</div>
                 </div>
-                <div class="pedido-valor">{{ pedido.valor }} MZN</div>
+                <div class="pedido-valor">{{ formatMoney(pedido.valor) }}</div>
               </q-card-section>
               <q-card-actions align="right">
-                <q-btn flat dense icon="star" label="Avaliar" color="yellow" @click.stop="avaliarPedido(pedido)" />
+                <q-btn
+                  v-if="!pedidoAvaliado(pedido.id)"
+                  flat dense icon="star"
+                  label="Avaliar"
+                  color="yellow"
+                  @click.stop="avaliarPedido(pedido.id)"
+                />
                 <q-btn flat dense icon="repeat" label="Repetir" @click.stop="repetirPedido" />
               </q-card-actions>
             </q-card>
@@ -92,15 +111,15 @@
 
         <div v-else class="row q-col-gutter-md">
           <div v-for="pedido in pedidosCancelados" :key="pedido.id" class="col-12">
-            <q-card class="pedido-card" flat bordered>
+            <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
               <q-card-section class="row items-center">
                 <q-avatar size="50px" class="q-mr-sm">
-                  <img :src="pedido.prestadorAvatar" />
+                  <img :src="pedido.prestador?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`" />
                 </q-avatar>
                 <div class="col">
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-prestador">{{ pedido.prestador }}</div>
-                  <div class="pedido-data">{{ pedido.data }}</div>
+                  <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                  <div class="pedido-prestador">{{ pedido.prestador?.nome || 'Prestador' }}</div>
+                  <div class="pedido-data">{{ formatarData(pedido.data) }}</div>
                 </div>
                 <div class="pedido-status cancelado">Cancelado</div>
               </q-card-section>
@@ -113,131 +132,187 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useClienteStore } from 'src/stores/cliente-store'
+import type { PedidoData } from 'src/stores/cliente-store'
 
 defineOptions({
   name: 'MobileMeusPedidos'
 })
 
-// Interfaces para tipagem
-interface PedidoBase {
-  id: number
-  servico: string
-  prestador: string
-  prestadorAvatar: string
-  data: string
-}
-
-interface PedidoAtivo extends PedidoBase {
-  status: string
-  statusClass: string
-}
-
-interface PedidoConcluido extends PedidoBase {
-  valor: number
-}
-
-// CORREÇÃO 1: Removida interface vazia, usar PedidoBase diretamente
-// type PedidoCancelado = PedidoBase
-
 const router = useRouter()
 const $q = useQuasar()
+const clienteStore = useClienteStore()
 
 const tab = ref('ativos')
+const carregando = ref(false)
+const pedidosAvaliados = ref<Set<number>>(new Set())
 
-// Dados mockados com tipagem correta
-const pedidosAtivos = ref<PedidoAtivo[]>([
-  {
-    id: 1,
-    servico: 'Reparação elétrica',
-    prestador: 'João Silva',
-    prestadorAvatar: 'https://cdn.quasar.dev/img/avatar.png',
-    data: 'Hoje, 14:30',
-    status: 'Em andamento',
-    statusClass: 'em-andamento'
-  },
-  {
-    id: 2,
-    servico: 'Limpeza residencial',
-    prestador: 'Maria Santos',
-    prestadorAvatar: 'https://cdn.quasar.dev/img/avatar2.jpg',
-    data: 'Amanhã, 09:00',
-    status: 'Agendado',
-    statusClass: 'agendado'
+// Computed para separar pedidos por status
+const pedidosAtivos = computed(() => {
+  return clienteStore.pedidos.filter(p =>
+    p.status === 'pendente' || p.status === 'aceito' || p.status === 'em_andamento'
+  )
+})
+
+const pedidosConcluidos = computed(() => {
+  return clienteStore.pedidos.filter(p => p.status === 'concluido')
+})
+
+const pedidosCancelados = computed(() => {
+  return clienteStore.pedidos.filter(p => p.status === 'cancelado')
+})
+
+// Funções auxiliares
+const formatarData = (data: string) => {
+  if (!data) return 'Data não informada'
+  try {
+    const date = new Date(data)
+    const hoje = new Date()
+    const amanha = new Date(hoje)
+    amanha.setDate(hoje.getDate() + 1)
+
+    if (date.toDateString() === hoje.toDateString()) {
+      return `Hoje, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`
+    } else if (date.toDateString() === amanha.toDateString()) {
+      return `Amanhã, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`
+    }
+    return date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
+  } catch {
+    return data
   }
-])
+}
 
-const pedidosConcluidos = ref<PedidoConcluido[]>([
-  {
-    id: 3,
-    servico: 'Canalização',
-    prestador: 'Pedro Oliveira',
-    prestadorAvatar: 'https://cdn.quasar.dev/img/avatar3.jpg',
-    data: '10 Mar 2026',
-    valor: 1800
-  },
-  {
-    id: 4,
-    servico: 'Pintura',
-    prestador: 'Ana Costa',
-    prestadorAvatar: 'https://cdn.quasar.dev/img/avatar4.jpg',
-    data: '5 Mar 2026',
-    valor: 2000
+const formatMoney = (value: number) => {
+  return new Intl.NumberFormat('pt-PT', {
+    style: 'currency',
+    currency: 'MZN',
+    minimumFractionDigits: 0
+  }).format(value)
+}
+
+const getStatusTexto = (status: string) => {
+  const statusMap: Record<string, string> = {
+    pendente: 'Pendente',
+    aceito: 'Aceito',
+    em_andamento: 'Em andamento',
+    concluido: 'Concluído',
+    cancelado: 'Cancelado'
   }
-])
+  return statusMap[status] || status
+}
 
-const pedidosCancelados = ref<PedidoBase[]>([
-  {
-    id: 5,
-    servico: 'Transporte',
-    prestador: 'Carlos Mendes',
-    prestadorAvatar: 'https://cdn.quasar.dev/img/avatar5.jpg',
-    data: '1 Mar 2026'
+const getStatusClass = (status: string) => {
+  const classMap: Record<string, string> = {
+    pendente: 'pendente',
+    aceito: 'aceito',
+    em_andamento: 'em-andamento',
+    concluido: 'concluido',
+    cancelado: 'cancelado'
   }
-])
+  return classMap[status] || ''
+}
 
-// CORREÇÃO 2: Remover o underscore e usar o parâmetro
+// Carregar pedidos
+const carregarPedidos = async () => {
+  carregando.value = true
+  try {
+    await clienteStore.fetchPedidos()
+    // Verificar quais pedidos já foram avaliados
+    for (const pedido of clienteStore.pedidos) {
+      if (pedido.id) {
+        const avaliado = await clienteStore.checkPedidoAvaliado(pedido.id)
+        if (avaliado) {
+          pedidosAvaliados.value.add(pedido.id)
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao carregar pedidos:', err)
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar pedidos',
+      position: 'top'
+    })
+  } finally {
+    carregando.value = false
+  }
+}
+
+const carregarPedidosPorTab = () => {
+  // Já carregamos todos os pedidos no carregarPedidos, apenas mudamos a tab
+}
+
+// Ações
 const verPedido = (id: number) => {
-  console.log('Ver pedido:', id) // Usando o parâmetro
-  $q.notify({
-    type: 'info',
-    message: 'Detalhes do pedido em breve',
-    position: 'top'
-  })
+  void router.push(`/mobile/detalhes-pedido/${id}`)
 }
 
-const abrirChat = (pedido: PedidoBase) => {
-  void router.push(`/mobile/chat/${pedido.id}`)
+const abrirChat = (pedido: PedidoData) => {
+  const prestadorId = pedido.prestador?.id
+  if (prestadorId) {
+    void router.push(`/mobile/chat/${prestadorId}`)
+  } else {
+    $q.notify({
+      type: 'warning',
+      message: 'Prestador não encontrado',
+      position: 'top'
+    })
+  }
 }
 
-const cancelarPedido = (pedido: PedidoBase) => {
+const cancelarPedido = (id: number) => {
   $q.dialog({
     title: 'Cancelar pedido',
-    message: `Tem certeza que deseja cancelar o pedido de ${pedido.servico}?`,
+    message: 'Tem certeza que deseja cancelar este pedido?',
     cancel: true,
     persistent: true
   }).onOk(() => {
-    $q.notify({
-      type: 'positive',
-      message: 'Pedido cancelado com sucesso',
-      position: 'top'
-    })
+    void (async () => {
+      try {
+        const success = await clienteStore.cancelarPedido(id)
+        if (success) {
+          $q.notify({
+            type: 'positive',
+            message: 'Pedido cancelado com sucesso!',
+            position: 'top'
+          })
+          await carregarPedidos()
+        }
+      } catch (err) {
+        console.error('Erro ao cancelar pedido:', err)
+        $q.notify({
+          type: 'negative',
+          message: 'Erro ao cancelar pedido',
+          position: 'top'
+        })
+      }
+    })()
   })
 }
 
-const avaliarPedido = (pedido: PedidoBase) => {
-  void router.push(`/mobile/avaliacao/${pedido.id}`)
+const avaliarPedido = (pedidoId: number) => {
+  void router.push(`/mobile/avaliacao/${pedidoId}`)
+}
+
+const pedidoAvaliado = (pedidoId: number) => {
+  return pedidosAvaliados.value.has(pedidoId)
 }
 
 const repetirPedido = () => {
   $q.notify({
     type: 'info',
-    message: 'Repetir pedido em breve',
+    message: 'Funcionalidade em desenvolvimento',
     position: 'top'
   })
 }
+
+// Carregar dados ao montar
+onMounted(() => {
+  void carregarPedidos()
+})
 </script>
 
 <style scoped lang="scss">
@@ -278,6 +353,11 @@ $gray-900: #212121;
 .pedido-card {
   border-radius: 12px;
   margin-bottom: 12px;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
 
   .pedido-servico {
     font-size: 1rem;
@@ -298,17 +378,27 @@ $gray-900: #212121;
   .pedido-status {
     font-size: 0.75rem;
     font-weight: 600;
-    padding: 4px 8px;
+    padding: 4px 12px;
     border-radius: 20px;
+
+    &.pendente {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+
+    &.aceito {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
 
     &.em-andamento {
       background: #e3f2fd;
       color: #1976d2;
     }
 
-    &.agendado {
-      background: #fff3e0;
-      color: #f57c00;
+    &.concluido {
+      background: #e8f5e9;
+      color: #2e7d32;
     }
 
     &.cancelado {

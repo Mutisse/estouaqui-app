@@ -7,279 +7,291 @@
       <q-btn flat round icon="more_vert" @click="opcoes" />
     </div>
 
-    <!-- Tabs de filtro -->
-    <q-tabs
-      v-model="tab"
-      class="filter-tabs"
-      active-color="primary"
-      indicator-color="primary"
-      align="justify"
-    >
-      <q-tab name="pendentes" label="Pendentes">
-        <q-badge v-if="contadores.pendentes > 0" color="red" floating>{{
-          contadores.pendentes
-        }}</q-badge>
-      </q-tab>
-      <q-tab name="confirmados" label="Confirmados">
-        <q-badge v-if="contadores.confirmados > 0" color="green" floating>{{
-          contadores.confirmados
-        }}</q-badge>
-      </q-tab>
-      <q-tab name="concluidos" label="Concluídos" />
-      <q-tab name="cancelados" label="Cancelados" />
-    </q-tabs>
+    <!-- Loading -->
+    <div v-if="loading" class="loading-state">
+      <q-spinner color="primary" size="48px" />
+      <div class="text-grey-6 q-mt-md">Carregando pedidos...</div>
+    </div>
 
-    <!-- Lista de pedidos -->
-    <q-tab-panels v-model="tab" animated class="bg-transparent">
-      <!-- Pendentes -->
-      <q-tab-panel name="pendentes" class="q-pa-md">
-        <div v-if="pedidosPendentes.length === 0" class="empty-state">
-          <q-icon name="inbox" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido pendente</div>
-          <div class="text-grey-6 q-mt-sm">Quando receber novos pedidos, aparecerão aqui</div>
-        </div>
+    <template v-else>
+      <!-- Tabs de filtro -->
+      <q-tabs
+        v-model="tab"
+        class="filter-tabs"
+        active-color="primary"
+        indicator-color="primary"
+        align="justify"
+      >
+        <q-tab name="pendentes" label="Pendentes">
+          <q-badge v-if="contadores.pendentes > 0" color="red" floating>{{
+            contadores.pendentes
+          }}</q-badge>
+        </q-tab>
+        <q-tab name="confirmados" label="Confirmados">
+          <q-badge v-if="contadores.confirmados > 0" color="green" floating>{{
+            contadores.confirmados
+          }}</q-badge>
+        </q-tab>
+        <q-tab name="concluidos" label="Concluídos" />
+        <q-tab name="cancelados" label="Cancelados" />
+      </q-tabs>
 
-        <div v-else class="pedidos-list">
-          <q-card
-            v-for="pedido in pedidosPendentes"
-            :key="pedido.id"
-            class="pedido-card q-mb-md"
-            flat
-            bordered
-          >
-            <q-card-section>
-              <div class="row items-center">
-                <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" alt="avatar" />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-cliente">{{ pedido.cliente }}</div>
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-info">
-                    <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                    {{ pedido.data }} às {{ pedido.hora }}
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
+      <!-- Lista de pedidos -->
+      <q-tab-panels v-model="tab" animated class="bg-transparent">
+        <!-- Pendentes -->
+        <q-tab-panel name="pendentes" class="q-pa-md">
+          <div v-if="pedidosPendentes.length === 0" class="empty-state">
+            <q-icon name="inbox" size="64px" color="grey-4" />
+            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido pendente</div>
+            <div class="text-grey-6 q-mt-sm">Quando receber novos pedidos, aparecerão aqui</div>
+          </div>
 
-            <q-card-section class="q-pt-none">
-              <div class="pedido-detalhes">
-                <div class="row q-col-gutter-sm">
-                  <div class="col-6">
-                    <div class="detalhe-label">Duração</div>
-                    <div class="detalhe-valor">{{ pedido.duracao }} min</div>
-                  </div>
-                  <div class="col-6">
-                    <div class="detalhe-label">Valor</div>
-                    <div class="detalhe-valor text-primary">{{ pedido.valor }} MZN</div>
-                  </div>
-                </div>
-                <div class="row q-mt-sm">
-                  <div class="col-12">
-                    <div class="detalhe-label">Localização</div>
-                    <div class="detalhe-valor flex items-center">
-                      <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
-                      {{ pedido.localizacao }}
+          <div v-else class="pedidos-list">
+            <q-card
+              v-for="pedido in pedidosPendentes"
+              :key="pedido.id"
+              class="pedido-card q-mb-md"
+              flat
+              bordered
+            >
+              <q-card-section>
+                <div class="row items-center">
+                  <q-avatar size="50px" class="q-mr-md">
+                    <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
+                  </q-avatar>
+                  <div class="col">
+                    <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                    <div class="pedido-info">
+                      <q-icon name="schedule" size="14px" class="q-mr-xs" />
+                      {{ formatarData(pedido.data) }}
                     </div>
                   </div>
                 </div>
-              </div>
-            </q-card-section>
+              </q-card-section>
 
-            <q-card-actions align="right" class="q-pa-md">
-              <q-btn
-                flat
-                label="Recusar"
-                color="negative"
-                icon="close"
-                @click="recusarPedido(pedido)"
-              />
-              <q-btn
-                unelevated
-                label="Aceitar"
-                color="positive"
-                icon="check"
-                @click="aceitarPedido(pedido)"
-              />
-            </q-card-actions>
-          </q-card>
-        </div>
-      </q-tab-panel>
-
-      <!-- Confirmados -->
-      <q-tab-panel name="confirmados" class="q-pa-md">
-        <div v-if="pedidosConfirmados.length === 0" class="empty-state">
-          <q-icon name="check_circle" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido confirmado</div>
-          <div class="text-grey-6 q-mt-sm">Os pedidos que aceitar aparecerão aqui</div>
-        </div>
-
-        <div v-else class="pedidos-list">
-          <q-card
-            v-for="pedido in pedidosConfirmados"
-            :key="pedido.id"
-            class="pedido-card q-mb-md"
-            flat
-            bordered
-          >
-            <q-card-section>
-              <div class="row items-center">
-                <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" alt="avatar" />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-cliente">{{ pedido.cliente }}</div>
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-info">
-                    <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                    {{ pedido.data }} às {{ pedido.hora }}
+              <q-card-section class="q-pt-none">
+                <div class="pedido-detalhes">
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-6">
+                      <div class="detalhe-label">Duração</div>
+                      <div class="detalhe-valor">{{ obterDuracaoServico(pedido) }} min</div>
+                    </div>
+                    <div class="col-6">
+                      <div class="detalhe-label">Valor</div>
+                      <div class="detalhe-valor text-primary">{{ formatarValor(pedido.valor) }} MZN</div>
+                    </div>
                   </div>
-                </div>
-                <div class="pedido-status confirmado">
-                  <q-icon name="check_circle" size="16px" class="q-mr-xs" />
-                  Confirmado
-                </div>
-              </div>
-            </q-card-section>
-
-            <q-card-section class="q-pt-none">
-              <div class="pedido-detalhes">
-                <div class="row q-col-gutter-sm">
-                  <div class="col-6">
-                    <div class="detalhe-label">Duração</div>
-                    <div class="detalhe-valor">{{ pedido.duracao }} min</div>
+                  <div class="row q-mt-sm">
+                    <div class="col-12">
+                      <div class="detalhe-label">Localização</div>
+                      <div class="detalhe-valor flex items-center">
+                        <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
+                        {{ pedido.endereco || 'Endereço não informado' }}
+                      </div>
+                    </div>
                   </div>
-                  <div class="col-6">
-                    <div class="detalhe-label">Valor</div>
-                    <div class="detalhe-valor text-primary">{{ pedido.valor }} MZN</div>
-                  </div>
-                </div>
-                <div class="row q-mt-sm">
-                  <div class="col-12">
-                    <div class="detalhe-label">Localização</div>
-                    <div class="detalhe-valor flex items-center">
-                      <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
-                      {{ pedido.localizacao }}
+                  <div v-if="pedido.observacoes" class="row q-mt-sm">
+                    <div class="col-12">
+                      <div class="detalhe-label">Observações</div>
+                      <div class="detalhe-valor">{{ pedido.observacoes }}</div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </q-card-section>
+              </q-card-section>
 
-            <q-card-actions align="right" class="q-pa-md">
-              <q-btn flat label="Chat" icon="chat" color="primary" @click="abrirChat(pedido)" />
-              <q-btn
-                flat
-                label="Iniciar"
-                icon="play_arrow"
-                color="positive"
-                @click="iniciarServico(pedido)"
-              />
-            </q-card-actions>
-          </q-card>
-        </div>
-      </q-tab-panel>
+              <q-card-actions align="right" class="q-pa-md">
+                <q-btn
+                  flat
+                  label="Recusar"
+                  color="negative"
+                  icon="close"
+                  @click="recusarPedido(pedido)"
+                  :loading="loadingAcao === pedido.id"
+                />
+                <q-btn
+                  unelevated
+                  label="Aceitar"
+                  color="positive"
+                  icon="check"
+                  @click="aceitarPedido(pedido)"
+                  :loading="loadingAcao === pedido.id"
+                />
+              </q-card-actions>
+            </q-card>
+          </div>
+        </q-tab-panel>
 
-      <!-- Concluídos -->
-      <q-tab-panel name="concluidos" class="q-pa-md">
-        <div v-if="pedidosConcluidos.length === 0" class="empty-state">
-          <q-icon name="task_alt" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido concluído</div>
-          <div class="text-grey-6 q-mt-sm">Histórico de serviços realizados</div>
-        </div>
+        <!-- Confirmados -->
+        <q-tab-panel name="confirmados" class="q-pa-md">
+          <div v-if="pedidosConfirmados.length === 0" class="empty-state">
+            <q-icon name="check_circle" size="64px" color="grey-4" />
+            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido confirmado</div>
+            <div class="text-grey-6 q-mt-sm">Os pedidos que aceitar aparecerão aqui</div>
+          </div>
 
-        <div v-else class="pedidos-list">
-          <q-card
-            v-for="pedido in pedidosConcluidos"
-            :key="pedido.id"
-            class="pedido-card q-mb-md"
-            flat
-            bordered
-          >
-            <q-card-section>
-              <div class="row items-center">
-                <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" alt="avatar" />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-cliente">{{ pedido.cliente }}</div>
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-info">
-                    <q-icon name="calendar_today" size="14px" class="q-mr-xs" />
-                    {{ pedido.data }}
+          <div v-else class="pedidos-list">
+            <q-card
+              v-for="pedido in pedidosConfirmados"
+              :key="pedido.id"
+              class="pedido-card q-mb-md"
+              flat
+              bordered
+            >
+              <q-card-section>
+                <div class="row items-center">
+                  <q-avatar size="50px" class="q-mr-md">
+                    <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
+                  </q-avatar>
+                  <div class="col">
+                    <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                    <div class="pedido-info">
+                      <q-icon name="schedule" size="14px" class="q-mr-xs" />
+                      {{ formatarData(pedido.data) }}
+                    </div>
+                  </div>
+                  <div class="pedido-status confirmado">
+                    <q-icon name="check_circle" size="16px" class="q-mr-xs" />
+                    Confirmado
                   </div>
                 </div>
-                <div class="pedido-status concluido">
-                  <q-icon name="task_alt" size="16px" class="q-mr-xs" />
-                  Concluído
-                </div>
-              </div>
-            </q-card-section>
+              </q-card-section>
 
-            <q-card-section class="q-pt-none">
-              <div class="row items-center">
-                <q-rating v-model="pedido.avaliacao" size="16px" :max="5" color="yellow" readonly />
-                <span class="text-caption text-grey-6 q-ml-sm"
-                  >{{ pedido.avaliacao }} ({{ pedido.totalAvaliacoes }})</span
-                >
-              </div>
-            </q-card-section>
-
-            <q-card-actions align="right" class="q-pa-md">
-              <q-btn
-                flat
-                label="Ver detalhes"
-                icon="visibility"
-                color="primary"
-                @click="verDetalhes(pedido)"
-              />
-            </q-card-actions>
-          </q-card>
-        </div>
-      </q-tab-panel>
-
-      <!-- Cancelados -->
-      <q-tab-panel name="cancelados" class="q-pa-md">
-        <div v-if="pedidosCancelados.length === 0" class="empty-state">
-          <q-icon name="cancel" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido cancelado</div>
-        </div>
-
-        <div v-else class="pedidos-list">
-          <q-card
-            v-for="pedido in pedidosCancelados"
-            :key="pedido.id"
-            class="pedido-card q-mb-md"
-            flat
-            bordered
-          >
-            <q-card-section>
-              <div class="row items-center">
-                <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.clienteAvatar" alt="avatar" />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-cliente">{{ pedido.cliente }}</div>
-                  <div class="pedido-servico">{{ pedido.servico }}</div>
-                  <div class="pedido-info">
-                    <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                    {{ pedido.data }} às {{ pedido.hora }}
+              <q-card-section class="q-pt-none">
+                <div class="pedido-detalhes">
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-6">
+                      <div class="detalhe-label">Duração</div>
+                      <div class="detalhe-valor">{{ obterDuracaoServico(pedido) }} min</div>
+                    </div>
+                    <div class="col-6">
+                      <div class="detalhe-label">Valor</div>
+                      <div class="detalhe-valor text-primary">{{ formatarValor(pedido.valor) }} MZN</div>
+                    </div>
+                  </div>
+                  <div class="row q-mt-sm">
+                    <div class="col-12">
+                      <div class="detalhe-label">Localização</div>
+                      <div class="detalhe-valor flex items-center">
+                        <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
+                        {{ pedido.endereco || 'Endereço não informado' }}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div class="pedido-status cancelado">
-                  <q-icon name="cancel" size="16px" class="q-mr-xs" />
-                  Cancelado
+              </q-card-section>
+
+              <q-card-actions align="right" class="q-pa-md">
+                <q-btn flat label="Chat" icon="chat" color="primary" @click="abrirChat(pedido)" />
+                <q-btn
+                  flat
+                  label="Iniciar"
+                  icon="play_arrow"
+                  color="positive"
+                  @click="iniciarServico(pedido)"
+                  :loading="loadingAcao === pedido.id"
+                />
+              </q-card-actions>
+            </q-card>
+          </div>
+        </q-tab-panel>
+
+        <!-- Concluídos -->
+        <q-tab-panel name="concluidos" class="q-pa-md">
+          <div v-if="pedidosConcluidos.length === 0" class="empty-state">
+            <q-icon name="task_alt" size="64px" color="grey-4" />
+            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido concluído</div>
+            <div class="text-grey-6 q-mt-sm">Histórico de serviços realizados</div>
+          </div>
+
+          <div v-else class="pedidos-list">
+            <q-card
+              v-for="pedido in pedidosConcluidos"
+              :key="pedido.id"
+              class="pedido-card q-mb-md"
+              flat
+              bordered
+            >
+              <q-card-section>
+                <div class="row items-center">
+                  <q-avatar size="50px" class="q-mr-md">
+                    <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
+                  </q-avatar>
+                  <div class="col">
+                    <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                    <div class="pedido-info">
+                      <q-icon name="calendar_today" size="14px" class="q-mr-xs" />
+                      {{ formatarData(pedido.data) }}
+                    </div>
+                  </div>
+                  <div class="pedido-status concluido">
+                    <q-icon name="task_alt" size="16px" class="q-mr-xs" />
+                    Concluído
+                  </div>
                 </div>
-              </div>
-              <div v-if="pedido.motivo" class="q-mt-sm text-caption text-grey-6">
-                Motivo: {{ pedido.motivo }}
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </q-tab-panel>
-    </q-tab-panels>
+              </q-card-section>
+
+              <q-card-section class="q-pt-none">
+                <div class="row items-center">
+                  <q-icon name="star" color="yellow" size="16px" />
+                  <span class="text-caption text-grey-6 q-ml-sm">Aguardando avaliação do cliente</span>
+                </div>
+              </q-card-section>
+
+              <q-card-actions align="right" class="q-pa-md">
+                <q-btn
+                  flat
+                  label="Ver detalhes"
+                  icon="visibility"
+                  color="primary"
+                  @click="verDetalhes(pedido)"
+                />
+              </q-card-actions>
+            </q-card>
+          </div>
+        </q-tab-panel>
+
+        <!-- Cancelados -->
+        <q-tab-panel name="cancelados" class="q-pa-md">
+          <div v-if="pedidosCancelados.length === 0" class="empty-state">
+            <q-icon name="cancel" size="64px" color="grey-4" />
+            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido cancelado</div>
+          </div>
+
+          <div v-else class="pedidos-list">
+            <q-card
+              v-for="pedido in pedidosCancelados"
+              :key="pedido.id"
+              class="pedido-card q-mb-md"
+              flat
+              bordered
+            >
+              <q-card-section>
+                <div class="row items-center">
+                  <q-avatar size="50px" class="q-mr-md">
+                    <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
+                  </q-avatar>
+                  <div class="col">
+                    <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                    <div class="pedido-info">
+                      <q-icon name="schedule" size="14px" class="q-mr-xs" />
+                      {{ formatarData(pedido.data) }}
+                    </div>
+                  </div>
+                  <div class="pedido-status cancelado">
+                    <q-icon name="cancel" size="16px" class="q-mr-xs" />
+                    Cancelado
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </q-tab-panel>
+      </q-tab-panels>
+    </template>
 
     <!-- Botão flutuante para configurações -->
     <q-page-sticky position="bottom-right" :offset="[18, 18]">
@@ -291,183 +303,94 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
+import { usePrestadorStore } from 'src/stores/prestador-store';
+import type { SolicitacaoData } from 'src/stores/prestador-store';
 
 defineOptions({
   name: 'PrestadorPedidos',
 });
 
-// Tipos
-interface PedidoBase {
-  id: number;
-  cliente: string;
-  clienteAvatar: string;
-  servico: string;
-  data: string;
-  hora: string;
-  duracao: number;
-  valor: number;
-  localizacao: string;
-}
-
-interface PedidoConcluido extends PedidoBase {
-  avaliacao: number;
-  totalAvaliacoes: number;
-}
-
-interface PedidoCancelado extends PedidoBase {
-  motivo?: string;
-}
-
-interface Contadores {
-  pendentes: number;
-  confirmados: number;
-  concluidos: number;
-  cancelados: number;
-}
-
 const router = useRouter();
 const $q = useQuasar();
+const prestadorStore = usePrestadorStore();
 
 // Estado
 const tab = ref('pendentes');
+const loadingAcao = ref<number | null>(null);
+const loading = ref(false);
 
-// Dados mockados
-const pedidosPendentes = ref<PedidoBase[]>([
-  {
-    id: 1,
-    cliente: 'Maria Santos',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar2.jpg',
-    servico: 'Reparação elétrica',
-    data: 'Hoje',
-    hora: '14:30',
-    duracao: 60,
-    valor: 1500,
-    localizacao: 'Av. 24 de Julho, Maputo',
-  },
-  {
-    id: 2,
-    cliente: 'Pedro Oliveira',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar3.jpg',
-    servico: 'Instalação de tomada',
-    data: 'Amanhã',
-    hora: '09:00',
-    duracao: 30,
-    valor: 800,
-    localizacao: 'Bairro Central, Matola',
-  },
-  {
-    id: 3,
-    cliente: 'Ana Costa',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar4.jpg',
-    servico: 'Troca de disjuntor',
-    data: '12 Mar',
-    hora: '15:30',
-    duracao: 45,
-    valor: 1200,
-    localizacao: 'Bairro da Coop, Maputo',
-  },
-]);
+// Função auxiliar para obter duração do serviço
+const obterDuracaoServico = (pedido: SolicitacaoData): number => {
+  // Se o serviço tem duração, usa ela
+  if (pedido.servico && 'duracao' in pedido.servico && typeof pedido.servico.duracao === 'number') {
+    return pedido.servico.duracao;
+  }
+  // Caso contrário, valor padrão
+  return 60;
+};
 
-const pedidosConfirmados = ref<PedidoBase[]>([
-  {
-    id: 4,
-    cliente: 'Carlos Mendes',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar5.jpg',
-    servico: 'Reparação geral',
-    data: 'Hoje',
-    hora: '16:00',
-    duracao: 90,
-    valor: 2000,
-    localizacao: 'Bairro dos Pescadores, Maputo',
-  },
-]);
+// Computed para pedidos filtrados por status
+const pedidosPendentes = computed(() =>
+  prestadorStore.solicitacoes.filter(p => p.status === 'pendente')
+);
 
-const pedidosConcluidos = ref<PedidoConcluido[]>([
-  {
-    id: 5,
-    cliente: 'Sofia Rodrigues',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar6.jpg',
-    servico: 'Instalação elétrica',
-    data: '10 Mar 2026',
-    hora: '10:00',
-    duracao: 120,
-    valor: 2500,
-    localizacao: 'Bairro Triunfo, Matola',
-    avaliacao: 5,
-    totalAvaliacoes: 12,
-  },
-  {
-    id: 6,
-    cliente: 'Ricardo Sousa',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar.png',
-    servico: 'Troca de fiação',
-    data: '8 Mar 2026',
-    hora: '14:00',
-    duracao: 180,
-    valor: 3500,
-    localizacao: 'Bairro Central, Maputo',
-    avaliacao: 4,
-    totalAvaliacoes: 8,
-  },
-]);
+const pedidosConfirmados = computed(() =>
+  prestadorStore.solicitacoes.filter(p => p.status === 'aceito' || p.status === 'confirmado')
+);
 
-const pedidosCancelados = ref<PedidoCancelado[]>([
-  {
-    id: 7,
-    cliente: 'Fernando Lima',
-    clienteAvatar: 'https://cdn.quasar.dev/img/avatar3.jpg',
-    servico: 'Reparação emergencial',
-    data: '5 Mar 2026',
-    hora: '19:00',
-    duracao: 60,
-    valor: 1800,
-    localizacao: 'Bairro da Machava, Maputo',
-    motivo: 'Cliente desistiu',
-  },
-]);
+const pedidosConcluidos = computed(() =>
+  prestadorStore.solicitacoes.filter(p => p.status === 'concluido')
+);
+
+const pedidosCancelados = computed(() =>
+  prestadorStore.solicitacoes.filter(p => p.status === 'cancelado')
+);
 
 // Contadores
-const contadores = computed<Contadores>(() => ({
+const contadores = computed(() => ({
   pendentes: pedidosPendentes.value.length,
   confirmados: pedidosConfirmados.value.length,
   concluidos: pedidosConcluidos.value.length,
   cancelados: pedidosCancelados.value.length,
 }));
 
-// CORREÇÃO DEFINITIVA: Função auxiliar para encontrar e remover pedido
-// CORREÇÃO DEFINITIVA: Funções auxiliares com tipo explícito
-const encontrarERemoverPendente = (pedido: PedidoBase): PedidoBase | null => {
-  const index = pedidosPendentes.value.findIndex((p) => p.id === pedido.id);
-  if (index === -1) return null;
+// Formatação
+const formatarData = (dataString: string) => {
+  const date = new Date(dataString);
+  const now = new Date();
+  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
-  // CORREÇÃO: Garantir que não é undefined
-  const pedidoEncontrado = pedidosPendentes.value[index];
-  if (!pedidoEncontrado) return null;
-
-  pedidosPendentes.value.splice(index, 1);
-  return pedidoEncontrado;
+  if (diffHours < 24) {
+    return `Hoje às ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  } else if (diffHours < 48) {
+    return 'Ontem';
+  } else {
+    return date.toLocaleDateString('pt-PT', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
 };
 
-const encontrarERemoverConfirmado = (pedido: PedidoBase): PedidoBase | null => {
-  const index = pedidosConfirmados.value.findIndex((p) => p.id === pedido.id);
-  if (index === -1) return null;
-
-  // CORREÇÃO: Garantir que não é undefined
-  const pedidoEncontrado = pedidosConfirmados.value[index];
-  if (!pedidoEncontrado) return null;
-
-  pedidosConfirmados.value.splice(index, 1);
-  return pedidoEncontrado;
+const formatarValor = (valor: number) => {
+  return valor.toLocaleString('pt-PT', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
 };
 
 // Ações
-const aceitarPedido = (pedido: PedidoBase): void => {
+const aceitarPedido = (pedido: SolicitacaoData) => {
+  loadingAcao.value = pedido.id;
+
   $q.dialog({
     title: 'Confirmar aceitação',
-    message: `Deseja aceitar o pedido de ${pedido.cliente}?`,
+    message: `Deseja aceitar o pedido de ${pedido.cliente?.nome || 'cliente'}?`,
     cancel: true,
     persistent: true,
     ok: {
@@ -476,24 +399,38 @@ const aceitarPedido = (pedido: PedidoBase): void => {
       unelevated: true,
     },
   }).onOk(() => {
-    const pedidoAceito = encontrarERemoverPendente(pedido);
-    if (pedidoAceito) {
-      pedidosConfirmados.value.push(pedidoAceito);
-
-      $q.notify({
-        type: 'positive',
-        message: 'Pedido aceito com sucesso!',
-        position: 'top',
-        icon: 'check_circle',
+    prestadorStore.aceitarSolicitacao(pedido.id)
+      .then((success) => {
+        if (success) {
+          $q.notify({
+            type: 'positive',
+            message: 'Pedido aceito com sucesso!',
+            position: 'top',
+            icon: 'check_circle',
+          });
+        }
+      })
+      .catch(() => {
+        $q.notify({
+          type: 'negative',
+          message: 'Erro ao aceitar pedido',
+          position: 'top',
+        });
+      })
+      .finally(() => {
+        loadingAcao.value = null;
       });
-    }
+  }).onCancel(() => {
+    loadingAcao.value = null;
   });
 };
 
-const recusarPedido = (pedido: PedidoBase): void => {
+const recusarPedido = (pedido: SolicitacaoData) => {
+  loadingAcao.value = pedido.id;
+
   $q.dialog({
     title: 'Confirmar recusa',
-    message: `Deseja recusar o pedido de ${pedido.cliente}?`,
+    message: `Deseja recusar o pedido de ${pedido.cliente?.nome || 'cliente'}?`,
     cancel: true,
     persistent: true,
     ok: {
@@ -502,70 +439,60 @@ const recusarPedido = (pedido: PedidoBase): void => {
       unelevated: true,
     },
   }).onOk(() => {
-    const pedidoRecusado = encontrarERemoverPendente(pedido);
-    if (pedidoRecusado) {
-      const novoPedidoCancelado: PedidoCancelado = {
-        ...pedidoRecusado,
-        motivo: 'Recusado pelo prestador',
-      };
-
-      pedidosCancelados.value.push(novoPedidoCancelado);
-
-      $q.notify({
-        type: 'negative',
-        message: 'Pedido recusado',
-        position: 'top',
-        icon: 'cancel',
+    prestadorStore.recusarSolicitacao(pedido.id)
+      .then((success) => {
+        if (success) {
+          $q.notify({
+            type: 'negative',
+            message: 'Pedido recusado',
+            position: 'top',
+            icon: 'cancel',
+          });
+        }
+      })
+      .catch(() => {
+        $q.notify({
+          type: 'negative',
+          message: 'Erro ao recusar pedido',
+          position: 'top',
+        });
+      })
+      .finally(() => {
+        loadingAcao.value = null;
       });
-    }
+  }).onCancel(() => {
+    loadingAcao.value = null;
   });
 };
 
-const abrirChat = (pedido: PedidoBase): void => {
-  void router.push(`/mobile/chat/${pedido.id}`);
-};
-
-const iniciarServico = (pedido: PedidoBase): void => {
+// ✅ CORREÇÃO: Função iniciarServico agora recebe o pedido como parâmetro
+const iniciarServico = (pedido: SolicitacaoData) => {
   $q.dialog({
     title: 'Iniciar serviço',
-    message: 'Confirmar início do serviço?',
+    message: `Confirmar início do serviço para ${pedido.cliente?.nome || 'cliente'}?`,
     cancel: true,
     persistent: true,
   }).onOk(() => {
-    const pedidoIniciado = encontrarERemoverConfirmado(pedido);
-    if (pedidoIniciado) {
-      $q.notify({
-        type: 'positive',
-        message: 'Serviço iniciado! Bom trabalho!',
-        position: 'top',
-        icon: 'play_circle',
-        timeout: 3000,
-      });
-
-      setTimeout(() => {
-        const novoPedidoConcluido: PedidoConcluido = {
-          ...pedidoIniciado,
-          avaliacao: 5,
-          totalAvaliacoes: 1,
-        };
-
-        pedidosConcluidos.value.push(novoPedidoConcluido);
-
-        $q.notify({
-          type: 'positive',
-          message: 'Serviço concluído!',
-          position: 'top',
-          icon: 'task_alt',
-        });
-      }, 3000);
-    }
+    // TODO: Implementar chamada para iniciar serviço
+    // await prestadorStore.iniciarServico(pedido.id);
+    $q.notify({
+      type: 'positive',
+      message: 'Serviço iniciado!',
+      position: 'top',
+      icon: 'play_circle',
+    });
   });
 };
 
-const verDetalhes = (pedido: PedidoConcluido): void => {
+const abrirChat = (pedido: SolicitacaoData) => {
+  void router.push(`/mobile/chat/${pedido.cliente_id}`);
+};
+
+const verDetalhes = (pedido: SolicitacaoData) => {
+  // TODO: Abrir modal com detalhes do pedido
   $q.notify({
     type: 'info',
-    message: `Detalhes do serviço #${pedido.id}`,
+    message: `Pedido #${pedido.numero || pedido.id}`,
     position: 'top',
   });
 };
@@ -601,7 +528,31 @@ const configurarNotificacoes = (): void => {
     position: 'top',
   });
 };
+
+// Carregar dados
+const carregarPedidos = async () => {
+  loading.value = true;
+  try {
+    await prestadorStore.fetchSolicitacoes();
+  } catch (error) {
+    console.error('Erro ao carregar pedidos:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar pedidos',
+      position: 'top',
+    });
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Inicialização
+onMounted(() => {
+  void carregarPedidos();
+});
 </script>
+
+
 
 <style scoped lang="scss">
 $purple-primary: #667eea;
@@ -630,6 +581,14 @@ $gray-900: #212121;
 
 .filter-tabs {
   background: white;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
 }
 
 .empty-state {

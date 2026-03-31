@@ -20,7 +20,8 @@
 
     <!-- Cards de estatísticas principais -->
     <div class="stats-grid">
-      <div class="stat-card" v-for="card in adminStore.cardsPrincipais()" :key="card.title">
+      <!-- ✅ CORRETO: sem parênteses -->
+      <div class="stat-card" v-for="card in adminStore.cardsPrincipais" :key="card.title">
         <div class="stat-card-content">
           <div class="stat-icon" :style="{ background: card.bgColor }">
             <q-icon :name="card.icon" size="28px" :color="card.iconColor" />
@@ -39,9 +40,10 @@
 
     <!-- Cards secundários -->
     <div class="stats-grid-secondary">
+      <!-- ✅ CORRETO: sem parênteses -->
       <div
         class="stat-card-secondary"
-        v-for="card in adminStore.cardsSecundarios()"
+        v-for="card in adminStore.cardsSecundarios"
         :key="card.title"
       >
         <div class="stat-card-secondary-content">
@@ -64,8 +66,9 @@
         </div>
         <div class="chart-content">
           <div class="bars-container">
+            <!-- ✅ CORRETO: sem parênteses -->
             <div
-              v-for="(item, index) in adminStore.atividadeFormatada()"
+              v-for="(item, index) in adminStore.atividadeFormatada"
               :key="index"
               class="bar-item"
             >
@@ -85,8 +88,9 @@
           <span class="card-title">Distribuição por Tipo</span>
         </div>
         <div class="distribuicao-content">
+          <!-- ✅ CORRETO: sem parênteses -->
           <div
-            v-for="tipo in adminStore.distribuicaoPorTipo()"
+            v-for="tipo in adminStore.distribuicaoPorTipo"
             :key="tipo.label"
             class="distribuicao-item"
           >
@@ -94,7 +98,7 @@
               <span class="distribuicao-label">{{ tipo.label }}</span>
               <span class="distribuicao-value">{{ formatNumber(tipo.value) }}</span>
             </div>
-            <q-linear-progress :value="tipo.percent" :color="tipo.color" class="progress-bar" />
+            <q-linear-progress :value="tipo.percent / 100" :color="tipo.color" class="progress-bar" />
           </div>
           <div class="distribuicao-total">
             <span class="total-label">Total de Utilizadores</span>

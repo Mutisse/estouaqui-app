@@ -1,3 +1,5 @@
+// src/stores/auth-store.ts
+
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useQuasar, type QNotifyCreateOptions } from 'quasar';
@@ -26,141 +28,260 @@ interface LoginResponse {
 export const useAuthStore = defineStore('auth', () => {
   const $q = useQuasar();
 
-  // State
+  // ==========================================
+  // STATE
+  // ==========================================
+
   const user = ref<User | null>(null);
   const token = ref<string | null>(localStorage.getItem('auth_token'));
   const isAuthenticated = ref(!!token.value);
+  const loading = ref(false);
+  const initialized = ref(false);
 
-  // Getters
+  // Cache para evitar múltiplas requisições
+  let loginPromise: Promise<boolean> | null = null;
+
+  // ==========================================
+  // GETTERS
+  // ==========================================
+
   const isCliente = computed(() => user.value?.tipo === 'cliente');
   const isPrestador = computed(() => user.value?.tipo === 'prestador');
   const isAdmin = computed(() => user.value?.tipo === 'admin');
   const userNome = computed(() => user.value?.nome || '');
   const userFoto = computed(() => user.value?.foto);
+  const userEmail = computed(() => user.value?.email || '');
+  const userTelefone = computed(() => user.value?.telefone || '');
 
-  // Actions
+  // ==========================================
+  // ACTIONS
+  // ==========================================
+
+  /**
+   * Login do usuário
+   */
   async function login(emailOrPhone: string, password: string): Promise<boolean> {
-    try {
-      // Determinar se é email ou telefone
-      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrPhone);
-      const loginData: { email?: string; telefone?: string; password: string } = { password };
-
-      if (isEmail) {
-        loginData.email = emailOrPhone;
-      } else {
-        loginData.telefone = emailOrPhone.replace(/\s/g, '');
-      }
-
-      const response = await api.post<LoginResponse>(AUTH_ENDPOINTS.LOGIN, loginData);
-
-      if (response.data.success) {
-        user.value = response.data.data.user;
-        token.value = response.data.data.token;
-        isAuthenticated.value = true;
-
-        // Salvar token no localStorage
-        localStorage.setItem('auth_token', response.data.data.token);
-
-        // Configurar header do axios para todas as requisições
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.data.token}`;
-
-        return true;
-      }
-      return false;
-    } catch (error) {
-      const err = error as AxiosError<{ error?: string; message?: string }>;
-      if (err.response) {
-        const errorMessage =
-          err.response.data?.error || err.response.data?.message || 'Erro no login';
-        showNotification('negative', errorMessage);
-      } else if (err.request) {
-        showNotification('negative', 'Erro de conexão. Verifique sua internet.');
-      } else {
-        showNotification('negative', err.message || 'Erro ao fazer login');
-      }
-      return false;
+    if (loginPromise) {
+      return loginPromise;
     }
+
+    loading.value = true;
+
+    loginPromise = (async () => {
+      try {
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrPhone);
+        const loginData: { email?: string; telefone?: string; password: string } = { password };
+
+        if (isEmail) {
+          loginData.email = emailOrPhone;
+        } else {
+          loginData.telefone = emailOrPhone.replace(/\s/g, '');
+        }
+
+        const response = await api.post<LoginResponse>(AUTH_ENDPOINTS.LOGIN, loginData, {
+          timeout: 10000
+        });
+
+        if (response.data.success) {
+          user.value = response.data.data.user;
+          token.value = response.data.data.token;
+          isAuthenticated.value = true;
+
+          localStorage.setItem('auth_token', response.data.data.token);
+          api.defaults.headers.common['Authorization'] = `Bearer ${response.data.data.token}`;
+
+          showNotification('positive', 'Login realizado com sucesso!', 'check_circle');
+          return true;
+        }
+        return false;
+      } catch (err) {
+        const error = err as AxiosError<{ error?: string; message?: string }>;
+        if (error.code === 'ECONNABORTED') {
+          showNotification('negative', 'Tempo limite excedido. Tente novamente.');
+        } else if (error.response) {
+          const errorMessage = error.response.data?.error || error.response.data?.message || 'Erro no login';
+          showNotification('negative', errorMessage);
+        } else if (error.request) {
+          showNotification('negative', 'Erro de conexão. Verifique sua internet.');
+        } else {
+          showNotification('negative', error.message || 'Erro ao fazer login');
+        }
+        return false;
+      } finally {
+        loading.value = false;
+        loginPromise = null;
+      }
+    })();
+
+    return loginPromise;
   }
 
+  /**
+   * Logout do usuário
+   */
   async function logout(): Promise<void> {
+    loading.value = true;
+    const currentToken = token.value;
+    await clearAllData();
+    showNotification('positive', 'Logout realizado com sucesso!', 'logout');
+
+    if (currentToken) {
+      api.post(AUTH_ENDPOINTS.LOGOUT, {}, { timeout: 3000 }).catch(() => {});
+    }
+    loading.value = false;
+  }
+
+  /**
+   * Limpar todos os dados do usuário (logout + cache)
+   */
+  async function clearAllData(): Promise<void> {
+    user.value = null;
+    token.value = null;
+    isAuthenticated.value = false;
+
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    sessionStorage.clear();
+
+    delete api.defaults.headers.common['Authorization'];
+
     try {
-      if (token.value) {
-        await api.post(AUTH_ENDPOINTS.LOGOUT);
+      const { useClienteStore } = await import('./cliente-store');
+      const clienteStore = useClienteStore();
+      if (clienteStore.$reset) {
+        clienteStore.$reset();
       }
-    } catch (error) {
-      console.error('Erro no logout:', error);
-    } finally {
-      // Limpar estado
-      user.value = null;
-      token.value = null;
-      isAuthenticated.value = false;
-      localStorage.removeItem('auth_token');
-      delete api.defaults.headers.common['Authorization'];
+    } catch {
+      // Cliente store não existe
+    }
+
+    try {
+      const { useCacheStore } = await import('./cache-store');
+      const cacheStore = useCacheStore();
+      cacheStore.clear();
+    } catch {
+      // Cache store não existe
     }
   }
 
-  async function verifyToken(): Promise<boolean> {
-    if (!token.value) return false;
+  /**
+   * Verificar token e restaurar perfil do usuário
+   */
+  async function verifyAndRestore(): Promise<boolean> {
+    if (!token.value) {
+      isAuthenticated.value = false;
+      return false;
+    }
+
+    loading.value = true;
 
     try {
-      const response = await api.get(AUTH_ENDPOINTS.VERIFY_TOKEN);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`;
+
+      const response = await api.get(AUTH_ENDPOINTS.VERIFY_TOKEN, { timeout: 5000 });
+
       if (response.data.success) {
         user.value = response.data.data.user;
         isAuthenticated.value = true;
-        api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`;
         return true;
+      } else {
+        await clearAllData();
+        return false;
       }
-      return false;
     } catch {
-      // Token inválido, limpar
-      token.value = null;
-      isAuthenticated.value = false;
-      localStorage.removeItem('auth_token');
-      delete api.defaults.headers.common['Authorization'];
+      await clearAllData();
       return false;
+    } finally {
+      loading.value = false;
     }
   }
 
+  /**
+   * Inicializar o store (chamar na criação da app)
+   */
+  async function initialize(): Promise<void> {
+    if (token.value && !initialized.value) {
+      await verifyAndRestore();
+    }
+    initialized.value = true;
+  }
+
+  /**
+   * Verificar token (alias)
+   */
+  async function verifyToken(): Promise<boolean> {
+    return verifyAndRestore();
+  }
+
+  /**
+   * Esqueci a senha - enviar link de recuperação
+   */
   async function forgotPassword(email: string): Promise<boolean> {
+    loading.value = true;
+
     try {
       const response = await api.post(AUTH_ENDPOINTS.FORGOT_PASSWORD, { email });
       if (response.data.success) {
-        showNotification('positive', response.data.message || 'Link de recuperação enviado!');
+        showNotification(
+          'positive',
+          response.data.message || 'Link de recuperação enviado!',
+          'mail',
+        );
         return true;
       }
       return false;
-    } catch (error) {
-      const err = error as AxiosError<{ error?: string; message?: string }>;
+    } catch (err) {
+      const error = err as AxiosError<{ error?: string; message?: string }>;
       showNotification(
         'negative',
-        err.response?.data?.error || err.message || 'Erro ao solicitar recuperação',
+        error.response?.data?.error || error.message || 'Erro ao solicitar recuperação',
       );
       return false;
+    } finally {
+      loading.value = false;
     }
   }
 
-  async function resetPassword(token: string, email: string, password: string): Promise<boolean> {
+  /**
+   * Redefinir senha com token
+   */
+  async function resetPassword(
+    resetToken: string,
+    email: string,
+    password: string,
+  ): Promise<boolean> {
+    loading.value = true;
+
     try {
-      const response = await api.post(AUTH_ENDPOINTS.RESET_PASSWORD(token), {
+      const response = await api.post(AUTH_ENDPOINTS.RESET_PASSWORD(resetToken), {
         email,
         password,
         confirm_password: password,
       });
       if (response.data.success) {
-        showNotification('positive', response.data.message || 'Senha alterada com sucesso!');
+        showNotification(
+          'positive',
+          response.data.message || 'Senha alterada com sucesso!',
+          'lock',
+        );
         return true;
       }
       return false;
-    } catch (error) {
-      const err = error as AxiosError<{ error?: string; message?: string }>;
+    } catch (err) {
+      const error = err as AxiosError<{ error?: string; message?: string }>;
       showNotification(
         'negative',
-        err.response?.data?.error || err.message || 'Erro ao redefinir senha',
+        error.response?.data?.error || error.message || 'Erro ao redefinir senha',
       );
       return false;
+    } finally {
+      loading.value = false;
     }
   }
 
+  /**
+   * Verificar disponibilidade de email
+   */
   async function checkEmailAvailability(email: string): Promise<boolean> {
     try {
       const response = await api.get<{ available: boolean }>(AUTH_ENDPOINTS.CHECK_EMAIL(email));
@@ -170,6 +291,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Verificar disponibilidade de telefone
+   */
   async function checkPhoneAvailability(phone: string): Promise<boolean> {
     try {
       const response = await api.get<{ available: boolean }>(AUTH_ENDPOINTS.CHECK_PHONE(phone));
@@ -179,8 +303,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Mostrar notificação
+   */
   function showNotification(
-    type: 'positive' | 'negative' | 'warning',
+    type: 'positive' | 'negative' | 'warning' | 'info',
     message: string,
     icon?: string,
   ) {
@@ -194,11 +321,17 @@ export const useAuthStore = defineStore('auth', () => {
     $q.notify(options);
   }
 
+  // ==========================================
+  // RETURN
+  // ==========================================
+
   return {
     // State
     user,
     token,
     isAuthenticated,
+    loading,
+    initialized,
 
     // Getters
     isCliente,
@@ -206,14 +339,19 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     userNome,
     userFoto,
+    userEmail,
+    userTelefone,
 
     // Actions
     login,
     logout,
     verifyToken,
+    initialize,
+    verifyAndRestore,
     forgotPassword,
     resetPassword,
     checkEmailAvailability,
     checkPhoneAvailability,
+    clearAllData,
   };
 });

@@ -1,3 +1,4 @@
+// src/stores/index.ts
 import { defineStore } from '#q-app/wrappers';
 import { createPinia } from 'pinia';
 
@@ -6,12 +7,14 @@ import { createPinia } from 'pinia';
  * extend the `PiniaCustomProperties` interface.
  * @see https://pinia.vuejs.org/core-concepts/plugins.html#typing-new-store-properties
  */
-declare module 'pinia' {
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  export interface PiniaCustomProperties {
-    // add your custom properties here, if any
-  }
-}
+
+// ✅ Remover a interface vazia e adicionar um comentário explicativo
+// Para adicionar propriedades personalizadas ao Pinia, estenda a interface PiniaCustomProperties:
+// declare module 'pinia' {
+//   export interface PiniaCustomProperties {
+//     $myPlugin: string;
+//   }
+// }
 
 /*
  * If not building with SSR mode, you can

@@ -25,9 +25,11 @@
         </q-toolbar-title>
 
         <!-- Notificações -->
-        <q-btn flat round dense class="notification-btn">
+        <q-btn flat round dense class="notification-btn" @click="openNotifications">
           <q-icon name="notifications" size="20px" />
-          <q-badge color="red" floating class="notification-badge">3</q-badge>
+          <q-badge v-if="unreadCount > 0" color="red" floating class="notification-badge">
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
+          </q-badge>
         </q-btn>
       </q-toolbar>
     </q-header>
@@ -47,7 +49,7 @@
             <img :src="userAvatar" alt="Avatar" />
           </q-avatar>
           <div class="drawer-user-info">
-            <div class="user-name">{{ userName || 'Prestador' }}</div>
+            <div class="user-name">{{ userNome }}</div>
             <div class="user-type">Prestador de Serviços</div>
             <div class="user-rating">
               <q-rating v-model="userRating" size="14px" :max="5" color="yellow" readonly />
@@ -89,7 +91,7 @@
             </q-item-section>
             <q-item-section>Pedidos Recebidos</q-item-section>
             <q-item-section side>
-              <q-badge color="red">{{ pedidosPendentes }}</q-badge>
+              <q-badge v-if="solicitacoesPendentesCount > 0" color="red">{{ solicitacoesPendentesCount }}</q-badge>
             </q-item-section>
           </q-item>
 
@@ -214,7 +216,7 @@
 
           <q-separator spaced class="menu-separator" />
 
-          <q-item clickable v-ripple @click="logout" class="menu-item logout-item">
+          <q-item clickable v-ripple @click="confirmLogout" class="menu-item logout-item">
             <q-item-section avatar>
               <q-icon name="logout" class="menu-icon" />
             </q-item-section>
@@ -254,7 +256,7 @@
           class="tab-item"
           active-class="tab-active"
         >
-          <q-badge v-if="pedidosPendentes > 0" color="red" floating>{{ pedidosPendentes }}</q-badge>
+          <q-badge v-if="solicitacoesPendentesCount > 0" color="red" floating>{{ solicitacoesPendentesCount }}</q-badge>
         </q-route-tab>
 
         <q-route-tab
@@ -274,31 +276,308 @@
         />
       </q-tabs>
     </q-footer>
+
+    <!-- Modal de Notificações -->
+    <q-dialog v-model="notificationsDialog" position="top" class="notifications-dialog">
+      <q-card style="min-width: 350px; max-width: 500px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Notificações</div>
+          <q-space />
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="q-pt-md" style="max-height: 60vh; overflow-y: auto">
+          <div v-if="loadingNotificacoes" class="text-center q-pa-md">
+            <q-spinner color="primary" size="40px" />
+            <div class="text-grey-6 q-mt-sm">Carregando notificações...</div>
+          </div>
+
+          <div v-else-if="notificacoes.length === 0" class="text-center q-pa-md">
+            <q-icon name="notifications_none" size="48px" color="grey-5" />
+            <div class="text-grey-6 q-mt-sm">Nenhuma notificação</div>
+          </div>
+
+          <div v-else>
+            <q-list separator>
+              <q-item
+                v-for="notif in notificacoes"
+                :key="notif.id"
+                clickable
+                v-ripple
+                :class="{ 'notification-unread': !notif.lida }"
+                @click="marcarNotificacaoLida(notif.id)"
+              >
+                <q-item-section avatar>
+                  <q-icon
+                    :name="getNotificacaoIcone(notif)"
+                    :color="getNotificacaoCor(notif)"
+                    size="32px"
+                  />
+                </q-item-section>
+
+                <q-item-section>
+                  <q-item-label lines="1" class="text-weight-medium">
+                    {{ notif.titulo }}
+                  </q-item-label>
+                  <q-item-label caption lines="2">
+                    {{ notif.mensagem }}
+                  </q-item-label>
+                  <q-item-label caption class="text-grey-6">
+                    {{ formatarData(notif.created_at) }}
+                  </q-item-label>
+                </q-item-section>
+
+                <q-item-section side v-if="!notif.lida">
+                  <q-badge color="primary" rounded>Nova</q-badge>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn
+            v-if="unreadCount > 0"
+            flat
+            label="Marcar todas como lidas"
+            @click="marcarTodasComoLidas"
+            no-caps
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-layout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
+import { usePrestadorStore } from 'src/stores/prestador-store';
 import { useQuasar } from 'quasar';
+
+// Interface para notificações
+interface NotificacaoData {
+  id: number;
+  titulo: string;
+  mensagem: string;
+  tipo?: string;
+  lida: boolean;
+  created_at: string;
+}
+
+// Interface para usuário prestador com campos específicos
+interface PrestadorUser {
+  id: number;
+  nome: string;
+  email: string;
+  telefone: string;
+  foto: string | null;
+  tipo: 'cliente' | 'prestador' | 'admin';
+  media_avaliacao?: number;
+  total_avaliacoes?: number;
+  profissao?: string;
+  sobre?: string;
+  verificado?: boolean;
+  ativo?: boolean;
+}
+
+defineOptions({
+  name: 'MobilePrestadorLayout',
+});
 
 const router = useRouter();
 const authStore = useAuthStore();
+const prestadorStore = usePrestadorStore();
 const $q = useQuasar();
 
 const leftDrawerOpen = ref(false);
+const notificationsDialog = ref(false);
+const loadingNotificacoes = ref(false);
+let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-// Dados do prestador - APENAS informações de prestador
-const userName = computed(() => authStore.user?.nome || 'João Silva');
-const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png');
-const userRating = ref(4.8);
-const userTotalAvaliacoes = ref(87);
-const pedidosPendentes = ref(3); // Mock - depois virá da API
+// Dados do prestador
+const userNome = computed(() => authStore.user?.nome || 'Prestador');
+const userAvatar = computed(() => authStore.user?.foto || 'https://cdn.quasar.dev/img/avatar.png');
+const userRating = computed(() => (authStore.user as PrestadorUser)?.media_avaliacao || 0);
+const userTotalAvaliacoes = computed(
+  () => (authStore.user as PrestadorUser)?.total_avaliacoes || 0,
+);
 
-// CORREÇÃO: Variável userType removida pois não é usada neste layout
+// Solicitações pendentes count
+const solicitacoesPendentesCount = computed(() => {
+  return prestadorStore.solicitacoes.filter((s) => s.status === 'pendente').length;
+});
 
-const logout = () => {
+// Notificações (inicializado como array vazio)
+const notificacoes = ref<NotificacaoData[]>([]);
+
+// Computed com verificação de segurança
+const unreadCount = computed(() => {
+  if (Array.isArray(notificacoes.value)) {
+    return notificacoes.value.filter((n) => !n.lida).length;
+  }
+  return 0;
+});
+
+// Funções auxiliares para notificações
+const getNotificacaoIcone = (notif: NotificacaoData) => {
+  const tipo = notif.tipo || 'default';
+  const icones: Record<string, string> = {
+    pedido: 'assignment',
+    avaliacao: 'star',
+    promocao: 'local_offer',
+    prestador: 'handyman',
+    sistema: 'info',
+    default: 'notifications',
+  };
+  return icones[tipo] || icones.default;
+};
+
+const getNotificacaoCor = (notif: NotificacaoData) => {
+  const tipo = notif.tipo || 'default';
+  const cores: Record<string, string> = {
+    pedido: 'primary',
+    avaliacao: 'yellow-8',
+    promocao: 'orange',
+    prestador: 'purple',
+    sistema: 'grey-7',
+    default: 'primary',
+  };
+  return cores[tipo] || cores.default;
+};
+
+const formatarData = (dataString: string) => {
+  const date = new Date(dataString);
+  const now = new Date();
+  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+  if (diffHours < 1) {
+    const diffMinutes = Math.floor(diffHours * 60);
+    return `${diffMinutes} min atrás`;
+  } else if (diffHours < 24) {
+    return `Hoje às ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  } else if (diffHours < 48) {
+    return 'Ontem';
+  } else {
+    return date.toLocaleDateString('pt-PT', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+  }
+};
+
+// Carregar notificações do prestador (usando endpoint compartilhado)
+const carregarNotificacoes = async () => {
+  if (!authStore.isPrestador) {
+    console.log('Usuário não é prestador, ignorando notificações');
+    notificacoes.value = [];
+    return;
+  }
+
+  loadingNotificacoes.value = true;
+  try {
+    // Usar endpoint de notificações compartilhado
+    const { api } = await import('src/boot/axios');
+    const response = await api.get('/notifications');
+
+    if (response.data.success && Array.isArray(response.data.data)) {
+      notificacoes.value = response.data.data;
+    } else {
+      notificacoes.value = [];
+    }
+  } catch (error) {
+    console.error('Erro ao carregar notificações:', error);
+    notificacoes.value = [];
+  } finally {
+    loadingNotificacoes.value = false;
+  }
+};
+
+const marcarNotificacaoLida = async (id: number) => {
+  try {
+    const { api } = await import('src/boot/axios');
+    const response = await api.put(`/notifications/${id}/read`);
+
+    if (response.data.success && Array.isArray(notificacoes.value)) {
+      const notif = notificacoes.value.find((n) => n.id === id);
+      if (notif) {
+        notif.lida = true;
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao marcar notificação como lida:', error);
+  }
+};
+
+const marcarTodasComoLidas = async () => {
+  try {
+    const { api } = await import('src/boot/axios');
+    const response = await api.put('/notifications/read-all');
+
+    if (response.data.success && Array.isArray(notificacoes.value)) {
+      notificacoes.value.forEach((n) => {
+        n.lida = true;
+      });
+      $q.notify({
+        type: 'positive',
+        message: 'Todas notificações marcadas como lidas',
+        position: 'top',
+        timeout: 2000,
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao marcar todas notificações:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao marcar notificações',
+      position: 'top',
+    });
+  }
+};
+
+const openNotifications = () => {
+  notificationsDialog.value = true;
+  void carregarNotificacoes();
+};
+
+// Carregar solicitações pendentes do prestador
+const carregarSolicitacoesPendentes = async () => {
+  if (!authStore.isPrestador) {
+    return;
+  }
+
+  try {
+    await prestadorStore.fetchSolicitacoes('pendente');
+  } catch (error) {
+    console.error('Erro ao carregar solicitações pendentes:', error);
+  }
+};
+
+// Polling para buscar novos dados
+const iniciarPolling = () => {
+  if (pollingInterval) clearInterval(pollingInterval);
+
+  pollingInterval = setInterval(() => {
+    if (document.hasFocus() && authStore.isAuthenticated && authStore.isPrestador) {
+      void carregarNotificacoes();
+      void carregarSolicitacoesPendentes();
+      void prestadorStore.fetchStats();
+    }
+  }, 30000);
+};
+
+const pararPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+};
+
+// Logout
+const confirmLogout = () => {
   $q.dialog({
     title: 'Confirmar saída',
     message: 'Tem certeza que deseja sair da sua conta?',
@@ -319,12 +598,41 @@ const logout = () => {
     });
   });
 };
+
+// Inicialização
+onMounted(async () => {
+  // Aguardar autenticação
+  if (!authStore.isAuthenticated) {
+    await authStore.initialize();
+  }
+
+  // Carregar dados se for prestador
+  if (authStore.isAuthenticated && authStore.isPrestador) {
+    await Promise.all([
+      carregarNotificacoes(),
+      carregarSolicitacoesPendentes(),
+      prestadorStore.fetchStats(),
+      prestadorStore.fetchGanhos(),
+      prestadorStore.fetchProximosServicos(5),
+      prestadorStore.fetchAvaliacoesRecentes(5),
+    ]);
+  }
+
+  // Iniciar polling
+  if (authStore.isAuthenticated && authStore.isPrestador) {
+    iniciarPolling();
+  }
+});
+
+onUnmounted(() => {
+  pararPolling();
+});
 </script>
 
 <style scoped lang="scss">
 $purple-primary: #667eea;
 $purple-secondary: #764ba2;
-$purple-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$purple-gradient: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 $gray-50: #fafafa;
 $gray-100: #f5f5f5;
 $gray-200: #eeeeee;
@@ -583,6 +891,18 @@ $gray-900: #212121;
     color: $purple-primary !important;
     font-weight: 600;
   }
+}
+
+/* Modal de Notificações */
+.notifications-dialog {
+  :deep(.q-dialog__inner) {
+    margin-top: 56px;
+  }
+}
+
+.notification-unread {
+  background: rgba(102, 126, 234, 0.05);
+  border-left: 3px solid $purple-primary;
 }
 
 /* Safe area */

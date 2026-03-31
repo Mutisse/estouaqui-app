@@ -42,6 +42,26 @@
       </div>
     </div>
 
+    <!-- Subcategorias (tipos de serviço) -->
+    <div v-if="selectedCategory" class="subcategories-chips q-px-md q-mb-md">
+      <div class="row items-center q-gutter-sm">
+        <span class="text-caption text-grey-6">Tipos de serviço:</span>
+        <q-chip
+          v-for="sub in subcategorias"
+          :key="sub.id"
+          :clickable="true"
+          :selected="selectedSubcategory === sub.id"
+          :color="selectedSubcategory === sub.id ? 'secondary' : 'grey-2'"
+          :text-color="selectedSubcategory === sub.id ? 'white' : 'grey-8'"
+          @click="filtrarPorSubcategoria(sub.id)"
+          size="sm"
+          dense
+        >
+          {{ sub.nome }}
+        </q-chip>
+      </div>
+    </div>
+
     <!-- Resultados -->
     <div class="results-section q-pa-md">
       <!-- Loading -->
@@ -69,24 +89,24 @@
         >
           <q-item-section avatar>
             <q-avatar>
-              <img :src="prestador.avatar" :alt="prestador.nome">
+              <img :src="prestador.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(prestador.nome)}&background=667eea&color=fff`" :alt="prestador.nome">
             </q-avatar>
           </q-item-section>
 
           <q-item-section>
             <q-item-label>{{ prestador.nome }}</q-item-label>
             <q-item-label caption>
-              <q-icon name="star" color="yellow" size="16px" /> {{ prestador.rating }}
-              - a {{ prestador.distancia }}km de distância
+              <q-icon name="star" color="yellow" size="16px" /> {{ (prestador.media_avaliacao || 0).toFixed(1) }}
+              <span v-if="prestador.distancia"> - a {{ formatarDistancia(prestador.distancia) }} de distância</span>
             </q-item-label>
             <q-item-label caption class="text-primary">
-              {{ prestador.categoria }}
+              {{ prestador.categorias?.map((c: { nome: string }) => c.nome).join(', ') || 'Sem categoria' }}
             </q-item-label>
           </q-item-section>
 
           <q-item-section side>
-            <q-badge :color="prestador.disponivel ? 'primary' : 'grey'">
-              {{ prestador.disponivel ? 'Disponível' : 'Indisponível' }}
+            <q-badge :color="prestador.disponivel !== false ? 'primary' : 'grey'">
+              {{ prestador.disponivel !== false ? 'Disponível' : 'Indisponível' }}
             </q-badge>
           </q-item-section>
         </q-item>
@@ -105,8 +125,6 @@
         />
       </div>
     </div>
-
-    
 
     <!-- Drawer de filtros -->
     <q-drawer
@@ -169,7 +187,7 @@
             </q-item-section>
           </q-item>
 
-          <!-- Categoria -->
+          <!-- Categoria Principal -->
           <q-item>
             <q-item-section>
               <q-item-label class="text-weight-bold">Categoria</q-item-label>
@@ -184,6 +202,26 @@
                 outlined
                 clearable
                 placeholder="Selecione uma categoria"
+                @update:model-value="onCategoriaChange"
+              />
+            </q-item-section>
+          </q-item>
+
+          <!-- Subcategoria (tipo de serviço) -->
+          <q-item v-if="subcategorias.length > 0">
+            <q-item-section>
+              <q-item-label class="text-weight-bold">Tipo de serviço</q-item-label>
+              <q-select
+                v-model="filtros.subcategoria_id"
+                :options="subcategorias"
+                option-value="id"
+                option-label="nome"
+                emit-value
+                map-options
+                dense
+                outlined
+                clearable
+                placeholder="Selecione um tipo de serviço"
               />
             </q-item-section>
           </q-item>
@@ -229,31 +267,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { useClienteStore } from 'src/stores/cliente-store';
 
-defineOptions({
-  name: 'ListaPrestadoresPage'
-});
-
-const router = useRouter();
-const route = useRoute();
-
-// Tipos
-interface Prestador {
+// Definir interfaces localmente
+interface CategoriaData {
   id: number;
   nome: string;
-  avatar: string;
-  rating: number;
-  distancia: number;
-  disponivel: boolean;
-  categoria: string;
+  slug: string;
+  icone: string;
+  cor: string;
+  descricao: string;
+  ativo: boolean;
+  servicos_count: number;
 }
 
-interface Categoria {
+interface PrestadorData {
   id: number;
   nome: string;
-  icone?: string;
+  email: string;
+  telefone: string;
+  foto: string | null;
+  media_avaliacao: number;
+  total_avaliacoes: number;
+  verificado: boolean;
+  categorias?: { id: number; nome: string }[];
+  distancia?: number;
+  disponivel?: boolean;
 }
 
 interface Filtros {
@@ -261,65 +302,30 @@ interface Filtros {
   rating_min: number;
   disponivel: string;
   categoria_id: number | null;
+  subcategoria_id: number | null;
   ordenar_por: string;
 }
 
+defineOptions({
+  name: 'ListaPrestadoresPage'
+});
+
+const router = useRouter();
+const route = useRoute();
+const clienteStore = useClienteStore();
+
 // Estados
-const loading = ref<boolean>(true);
-const loadingMore = ref<boolean>(false);
-const searchQuery = ref<string>('');
-const showFilters = ref<boolean>(false);
-const page = ref<number>(1);
-const hasMore = ref<boolean>(false);
-
-// Dados mockados
-const prestadores = ref<Prestador[]>([
-  {
-    id: 1,
-    nome: 'João Silva',
-    avatar: 'https://cdn.quasar.dev/img/avatar.png',
-    rating: 4.9,
-    distancia: 1.2,
-    disponivel: true,
-    categoria: 'Eletricista'
-  },
-  {
-    id: 2,
-    nome: 'Maria Santos',
-    avatar: 'https://cdn.quasar.dev/img/avatar2.jpg',
-    rating: 4.8,
-    distancia: 2.5,
-    disponivel: true,
-    categoria: 'Limpeza'
-  },
-  {
-    id: 3,
-    nome: 'Pedro Oliveira',
-    avatar: 'https://cdn.quasar.dev/img/avatar3.jpg',
-    rating: 4.7,
-    distancia: 3.0,
-    disponivel: false,
-    categoria: 'Canalizador'
-  },
-  {
-    id: 4,
-    nome: 'Ana Costa',
-    avatar: 'https://cdn.quasar.dev/img/avatar4.jpg',
-    rating: 5.0,
-    distancia: 0.8,
-    disponivel: true,
-    categoria: 'Pintora'
-  }
-]);
-
-const categorias = ref<Categoria[]>([
-  { id: 1, nome: 'Eletricista', icone: 'bolt' },
-  { id: 2, nome: 'Canalizador', icone: 'water_drop' },
-  { id: 3, nome: 'Pintor', icone: 'brush' },
-  { id: 4, nome: 'Limpeza', icone: 'cleaning_services' },
-  { id: 5, nome: 'Informático', icone: 'computer' },
-  { id: 6, nome: 'Cabeleireiro', icone: 'content_cut' }
-]);
+const loading = ref(false);
+const loadingMore = ref(false);
+const searchQuery = ref('');
+const showFilters = ref(false);
+const page = ref(1);
+const hasMore = ref(false);
+const prestadores = ref<PrestadorData[]>([]);
+const categorias = ref<CategoriaData[]>([]);
+const subcategorias = ref<{ id: number; nome: string }[]>([]);
+const selectedCategory = ref<number | null>(null);
+const selectedSubcategory = ref<number | null>(null);
 
 // Filtros
 const filtros = reactive<Filtros>({
@@ -327,11 +333,9 @@ const filtros = reactive<Filtros>({
   rating_min: 0,
   disponivel: 'todos',
   categoria_id: null,
+  subcategoria_id: null,
   ordenar_por: 'rating_desc'
 });
-
-// Categoria selecionada (para chips)
-const selectedCategory = ref<number | null>(null);
 
 // Options
 const disponibilidadeOptions = [
@@ -343,25 +347,48 @@ const disponibilidadeOptions = [
 const ordenacaoOptions = [
   { label: 'Melhor avaliação', value: 'rating_desc' },
   { label: 'Mais próximo', value: 'distancia_asc' },
-  { label: 'Menor preço', value: 'preco_asc' },
-  { label: 'Maior preço', value: 'preco_desc' }
+  { label: 'Mais serviços', value: 'servicos_desc' }
 ];
 
 // Computed
-const activeFiltersCount = computed<number>(() => {
+const activeFiltersCount = computed(() => {
   let count = 0;
   if (filtros.distancia_max < 50) count++;
   if (filtros.rating_min > 0) count++;
   if (filtros.disponivel !== 'todos') count++;
   if (filtros.categoria_id) count++;
+  if (filtros.subcategoria_id) count++;
   if (filtros.ordenar_por !== 'rating_desc') count++;
   return count;
 });
 
-// Timeout para debounce
-let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+// Funções auxiliares
+const formatarDistancia = (distancia?: number) => {
+  if (!distancia) return 'distância não calculada';
+  if (distancia < 1) {
+    return `${Math.round(distancia * 1000)}m`;
+  }
+  return `${distancia.toFixed(1)}km`;
+};
 
-const carregarPrestadores = (resetPage = true): void => {
+// Carregar categorias
+const carregarCategorias = async () => {
+  try {
+    const response = await clienteStore.fetchCategorias();
+    categorias.value = response;
+  } catch (error) {
+    console.error('Erro ao carregar categorias:', error);
+  }
+};
+
+// Carregar subcategorias (tipos de serviço da categoria selecionada)
+const carregarSubcategorias = () => {
+  // TODO: Implementar quando houver endpoint de serviços por categoria
+  subcategorias.value = [];
+};
+
+// Carregar prestadores
+const carregarPrestadores = async (resetPage = true) => {
   if (resetPage) {
     page.value = 1;
     loading.value = true;
@@ -369,149 +396,163 @@ const carregarPrestadores = (resetPage = true): void => {
     loadingMore.value = true;
   }
 
-  // Simular chamada API com timeout
-  setTimeout(() => {
-    if (resetPage) {
-      // Reset para os dados iniciais
-      prestadores.value = [
-        {
-          id: 1,
-          nome: 'João Silva',
-          avatar: 'https://cdn.quasar.dev/img/avatar.png',
-          rating: 4.9,
-          distancia: 1.2,
-          disponivel: true,
-          categoria: 'Eletricista'
-        },
-        {
-          id: 2,
-          nome: 'Maria Santos',
-          avatar: 'https://cdn.quasar.dev/img/avatar2.jpg',
-          rating: 4.8,
-          distancia: 2.5,
-          disponivel: true,
-          categoria: 'Limpeza'
-        },
-        {
-          id: 3,
-          nome: 'Pedro Oliveira',
-          avatar: 'https://cdn.quasar.dev/img/avatar3.jpg',
-          rating: 4.7,
-          distancia: 3.0,
-          disponivel: false,
-          categoria: 'Canalizador'
-        },
-        {
-          id: 4,
-          nome: 'Ana Costa',
-          avatar: 'https://cdn.quasar.dev/img/avatar4.jpg',
-          rating: 5.0,
-          distancia: 0.8,
-          disponivel: true,
-          categoria: 'Pintora'
-        }
-      ];
-    } else {
-      // Adicionar mais itens para paginação
-      const maisItens: Prestador[] = [
-        {
-          id: 5,
-          nome: 'Carlos Mendes',
-          avatar: 'https://cdn.quasar.dev/img/avatar5.jpg',
-          rating: 4.6,
-          distancia: 4.2,
-          disponivel: true,
-          categoria: 'Motorista'
-        },
-        {
-          id: 6,
-          nome: 'Sofia Rodrigues',
-          avatar: 'https://cdn.quasar.dev/img/avatar6.jpg',
-          rating: 4.9,
-          distancia: 1.5,
-          disponivel: true,
-          categoria: 'Manicure'
-        }
-      ];
-      prestadores.value = [...prestadores.value, ...maisItens];
-    }
+  try {
+    const params: {
+      page: number;
+      per_page: number;
+      busca?: string;
+      categoria?: number;
+      avaliacao_min?: number;
+      disponivel?: boolean;
+    } = {
+      page: page.value,
+      per_page: 20
+    };
 
-    hasMore.value = prestadores.value.length < 20;
+    if (searchQuery.value) params.busca = searchQuery.value;
+    if (filtros.categoria_id) params.categoria = filtros.categoria_id;
+    if (filtros.rating_min > 0) params.avaliacao_min = filtros.rating_min;
+    if (filtros.disponivel === 'true') params.disponivel = true;
+    if (filtros.disponivel === 'false') params.disponivel = false;
+
+    // Usar o store para buscar prestadores
+    const result = await clienteStore.buscarPrestadoresPorNome(params.busca || '');
+    prestadores.value = result;
+    hasMore.value = false;
+  } catch (error) {
+    console.error('Erro ao carregar prestadores:', error);
+  } finally {
     loading.value = false;
     loadingMore.value = false;
-  }, 800);
+  }
 };
 
 // Handlers
-const handleSearch = (): void => {
-  if (searchTimeout) {
-    clearTimeout(searchTimeout);
-  }
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const handleSearch = () => {
+  if (searchTimeout) clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    carregarPrestadores(true);
+    page.value = 1;
+    void carregarPrestadores(true);
   }, 500);
 };
 
-const filtrarPorCategoria = (categoriaId: number): void => {
+const filtrarPorCategoria = (categoriaId: number) => {
   if (selectedCategory.value === categoriaId) {
     selectedCategory.value = null;
     filtros.categoria_id = null;
+    filtros.subcategoria_id = null;
+    selectedSubcategory.value = null;
+    subcategorias.value = [];
   } else {
     selectedCategory.value = categoriaId;
     filtros.categoria_id = categoriaId;
+    filtros.subcategoria_id = null;
+    selectedSubcategory.value = null;
+    carregarSubcategorias();
   }
-  carregarPrestadores(true);
+  page.value = 1;
+  void carregarPrestadores(true);
 };
 
-const loadMore = (): void => {
+const filtrarPorSubcategoria = (subcategoriaId: number) => {
+  if (selectedSubcategory.value === subcategoriaId) {
+    selectedSubcategory.value = null;
+    filtros.subcategoria_id = null;
+  } else {
+    selectedSubcategory.value = subcategoriaId;
+    filtros.subcategoria_id = subcategoriaId;
+  }
+  page.value = 1;
+  void carregarPrestadores(true);
+};
+
+const onCategoriaChange = (categoriaId: number | null) => {
+  if (categoriaId) {
+    selectedCategory.value = categoriaId;
+    filtros.subcategoria_id = null;
+    selectedSubcategory.value = null;
+    carregarSubcategorias();
+  } else {
+    selectedCategory.value = null;
+    subcategorias.value = [];
+    filtros.subcategoria_id = null;
+    selectedSubcategory.value = null;
+  }
+};
+
+const loadMore = () => {
   if (!hasMore.value || loadingMore.value) return;
   page.value++;
-  carregarPrestadores(false);
+  void carregarPrestadores(false);
 };
 
-const clearFilters = (): void => {
+const clearFilters = () => {
   searchQuery.value = '';
   selectedCategory.value = null;
+  selectedSubcategory.value = null;
   filtros.distancia_max = 20;
   filtros.rating_min = 0;
   filtros.disponivel = 'todos';
   filtros.categoria_id = null;
+  filtros.subcategoria_id = null;
   filtros.ordenar_por = 'rating_desc';
-
-  carregarPrestadores(true);
+  subcategorias.value = [];
+  page.value = 1;
+  void carregarPrestadores(true);
 };
 
-const clearAllFilters = (): void => {
+const clearAllFilters = () => {
   clearFilters();
   showFilters.value = false;
 };
 
-const applyFilters = (): void => {
+const applyFilters = () => {
   showFilters.value = false;
   if (filtros.categoria_id) {
     selectedCategory.value = filtros.categoria_id;
+    carregarSubcategorias();
   } else {
     selectedCategory.value = null;
+    subcategorias.value = [];
   }
-  carregarPrestadores(true);
+  if (filtros.subcategoria_id) {
+    selectedSubcategory.value = filtros.subcategoria_id;
+  } else {
+    selectedSubcategory.value = null;
+  }
+  page.value = 1;
+  void carregarPrestadores(true);
 };
 
+// Watch para mudanças nos filtros
+watch([() => filtros.distancia_max, () => filtros.rating_min, () => filtros.disponivel, () => filtros.ordenar_por], () => {
+  if (!showFilters.value) {
+    page.value = 1;
+    void carregarPrestadores(true);
+  }
+});
+
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
+  await carregarCategorias();
+
   // Verificar se tem categoria na URL
   const categoriaParam = route.query.categoria;
   if (categoriaParam) {
-    const cat = categorias.value.find(c =>
+    const cat = categorias.value.find((c: CategoriaData) =>
       c.nome.toLowerCase() === String(categoriaParam).toLowerCase()
     );
     if (cat) {
       selectedCategory.value = cat.id;
       filtros.categoria_id = cat.id;
+      carregarSubcategorias();
     }
   }
 
   // Carregar dados iniciais
-  carregarPrestadores(true);
+  await carregarPrestadores(true);
 });
 </script>
 
@@ -547,15 +588,13 @@ onMounted(() => {
   }
 }
 
-.results-section {
-  background: #f5f5f5;
+.subcategories-chips {
+  background: white;
+  padding: 5px 0 10px;
+  border-bottom: 1px solid #e0e0e0;
 }
 
-.fixed-bottom-right {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 100;
-  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+.results-section {
+  background: #f5f5f5;
 }
 </style>

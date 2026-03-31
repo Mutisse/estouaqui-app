@@ -1,129 +1,140 @@
 <template>
   <q-page class="perfil-page bg-grey-1">
-    <!-- Cabeçalho do perfil -->
-    <div class="profile-header q-pa-md">
-      <div class="row items-center">
-        <q-avatar size="80px" class="profile-avatar">
-          <img :src="userAvatar" alt="Avatar" />
-        </q-avatar>
-        <div class="q-ml-md">
-          <div class="profile-name">{{ userData.nome }}</div>
-          <div class="profile-type">
-            {{ userData.tipo === 'prestador' ? 'Prestador de Serviços' : 'Cliente' }}
+    <!-- Loading -->
+    <div v-if="carregando" class="text-center q-pa-xl">
+      <q-spinner color="primary" size="50px" />
+      <p class="q-mt-md text-grey-7">A carregar perfil...</p>
+    </div>
+
+    <template v-else>
+      <!-- Cabeçalho do perfil -->
+      <div class="profile-header q-pa-md">
+        <div class="row items-center">
+          <q-avatar size="80px" class="profile-avatar">
+            <img :src="userAvatar" alt="Avatar" />
+          </q-avatar>
+          <div class="q-ml-md">
+            <div class="profile-name">{{ userData.nome }}</div>
+            <div class="profile-type">
+              {{ userData.tipo === 'prestador' ? 'Prestador de Serviços' : 'Cliente' }}
+            </div>
+            <div class="profile-phone">{{ userData.telefone }}</div>
           </div>
-          <div class="profile-phone">{{ userData.telefone }}</div>
+        </div>
+
+        <q-btn
+          flat
+          dense
+          icon="edit"
+          label="Editar perfil"
+          class="edit-profile-btn q-mt-md"
+          @click="editarPerfil"
+          no-caps
+        />
+      </div>
+
+      <!-- Estatísticas do usuário (usando dados do dashboard) -->
+      <div class="stats-section q-pa-md">
+        <div class="row q-col-gutter-sm">
+          <div class="col-4">
+            <div class="stat-card">
+              <div class="stat-value">{{ clienteStore.dashboard.total_pedidos || 0 }}</div>
+              <div class="stat-label">Serviços</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stat-card">
+              <div class="stat-value">{{ clienteStore.dashboard.avaliacoes_feitas || 0 }}</div>
+              <div class="stat-label">Avaliações</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stat-card">
+              <div class="stat-value">{{ formatAnos() }}</div>
+              <div class="stat-label">Anos</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <q-btn
-        flat
-        dense
-        icon="edit"
-        label="Editar perfil"
-        class="edit-profile-btn q-mt-md"
-        @click="editarPerfil"
-        no-caps
-      />
-    </div>
+      <!-- Informações adicionais -->
+      <div class="info-section q-pa-md">
+        <q-list bordered separator class="info-list">
+          <q-item clickable v-ripple @click="goTo('meus-pedidos')">
+            <q-item-section avatar>
+              <q-icon name="assignment" color="primary" />
+            </q-item-section>
+            <q-item-section>Meus Pedidos</q-item-section>
+            <q-item-section side>
+              <q-icon name="chevron_right" />
+            </q-item-section>
+          </q-item>
 
-    <!-- Estatísticas do usuário -->
-    <div class="stats-section q-pa-md">
-      <div class="row q-col-gutter-sm">
-        <div class="col-4">
-          <div class="stat-card">
-            <div class="stat-value">{{ userStats.servicos }}</div>
-            <div class="stat-label">Serviços</div>
-          </div>
-        </div>
-        <div class="col-4">
-          <div class="stat-card">
-            <div class="stat-value">{{ userStats.avaliacoes }}</div>
-            <div class="stat-label">Avaliações</div>
-          </div>
-        </div>
-        <div class="col-4">
-          <div class="stat-card">
-            <div class="stat-value">{{ userStats.anos }}</div>
-            <div class="stat-label">Anos</div>
-          </div>
-        </div>
+          <q-item clickable v-ripple @click="goTo('favoritos')">
+            <q-item-section avatar>
+              <q-icon name="favorite" color="red" />
+            </q-item-section>
+            <q-item-section
+              >Favoritos ({{ clienteStore.dashboard.favoritos_count || 0 }})</q-item-section
+            >
+            <q-item-section side>
+              <q-icon name="chevron_right" />
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple @click="goTo('enderecos')">
+            <q-item-section avatar>
+              <q-icon name="location_on" color="grey-7" />
+            </q-item-section>
+            <q-item-section>Meus Endereços</q-item-section>
+            <q-item-section side>
+              <q-icon name="chevron_right" />
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple @click="goTo('configuracoes')">
+            <q-item-section avatar>
+              <q-icon name="settings" color="grey-7" />
+            </q-item-section>
+            <q-item-section>Configurações</q-item-section>
+            <q-item-section side>
+              <q-icon name="chevron_right" />
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple @click="ajuda">
+            <q-item-section avatar>
+              <q-icon name="help" color="info" />
+            </q-item-section>
+            <q-item-section>Ajuda</q-item-section>
+            <q-item-section side>
+              <q-icon name="chevron_right" />
+            </q-item-section>
+          </q-item>
+        </q-list>
       </div>
-    </div>
 
-    <!-- Informações adicionais -->
-    <div class="info-section q-pa-md">
-      <q-list bordered separator class="info-list">
-        <q-item clickable v-ripple @click="goTo('meus-pedidos')">
-          <q-item-section avatar>
-            <q-icon name="assignment" color="primary" />
-          </q-item-section>
-          <q-item-section>Meus Pedidos</q-item-section>
-          <q-item-section side>
-            <q-icon name="chevron_right" />
-          </q-item-section>
-        </q-item>
-
-        <q-item clickable v-ripple @click="goTo('favoritos')">
-          <q-item-section avatar>
-            <q-icon name="favorite" color="red" />
-          </q-item-section>
-          <q-item-section>Favoritos</q-item-section>
-          <q-item-section side>
-            <q-icon name="chevron_right" />
-          </q-item-section>
-        </q-item>
-
-        <q-item clickable v-ripple @click="goTo('pagamentos')">
-          <q-item-section avatar>
-            <q-icon name="payments" color="positive" />
-          </q-item-section>
-          <q-item-section>Pagamentos</q-item-section>
-          <q-item-section side>
-            <q-icon name="chevron_right" />
-          </q-item-section>
-        </q-item>
-
-        <q-item clickable v-ripple @click="goTo('configuracoes')">
-          <q-item-section avatar>
-            <q-icon name="settings" color="grey-7" />
-          </q-item-section>
-          <q-item-section>Configurações</q-item-section>
-          <q-item-section side>
-            <q-icon name="chevron_right" />
-          </q-item-section>
-        </q-item>
-
-        <q-item clickable v-ripple @click="ajuda">
-          <q-item-section avatar>
-            <q-icon name="help" color="info" />
-          </q-item-section>
-          <q-item-section>Ajuda</q-item-section>
-          <q-item-section side>
-            <q-icon name="chevron_right" />
-          </q-item-section>
-        </q-item>
-      </q-list>
-    </div>
-
-    <!-- Botão de sair -->
-    <div class="q-pa-md">
-      <q-btn
-        flat
-        dense
-        icon="logout"
-        label="Sair da conta"
-        class="logout-btn"
-        @click="confirmLogout"
-        no-caps
-      />
-    </div>
+      <!-- Botão de sair -->
+      <div class="q-pa-md">
+        <q-btn
+          flat
+          dense
+          icon="logout"
+          label="Sair da conta"
+          class="logout-btn"
+          @click="confirmLogout"
+          no-caps
+        />
+      </div>
+    </template>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
+import { useClienteStore } from 'src/stores/cliente-store';
 import { useQuasar } from 'quasar';
 
 defineOptions({
@@ -132,21 +143,30 @@ defineOptions({
 
 const router = useRouter();
 const authStore = useAuthStore();
+const clienteStore = useClienteStore();
 const $q = useQuasar();
 
-// Dados mockados - substituir pela API depois
-const userAvatar = ref('https://cdn.quasar.dev/img/avatar.png');
-const userData = ref({
-  nome: authStore.user?.nome || 'João Silva',
-  telefone: authStore.user?.telefone || '+258 84 123 4567',
+const carregando = ref(false);
+
+// Dados do usuário vindos do authStore
+const userData = computed(() => ({
+  nome: authStore.user?.nome || 'Utilizador',
+  telefone: authStore.user?.telefone || 'Não informado',
   tipo: authStore.user?.tipo || 'cliente',
+  foto: authStore.user?.foto || null,
+}));
+
+const userAvatar = computed(() => {
+  const foto = userData.value.foto;
+  if (foto) return foto;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.value.nome)}&background=667eea&color=fff&size=80`;
 });
 
-const userStats = ref({
-  servicos: 23,
-  avaliacoes: 45,
-  anos: 2,
-});
+// Função para calcular anos (mock - pode ser substituído por dados reais do backend)
+const formatAnos = () => {
+  // Aqui você pode buscar dados reais do backend se disponíveis
+  return 2; // Valor mock temporário
+};
 
 const goTo = (rota: string) => {
   void router.push(`/mobile/${rota}`);
@@ -168,7 +188,29 @@ const ajuda = () => {
   });
 };
 
-// ✅ CORREÇÃO: tratar a Promise do logout
+// ✅ CORREÇÃO: função separada para lidar com o logout
+const handleLogout = async () => {
+  try {
+    await authStore.logout();
+    await router.push('/auth/login');
+    $q.notify({
+      type: 'positive',
+      message: 'Logout realizado com sucesso',
+      position: 'top',
+      timeout: 2000,
+    });
+  } catch (error) {
+    console.error('Erro ao fazer logout:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao realizar logout',
+      position: 'top',
+      timeout: 2000,
+    });
+  }
+};
+
+// ✅ CORREÇÃO: usar .then() em vez de async/await no onOk
 const confirmLogout = () => {
   $q.dialog({
     title: 'Confirmar saída',
@@ -185,27 +227,30 @@ const confirmLogout = () => {
     },
     persistent: true,
   }).onOk(() => {
-    void authStore
-      .logout()
-      .then(() => {
-        void router.push('/auth/login');
-        $q.notify({
-          type: 'positive',
-          message: 'Logout realizado com sucesso',
-          position: 'top',
-          timeout: 2000,
-        });
-      })
-      .catch(() => {
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao realizar logout',
-          position: 'top',
-          timeout: 2000,
-        });
-      });
+    void handleLogout();
   });
 };
+
+// Carregar dados do dashboard para as estatísticas
+const carregarDados = async () => {
+  carregando.value = true;
+  try {
+    await clienteStore.fetchDashboard();
+  } catch (error) {
+    console.error('Erro ao carregar dados do perfil:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar dados do perfil',
+      position: 'top',
+    });
+  } finally {
+    carregando.value = false;
+  }
+};
+
+onMounted(() => {
+  void carregarDados();
+});
 </script>
 
 <style scoped lang="scss">

@@ -28,6 +28,7 @@
             class="custom-input"
             :rules="[(val) => !!val || 'Email ou telefone é obrigatório']"
             bg-color="white"
+            @keyup.enter="handleLogin"
           >
             <template v-slot:prepend>
               <q-icon name="person" color="grey-6" size="20px" />
@@ -50,6 +51,7 @@
             class="custom-input"
             :rules="[(val) => !!val || 'Palavra-passe é obrigatória']"
             bg-color="white"
+            @keyup.enter="handleLogin"
           >
             <template v-slot:prepend>
               <q-icon name="lock" color="grey-6" size="20px" />
@@ -72,6 +74,7 @@
               label="Esqueceu a palavra-passe?"
               class="forgot-btn"
               @click="forgotPassword"
+              no-caps
             />
           </div>
 
@@ -87,6 +90,11 @@
         </q-card-section>
       </q-card>
     </div>
+
+    <!-- Loading global -->
+    <q-inner-loading :showing="globalLoading">
+      <q-spinner size="50px" color="primary" />
+    </q-inner-loading>
   </q-page>
 </template>
 
@@ -95,7 +103,7 @@ defineOptions({
   name: 'AuthLogin',
 });
 
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
 import { useQuasar } from 'quasar';
@@ -104,10 +112,15 @@ const router = useRouter();
 const authStore = useAuthStore();
 const $q = useQuasar();
 
+// Form state
 const login = ref('');
 const password = ref('');
 const showPassword = ref(false);
 const loading = ref(false);
+const globalLoading = ref(false);
+let loginAttempts = 0;
+const MAX_ATTEMPTS = 5;
+let lockUntil: Date | null = null;
 
 // Validações
 const isValidEmail = (value: string) => {
@@ -116,14 +129,8 @@ const isValidEmail = (value: string) => {
 };
 
 const isValidPhone = (value: string) => {
-  // Aceita formatos: 841234567, 84 123 4567, 84-123-4567
   const phoneRegex = /^(\+258)?\s?[82][0-9]\s?[0-9]{3}\s?[0-9]{4}$|^[82][0-9]{8}$/;
   return phoneRegex.test(value.replace(/\s/g, ''));
-};
-
-const normalizePhone = (value: string) => {
-  // Remove espaços e formata para o backend
-  return value.replace(/\s/g, '');
 };
 
 const isFormValid = computed(() => {
@@ -131,12 +138,104 @@ const isFormValid = computed(() => {
   return isValidEmail(login.value) || isValidPhone(login.value);
 });
 
+// Verificar se a conta está bloqueada por tentativas
+const isAccountLocked = (): boolean => {
+  if (lockUntil && new Date() < lockUntil) {
+    const remainingMinutes = Math.ceil((lockUntil.getTime() - new Date().getTime()) / 60000);
+    $q.notify({
+      type: 'warning',
+      message: `Muitas tentativas falhas. Tente novamente em ${remainingMinutes} minutos.`,
+      position: 'top',
+      timeout: 5000,
+    });
+    return true;
+  }
+  return false;
+};
+
+// Incrementar tentativas de login
+const incrementLoginAttempts = () => {
+  loginAttempts++;
+  if (loginAttempts >= MAX_ATTEMPTS) {
+    lockUntil = new Date(Date.now() + 15 * 60 * 1000); // Bloqueia por 15 minutos
+    $q.notify({
+      type: 'error',
+      message: 'Muitas tentativas falhas. Conta bloqueada por 15 minutos.',
+      position: 'top',
+      timeout: 5000,
+    });
+  }
+};
+
+// Resetar tentativas após login bem-sucedido
+const resetLoginAttempts = () => {
+  loginAttempts = 0;
+  lockUntil = null;
+};
+
+// Verificar se o usuário já está autenticado
+const checkExistingAuth = async () => {
+  if (authStore.isAuthenticated && authStore.user) {
+    if (authStore.isPrestador) {
+      await router.push('/mobile/prestador/dashboard');
+    } else if (authStore.isCliente) {
+      await router.push('/mobile/inicio');
+    }
+  }
+};
+
+// ✅ FUNÇÃO SEPARADA PARA RECUPERAÇÃO DE SENHA (sem async direto no .onOk)
+const processarRecuperacaoSenha = (contacto: string) => {
+  globalLoading.value = true;
+
+  // Chamar API de recuperação de senha
+  import('src/boot/axios')
+    .then(({ api }) => {
+      return api.post('/auth/forgot-password', {
+        email: isValidEmail(contacto) ? contacto : undefined,
+        telefone: !isValidEmail(contacto) ? contacto : undefined,
+      });
+    })
+    .then((response) => {
+      if (response.data.success) {
+        $q.notify({
+          type: 'positive',
+          message: response.data.message || `Instruções enviadas para ${contacto}`,
+          position: 'top',
+          icon: 'mail',
+          timeout: 4000,
+        });
+      } else {
+        $q.notify({
+          type: 'negative',
+          message: response.data.error || 'Erro ao enviar instruções',
+          position: 'top',
+          timeout: 4000,
+        });
+      }
+    })
+    .catch((error) => {
+      console.error('Erro ao recuperar senha:', error);
+      $q.notify({
+        type: 'negative',
+        message: 'Erro ao enviar instruções. Tente novamente.',
+        position: 'top',
+        timeout: 4000,
+      });
+    })
+    .finally(() => {
+      globalLoading.value = false;
+    });
+};
+
+// Login
 const handleLogin = async () => {
   if (!login.value || !password.value) {
     $q.notify({
       type: 'warning',
       message: 'Preencha todos os campos',
       position: 'top',
+      timeout: 3000,
     });
     return;
   }
@@ -146,51 +245,73 @@ const handleLogin = async () => {
       type: 'warning',
       message: 'Use um email válido ou telefone (84 123 4567)',
       position: 'top',
+      timeout: 3000,
     });
     return;
   }
 
-  loading.value = true;
-  try {
-    const loginData = {
-      login: isValidEmail(login.value) ? login.value : normalizePhone(login.value),
-      password: password.value,
-    };
+  if (isAccountLocked()) {
+    return;
+  }
 
-    const success = await authStore.login(loginData.login, loginData.password);
+  loading.value = true;
+
+  try {
+    const success = await authStore.login(login.value, password.value);
+
     if (success) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const user = authStore.user;
+
+      if (user?.tipo === 'admin') {
+        await authStore.logout();
+        incrementLoginAttempts();
+        $q.notify({
+          type: 'error',
+          message: 'Acesso negado. Utilize a página de login administrativo.',
+          position: 'top',
+          icon: 'error',
+          timeout: 5000,
+        });
+        login.value = '';
+        password.value = '';
+        loading.value = false;
+        return;
+      }
+
+      resetLoginAttempts();
       $q.notify({
         type: 'positive',
         message: 'Login efetuado com sucesso!',
         position: 'top',
         icon: 'check_circle',
+        timeout: 3000,
       });
 
-      const user = authStore.user;
-
-      // Redirecionamento baseado no tipo de usuário
-      if (user?.tipo === 'admin') {
-        // Admin vai para o dashboard administrativo
-        await router.push('/admin/dashboard');
-      } else if (user?.tipo === 'prestador') {
-        // Prestador vai para o dashboard do prestador
+      if (user?.tipo === 'prestador') {
         await router.push('/mobile/prestador/dashboard');
       } else {
-        // Cliente (default) vai para o mapa/início
         await router.push('/mobile/inicio');
       }
+    } else {
+      incrementLoginAttempts();
     }
   } catch (error) {
+    console.error('Erro no login:', error);
+    incrementLoginAttempts();
     $q.notify({
       type: 'negative',
       message: error instanceof Error ? error.message : 'Erro ao fazer login',
       position: 'top',
+      timeout: 4000,
     });
   } finally {
     loading.value = false;
   }
 };
 
+// Recuperar senha - CORRIGIDO
 const forgotPassword = () => {
   $q.dialog({
     title: 'Recuperar Palavra-passe',
@@ -200,16 +321,27 @@ const forgotPassword = () => {
       type: 'text',
       isValid: (val: string) => isValidEmail(val) || isValidPhone(val),
     },
-    cancel: true,
+    cancel: {
+      label: 'Cancelar',
+      color: 'grey-7',
+      flat: true,
+    },
+    ok: {
+      label: 'Enviar',
+      color: 'primary',
+      unelevated: true,
+    },
     persistent: true,
   }).onOk((contacto) => {
-    $q.notify({
-      type: 'info',
-      message: `Instruções enviadas para ${contacto}`,
-      position: 'top',
-    });
+    // ✅ CHAMAR FUNÇÃO SEPARADA (não async)
+    processarRecuperacaoSenha(contacto);
   });
 };
+
+// Inicialização
+onMounted(() => {
+  void checkExistingAuth();
+});
 </script>
 
 <style scoped lang="scss">

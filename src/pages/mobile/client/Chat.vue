@@ -1,176 +1,293 @@
-﻿<!-- pages/mobile/Chat.vue -->
-<template>
+﻿<template>
   <q-page class="chat-page">
-    <!-- Header -->
-    <div class="header q-pa-md">
-      <q-btn flat round icon="arrow_back" @click="router.back()" />
-      <div class="header-info">
-        <q-avatar size="40px">
-          <img :src="prestador?.avatar" :alt="prestador?.nome">
-        </q-avatar>
-        <div class="header-details">
-          <div class="header-name">{{ prestador?.nome }}</div>
-          <div class="header-status" :class="{ online: prestador?.online }">
-            {{ prestador?.online ? 'Online' : 'Offline' }}
+    <!-- Loading -->
+    <div v-if="loading" class="text-center q-pa-xl">
+      <q-spinner color="primary" size="50px" />
+      <p class="q-mt-md text-grey-7">A carregar conversa...</p>
+    </div>
+
+    <template v-else>
+      <!-- Header -->
+      <div class="header q-pa-md">
+        <q-btn flat round icon="arrow_back" @click="router.back" />
+        <div class="header-info">
+          <q-avatar size="40px">
+            <img
+              :src="prestador?.foto || getAvatarUrl(prestador?.nome || '')"
+              :alt="prestador?.nome"
+            />
+          </q-avatar>
+          <div class="header-details">
+            <div class="header-name">{{ prestador?.nome }}</div>
+            <div class="header-status" :class="{ online: prestador?.disponivel }">
+              {{ prestador?.disponivel ? 'Online' : 'Offline' }}
+            </div>
+          </div>
+        </div>
+        <q-btn flat round icon="more_vert" />
+      </div>
+
+      <!-- Área de mensagens -->
+      <div class="messages-area" ref="messagesArea">
+        <div v-for="msg in mensagens" :key="msg.id" class="message-wrapper">
+          <div class="message-date">{{ formatarData(msg.created_at) }}</div>
+          <div class="message-row" :class="{ 'message-row-own': msg.is_owner }">
+            <div class="message-bubble" :class="{ 'message-bubble-own': msg.is_owner }">
+              <div class="message-text">{{ msg.message }}</div>
+              <div class="message-time">{{ formatarHora(msg.created_at) }}</div>
+            </div>
           </div>
         </div>
       </div>
-      <q-btn flat round icon="more_vert" />
-    </div>
 
-    <!-- Área de mensagens -->
-    <div class="messages-area" ref="messagesArea">
-      <div v-for="msg in mensagens" :key="msg.id" class="message-wrapper">
-        <div class="message-date">{{ msg.data }}</div>
-        <div class="message-row" :class="{ 'message-row-own': msg.isOwn }">
-          <div class="message-bubble" :class="{ 'message-bubble-own': msg.isOwn }">
-            <div class="message-text">{{ msg.texto }}</div>
-            <div class="message-time">{{ msg.hora }}</div>
-          </div>
-        </div>
+      <!-- Input area -->
+      <div class="input-area q-pa-md">
+        <q-input
+          v-model="novaMensagem"
+          outlined
+          dense
+          placeholder="Escreva uma mensagem..."
+          class="message-input"
+          bg-color="white"
+          :disable="enviando"
+          @keyup.enter="enviarMensagem"
+        >
+          <template v-slot:append>
+            <q-btn
+              flat
+              round
+              icon="send"
+              color="primary"
+              :disable="!novaMensagem.trim() || enviando"
+              :loading="enviando"
+              @click="enviarMensagem"
+            />
+          </template>
+        </q-input>
       </div>
-    </div>
-
-    <!-- Input area -->
-    <div class="input-area q-pa-md">
-      <q-input
-        v-model="novaMensagem"
-        outlined
-        dense
-        placeholder="Escreva uma mensagem..."
-        class="message-input"
-        bg-color="white"
-        @keyup.enter="enviarMensagem"
-      >
-        <template v-slot:append>
-          <q-btn
-            flat
-            round
-            icon="send"
-            color="primary"
-            :disable="!novaMensagem.trim()"
-            @click="enviarMensagem"
-          />
-        </template>
-      </q-input>
-    </div>
+    </template>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { useQuasar } from 'quasar';
+import { useClienteStore, type PrestadorData, type MensagemData } from 'src/stores/cliente-store';
 
 defineOptions({
-  name: 'ChatPage'
+  name: 'ChatPage',
 });
 
 const router = useRouter();
 const route = useRoute();
-
-// Tipos
-interface PrestadorChat {
-  id: string | number;
-  nome: string;
-  avatar: string;
-  online: boolean;
-}
-
-interface Mensagem {
-  id: number;
-  texto: string;
-  hora: string;
-  data: string;
-  isOwn: boolean;
-}
+const $q = useQuasar();
+const clienteStore = useClienteStore();
 
 // Estados
-const loading = ref<boolean>(true);
-const novaMensagem = ref<string>('');
+const loading = ref(true);
+const enviando = ref(false);
+const novaMensagem = ref('');
 const messagesArea = ref<HTMLElement | null>(null);
+const prestador = ref<PrestadorData | null>(null);
+const mensagens = ref<MensagemData[]>([]);
+const prestadorId = ref<number>(0);
+let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-// Dados com tipo definido
-const prestador = ref<PrestadorChat | null>(null);
-const mensagens = ref<Mensagem[]>([
-  {
-    id: 1,
-    texto: 'Olá, tudo bem?',
-    hora: '14:30',
-    data: 'Hoje',
-    isOwn: false
-  },
-  {
-    id: 2,
-    texto: 'Tudo sim! Preciso de um eletricista para reparar um curto-circuito',
-    hora: '14:31',
-    data: 'Hoje',
-    isOwn: true
-  },
-  {
-    id: 3,
-    texto: 'Claro! Posso passar aí hoje às 16h?',
-    hora: '14:32',
-    data: 'Hoje',
-    isOwn: false
-  },
-  {
-    id: 4,
-    texto: 'Perfeito! Qual é o preço?',
-    hora: '14:33',
-    data: 'Hoje',
-    isOwn: true
-  },
-  {
-    id: 5,
-    texto: 'Fica 1.500 MZN incluindo material',
-    hora: '14:34',
-    data: 'Hoje',
-    isOwn: false
+// Computed para o último ID
+const ultimoId = computed(() => {
+  return mensagens.value[mensagens.value.length - 1]?.id || 0;
+});
+
+// Gerar URL de avatar baseada no nome
+const getAvatarUrl = (nome: string) => {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=667eea&color=fff&size=40`;
+};
+
+// Formatar data
+const formatarData = (data: string) => {
+  const date = new Date(data);
+  const hoje = new Date();
+  const ontem = new Date(hoje);
+  ontem.setDate(hoje.getDate() - 1);
+
+  if (date.toDateString() === hoje.toDateString()) {
+    return 'Hoje';
+  } else if (date.toDateString() === ontem.toDateString()) {
+    return 'Ontem';
   }
-]);
+  return date.toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+};
 
-// Função para scroll (sem retornar Promise)
-const scrollToBottom = (): void => {
-  // Usando setTimeout em vez de nextTick para evitar Promise
+// Formatar hora
+const formatarHora = (data: string) => {
+  const date = new Date(data);
+  return date.toLocaleTimeString('pt-PT', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+// Scroll para o final da conversa
+const scrollToBottom = async () => {
+  await nextTick();
   setTimeout(() => {
     if (messagesArea.value) {
       messagesArea.value.scrollTop = messagesArea.value.scrollHeight;
     }
-  }, 0);
+  }, 100);
 };
 
-// Carregar dados
-onMounted((): void => {
-  setTimeout((): void => {
-    prestador.value = {
-      id: route.params.id as string,
-      nome: 'João Silva',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-      online: true
-    };
+// Carregar dados do prestador
+const carregarPrestador = async () => {
+  const id = route.params.id as string;
+  if (!id) return;
+
+  prestadorId.value = parseInt(id, 10);
+
+  try {
+    const data = await clienteStore.fetchPrestadorDetalhes(prestadorId.value);
+    if (data) {
+      prestador.value = data;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar prestador:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar dados do prestador',
+      position: 'top',
+    });
+  }
+};
+
+// Carregar mensagens usando o store
+const carregarMensagens = async () => {
+  if (!prestadorId.value) return;
+
+  try {
+    const data = await clienteStore.fetchMensagens(prestadorId.value);
+    if (data) {
+      mensagens.value = data;
+      await scrollToBottom();
+    }
+  } catch (error) {
+    console.error('Erro ao carregar mensagens:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar mensagens',
+      position: 'top',
+    });
+  }
+};
+
+// Enviar mensagem usando o store
+const enviarMensagem = async () => {
+  if (!novaMensagem.value.trim() || enviando.value || !prestadorId.value) return;
+
+  enviando.value = true;
+
+  try {
+    const mensagem = await clienteStore.sendMessage(prestadorId.value, novaMensagem.value.trim());
+
+    if (mensagem) {
+      mensagens.value.push(mensagem);
+      novaMensagem.value = '';
+      await scrollToBottom();
+    }
+  } catch (error) {
+    console.error('Erro ao enviar mensagem:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao enviar mensagem',
+      position: 'top',
+    });
+  } finally {
+    enviando.value = false;
+  }
+};
+
+// Marcar mensagens como lidas usando o store
+const marcarComoLidas = async () => {
+  if (!prestadorId.value) return;
+  await clienteStore.markMessagesAsRead(prestadorId.value);
+};
+
+// Função separada para o polling (não async, chama async internamente)
+const buscarNovasMensagens = () => {
+  if (!prestadorId.value) return;
+
+  void (async () => {
+    try {
+      const novasMensagens = await clienteStore.fetchLatestMessages(
+        prestadorId.value,
+        ultimoId.value,
+      );
+
+      if (novasMensagens && novasMensagens.length > 0) {
+        mensagens.value = [...mensagens.value, ...novasMensagens];
+        await scrollToBottom();
+
+        // Marcar como lidas se a janela estiver ativa
+        if (document.hasFocus()) {
+          await marcarComoLidas();
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar novas mensagens:', error);
+    }
+  })();
+};
+
+// Inicializar chat
+const iniciarChat = async () => {
+  loading.value = true;
+  try {
+    await carregarPrestador();
+    await carregarMensagens();
+    await marcarComoLidas();
+  } catch (error) {
+    console.error('Erro ao iniciar chat:', error);
+  } finally {
     loading.value = false;
-    scrollToBottom();
-  }, 1000);
+  }
+};
+
+// Polling para novas mensagens - CORRIGIDO
+const iniciarPolling = () => {
+  if (pollingInterval) clearInterval(pollingInterval);
+
+  pollingInterval = setInterval(() => {
+    buscarNovasMensagens();
+  }, 5000); // Polling a cada 5 segundos
+};
+
+// Parar polling
+const pararPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+};
+
+// Marcar como lidas quando a página ganhar foco
+const handleFocus = () => {
+  void marcarComoLidas();
+};
+
+onMounted(() => {
+  void iniciarChat();
+  iniciarPolling();
+  window.addEventListener('focus', handleFocus);
 });
 
-// Enviar mensagem
-const enviarMensagem = (): void => {
-  if (!novaMensagem.value.trim()) return;
-
-  const agora = new Date();
-  const hora = `${agora.getHours().toString().padStart(2, '0')}:${agora.getMinutes().toString().padStart(2, '0')}`;
-
-  mensagens.value.push({
-    id: mensagens.value.length + 1,
-    texto: novaMensagem.value,
-    hora,
-    data: 'Hoje',
-    isOwn: true
-  });
-
-  novaMensagem.value = '';
-  scrollToBottom();
-};
+onUnmounted(() => {
+  pararPolling();
+  window.removeEventListener('focus', handleFocus);
+});
 </script>
 
 <style scoped lang="scss">
@@ -242,14 +359,14 @@ const enviarMensagem = (): void => {
     padding: 10px 15px;
     border-radius: 20px;
     background: white;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
     &-own {
       background: #667eea;
       color: white;
 
       .message-time {
-        color: rgba(255,255,255,0.8);
+        color: rgba(255, 255, 255, 0.8);
       }
     }
 
