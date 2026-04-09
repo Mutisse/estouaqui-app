@@ -1,3 +1,5 @@
+// src/router/Api/auth-endpoints.ts
+
 /**
  * Endpoints de Autenticação da API
  * ALINHADOS COM AS ROTAS DO BACKEND LARAVEL
@@ -7,43 +9,43 @@ export const AUTH_ENDPOINTS = {
   // AUTENTICAÇÃO (pública)
   // ==========================================
 
-  // Login
-  LOGIN: '/auth/login',
+  // Login - POST /api/login
+  LOGIN: '/login',
 
-  // Logout (requer autenticação)
+  // Logout - POST /api/auth/logout (requer autenticação)
   LOGOUT: '/auth/logout',
 
-  // Verificar token (requer autenticação)
+  // Verificar token - GET /api/auth/verify-token (requer autenticação)
   VERIFY_TOKEN: '/auth/verify-token',
 
   // ==========================================
   // RECUPERAÇÃO DE SENHA (pública)
   // ==========================================
 
-  // Solicitar recuperação
+  // Solicitar recuperação - POST /api/auth/forgot-password
   FORGOT_PASSWORD: '/auth/forgot-password',
 
-  // Resetar senha com token
+  // Resetar senha com token - POST /api/auth/reset-password/{token}
   RESET_PASSWORD: (token: string) => `/auth/reset-password/${token}`,
 
   // ==========================================
   // VERIFICAÇÕES DE DISPONIBILIDADE (pública)
   // ==========================================
 
-  // Verificar email
+  // Verificar email - GET /api/check-email?email=xxx
   CHECK_EMAIL: (email: string) => `/check-email?email=${encodeURIComponent(email)}`,
 
-  // Verificar telefone
+  // Verificar telefone - GET /api/check-phone?phone=xxx
   CHECK_PHONE: (phone: string) => `/check-phone?phone=${encodeURIComponent(phone)}`,
 
   // ==========================================
   // VERIFICAÇÃO DE EMAIL (pública)
   // ==========================================
 
-  // Verificar email com token
+  // Verificar email com token - GET /api/auth/verify-email/{token}
   VERIFY_EMAIL: (token: string) => `/auth/verify-email/${token}`,
 
-  // Reenviar verificação
+  // Reenviar verificação - GET /api/auth/resend-verification?email=xxx
   RESEND_VERIFICATION: (email: string) =>
     `/auth/resend-verification?email=${encodeURIComponent(email)}`,
 } as const;

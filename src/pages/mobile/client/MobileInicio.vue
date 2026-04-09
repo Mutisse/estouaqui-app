@@ -31,7 +31,7 @@
           <div class="col-4">
             <div class="summary-card" @click="goTo('/mobile/meus-pedidos')">
               <q-icon name="assignment" size="20px" color="primary" />
-              <div class="summary-value">{{ clienteStore.dashboard.pedidos_pendentes || 0 }}</div>
+              <div class="summary-value">{{ clienteStore.dashboard?.pedidos_pendentes || 0 }}</div>
               <div class="summary-label">Pedidos ativos</div>
             </div>
           </div>
@@ -45,7 +45,7 @@
           <div class="col-4">
             <div class="summary-card" @click="goTo('/mobile/favoritos')">
               <q-icon name="favorite" size="20px" color="red" />
-              <div class="summary-value">{{ clienteStore.dashboard.favoritos_count || 0 }}</div>
+              <div class="summary-value">{{ clienteStore.dashboard?.favoritos_count || 0 }}</div>
               <div class="summary-label">Favoritos</div>
             </div>
           </div>
@@ -66,7 +66,7 @@
         </div>
       </div>
 
-      <!-- Categorias populares (dados do store) -->
+      <!-- Categorias populares -->
       <div class="section q-px-md q-mb-md" v-if="categoriasPopulares.length > 0">
         <div class="section-header">
           <div class="section-title">Categorias populares</div>
@@ -112,7 +112,7 @@
           />
         </div>
 
-        <div v-if="clienteStore.loading" class="text-center q-py-md">
+        <div v-if="carregandoDestaque" class="text-center q-py-md">
           <q-spinner color="primary" size="40px" />
         </div>
         <div v-else class="row q-col-gutter-sm">
@@ -140,7 +140,7 @@
         </div>
       </div>
 
-      <!-- Promoções (carrossel - DADOS REAIS DO STORE) -->
+      <!-- Promoções (carrossel) -->
       <div class="section q-px-md q-mb-md" v-if="promocoesReais.length > 0">
         <div class="section-header">
           <div class="section-title">Promoções especiais</div>
@@ -210,7 +210,7 @@
           />
         </div>
 
-        <div v-if="clienteStore.loading" class="text-center q-py-md">
+        <div v-if="carregandoTop" class="text-center q-py-md">
           <q-spinner color="primary" size="40px" />
         </div>
         <div v-else>
@@ -250,7 +250,7 @@
         </div>
       </div>
 
-      <!-- Últimos pedidos (se houver) -->
+      <!-- Últimos pedidos -->
       <div class="section q-px-md q-mb-md" v-if="ultimosPedidos.length > 0">
         <div class="section-header">
           <div class="section-title">Seus últimos pedidos</div>
@@ -310,7 +310,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/auth-store';
-import { useClienteStore, type CategoriaData } from 'src/stores/cliente-store';
+import { useClienteStore, type CategoriaData, type PrestadorData, type PedidoData, type NotificacaoData } from 'src/stores/cliente-store';
 import { usePromocaoStore, type PromocaoData } from 'src/stores/promocao-store';
 
 defineOptions({
@@ -328,25 +328,36 @@ const defaultAvatar = 'https://ui-avatars.com/api/?background=667eea&color=fff&b
 
 // Estados
 const carregandoInicial = ref(true);
+const carregandoDestaque = ref(true);
+const carregandoTop = ref(true);
 const promoSlide = ref(0);
 const categoriasCarregadas = ref<CategoriaData[]>([]);
 
+// ✅ FUNÇÃO AUXILIAR PARA GARANTIR QUE É ARRAY
+const ensureArray = <T>(value: T[] | null | undefined): T[] => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  return [];
+};
+
 // Computed com dados reais do store
-const categoriasPopulares = computed(() => {
-  return categoriasCarregadas.value || [];
+const categoriasPopulares = computed<CategoriaData[]>(() => {
+  return ensureArray<CategoriaData>(categoriasCarregadas.value);
 });
 
-// ✅ PROMOÇÕES REAIS DO STORE (SEM MOCKS)
-const promocoesReais = computed(() => {
-  return promocaoStore.promocoes || [];
+// ✅ PROMOÇÕES REAIS DO STORE
+const promocoesReais = computed<PromocaoData[]>(() => {
+  return ensureArray<PromocaoData>(promocaoStore.promocoes);
 });
 
-const ultimosPedidos = computed(() => {
-  const pedidos = clienteStore.pedidos || [];
+// ✅ ÚLTIMOS PEDIDOS
+const ultimosPedidos = computed<PedidoData[]>(() => {
+  const pedidos = ensureArray<PedidoData>(clienteStore.pedidos);
   return pedidos.slice(0, 3);
 });
 
-const userName = computed(() => {
+const userName = computed<string>(() => {
   return authStore.user?.nome?.split(' ')[0] || 'Utilizador';
 });
 
@@ -356,32 +367,27 @@ const currentDate = new Date().toLocaleDateString('pt-PT', {
   year: 'numeric',
 });
 
-const notificacoesNaoLidas = computed(() => {
-  const notificacoes = clienteStore.notificacoes;
-  if (Array.isArray(notificacoes)) {
-    return notificacoes.filter((n: { lida: boolean }) => !n.lida).length;
-  }
-  return 0;
+// ✅ NOTIFICAÇÕES NÃO LIDAS
+const notificacoesNaoLidas = computed<number>(() => {
+  const notificacoes = ensureArray<NotificacaoData>(clienteStore.notificacoes);
+  return notificacoes.filter((n) => !n.lida).length;
 });
 
-const prestadoresDestaque = computed(() => {
-  const prestadores = clienteStore.prestadoresDestaque;
-  if (Array.isArray(prestadores)) {
-    return prestadores.slice(0, 4);
-  }
-  return [];
+// ✅ PRESTADORES DESTAQUE
+const prestadoresDestaque = computed<PrestadorData[]>(() => {
+  const prestadores = ensureArray<PrestadorData>(clienteStore.prestadoresDestaque);
+  return prestadores.slice(0, 4);
 });
 
-const prestadoresTop = computed(() => {
-  const prestadores = clienteStore.prestadoresTop;
-  if (Array.isArray(prestadores)) {
-    return prestadores.slice(0, 3);
-  }
-  return [];
+// ✅ PRESTADORES TOP
+const prestadoresTop = computed<PrestadorData[]>(() => {
+  const prestadores = ensureArray<PrestadorData>(clienteStore.prestadoresTop);
+  return prestadores.slice(0, 3);
 });
 
 // Funções auxiliares
-const formatMoney = (value: number) => {
+const formatMoney = (value: number): string => {
+  if (!value && value !== 0) return '0 MZN';
   return new Intl.NumberFormat('pt-PT', {
     style: 'currency',
     currency: 'MZN',
@@ -389,7 +395,8 @@ const formatMoney = (value: number) => {
   }).format(value);
 };
 
-const formatDate = (date: string) => {
+const formatDate = (date: string): string => {
+  if (!date) return '';
   const d = new Date(date);
   return d.toLocaleDateString('pt-PT', {
     day: '2-digit',
@@ -398,7 +405,7 @@ const formatDate = (date: string) => {
   });
 };
 
-const getStatusTexto = (status: string) => {
+const getStatusTexto = (status: string): string => {
   const statusMap: Record<string, string> = {
     pendente: 'Pendente',
     aceito: 'Aceito',
@@ -409,35 +416,45 @@ const getStatusTexto = (status: string) => {
   return statusMap[status] || status;
 };
 
-const getPromoGradient = (promo: PromocaoData) => {
-  const gradients = [
+// ✅ CORREÇÃO DEFINITIVA - getPromoGradient com non-null assertion
+const getPromoGradient = (promo: PromocaoData): { background: string } => {
+  const gradients: string[] = [
     'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
   ];
-  return { background: gradients[(promo.id || 0) % gradients.length] };
+
+  const id = promo?.id ?? 0;
+  const index = Math.abs(id) % gradients.length;
+  return { background: gradients[index]! };
 };
 
-const verPrestador = (id: number) => {
+const verPrestador = (id: number): void => {
   if (id) {
     void router.push(`/mobile/perfil-prestador/${id}`);
   }
 };
 
-const verPedido = (id: number) => {
-  void router.push(`/mobile/detalhes-pedido/${id}`);
+const verPedido = (id: number): void => {
+  if (id) {
+    void router.push(`/mobile/detalhes-pedido/${id}`);
+  }
 };
 
-const buscarPorCategoria = (id: number) => {
-  void router.push(`/mobile/lista-prestadores?categoria=${id}`);
+const buscarPorCategoria = (id: number): void => {
+  if (id) {
+    void router.push(`/mobile/lista-prestadores?categoria=${id}`);
+  }
 };
 
-const verPromocao = () => {
+const verPromocao = (): void => {
   void router.push('/mobile/promocoes');
 };
 
-const usarPromocao = async (promo: PromocaoData) => {
+const usarPromocao = async (promo: PromocaoData): Promise<void> => {
+  if (!promo?.codigo) return;
+
   const result = await promocaoStore.validarCupom(promo.codigo);
   if (result) {
     $q.notify({
@@ -448,41 +465,91 @@ const usarPromocao = async (promo: PromocaoData) => {
   }
 };
 
-const goTo = (path: string) => {
+const goTo = (path: string): void => {
   void router.push(path);
 };
 
-// Carregar dados
-const carregarDados = async () => {
+// ✅ CARREGAMENTO FASEADO - OTIMIZADO E SEM TIMEOUT
+const carregarDados = async (): Promise<void> => {
   carregandoInicial.value = true;
 
   try {
+    // ==========================================
+    // FASE 1: DADOS ESSENCIAIS (rápidos)
+    // ==========================================
+    console.log('🚀 FASE 1: Carregando dados essenciais...');
+
     await Promise.all([
       clienteStore.fetchDashboard(),
       clienteStore.fetchPedidos(),
-      clienteStore.fetchPrestadoresTop(),
-      clienteStore.fetchPrestadoresDestaque(),
       clienteStore.fetchNotificacoes(),
       clienteStore.fetchFavoritos(),
-      promocaoStore.fetchPromocoes(), // ✅ CARREGA PROMOÇÕES REAIS
     ]);
 
-    const categorias = await clienteStore.fetchCategorias();
-    if (categorias && categorias.length > 0) {
-      categoriasCarregadas.value = categorias;
-    }
+    // ==========================================
+    // FASE 2: PRESTADORES (podem ser mais lentos)
+    // ==========================================
+    console.log('📦 FASE 2: Carregando prestadores...');
+
+    // Carregar em paralelo com loading individual
+    const prestadoresPromise = Promise.all([
+      clienteStore.fetchPrestadoresDestaque().finally(() => {
+        carregandoDestaque.value = false;
+      }),
+      clienteStore.fetchPrestadoresTop().finally(() => {
+        carregandoTop.value = false;
+      }),
+    ]);
+
+    // ==========================================
+    // FASE 3: CATEGORIAS (não bloqueantes)
+    // ==========================================
+    console.log('🏷️ FASE 3: Carregando categorias...');
+
+    clienteStore.fetchCategorias()
+      .then(categorias => {
+        if (categorias && Array.isArray(categorias)) {
+          categoriasCarregadas.value = categorias;
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao carregar categorias:', error);
+        categoriasCarregadas.value = [];
+      });
+
+    // ==========================================
+    // FASE 4: PROMOÇÕES (opcionais, não bloqueiam)
+    // ==========================================
+    console.log('🎁 FASE 4: Carregando promoções (não bloqueante)...');
+
+    promocaoStore.fetchPromocoes().catch(error => {
+      console.warn('⚠️ Promoções não carregaram, mas app continua:', error.message);
+    });
+
+    // Aguardar prestadores (opcional - pode não esperar)
+    await prestadoresPromise;
+
+    console.log('✅ Todas as fases concluídas!');
+
   } catch (error) {
-    console.error('Erro ao carregar dados:', error);
+    console.error('❌ Erro ao carregar dados:', error);
+
+    // Finalizar loadings individuais em caso de erro
+    carregandoDestaque.value = false;
+    carregandoTop.value = false;
+
     $q.notify({
       type: 'negative',
-      message: 'Erro ao carregar dados. Tente novamente.',
+      message: 'Erro ao carregar alguns dados. Tente novamente.',
       position: 'top',
+      timeout: 3000,
     });
   } finally {
     carregandoInicial.value = false;
   }
 };
 
+// Iniciar carregamento
 onMounted(() => {
   void carregarDados();
 });

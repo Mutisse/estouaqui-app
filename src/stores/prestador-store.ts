@@ -217,6 +217,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
 
   const loading = ref(false);
+  const initialized = ref(false);
   const servicos = ref<ServicoData[]>([]);
   const servicoDetalhes = ref<ServicoData | null>(null);
   const agenda = ref<AgendaData[]>([]);
@@ -246,12 +247,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
   const raioOpcoes = ref<RaioOpcaoData[]>([]);
   const raioOpcoesOptions = ref<RaioOpcaoOptionData[]>([]);
 
-  // ✅ CORREÇÃO: Cache para evitar requisições duplicadas
+  // Cache para evitar requisições duplicadas
+  const pendingRequests = new Map<string, Promise<unknown>>();
+
   // ==========================================
   // MÉTODO AUXILIAR PARA EVITAR REQUISIÇÕES DUPLICADAS
   // ==========================================
-
-  const pendingRequests = new Map<string, Promise<unknown>>();
 
   async function dedupeRequest<T>(key: string, request: () => Promise<T>): Promise<T> {
     if (pendingRequests.has(key)) {
@@ -263,8 +264,58 @@ export const usePrestadorStore = defineStore('prestador', () => {
     });
 
     pendingRequests.set(key, promise);
-    // ✅ CORREÇÃO: remover a asserção desnecessária
     return promise;
+  }
+
+  // ==========================================
+  // FUNÇÃO AUXILIAR PARA EXTRAIR DADOS
+  // ==========================================
+
+  function extractDataFromResponse<T>(response: unknown): T {
+    if (!response) {
+      return [] as T;
+    }
+
+    if (Array.isArray(response)) {
+      return response as T;
+    }
+
+    if (typeof response === 'object' && response !== null) {
+      const obj = response as Record<string, unknown>;
+
+      if (obj.success === true && obj.data !== undefined) {
+        if (Array.isArray(obj.data)) {
+          return obj.data as T;
+        }
+        if (
+          obj.data &&
+          typeof obj.data === 'object' &&
+          (obj.data as Record<string, unknown>).data &&
+          Array.isArray((obj.data as Record<string, unknown>).data)
+        ) {
+          return (obj.data as Record<string, unknown>).data as T;
+        }
+        return obj.data as T;
+      }
+
+      if (obj.data !== undefined) {
+        if (Array.isArray(obj.data)) {
+          return obj.data as T;
+        }
+        if (
+          obj.data &&
+          typeof obj.data === 'object' &&
+          (obj.data as Record<string, unknown>).data &&
+          Array.isArray((obj.data as Record<string, unknown>).data)
+        ) {
+          return (obj.data as Record<string, unknown>).data as T;
+        }
+        return obj.data as T;
+      }
+    }
+
+    console.warn('Formato de resposta inesperado:', response);
+    return [] as T;
   }
 
   // ==========================================
@@ -276,11 +327,31 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.SERVICOS);
-        servicos.value = response.data.data;
+        const data = extractDataFromResponse<ServicoData[]>(response.data);
+        servicos.value = data;
+        console.log(`✅ ${data.length} serviços carregados`);
         return servicos.value;
       } catch (error) {
+        console.error('Erro ao carregar serviços:', error);
         showError(error);
         return [];
+      } finally {
+        loading.value = false;
+      }
+    });
+  }
+
+  async function fetchServicoDetalhes(id: number): Promise<ServicoData | null> {
+    return dedupeRequest(`servico_${id}`, async () => {
+      loading.value = true;
+      try {
+        const response = await api.get(PRESTADOR_ENDPOINTS.ATUALIZAR_SERVICO(id.toString()));
+        const data = extractDataFromResponse<ServicoData>(response.data);
+        servicoDetalhes.value = data;
+        return servicoDetalhes.value;
+      } catch (error) {
+        showError(error);
+        return null;
       } finally {
         loading.value = false;
       }
@@ -299,9 +370,10 @@ export const usePrestadorStore = defineStore('prestador', () => {
     try {
       const response = await api.post(PRESTADOR_ENDPOINTS.CRIAR_SERVICO, data);
       if (response.data.success) {
-        servicos.value.push(response.data.data);
+        const newServico = extractDataFromResponse<ServicoData>(response.data);
+        servicos.value.push(newServico);
         showNotification('positive', 'Serviço criado com sucesso!', 'check_circle');
-        return response.data.data;
+        return newServico;
       }
       return null;
     } catch (error) {
@@ -320,12 +392,13 @@ export const usePrestadorStore = defineStore('prestador', () => {
     try {
       const response = await api.put(PRESTADOR_ENDPOINTS.ATUALIZAR_SERVICO(id.toString()), data);
       if (response.data.success) {
+        const updatedServico = extractDataFromResponse<ServicoData>(response.data);
         const index = servicos.value.findIndex((s) => s.id === id);
         if (index !== -1) {
-          servicos.value[index] = response.data.data;
+          servicos.value[index] = updatedServico;
         }
         showNotification('positive', 'Serviço atualizado com sucesso!', 'edit');
-        return response.data.data;
+        return updatedServico;
       }
       return null;
     } catch (error) {
@@ -385,7 +458,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AGENDA, { params });
-        agenda.value = response.data.data;
+        agenda.value = extractDataFromResponse<AgendaData[]>(response.data);
         return agenda.value;
       } catch (error) {
         showError(error);
@@ -448,21 +521,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
           ? PRESTADOR_ENDPOINTS.SOLICITACOES_BY_STATUS(status)
           : PRESTADOR_ENDPOINTS.SOLICITACOES;
         const response = await api.get(url);
-
-        // ✅ CORREÇÃO: Garantir que solicitacoes seja sempre um array
-        const data = response.data.data;
-        if (Array.isArray(data)) {
-          solicitacoes.value = data;
-        } else if (data && Array.isArray(data.data)) {
-          solicitacoes.value = data.data;
-        } else {
-          solicitacoes.value = [];
-        }
-
+        solicitacoes.value = extractDataFromResponse<SolicitacaoData[]>(response.data);
+        console.log(`✅ ${solicitacoes.value.length} solicitações carregadas`);
         return solicitacoes.value;
       } catch (error) {
         console.error('Erro ao carregar solicitações:', error);
-        solicitacoes.value = [];
+        showError(error);
         return [];
       } finally {
         loading.value = false;
@@ -521,7 +585,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_CATEGORIAS);
-        minhasCategorias.value = response.data.data;
+        minhasCategorias.value = extractDataFromResponse<CategoriaPrestadorData[]>(response.data);
+        console.log(`✅ ${minhasCategorias.value.length} categorias carregadas`);
         return minhasCategorias.value;
       } catch (error) {
         showError(error);
@@ -581,7 +646,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.GANHOS);
-        ganhos.value = response.data.data;
+        ganhos.value = extractDataFromResponse<GanhosData>(response.data);
         return ganhos.value;
       } catch (error) {
         showError(error);
@@ -597,7 +662,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.SAQUES);
-        saques.value = response.data.data;
+        saques.value = extractDataFromResponse<SaqueData[]>(response.data);
         return saques.value;
       } catch (error) {
         showError(error);
@@ -619,7 +684,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       if (response.data.success) {
         showNotification('positive', 'Saque solicitado com sucesso!', 'payments');
         await fetchSaques();
-        return response.data.data;
+        return extractDataFromResponse<SaqueData>(response.data);
       }
       return null;
     } catch (error) {
@@ -635,7 +700,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.HISTORICO_SAQUES);
-        historicoSaques.value = response.data.data.data || response.data.data;
+        historicoSaques.value = extractDataFromResponse<SaqueData[]>(response.data);
         return historicoSaques.value;
       } catch (error) {
         showError(error);
@@ -655,7 +720,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.PRESTADOR_STATS);
-        stats.value = response.data.data;
+        stats.value = extractDataFromResponse<StatsData>(response.data);
         return stats.value;
       } catch (error) {
         showError(error);
@@ -677,7 +742,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
         const response = await api.get(PRESTADOR_ENDPOINTS.PROXIMOS_SERVICOS, {
           params: { limit },
         });
-        proximosServicos.value = response.data.data;
+        proximosServicos.value = extractDataFromResponse<ProximoServicoData[]>(response.data);
         return proximosServicos.value;
       } catch (error) {
         showError(error);
@@ -695,7 +760,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
         const response = await api.get(PRESTADOR_ENDPOINTS.AVALIACOES_RECENTES, {
           params: { limit },
         });
-        avaliacoesRecentes.value = response.data.data;
+        avaliacoesRecentes.value = extractDataFromResponse<AvaliacaoRecenteData[]>(response.data);
         return avaliacoesRecentes.value;
       } catch (error) {
         showError(error);
@@ -714,7 +779,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('dias_semana', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AUX_DIAS_SEMANA);
-        diasSemana.value = response.data.data;
+        diasSemana.value = extractDataFromResponse<DiaSemanaData[]>(response.data);
         return diasSemana.value;
       } catch (error) {
         showError(error);
@@ -727,7 +792,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('meses', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AUX_MESES);
-        meses.value = response.data.data;
+        meses.value = extractDataFromResponse<MesData[]>(response.data);
         return meses.value;
       } catch (error) {
         showError(error);
@@ -740,7 +805,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('horarios_padrao', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AUX_HORARIOS_PADRAO);
-        horariosPadrao.value = response.data.data;
+        horariosPadrao.value = extractDataFromResponse<HorarioPadraoData[]>(response.data);
         return horariosPadrao.value;
       } catch (error) {
         showError(error);
@@ -753,7 +818,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('dias_options', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AUX_DIAS_OPTIONS);
-        diasOptions.value = response.data.data;
+        diasOptions.value = extractDataFromResponse<DiaOptionData[]>(response.data);
         return diasOptions.value;
       } catch (error) {
         showError(error);
@@ -766,7 +831,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('horarios_options', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AUX_HORARIOS_OPTIONS);
-        horariosOptions.value = response.data.data;
+        horariosOptions.value = extractDataFromResponse<HorarioOptionData[]>(response.data);
         return horariosOptions.value;
       } catch (error) {
         showError(error);
@@ -784,7 +849,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.INTERVALOS);
-        intervalos.value = response.data.data;
+        intervalos.value = extractDataFromResponse<IntervaloData[]>(response.data);
         return intervalos.value;
       } catch (error) {
         showError(error);
@@ -805,9 +870,10 @@ export const usePrestadorStore = defineStore('prestador', () => {
     try {
       const response = await api.post(PRESTADOR_ENDPOINTS.CRIAR_INTERVALO, data);
       if (response.data.success) {
-        intervalos.value.push(response.data.data);
+        const newIntervalo = extractDataFromResponse<IntervaloData>(response.data);
+        intervalos.value.push(newIntervalo);
         showNotification('positive', 'Intervalo criado com sucesso!', 'schedule');
-        return response.data.data;
+        return newIntervalo;
       }
       return null;
     } catch (error) {
@@ -826,12 +892,13 @@ export const usePrestadorStore = defineStore('prestador', () => {
     try {
       const response = await api.put(PRESTADOR_ENDPOINTS.ATUALIZAR_INTERVALO(id.toString()), data);
       if (response.data.success) {
+        const updatedIntervalo = extractDataFromResponse<IntervaloData>(response.data);
         const index = intervalos.value.findIndex((i) => i.id === id);
         if (index !== -1) {
-          intervalos.value[index] = response.data.data;
+          intervalos.value[index] = updatedIntervalo;
         }
         showNotification('positive', 'Intervalo atualizado!', 'edit');
-        return response.data.data;
+        return updatedIntervalo;
       }
       return null;
     } catch (error) {
@@ -869,7 +936,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.DISPONIBILIDADE);
-        disponibilidade.value = response.data.data;
+        disponibilidade.value = extractDataFromResponse<DisponibilidadeData>(response.data);
         return disponibilidade.value;
       } catch (error) {
         showError(error);
@@ -887,9 +954,9 @@ export const usePrestadorStore = defineStore('prestador', () => {
     try {
       const response = await api.put(PRESTADOR_ENDPOINTS.ATUALIZAR_DISPONIBILIDADE, data);
       if (response.data.success) {
-        disponibilidade.value = response.data.data;
+        disponibilidade.value = extractDataFromResponse<DisponibilidadeData>(response.data);
         showNotification('positive', 'Configurações atualizadas!', 'settings');
-        return response.data.data;
+        return disponibilidade.value;
       }
       return null;
     } catch (error) {
@@ -908,7 +975,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('servico_tipos', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.SERVICO_TIPOS);
-        servicoTipos.value = response.data.data;
+        servicoTipos.value = extractDataFromResponse<ServicoTipoData[]>(response.data);
         return servicoTipos.value;
       } catch (error) {
         showError(error);
@@ -921,9 +988,11 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('servico_tipos_options', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.SERVICO_TIPOS_OPTIONS);
-        servicoTiposOptions.value = response.data.data;
+        servicoTiposOptions.value = extractDataFromResponse<ServicoTipoOptionData[]>(response.data);
+        console.log(`✅ ${servicoTiposOptions.value.length} tipos de serviço carregados`);
         return servicoTiposOptions.value;
       } catch (error) {
+        console.error('Erro ao carregar tipos de serviço:', error);
         showError(error);
         return [];
       }
@@ -938,7 +1007,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('raio_opcoes', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.RAIO_OPCOES);
-        raioOpcoes.value = response.data.data;
+        raioOpcoes.value = extractDataFromResponse<RaioOpcaoData[]>(response.data);
         return raioOpcoes.value;
       } catch (error) {
         showError(error);
@@ -951,9 +1020,11 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('raio_opcoes_options', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.RAIO_OPCOES_OPTIONS);
-        raioOpcoesOptions.value = response.data.data;
+        raioOpcoesOptions.value = extractDataFromResponse<RaioOpcaoOptionData[]>(response.data);
+        console.log(`✅ ${raioOpcoesOptions.value.length} opções de raio carregadas`);
         return raioOpcoesOptions.value;
       } catch (error) {
+        console.error('Erro ao carregar opções de raio:', error);
         showError(error);
         return [];
       }
@@ -981,6 +1052,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       err.response?.data?.message ||
       err.message ||
       'Erro ao carregar dados';
+    console.error('Erro:', message);
     showNotification('negative', message);
   }
 
@@ -993,6 +1065,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
         fetchProximosServicos(5),
         fetchAvaliacoesRecentes(5),
       ]);
+      console.log('✅ Dashboard carregado com sucesso');
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
     } finally {
@@ -1001,6 +1074,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   async function carregarDadosAuxiliares(): Promise<void> {
+    console.log('📦 Carregando dados auxiliares...');
     await Promise.all([
       fetchDiasSemana(),
       fetchMeses(),
@@ -1010,23 +1084,47 @@ export const usePrestadorStore = defineStore('prestador', () => {
       fetchServicoTiposOptions(),
       fetchRaioOpcoesOptions(),
     ]);
+    console.log('✅ Dados auxiliares carregados');
   }
 
   async function carregarTodosDados(): Promise<void> {
+    console.log('🚀 Carregando todos os dados do prestador...');
     loading.value = true;
     try {
       await Promise.all([
         fetchServicos(),
         fetchMinhasCategorias(),
+        fetchSolicitacoes(),
         fetchIntervalos(),
         fetchDisponibilidade(),
         carregarDadosAuxiliares(),
       ]);
+      initialized.value = true;
+      console.log('✅ Todos os dados do prestador carregados com sucesso');
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('❌ Erro ao carregar dados:', error);
     } finally {
       loading.value = false;
     }
+  }
+
+  async function initialize(): Promise<void> {
+    if (initialized.value) {
+      console.log('⚠️ PrestadorStore já inicializado');
+      return;
+    }
+    await carregarTodosDados();
+  }
+
+  function reset(): void {
+    console.log('🔄 Resetando PrestadorStore...');
+    servicos.value = [];
+    minhasCategorias.value = [];
+    solicitacoes.value = [];
+    intervalos.value = [];
+    disponibilidade.value = null;
+    initialized.value = false;
+    pendingRequests.clear();
   }
 
   // ==========================================
@@ -1036,6 +1134,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   return {
     // State
     loading,
+    initialized,
     servicos,
     servicoDetalhes,
     agenda,
@@ -1062,6 +1161,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
 
     // Serviços
     fetchServicos,
+    fetchServicoDetalhes,
     createServico,
     updateServico,
     deleteServico,
@@ -1124,6 +1224,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
     carregarDashboard,
     carregarDadosAuxiliares,
     carregarTodosDados,
+    initialize,
+    reset,
     showNotification,
     showError,
   };

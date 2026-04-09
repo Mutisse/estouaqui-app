@@ -27,8 +27,8 @@
     <div class="categories-chips q-px-md q-mb-md">
       <div class="row q-gutter-sm" style="overflow-x: auto; flex-wrap: nowrap;">
         <q-chip
-          v-for="cat in categorias"
-          :key="cat.id"
+          v-for="(cat, index) in categorias"
+          :key="cat?.id || `cat-${index}`"
           :clickable="true"
           :selected="selectedCategory === cat.id"
           :color="selectedCategory === cat.id ? 'primary' : 'grey-3'"
@@ -47,8 +47,8 @@
       <div class="row items-center q-gutter-sm">
         <span class="text-caption text-grey-6">Tipos de serviço:</span>
         <q-chip
-          v-for="sub in subcategorias"
-          :key="sub.id"
+          v-for="(sub, index) in subcategorias"
+          :key="sub?.id || `sub-${index}`"
           :clickable="true"
           :selected="selectedSubcategory === sub.id"
           :color="selectedSubcategory === sub.id ? 'secondary' : 'grey-2'"
@@ -71,7 +71,7 @@
       </div>
 
       <!-- Sem resultados -->
-      <div v-else-if="prestadores.length === 0" class="text-center q-pa-xl">
+      <div v-else-if="!prestadores || prestadores.length === 0" class="text-center q-pa-xl">
         <q-icon name="search_off" size="64px" color="grey-5" />
         <p class="text-h6 text-grey-7 q-mt-md">Nenhum prestador encontrado</p>
         <p class="text-grey-6">Tente ajustar os filtros ou pesquisar por outro termo</p>
@@ -81,39 +81,45 @@
       <!-- Lista de prestadores -->
       <q-list v-else bordered separator>
         <q-item
-          v-for="prestador in prestadores"
-          :key="prestador.id"
+          v-for="(prestador, index) in prestadores"
+          :key="prestador?.id || `prestador-${index}`"
           clickable
           v-ripple
-          :to="`/mobile/perfil-prestador/${prestador.id}`"
+          :to="`/mobile/perfil-prestador/${prestador?.id}`"
         >
           <q-item-section avatar>
             <q-avatar>
-              <img :src="prestador.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(prestador.nome)}&background=667eea&color=fff`" :alt="prestador.nome">
+              <img
+                :src="prestador?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(prestador?.nome || 'Prestador')}&background=667eea&color=fff`"
+                :alt="prestador?.nome || 'Prestador'"
+              >
             </q-avatar>
           </q-item-section>
 
           <q-item-section>
-            <q-item-label>{{ prestador.nome }}</q-item-label>
+            <q-item-label>{{ prestador?.nome || 'Nome não disponível' }}</q-item-label>
             <q-item-label caption>
-              <q-icon name="star" color="yellow" size="16px" /> {{ (prestador.media_avaliacao || 0).toFixed(1) }}
-              <span v-if="prestador.distancia"> - a {{ formatarDistancia(prestador.distancia) }} de distância</span>
+              <q-icon name="star" color="yellow" size="16px" />
+              {{ (prestador?.media_avaliacao || 0).toFixed(1) }}
+              <span v-if="prestador?.distancia"> - a {{ formatarDistancia(prestador.distancia) }} de distância</span>
             </q-item-label>
             <q-item-label caption class="text-primary">
-              {{ prestador.categorias?.map((c: { nome: string }) => c.nome).join(', ') || 'Sem categoria' }}
+              {{ prestador?.categorias && prestador.categorias.length
+                 ? prestador.categorias.map((c: { nome: string }) => c.nome).join(', ')
+                 : 'Sem categoria' }}
             </q-item-label>
           </q-item-section>
 
           <q-item-section side>
-            <q-badge :color="prestador.disponivel !== false ? 'primary' : 'grey'">
-              {{ prestador.disponivel !== false ? 'Disponível' : 'Indisponível' }}
+            <q-badge :color="prestador?.disponivel !== false ? 'primary' : 'grey'">
+              {{ prestador?.disponivel !== false ? 'Disponível' : 'Indisponível' }}
             </q-badge>
           </q-item-section>
         </q-item>
       </q-list>
 
       <!-- Load more -->
-      <div v-if="hasMore && prestadores.length > 0" class="text-center q-mt-lg">
+      <div v-if="hasMore && prestadores && prestadores.length > 0" class="text-center q-mt-lg">
         <q-btn
           flat
           color="primary"
@@ -208,7 +214,7 @@
           </q-item>
 
           <!-- Subcategoria (tipo de serviço) -->
-          <q-item v-if="subcategorias.length > 0">
+          <q-item v-if="subcategorias && subcategorias.length > 0">
             <q-item-section>
               <q-item-label class="text-weight-bold">Tipo de serviço</q-item-label>
               <q-select
@@ -292,7 +298,7 @@ interface PrestadorData {
   media_avaliacao: number;
   total_avaliacoes: number;
   verificado: boolean;
-  categorias?: { id: number; nome: string }[];
+  categorias?: { id: number; nome: string }[] | null;
   distancia?: number;
   disponivel?: boolean;
 }
@@ -305,6 +311,15 @@ interface Filtros {
   subcategoria_id: number | null;
   ordenar_por: string;
 }
+
+// Tipo para resposta paginada da API
+type ApiResponse<T> = {
+  current_page: number;
+  data: T[];
+  last_page: number;
+  total: number;
+  per_page: number;
+};
 
 defineOptions({
   name: 'ListaPrestadoresPage'
@@ -375,9 +390,10 @@ const formatarDistancia = (distancia?: number) => {
 const carregarCategorias = async () => {
   try {
     const response = await clienteStore.fetchCategorias();
-    categorias.value = response;
+    categorias.value = response || [];
   } catch (error) {
     console.error('Erro ao carregar categorias:', error);
+    categorias.value = [];
   }
 };
 
@@ -416,11 +432,48 @@ const carregarPrestadores = async (resetPage = true) => {
     if (filtros.disponivel === 'false') params.disponivel = false;
 
     // Usar o store para buscar prestadores
-    const result = await clienteStore.buscarPrestadoresPorNome(params.busca || '');
-    prestadores.value = result;
-    hasMore.value = false;
+    const result: unknown = await clienteStore.buscarPrestadoresPorNome(params.busca || '');
+
+    // ✅ CORREÇÃO: Extrair os dados do formato paginado com type guard
+    let prestadoresData: PrestadorData[] = [];
+
+    // Type guard para verificar se é uma resposta paginada
+    const isPaginatedResponse = (obj: unknown): obj is ApiResponse<PrestadorData> => {
+      return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        'data' in obj &&
+        Array.isArray((obj as ApiResponse<PrestadorData>).data)
+      );
+    };
+
+    if (result && Array.isArray(result)) {
+      // Caso 1: Já é um array
+      prestadoresData = result;
+      hasMore.value = false;
+    } else if (isPaginatedResponse(result)) {
+      // Caso 2: É um objeto paginado (formato da API)
+      prestadoresData = result.data;
+      hasMore.value = result.current_page < result.last_page;
+      console.log(`Página ${result.current_page} de ${result.last_page}, total: ${result.total} prestadores`);
+    } else {
+      // Caso 3: Formato desconhecido
+      prestadoresData = [];
+      hasMore.value = false;
+      console.warn('Formato de resposta inesperado:', result);
+    }
+
+    console.log(`Carregados ${prestadoresData.length} prestadores`);
+
+    if (resetPage) {
+      prestadores.value = prestadoresData;
+    } else {
+      prestadores.value = [...prestadores.value, ...prestadoresData];
+    }
+
   } catch (error) {
     console.error('Erro ao carregar prestadores:', error);
+    prestadores.value = [];
   } finally {
     loading.value = false;
     loadingMore.value = false;
@@ -540,7 +593,7 @@ onMounted(async () => {
 
   // Verificar se tem categoria na URL
   const categoriaParam = route.query.categoria;
-  if (categoriaParam) {
+  if (categoriaParam && categorias.value && categorias.value.length > 0) {
     const cat = categorias.value.find((c: CategoriaData) =>
       c.nome.toLowerCase() === String(categoriaParam).toLowerCase()
     );

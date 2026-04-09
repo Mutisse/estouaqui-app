@@ -59,6 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Login do usuário
+   * POST /api/login (rota pública)
    */
   async function login(emailOrPhone: string, password: string): Promise<boolean> {
     if (loginPromise) {
@@ -78,8 +79,9 @@ export const useAuthStore = defineStore('auth', () => {
           loginData.telefone = emailOrPhone.replace(/\s/g, '');
         }
 
+        // ✅ Usando o endpoint correto: /login (público)
         const response = await api.post<LoginResponse>(AUTH_ENDPOINTS.LOGIN, loginData, {
-          timeout: 10000
+          timeout: 15000
         });
 
         if (response.data.success) {
@@ -118,15 +120,22 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Logout do usuário
+   * POST /api/auth/logout (requer autenticação)
    */
   async function logout(): Promise<void> {
     loading.value = true;
     const currentToken = token.value;
+
     await clearAllData();
     showNotification('positive', 'Logout realizado com sucesso!', 'logout');
 
+    // Tentar fazer logout no backend (não bloqueante)
     if (currentToken) {
-      api.post(AUTH_ENDPOINTS.LOGOUT, {}, { timeout: 3000 }).catch(() => {});
+      try {
+        await api.post(AUTH_ENDPOINTS.LOGOUT, {}, { timeout: 3000 });
+      } catch {
+        // Ignorar erro no logout
+      }
     }
     loading.value = false;
   }
@@ -166,6 +175,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Verificar token e restaurar perfil do usuário
+   * GET /api/auth/verify-token (requer autenticação)
    */
   async function verifyAndRestore(): Promise<boolean> {
     if (!token.value) {
@@ -178,10 +188,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`;
 
-      const response = await api.get(AUTH_ENDPOINTS.VERIFY_TOKEN, { timeout: 5000 });
+      const response = await api.get(AUTH_ENDPOINTS.VERIFY_TOKEN, { timeout: 10000 });
 
       if (response.data.success) {
-        user.value = response.data.data.user;
+        user.value = response.data.data?.user;
         isAuthenticated.value = true;
         return true;
       } else {
@@ -215,6 +225,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Esqueci a senha - enviar link de recuperação
+   * POST /api/auth/forgot-password (público)
    */
   async function forgotPassword(email: string): Promise<boolean> {
     loading.value = true;
@@ -224,7 +235,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (response.data.success) {
         showNotification(
           'positive',
-          response.data.message || 'Link de recuperação enviado!',
+          response.data.message || 'Link de recuperação enviado! Verifique seu email.',
           'mail',
         );
         return true;
@@ -244,6 +255,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Redefinir senha com token
+   * POST /api/auth/reset-password/{token} (público)
    */
   async function resetPassword(
     resetToken: string,
@@ -261,7 +273,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (response.data.success) {
         showNotification(
           'positive',
-          response.data.message || 'Senha alterada com sucesso!',
+          response.data.message || 'Senha alterada com sucesso! Faça login.',
           'lock',
         );
         return true;
@@ -281,6 +293,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Verificar disponibilidade de email
+   * GET /api/check-email?email=xxx (público)
    */
   async function checkEmailAvailability(email: string): Promise<boolean> {
     try {
@@ -293,12 +306,51 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Verificar disponibilidade de telefone
+   * GET /api/check-phone?phone=xxx (público)
    */
   async function checkPhoneAvailability(phone: string): Promise<boolean> {
     try {
       const response = await api.get<{ available: boolean }>(AUTH_ENDPOINTS.CHECK_PHONE(phone));
       return response.data.available;
     } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Verificar email com token
+   * GET /api/auth/verify-email/{token} (público)
+   */
+  async function verifyEmail(token: string): Promise<boolean> {
+    try {
+      const response = await api.get(AUTH_ENDPOINTS.VERIFY_EMAIL(token));
+      if (response.data.success) {
+        showNotification('positive', response.data.message || 'Email verificado com sucesso!');
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const error = err as AxiosError<{ error?: string; message?: string }>;
+      showNotification('negative', error.response?.data?.error || 'Erro ao verificar email');
+      return false;
+    }
+  }
+
+  /**
+   * Reenviar verificação de email
+   * GET /api/auth/resend-verification?email=xxx (público)
+   */
+  async function resendVerification(email: string): Promise<boolean> {
+    try {
+      const response = await api.get(AUTH_ENDPOINTS.RESEND_VERIFICATION(email));
+      if (response.data.success) {
+        showNotification('positive', response.data.message || 'Email de verificação reenviado!');
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const error = err as AxiosError<{ error?: string; message?: string }>;
+      showNotification('negative', error.response?.data?.error || 'Erro ao reenviar verificação');
       return false;
     }
   }
@@ -352,6 +404,8 @@ export const useAuthStore = defineStore('auth', () => {
     resetPassword,
     checkEmailAvailability,
     checkPhoneAvailability,
+    verifyEmail,
+    resendVerification,
     clearAllData,
   };
 });

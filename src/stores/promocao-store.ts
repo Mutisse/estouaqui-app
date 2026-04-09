@@ -62,67 +62,24 @@ export const usePromocaoStore = defineStore('promocao', () => {
   /**
    * Buscar todas as promoções ativas - CORRIGIDO COM TIMEOUT E FALLBACK
    */
+  /**
+   * Buscar todas as promoções ativas - VERSÃO SIMPLES
+   */
   async function fetchPromocoes(): Promise<PromocaoData[]> {
     loading.value = true;
 
-    // Criar um timeout de 10 segundos
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout ao carregar promoções')), 10000);
-    });
-
     try {
-      // Corrida entre a requisição e o timeout
-      const response = await Promise.race([
-        api.get(CLIENTE_ENDPOINTS.PROMOCOES_ATIVAS, {
-          timeout: 10000 // Timeout de 10 segundos no axios
-        }),
-        timeoutPromise
-      ]);
+      const response = await api.get(CLIENTE_ENDPOINTS.PROMOCOES_ATIVAS);
 
-      const data = response.data.data;
-      // Garantir que é array
+      // Extrair dados corretamente
+      const data = response.data?.data ?? response.data ?? [];
       promocoes.value = Array.isArray(data) ? data : [];
+
       return promocoes.value;
-
     } catch (error) {
-      const axiosError = error as AxiosError;
-
-      // Log do erro
-      console.error('Erro ao carregar promoções:', {
-        message: axiosError.message,
-        code: axiosError.code,
-        status: axiosError.response?.status
-      });
-
-      // Mostrar notificação amigável apenas se não for timeout silencioso
-      if (axiosError.code !== 'ECONNABORTED' && axiosError.message !== 'Timeout ao carregar promoções') {
-        $q.notify({
-          type: 'warning',
-          message: 'Não foi possível carregar promoções no momento',
-          position: 'top',
-          timeout: 3000,
-          caption: 'As promoções aparecerão em breve'
-        });
-      }
-
-      // Fallback: tentar carregar do localStorage se existir
-      const cachedPromocoes = localStorage.getItem('promocoes_cache');
-      if (cachedPromocoes) {
-        try {
-          const parsed = JSON.parse(cachedPromocoes);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            promocoes.value = parsed;
-            return promocoes.value;
-          }
-        } catch (e) {
-          console.error('Erro ao carregar cache:', e);
-        }
-      }
-
-      // Se não tiver cache, retorna array vazio
+      console.error('Erro ao carregar promoções:', error);
       promocoes.value = [];
       return [];
-
     } finally {
       loading.value = false;
     }
@@ -135,7 +92,7 @@ export const usePromocaoStore = defineStore('promocao', () => {
     loading.value = true;
     try {
       const response = await api.get(CLIENTE_ENDPOINTS.PROMOCOES, {
-        timeout: 15000 // Timeout de 15 segundos
+        timeout: 15000, // Timeout de 15 segundos
       });
       const data = response.data.data;
       promocoes.value = Array.isArray(data) ? data : [];
@@ -174,7 +131,7 @@ export const usePromocaoStore = defineStore('promocao', () => {
   async function buscarPromocaoPorId(id: number): Promise<PromocaoData | null> {
     try {
       const response = await api.get(CLIENTE_ENDPOINTS.PROMOCOES_ID(id), {
-        timeout: 10000
+        timeout: 10000,
       });
       return response.data.data || null;
     } catch (error) {
@@ -189,7 +146,7 @@ export const usePromocaoStore = defineStore('promocao', () => {
   async function buscarPromocaoPorCodigo(codigo: string): Promise<PromocaoData | null> {
     try {
       const response = await api.get(CLIENTE_ENDPOINTS.PROMOCOES_CODIGO(codigo), {
-        timeout: 10000
+        timeout: 10000,
       });
       return response.data.data || null;
     } catch (error) {
@@ -210,8 +167,8 @@ export const usePromocaoStore = defineStore('promocao', () => {
           valor_pedido: valorPedido,
         },
         {
-          timeout: 15000
-        }
+          timeout: 15000,
+        },
       );
 
       if (response.data.success && response.data.data) {

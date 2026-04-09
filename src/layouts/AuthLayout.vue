@@ -2,8 +2,9 @@
   <q-layout view="hHh LpR fFf" class="bg-grey-2">
     <q-header elevated class="header-custom">
       <q-toolbar>
-        <!-- Botão Voltar no canto esquerdo -->
+        <!-- Botão Voltar no canto esquerdo (opcional em admin login) -->
         <q-btn
+          v-if="showBackButton"
           flat
           round
           dense
@@ -14,14 +15,17 @@
           <q-tooltip class="bg-white text-primary">Voltar</q-tooltip>
         </q-btn>
 
+        <!-- Espaçador quando não tem botão voltar -->
+        <div v-else class="back-placeholder"></div>
+
         <!-- Título caprichado no centro -->
         <q-toolbar-title class="text-center">
           <span class="title-light">estou</span>
           <span class="title-bold">aqui</span>
         </q-toolbar-title>
 
-        <!-- Botões no canto direito com tooltip -->
-        <div class="auth-buttons row items-center q-gutter-sm">
+        <!-- Botões no canto direito (esconder na página de admin) -->
+        <div v-if="showAuthButtons" class="auth-buttons row items-center q-gutter-sm">
           <q-btn
             flat
             dense
@@ -48,6 +52,9 @@
             </q-tooltip>
           </q-btn>
         </div>
+
+        <!-- Placeholder quando não tem botões -->
+        <div v-else class="auth-placeholder"></div>
       </q-toolbar>
     </q-header>
 
@@ -57,18 +64,28 @@
 
     <q-footer class="bg-grey-3 text-grey-8">
       <q-toolbar class="justify-center">
-        <div class="text-caption">
-          © 2026 EstouAqui - Conectamos serviços locais
-        </div>
+        <div class="text-caption">© 2026 EstouAqui - Conectamos serviços locais</div>
       </q-toolbar>
     </q-footer>
   </q-layout>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
+import { computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
+const route = useRoute();
+
+// Mostrar botão voltar apenas se não for página de login do admin
+const showBackButton = computed(() => {
+  return route.path !== '/admin/login';
+});
+
+// Mostrar botões de autenticação apenas se não for página de login do admin
+const showAuthButtons = computed(() => {
+  return route.path !== '/admin/login';
+});
 
 const goBack = () => {
   router.back();
@@ -95,6 +112,16 @@ const goToRegister = (tipo: string) => {
 .back-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: scale(1.1);
+}
+
+.back-placeholder {
+  width: 40px;
+  height: 40px;
+  margin-left: 8px;
+}
+
+.auth-placeholder {
+  width: 200px;
 }
 
 .title-light {
@@ -130,7 +157,7 @@ const goToRegister = (tipo: string) => {
 
 .auth-btn.cliente {
   border: 2px solid white;
-  color: rgba(255, 255, 255, 0.456);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .auth-btn.cliente:hover {
@@ -141,7 +168,7 @@ const goToRegister = (tipo: string) => {
 }
 
 .auth-btn.prestador {
-  color: rgba(255, 255, 255, 0.649);
+  color: rgba(255, 255, 255, 0.9);
   border: 2px solid white;
 }
 
@@ -178,7 +205,8 @@ const goToRegister = (tipo: string) => {
 
 /* Responsividade */
 @media (max-width: 599px) {
-  .title-light, .title-bold {
+  .title-light,
+  .title-bold {
     font-size: 1.2rem;
   }
 
@@ -194,6 +222,14 @@ const goToRegister = (tipo: string) => {
 
   .back-btn {
     margin-left: 0;
+  }
+
+  .back-placeholder {
+    width: 30px;
+  }
+
+  .auth-placeholder {
+    width: 100px;
   }
 }
 </style>
