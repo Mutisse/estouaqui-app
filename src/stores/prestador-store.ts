@@ -772,7 +772,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // DADOS AUXILIARES
+  // DADOS AUXILIARES (PÚBLICOS)
   // ==========================================
 
   async function fetchDiasSemana(): Promise<DiaSemanaData[]> {
@@ -834,6 +834,74 @@ export const usePrestadorStore = defineStore('prestador', () => {
         horariosOptions.value = extractDataFromResponse<HorarioOptionData[]>(response.data);
         return horariosOptions.value;
       } catch (error) {
+        showError(error);
+        return [];
+      }
+    });
+  }
+
+  // ==========================================
+  // TIPOS DE SERVIÇO (PÚBLICOS)
+  // ==========================================
+
+  async function fetchServicoTipos(): Promise<ServicoTipoData[]> {
+    return dedupeRequest('servico_tipos', async () => {
+      try {
+        // ✅ USAR ROTA PÚBLICA
+        const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS);
+        servicoTipos.value = extractDataFromResponse<ServicoTipoData[]>(response.data);
+        return servicoTipos.value;
+      } catch (error) {
+        showError(error);
+        return [];
+      }
+    });
+  }
+
+  async function fetchServicoTiposOptions(): Promise<ServicoTipoOptionData[]> {
+    return dedupeRequest('servico_tipos_options', async () => {
+      try {
+        // ✅ USAR ROTA PÚBLICA
+        const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS_OPTIONS);
+        servicoTiposOptions.value = extractDataFromResponse<ServicoTipoOptionData[]>(response.data);
+        console.log(`✅ ${servicoTiposOptions.value.length} tipos de serviço carregados`);
+        return servicoTiposOptions.value;
+      } catch (error) {
+        console.error('Erro ao carregar tipos de serviço:', error);
+        showError(error);
+        return [];
+      }
+    });
+  }
+
+  // ==========================================
+  // OPÇÕES DE RAIO (PÚBLICAS)
+  // ==========================================
+
+  async function fetchRaioOpcoes(): Promise<RaioOpcaoData[]> {
+    return dedupeRequest('raio_opcoes', async () => {
+      try {
+        // ✅ USAR ROTA PÚBLICA
+        const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES);
+        raioOpcoes.value = extractDataFromResponse<RaioOpcaoData[]>(response.data);
+        return raioOpcoes.value;
+      } catch (error) {
+        showError(error);
+        return [];
+      }
+    });
+  }
+
+  async function fetchRaioOpcoesOptions(): Promise<RaioOpcaoOptionData[]> {
+    return dedupeRequest('raio_opcoes_options', async () => {
+      try {
+        // ✅ USAR ROTA PÚBLICA
+        const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES_OPTIONS);
+        raioOpcoesOptions.value = extractDataFromResponse<RaioOpcaoOptionData[]>(response.data);
+        console.log(`✅ ${raioOpcoesOptions.value.length} opções de raio carregadas`);
+        return raioOpcoesOptions.value;
+      } catch (error) {
+        console.error('Erro ao carregar opções de raio:', error);
         showError(error);
         return [];
       }
@@ -968,70 +1036,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // TIPOS DE SERVIÇO
-  // ==========================================
-
-  async function fetchServicoTipos(): Promise<ServicoTipoData[]> {
-    return dedupeRequest('servico_tipos', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.SERVICO_TIPOS);
-        servicoTipos.value = extractDataFromResponse<ServicoTipoData[]>(response.data);
-        return servicoTipos.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      }
-    });
-  }
-
-  async function fetchServicoTiposOptions(): Promise<ServicoTipoOptionData[]> {
-    return dedupeRequest('servico_tipos_options', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.SERVICO_TIPOS_OPTIONS);
-        servicoTiposOptions.value = extractDataFromResponse<ServicoTipoOptionData[]>(response.data);
-        console.log(`✅ ${servicoTiposOptions.value.length} tipos de serviço carregados`);
-        return servicoTiposOptions.value;
-      } catch (error) {
-        console.error('Erro ao carregar tipos de serviço:', error);
-        showError(error);
-        return [];
-      }
-    });
-  }
-
-  // ==========================================
-  // OPÇÕES DE RAIO
-  // ==========================================
-
-  async function fetchRaioOpcoes(): Promise<RaioOpcaoData[]> {
-    return dedupeRequest('raio_opcoes', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.RAIO_OPCOES);
-        raioOpcoes.value = extractDataFromResponse<RaioOpcaoData[]>(response.data);
-        return raioOpcoes.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      }
-    });
-  }
-
-  async function fetchRaioOpcoesOptions(): Promise<RaioOpcaoOptionData[]> {
-    return dedupeRequest('raio_opcoes_options', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.RAIO_OPCOES_OPTIONS);
-        raioOpcoesOptions.value = extractDataFromResponse<RaioOpcaoOptionData[]>(response.data);
-        console.log(`✅ ${raioOpcoesOptions.value.length} opções de raio carregadas`);
-        return raioOpcoesOptions.value;
-      } catch (error) {
-        console.error('Erro ao carregar opções de raio:', error);
-        showError(error);
-        return [];
-      }
-    });
-  }
-
-  // ==========================================
   // MÉTODOS AUXILIARES
   // ==========================================
 
@@ -1081,8 +1085,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       fetchHorariosPadrao(),
       fetchDiasOptions(),
       fetchHorariosOptions(),
-      fetchServicoTiposOptions(),
-      fetchRaioOpcoesOptions(),
+      fetchServicoTiposOptions(), // ✅ Agora usa rota pública
+      fetchRaioOpcoesOptions(), // ✅ Agora usa rota pública
     ]);
     console.log('✅ Dados auxiliares carregados');
   }
@@ -1202,6 +1206,14 @@ export const usePrestadorStore = defineStore('prestador', () => {
     fetchDiasOptions,
     fetchHorariosOptions,
 
+    // Tipos de Serviço (públicos)
+    fetchServicoTipos,
+    fetchServicoTiposOptions,
+
+    // Opções de Raio (públicas)
+    fetchRaioOpcoes,
+    fetchRaioOpcoesOptions,
+
     // Intervalos
     fetchIntervalos,
     criarIntervalo,
@@ -1211,14 +1223,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
     // Disponibilidade
     fetchDisponibilidade,
     updateDisponibilidade,
-
-    // Tipos de Serviço
-    fetchServicoTipos,
-    fetchServicoTiposOptions,
-
-    // Opções de Raio
-    fetchRaioOpcoes,
-    fetchRaioOpcoesOptions,
 
     // Utilitários
     carregarDashboard,
