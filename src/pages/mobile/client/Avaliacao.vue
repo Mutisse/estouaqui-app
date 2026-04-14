@@ -222,7 +222,7 @@ const carregarDados = async (): Promise<void> => {
 
   try {
     // Buscar detalhes do pedido
-    const response = await api.get(CLIENTE_ENDPOINTS.PEDIDO_DETALHES(pedidoId));
+    const response = await api.get(CLIENTE_ENDPOINTS.DETALHES_PEDIDO(pedidoId));
 
     if (response.data.success) {
       const pedido = response.data.data;

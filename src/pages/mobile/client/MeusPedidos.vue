@@ -40,7 +40,12 @@
             <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
               <q-card-section class="row items-center">
                 <q-avatar size="50px" class="q-mr-sm">
-                  <img :src="pedido.prestador?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`" />
+                  <img
+                    :src="
+                      pedido.prestador?.foto ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`
+                    "
+                  />
                 </q-avatar>
                 <div class="col">
                   <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
@@ -55,7 +60,9 @@
                 <q-btn flat dense icon="chat" label="Chat" @click.stop="abrirChat(pedido)" />
                 <q-btn
                   v-if="pedido.status === 'pendente' || pedido.status === 'aceito'"
-                  flat dense icon="cancel"
+                  flat
+                  dense
+                  icon="cancel"
                   label="Cancelar"
                   color="negative"
                   @click.stop="cancelarPedido(pedido.id)"
@@ -78,19 +85,28 @@
             <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
               <q-card-section class="row items-center">
                 <q-avatar size="50px" class="q-mr-sm">
-                  <img :src="pedido.prestador?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`" />
+                  <img
+                    :src="
+                      pedido.prestador?.foto ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`
+                    "
+                  />
                 </q-avatar>
                 <div class="col">
                   <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
                   <div class="pedido-prestador">{{ pedido.prestador?.nome || 'Prestador' }}</div>
                   <div class="pedido-data">{{ formatarData(pedido.data) }}</div>
                 </div>
-                <div class="pedido-valor">{{ formatMoney(pedido.valor) }}</div>
+                <div class="pedido-valor">
+                  {{ pedido.valor ? formatMoney(pedido.valor) : 'A definir' }}
+                </div>
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn
                   v-if="!pedidoAvaliado(pedido.id)"
-                  flat dense icon="star"
+                  flat
+                  dense
+                  icon="star"
                   label="Avaliar"
                   color="yellow"
                   @click.stop="avaliarPedido(pedido.id)"
@@ -114,7 +130,12 @@
             <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
               <q-card-section class="row items-center">
                 <q-avatar size="50px" class="q-mr-sm">
-                  <img :src="pedido.prestador?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`" />
+                  <img
+                    :src="
+                      pedido.prestador?.foto ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`
+                    "
+                  />
                 </q-avatar>
                 <div class="col">
                   <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
@@ -132,66 +153,66 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
-import { useClienteStore } from 'src/stores/cliente-store'
-import type { PedidoData } from 'src/stores/cliente-store'
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
+import { useClienteStore } from 'src/stores/cliente-store';
+import type { PedidoData } from 'src/stores/cliente-store';
 
 defineOptions({
-  name: 'MobileMeusPedidos'
-})
+  name: 'MobileMeusPedidos',
+});
 
-const router = useRouter()
-const $q = useQuasar()
-const clienteStore = useClienteStore()
+const router = useRouter();
+const $q = useQuasar();
+const clienteStore = useClienteStore();
 
-const tab = ref('ativos')
-const carregando = ref(false)
-const pedidosAvaliados = ref<Set<number>>(new Set())
+const tab = ref('ativos');
+const carregando = ref(false);
+const pedidosAvaliados = ref<Set<number>>(new Set());
 
 // Computed para separar pedidos por status
 const pedidosAtivos = computed(() => {
-  return clienteStore.pedidos.filter(p =>
-    p.status === 'pendente' || p.status === 'aceito' || p.status === 'em_andamento'
-  )
-})
+  return clienteStore.pedidos.filter(
+    (p) => p.status === 'pendente' || p.status === 'aceito' || p.status === 'em_andamento',
+  );
+});
 
 const pedidosConcluidos = computed(() => {
-  return clienteStore.pedidos.filter(p => p.status === 'concluido')
-})
+  return clienteStore.pedidos.filter((p) => p.status === 'concluido');
+});
 
 const pedidosCancelados = computed(() => {
-  return clienteStore.pedidos.filter(p => p.status === 'cancelado')
-})
+  return clienteStore.pedidos.filter((p) => p.status === 'cancelado');
+});
 
 // Funções auxiliares
 const formatarData = (data: string) => {
-  if (!data) return 'Data não informada'
+  if (!data) return 'Data não informada';
   try {
-    const date = new Date(data)
-    const hoje = new Date()
-    const amanha = new Date(hoje)
-    amanha.setDate(hoje.getDate() + 1)
+    const date = new Date(data);
+    const hoje = new Date();
+    const amanha = new Date(hoje);
+    amanha.setDate(hoje.getDate() + 1);
 
     if (date.toDateString() === hoje.toDateString()) {
-      return `Hoje, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`
+      return `Hoje, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
     } else if (date.toDateString() === amanha.toDateString()) {
-      return `Amanhã, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`
+      return `Amanhã, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
     }
-    return date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
+    return date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
   } catch {
-    return data
+    return data;
   }
-}
+};
 
 const formatMoney = (value: number) => {
   return new Intl.NumberFormat('pt-PT', {
     style: 'currency',
     currency: 'MZN',
-    minimumFractionDigits: 0
-  }).format(value)
-}
+    minimumFractionDigits: 0,
+  }).format(value);
+};
 
 const getStatusTexto = (status: string) => {
   const statusMap: Record<string, string> = {
@@ -199,10 +220,10 @@ const getStatusTexto = (status: string) => {
     aceito: 'Aceito',
     em_andamento: 'Em andamento',
     concluido: 'Concluído',
-    cancelado: 'Cancelado'
-  }
-  return statusMap[status] || status
-}
+    cancelado: 'Cancelado',
+  };
+  return statusMap[status] || status;
+};
 
 const getStatusClass = (status: string) => {
   const classMap: Record<string, string> = {
@@ -210,109 +231,102 @@ const getStatusClass = (status: string) => {
     aceito: 'aceito',
     em_andamento: 'em-andamento',
     concluido: 'concluido',
-    cancelado: 'cancelado'
-  }
-  return classMap[status] || ''
-}
+    cancelado: 'cancelado',
+  };
+  return classMap[status] || '';
+};
 
 // Carregar pedidos
 const carregarPedidos = async () => {
-  carregando.value = true
+  carregando.value = true;
   try {
-    await clienteStore.fetchPedidos()
-    // Verificar quais pedidos já foram avaliados
-    for (const pedido of clienteStore.pedidos) {
-      if (pedido.id) {
-        const avaliado = await clienteStore.checkPedidoAvaliado(pedido.id)
-        if (avaliado) {
-          pedidosAvaliados.value.add(pedido.id)
-        }
-      }
-    }
+    // ✅ CORRIGIDO: usar fetchMeusPedidos
+    await clienteStore.fetchMeusPedidos();
   } catch (err) {
-    console.error('Erro ao carregar pedidos:', err)
+    console.error('Erro ao carregar pedidos:', err);
     $q.notify({
       type: 'negative',
       message: 'Erro ao carregar pedidos',
-      position: 'top'
-    })
+      position: 'top',
+    });
   } finally {
-    carregando.value = false
+    carregando.value = false;
   }
-}
+};
 
 const carregarPedidosPorTab = () => {
   // Já carregamos todos os pedidos no carregarPedidos, apenas mudamos a tab
-}
+};
 
 // Ações
 const verPedido = (id: number) => {
-  void router.push(`/mobile/detalhes-pedido/${id}`)
-}
+  void router.push(`/mobile/detalhes-pedido/${id}`);
+};
 
 const abrirChat = (pedido: PedidoData) => {
-  const prestadorId = pedido.prestador?.id
+  const prestadorId = pedido.prestador?.id;
   if (prestadorId) {
-    void router.push(`/mobile/chat/${prestadorId}`)
+    void router.push(`/mobile/chat/${prestadorId}`);
   } else {
     $q.notify({
       type: 'warning',
       message: 'Prestador não encontrado',
-      position: 'top'
-    })
+      position: 'top',
+    });
   }
-}
+};
 
 const cancelarPedido = (id: number) => {
   $q.dialog({
     title: 'Cancelar pedido',
     message: 'Tem certeza que deseja cancelar este pedido?',
     cancel: true,
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     void (async () => {
       try {
-        const success = await clienteStore.cancelarPedido(id)
+        // ✅ CORRIGIDO: usar cancelarPedidoCliente
+        const success = await clienteStore.cancelarPedidoCliente(id);
         if (success) {
           $q.notify({
             type: 'positive',
             message: 'Pedido cancelado com sucesso!',
-            position: 'top'
-          })
-          await carregarPedidos()
+            position: 'top',
+          });
+          await carregarPedidos();
         }
       } catch (err) {
-        console.error('Erro ao cancelar pedido:', err)
+        console.error('Erro ao cancelar pedido:', err);
         $q.notify({
           type: 'negative',
           message: 'Erro ao cancelar pedido',
-          position: 'top'
-        })
+          position: 'top',
+        });
       }
-    })()
-  })
-}
+    })();
+  });
+};
 
 const avaliarPedido = (pedidoId: number) => {
-  void router.push(`/mobile/avaliacao/${pedidoId}`)
-}
+  void router.push(`/mobile/avaliacao/${pedidoId}`);
+};
 
 const pedidoAvaliado = (pedidoId: number) => {
-  return pedidosAvaliados.value.has(pedidoId)
-}
+  return pedidosAvaliados.value.has(pedidoId);
+};
 
 const repetirPedido = () => {
   $q.notify({
     type: 'info',
     message: 'Funcionalidade em desenvolvimento',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
 // Carregar dados ao montar
 onMounted(() => {
-  void carregarPedidos()
-})
+  void carregarPedidos();
+});
 </script>
 
 <style scoped lang="scss">

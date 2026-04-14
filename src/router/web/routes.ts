@@ -100,6 +100,10 @@ const routes: RouteRecordRaw[] = [
         path: 'configuracoes',
         component: () => import('pages/mobile/prestador/PrestadorConfiguracoes.vue'),
       },
+      {
+        path: '/mobile/prestador/pedidos-disponiveis',
+        component: () => import('pages/mobile/prestador/PedidosDisponiveis.vue'),
+      },
     ],
   },
 

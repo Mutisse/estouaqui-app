@@ -51,7 +51,7 @@ export const PRESTADOR_ENDPOINTS = {
   DESBLOQUEAR_HORARIO: (id: string) => `/prestador/agenda/${id}`,
 
   // ==========================================
-  // 7. SOLICITAÇÕES/PEDIDOS
+  // 7. SOLICITAÇÕES/PEDIDOS (antigo sistema)
   // ==========================================
   SOLICITACOES: '/prestador/solicitacoes',
   SOLICITACOES_BY_STATUS: (status: string) => `/prestador/solicitacoes?status=${status}`,
@@ -59,20 +59,27 @@ export const PRESTADOR_ENDPOINTS = {
   RECUSAR_SOLICITACAO: (id: string) => `/prestador/solicitacoes/${id}/recusar`,
 
   // ==========================================
-  // 8. CATEGORIAS DO PRESTADOR
+  // 8. PROPOSTAS DO PRESTADOR (NOVO SISTEMA)
+  // ==========================================
+  PEDIDOS_DISPONIVEIS: '/prestador/pedidos-disponiveis',
+  ENVIAR_PROPOSTA: '/prestador/propostas',
+  MINHAS_PROPOSTAS: '/prestador/propostas',
+
+  // ==========================================
+  // 9. CATEGORIAS DO PRESTADOR
   // ==========================================
   MINHAS_CATEGORIAS: '/prestador/categorias',
   ADICIONAR_CATEGORIA: (categoriaId: string) => `/prestador/categorias/${categoriaId}`,
   REMOVER_CATEGORIA: (categoriaId: string) => `/prestador/categorias/${categoriaId}`,
 
   // ==========================================
-  // 9. CONFIGURAÇÕES E PREFERÊNCIAS
+  // 10. CONFIGURAÇÕES E PREFERÊNCIAS
   // ==========================================
   PREFERENCES: '/preferences',
   UPDATE_PREFERENCES: '/preferences',
 
   // ==========================================
-  // 10. ENDEREÇOS
+  // 11. ENDEREÇOS
   // ==========================================
   ADDRESSES: '/addresses',
   CREATE_ADDRESS: '/addresses',
@@ -82,7 +89,7 @@ export const PRESTADOR_ENDPOINTS = {
   SET_PRIMARY_ADDRESS: (id: string) => `/addresses/${id}/primary`,
 
   // ==========================================
-  // 11. PRESTADORES (consulta pública)
+  // 12. PRESTADORES (consulta pública)
   // ==========================================
   PRESTADORES_LIST: '/prestadores',
   PRESTADORES_BY_CATEGORIA: (categoriaId: number) => `/prestadores?categoria=${categoriaId}`,
@@ -97,7 +104,7 @@ export const PRESTADOR_ENDPOINTS = {
   PRESTADORES_CATEGORIAS: '/prestadores/categorias',
 
   // ==========================================
-  // 12. FINANCEIRO DO PRESTADOR
+  // 13. FINANCEIRO DO PRESTADOR
   // ==========================================
   GANHOS: '/prestador/ganhos',
   SAQUES: '/prestador/saques',
@@ -105,7 +112,7 @@ export const PRESTADOR_ENDPOINTS = {
   HISTORICO_SAQUES: '/prestador/saques/historico',
 
   // ==========================================
-  // 13. INTERVALOS DO PRESTADOR
+  // 14. INTERVALOS DO PRESTADOR
   // ==========================================
   INTERVALOS: '/prestador/intervalos',
   CRIAR_INTERVALO: '/prestador/intervalos',
@@ -113,13 +120,13 @@ export const PRESTADOR_ENDPOINTS = {
   DELETAR_INTERVALO: (id: string) => `/prestador/intervalos/${id}`,
 
   // ==========================================
-  // 14. DISPONIBILIDADE DO PRESTADOR
+  // 15. DISPONIBILIDADE DO PRESTADOR
   // ==========================================
   DISPONIBILIDADE: '/prestador/disponibilidade',
   ATUALIZAR_DISPONIBILIDADE: '/prestador/disponibilidade',
 
   // ==========================================
-  // 15. DADOS AUXILIARES (PÚBLICOS - sem autenticação)
+  // 16. DADOS AUXILIARES (PÚBLICOS - sem autenticação)
   // ==========================================
   AUX_DIAS_SEMANA: '/auxiliar/dias-semana',
   AUX_MESES: '/auxiliar/meses',
@@ -128,42 +135,36 @@ export const PRESTADOR_ENDPOINTS = {
   AUX_HORARIOS_OPTIONS: '/auxiliar/horarios-options',
 
   // ==========================================
-  // 16. TIPOS DE SERVIÇO (PÚBLICOS - sem autenticação)
+  // 17. TIPOS DE SERVIÇO (PÚBLICOS - sem autenticação)
   // ==========================================
-  // ✅ ROTAS PÚBLICAS - não precisam de token
   PUBLIC_SERVICO_TIPOS: '/public/servico-tipos',
   PUBLIC_SERVICO_TIPOS_OPTIONS: '/public/servico-tipos/options',
 
   // ==========================================
-  // 17. OPÇÕES DE RAIO (PÚBLICOS - sem autenticação)
+  // 18. OPÇÕES DE RAIO (PÚBLICOS - sem autenticação)
   // ==========================================
-  // ✅ ROTAS PÚBLICAS - não precisam de token
   PUBLIC_RAIO_OPCOES: '/public/raio-opcoes',
   PUBLIC_RAIO_OPCOES_OPTIONS: '/public/raio-opcoes/options',
 
   // ==========================================
-  // 18. CATEGORIAS (PÚBLICAS - sem autenticação)
+  // 19. CATEGORIAS (PÚBLICAS - sem autenticação)
   // ==========================================
-  // ✅ ROTA PÚBLICA - não precisa de token
   PUBLIC_CATEGORIAS: '/public/categorias',
 
   // ==========================================
-  // 19. PROMOÇÕES ATIVAS (PÚBLICAS - sem autenticação)
+  // 20. PROMOÇÕES ATIVAS (PÚBLICAS - sem autenticação)
   // ==========================================
-  // ✅ ROTA PÚBLICA - não precisa de token
   PUBLIC_PROMOCOES_ATIVAS: '/public/promocoes/ativas',
 
   // ==========================================
-  // 20. TIPOS DE SERVIÇO (PROTEGIDOS - admin)
+  // 21. TIPOS DE SERVIÇO (PROTEGIDOS - admin)
   // ==========================================
-  // ⚠️ ROTAS PROTEGIDAS - requerem token e role:admin
   ADMIN_SERVICO_TIPOS: '/servico-tipos',
   ADMIN_SERVICO_TIPOS_OPTIONS: '/servico-tipos/options',
 
   // ==========================================
-  // 21. OPÇÕES DE RAIO (PROTEGIDOS - admin)
+  // 22. OPÇÕES DE RAIO (PROTEGIDOS - admin)
   // ==========================================
-  // ⚠️ ROTAS PROTEGIDAS - requerem token e role:admin
   ADMIN_RAIO_OPCOES: '/raio-opcoes',
   ADMIN_RAIO_OPCOES_OPTIONS: '/raio-opcoes/options',
 } as const;

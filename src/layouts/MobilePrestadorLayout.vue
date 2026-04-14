@@ -249,6 +249,15 @@
           active-class="tab-active"
         />
 
+        <!-- ✅ NOVA ABA - PESQUISAR SERVIÇOS -->
+        <q-route-tab
+          to="/mobile/prestador/pedidos-disponiveis"
+          icon="search"
+          label="Procurar"
+          class="tab-item"
+          active-class="tab-active"
+        />
+
         <q-route-tab
           to="/mobile/prestador/pedidos"
           icon="assignment"
@@ -479,7 +488,6 @@ const carregarNotificacoes = async () => {
 
   loadingNotificacoes.value = true;
   try {
-    // Usar endpoint de notificações compartilhado
     const { api } = await import('src/boot/axios');
     const response = await api.get('/notifications');
 
@@ -601,12 +609,10 @@ const confirmLogout = () => {
 
 // Inicialização
 onMounted(async () => {
-  // Aguardar autenticação
   if (!authStore.isAuthenticated) {
     await authStore.initialize();
   }
 
-  // Carregar dados se for prestador
   if (authStore.isAuthenticated && authStore.isPrestador) {
     await Promise.all([
       carregarNotificacoes(),
@@ -618,7 +624,6 @@ onMounted(async () => {
     ]);
   }
 
-  // Iniciar polling
   if (authStore.isAuthenticated && authStore.isPrestador) {
     iniciarPolling();
   }

@@ -47,6 +47,29 @@ export interface SolicitacaoData {
   created_at: string;
 }
 
+export interface PedidoDisponivelData {
+  id: number;
+  numero: string;
+  descricao: string;
+  foto: string | null;
+  endereco: string;
+  status: string;
+  created_at: string;
+  categoria?: { id: number; nome: string; icone: string; cor: string };
+  cliente?: { id: number; nome: string; foto: string | null };
+}
+
+export interface PropostaData {
+  id: number;
+  pedido_id: number;
+  prestador_id: number;
+  valor: number;
+  mensagem: string | null;
+  status: 'pendente' | 'aceita' | 'recusada';
+  created_at: string;
+  pedido?: PedidoDisponivelData;
+}
+
 export interface CategoriaPrestadorData {
   id: number;
   nome: string;
@@ -247,6 +270,10 @@ export const usePrestadorStore = defineStore('prestador', () => {
   const raioOpcoes = ref<RaioOpcaoData[]>([]);
   const raioOpcoesOptions = ref<RaioOpcaoOptionData[]>([]);
 
+  // NOVOS STATES
+  const pedidosDisponiveis = ref<PedidoDisponivelData[]>([]);
+  const minhasPropostas = ref<PropostaData[]>([]);
+
   // Cache para evitar requisições duplicadas
   const pendingRequests = new Map<string, Promise<unknown>>();
 
@@ -319,6 +346,72 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
+  // PEDIDOS DISPONÍVEIS (NOVO)
+  // ==========================================
+
+  async function fetchPedidosDisponiveis(): Promise<PedidoDisponivelData[]> {
+    return dedupeRequest('pedidos_disponiveis', async () => {
+      loading.value = true;
+      try {
+        const response = await api.get(PRESTADOR_ENDPOINTS.PEDIDOS_DISPONIVEIS);
+        const data = extractDataFromResponse<PedidoDisponivelData[]>(response.data);
+        pedidosDisponiveis.value = data;
+        return pedidosDisponiveis.value;
+      } catch (error) {
+        console.error('Erro ao carregar pedidos disponíveis:', error);
+        showError(error);
+        return [];
+      } finally {
+        loading.value = false;
+      }
+    });
+  }
+
+  // ==========================================
+  // PROPOSTAS DO PRESTADOR (NOVO)
+  // ==========================================
+
+  async function enviarProposta(data: {
+    pedido_id: number;
+    valor: number;
+    mensagem?: string;
+  }): Promise<PropostaData | null> {
+    loading.value = true;
+    try {
+      const response = await api.post(PRESTADOR_ENDPOINTS.ENVIAR_PROPOSTA, data);
+      if (response.data.success) {
+        showNotification('positive', 'Proposta enviada com sucesso!', 'send');
+        await fetchMinhasPropostas();
+        return response.data.data;
+      }
+      return null;
+    } catch (error) {
+      showError(error);
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function fetchMinhasPropostas(): Promise<PropostaData[]> {
+    return dedupeRequest('minhas_propostas', async () => {
+      loading.value = true;
+      try {
+        const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_PROPOSTAS);
+        const data = extractDataFromResponse<PropostaData[]>(response.data);
+        minhasPropostas.value = data;
+        return minhasPropostas.value;
+      } catch (error) {
+        console.error('Erro ao carregar propostas:', error);
+        showError(error);
+        return [];
+      } finally {
+        loading.value = false;
+      }
+    });
+  }
+
+  // ==========================================
   // SERVIÇOS DO PRESTADOR
   // ==========================================
 
@@ -329,10 +422,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
         const response = await api.get(PRESTADOR_ENDPOINTS.SERVICOS);
         const data = extractDataFromResponse<ServicoData[]>(response.data);
         servicos.value = data;
-        console.log(`✅ ${data.length} serviços carregados`);
         return servicos.value;
       } catch (error) {
-        console.error('Erro ao carregar serviços:', error);
         showError(error);
         return [];
       } finally {
@@ -509,7 +600,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // SOLICITAÇÕES/PEDIDOS
+  // SOLICITAÇÕES/PEDIDOS (antigo sistema)
   // ==========================================
 
   async function fetchSolicitacoes(status?: string): Promise<SolicitacaoData[]> {
@@ -522,10 +613,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
           : PRESTADOR_ENDPOINTS.SOLICITACOES;
         const response = await api.get(url);
         solicitacoes.value = extractDataFromResponse<SolicitacaoData[]>(response.data);
-        console.log(`✅ ${solicitacoes.value.length} solicitações carregadas`);
         return solicitacoes.value;
       } catch (error) {
-        console.error('Erro ao carregar solicitações:', error);
         showError(error);
         return [];
       } finally {
@@ -586,7 +675,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_CATEGORIAS);
         minhasCategorias.value = extractDataFromResponse<CategoriaPrestadorData[]>(response.data);
-        console.log(`✅ ${minhasCategorias.value.length} categorias carregadas`);
         return minhasCategorias.value;
       } catch (error) {
         showError(error);
@@ -847,7 +935,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
   async function fetchServicoTipos(): Promise<ServicoTipoData[]> {
     return dedupeRequest('servico_tipos', async () => {
       try {
-        // ✅ USAR ROTA PÚBLICA
         const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS);
         servicoTipos.value = extractDataFromResponse<ServicoTipoData[]>(response.data);
         return servicoTipos.value;
@@ -861,13 +948,10 @@ export const usePrestadorStore = defineStore('prestador', () => {
   async function fetchServicoTiposOptions(): Promise<ServicoTipoOptionData[]> {
     return dedupeRequest('servico_tipos_options', async () => {
       try {
-        // ✅ USAR ROTA PÚBLICA
         const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS_OPTIONS);
         servicoTiposOptions.value = extractDataFromResponse<ServicoTipoOptionData[]>(response.data);
-        console.log(`✅ ${servicoTiposOptions.value.length} tipos de serviço carregados`);
         return servicoTiposOptions.value;
       } catch (error) {
-        console.error('Erro ao carregar tipos de serviço:', error);
         showError(error);
         return [];
       }
@@ -881,7 +965,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
   async function fetchRaioOpcoes(): Promise<RaioOpcaoData[]> {
     return dedupeRequest('raio_opcoes', async () => {
       try {
-        // ✅ USAR ROTA PÚBLICA
         const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES);
         raioOpcoes.value = extractDataFromResponse<RaioOpcaoData[]>(response.data);
         return raioOpcoes.value;
@@ -895,13 +978,10 @@ export const usePrestadorStore = defineStore('prestador', () => {
   async function fetchRaioOpcoesOptions(): Promise<RaioOpcaoOptionData[]> {
     return dedupeRequest('raio_opcoes_options', async () => {
       try {
-        // ✅ USAR ROTA PÚBLICA
         const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES_OPTIONS);
         raioOpcoesOptions.value = extractDataFromResponse<RaioOpcaoOptionData[]>(response.data);
-        console.log(`✅ ${raioOpcoesOptions.value.length} opções de raio carregadas`);
         return raioOpcoesOptions.value;
       } catch (error) {
-        console.error('Erro ao carregar opções de raio:', error);
         showError(error);
         return [];
       }
@@ -1069,7 +1149,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
         fetchProximosServicos(5),
         fetchAvaliacoesRecentes(5),
       ]);
-      console.log('✅ Dashboard carregado com sucesso');
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
     } finally {
@@ -1078,21 +1157,18 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   async function carregarDadosAuxiliares(): Promise<void> {
-    console.log('📦 Carregando dados auxiliares...');
     await Promise.all([
       fetchDiasSemana(),
       fetchMeses(),
       fetchHorariosPadrao(),
       fetchDiasOptions(),
       fetchHorariosOptions(),
-      fetchServicoTiposOptions(), // ✅ Agora usa rota pública
-      fetchRaioOpcoesOptions(), // ✅ Agora usa rota pública
+      fetchServicoTiposOptions(),
+      fetchRaioOpcoesOptions(),
     ]);
-    console.log('✅ Dados auxiliares carregados');
   }
 
   async function carregarTodosDados(): Promise<void> {
-    console.log('🚀 Carregando todos os dados do prestador...');
     loading.value = true;
     try {
       await Promise.all([
@@ -1102,9 +1178,10 @@ export const usePrestadorStore = defineStore('prestador', () => {
         fetchIntervalos(),
         fetchDisponibilidade(),
         carregarDadosAuxiliares(),
+        fetchPedidosDisponiveis(),
+        fetchMinhasPropostas(),
       ]);
       initialized.value = true;
-      console.log('✅ Todos os dados do prestador carregados com sucesso');
     } catch (error) {
       console.error('❌ Erro ao carregar dados:', error);
     } finally {
@@ -1114,19 +1191,19 @@ export const usePrestadorStore = defineStore('prestador', () => {
 
   async function initialize(): Promise<void> {
     if (initialized.value) {
-      console.log('⚠️ PrestadorStore já inicializado');
       return;
     }
     await carregarTodosDados();
   }
 
   function reset(): void {
-    console.log('🔄 Resetando PrestadorStore...');
     servicos.value = [];
     minhasCategorias.value = [];
     solicitacoes.value = [];
     intervalos.value = [];
     disponibilidade.value = null;
+    pedidosDisponiveis.value = [];
+    minhasPropostas.value = [];
     initialized.value = false;
     pendingRequests.clear();
   }
@@ -1162,6 +1239,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
     servicoTiposOptions,
     raioOpcoes,
     raioOpcoesOptions,
+    pedidosDisponiveis,
+    minhasPropostas,
 
     // Serviços
     fetchServicos,
@@ -1176,7 +1255,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     bloquearHorario,
     desbloquearHorario,
 
-    // Solicitações
+    // Solicitações (antigo)
     fetchSolicitacoes,
     aceitarSolicitacao,
     recusarSolicitacao,
@@ -1223,6 +1302,11 @@ export const usePrestadorStore = defineStore('prestador', () => {
     // Disponibilidade
     fetchDisponibilidade,
     updateDisponibilidade,
+
+    // NOVOS MÉTODOS
+    fetchPedidosDisponiveis,
+    enviarProposta,
+    fetchMinhasPropostas,
 
     // Utilitários
     carregarDashboard,

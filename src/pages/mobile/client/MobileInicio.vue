@@ -279,7 +279,9 @@
                 {{ getStatusTexto(pedido.status) }}
               </div>
             </div>
-            <div class="order-price">{{ formatMoney(pedido.valor) }}</div>
+            <div class="order-price">
+              {{ pedido.valor ? formatMoney(pedido.valor) : 'A definir' }}
+            </div>
           </div>
         </div>
       </div>
@@ -302,6 +304,120 @@
         />
       </div>
     </template>
+
+    <!-- Botão flutuante (+) para criar pedido -->
+    <q-page-sticky position="bottom-right" :offset="[18, 18]">
+      <q-btn
+        fab
+        icon="add"
+        color="primary"
+        size="18px"
+        @click="abrirModalCriarPedido"
+        class="fab-button"
+      />
+    </q-page-sticky>
+
+    <!-- Modal para criar pedido -->
+    <q-dialog v-model="modalCriarPedido" persistent>
+      <q-card style="min-width: 350px; max-width: 500px; width: 100%; border-radius: 20px">
+        <q-card-section
+          class="q-pa-md"
+          style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+        >
+          <div class="text-h6 text-white">Novo Pedido de Serviço</div>
+          <div class="text-subtitle2 text-white" style="opacity: 0.9">Descreva o que precisa</div>
+        </q-card-section>
+
+        <q-card-section class="q-pa-md">
+          <!-- Categoria -->
+          <div class="input-label">Tipo de Serviço *</div>
+          <q-select
+            v-model="novoPedido.categoria_id"
+            :options="categoriasOptions"
+            label="Selecione a categoria"
+            outlined
+            dense
+            class="q-mb-md"
+            emit-value
+            map-options
+            :rules="[(val) => !!val || 'Selecione uma categoria']"
+          />
+
+          <!-- Descrição -->
+          <div class="input-label">Descrição *</div>
+          <q-input
+            v-model="novoPedido.descricao"
+            type="textarea"
+            outlined
+            dense
+            placeholder="Ex: Preciso de um canalizador para reparar uma fuga de água..."
+            class="q-mb-md"
+            :rules="[(val) => !!val || 'Descrição é obrigatória']"
+            rows="3"
+          />
+
+          <!-- Endereço -->
+          <div class="input-label">Localização *</div>
+          <q-input
+            v-model="novoPedido.endereco"
+            outlined
+            dense
+            placeholder="Ex: Rua da Paz, 123, Maputo"
+            class="q-mb-md"
+            :rules="[(val) => !!val || 'Endereço é obrigatório']"
+          >
+            <template v-slot:prepend>
+              <q-icon name="location_on" color="grey-6" />
+            </template>
+          </q-input>
+
+          <!-- Foto (opcional) -->
+          <div class="input-label">Foto (opcional)</div>
+          <div class="photo-upload-area" @click="triggerFileInput">
+            <input
+              ref="fotoInput"
+              type="file"
+              accept="image/*"
+              style="display: none"
+              @change="handleFotoUpload"
+            />
+            <div class="photo-preview" v-if="fotoPreview">
+              <img
+                :src="fotoPreview"
+                alt="Preview"
+                style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px"
+              />
+              <q-btn
+                flat
+                round
+                dense
+                icon="close"
+                size="sm"
+                class="remove-photo"
+                @click.stop="removerFoto"
+              />
+            </div>
+            <div class="photo-placeholder" v-else>
+              <q-icon name="add_a_photo" size="32px" color="grey-5" />
+              <div class="placeholder-text">Clique para adicionar foto</div>
+              <div class="placeholder-hint">JPG, PNG até 5MB</div>
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn flat label="Cancelar" v-close-popup class="text-grey-7" />
+          <q-btn
+            unelevated
+            label="Publicar Pedido"
+            color="primary"
+            :loading="carregandoCriarPedido"
+            @click="criarPedido"
+            class="q-px-md"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -310,8 +426,15 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/auth-store';
-import { useClienteStore, type CategoriaData, type PrestadorData, type PedidoData, type NotificacaoData } from 'src/stores/cliente-store';
+import {
+  useClienteStore,
+  type CategoriaData,
+  type PrestadorData,
+  type PedidoData,
+  type NotificacaoData,
+} from 'src/stores/cliente-store';
 import { usePromocaoStore, type PromocaoData } from 'src/stores/promocao-store';
+import { api } from 'src/boot/axios';
 
 defineOptions({
   name: 'MobileInicio',
@@ -333,8 +456,24 @@ const carregandoTop = ref(true);
 const promoSlide = ref(0);
 const categoriasCarregadas = ref<CategoriaData[]>([]);
 
-// ✅ FUNÇÃO AUXILIAR PARA GARANTIR QUE É ARRAY
-const ensureArray = <T>(value: T[] | null | undefined): T[] => {
+// Estados para criar pedido
+const modalCriarPedido = ref(false);
+const carregandoCriarPedido = ref(false);
+const fotoInput = ref<HTMLInputElement | null>(null);
+const fotoPreview = ref<string | null>(null);
+const fotoFile = ref<File | null>(null);
+
+const novoPedido = ref({
+  categoria_id: null as number | null,
+  descricao: '',
+  endereco: '',
+});
+
+// Options para selects
+const categoriasOptions = ref<{ label: string; value: number }[]>([]);
+
+// Função auxiliar para garantir que é array
+const ensureArray = <T,>(value: T[] | null | undefined): T[] => {
   if (Array.isArray(value)) {
     return value;
   }
@@ -346,12 +485,12 @@ const categoriasPopulares = computed<CategoriaData[]>(() => {
   return ensureArray<CategoriaData>(categoriasCarregadas.value);
 });
 
-// ✅ PROMOÇÕES REAIS DO STORE
+// Promoções reais do store
 const promocoesReais = computed<PromocaoData[]>(() => {
   return ensureArray<PromocaoData>(promocaoStore.promocoes);
 });
 
-// ✅ ÚLTIMOS PEDIDOS
+// Últimos pedidos
 const ultimosPedidos = computed<PedidoData[]>(() => {
   const pedidos = ensureArray<PedidoData>(clienteStore.pedidos);
   return pedidos.slice(0, 3);
@@ -367,19 +506,19 @@ const currentDate = new Date().toLocaleDateString('pt-PT', {
   year: 'numeric',
 });
 
-// ✅ NOTIFICAÇÕES NÃO LIDAS
+// Notificações não lidas
 const notificacoesNaoLidas = computed<number>(() => {
   const notificacoes = ensureArray<NotificacaoData>(clienteStore.notificacoes);
   return notificacoes.filter((n) => !n.lida).length;
 });
 
-// ✅ PRESTADORES DESTAQUE
+// Prestadores destaque
 const prestadoresDestaque = computed<PrestadorData[]>(() => {
   const prestadores = ensureArray<PrestadorData>(clienteStore.prestadoresDestaque);
   return prestadores.slice(0, 4);
 });
 
-// ✅ PRESTADORES TOP
+// Prestadores top
 const prestadoresTop = computed<PrestadorData[]>(() => {
   const prestadores = ensureArray<PrestadorData>(clienteStore.prestadoresTop);
   return prestadores.slice(0, 3);
@@ -416,7 +555,7 @@ const getStatusTexto = (status: string): string => {
   return statusMap[status] || status;
 };
 
-// ✅ CORREÇÃO DEFINITIVA - getPromoGradient com non-null assertion
+// getPromoGradient
 const getPromoGradient = (promo: PromocaoData): { background: string } => {
   const gradients: string[] = [
     'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -469,29 +608,131 @@ const goTo = (path: string): void => {
   void router.push(path);
 };
 
-// ✅ CARREGAMENTO FASEADO - OTIMIZADO E SEM TIMEOUT
+// Métodos para criar pedido
+const abrirModalCriarPedido = () => {
+  novoPedido.value = {
+    categoria_id: null,
+    descricao: '',
+    endereco: '',
+  };
+  fotoPreview.value = null;
+  fotoFile.value = null;
+  modalCriarPedido.value = true;
+};
+
+const triggerFileInput = () => {
+  fotoInput.value?.click();
+};
+
+const handleFotoUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    $q.notify({ type: 'negative', message: 'A imagem deve ter no máximo 5MB', position: 'top' });
+    return;
+  }
+
+  fotoFile.value = file;
+  fotoPreview.value = URL.createObjectURL(file);
+};
+
+const removerFoto = () => {
+  if (fotoPreview.value) {
+    URL.revokeObjectURL(fotoPreview.value);
+  }
+  fotoPreview.value = null;
+  fotoFile.value = null;
+  if (fotoInput.value) {
+    fotoInput.value.value = '';
+  }
+};
+
+const criarPedido = async () => {
+  if (!novoPedido.value.categoria_id) {
+    $q.notify({ type: 'warning', message: 'Selecione o tipo de serviço', position: 'top' });
+    return;
+  }
+  if (!novoPedido.value.descricao) {
+    $q.notify({ type: 'warning', message: 'Descreva o serviço que precisa', position: 'top' });
+    return;
+  }
+  if (!novoPedido.value.endereco) {
+    $q.notify({ type: 'warning', message: 'Informe o endereço', position: 'top' });
+    return;
+  }
+
+  carregandoCriarPedido.value = true;
+
+  try {
+    const formData = new FormData();
+    formData.append('categoria_id', String(novoPedido.value.categoria_id));
+    formData.append('descricao', novoPedido.value.descricao);
+    formData.append('endereco', novoPedido.value.endereco);
+    if (fotoFile.value) {
+      formData.append('foto', fotoFile.value);
+    }
+
+    const response = await api.post('/cliente/pedidos', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+
+    if (response.data.success) {
+      $q.notify({
+        type: 'positive',
+        message: 'Pedido publicado com sucesso! Prestadores vão analisar.',
+        position: 'top',
+      });
+      modalCriarPedido.value = false;
+      await clienteStore.fetchMeusPedidos();
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: response.data.message || 'Erro ao criar pedido',
+        position: 'top',
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao criar pedido:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao criar pedido. Tente novamente.',
+      position: 'top',
+    });
+  } finally {
+    carregandoCriarPedido.value = false;
+  }
+};
+
+// Carregar categorias para o select
+const carregarCategoriasSelect = async () => {
+  try {
+    const response = await api.get('/public/categorias');
+    if (response.data.success && Array.isArray(response.data.data)) {
+      categoriasOptions.value = response.data.data.map((cat: CategoriaData) => ({
+        label: cat.nome,
+        value: cat.id,
+      }));
+    }
+  } catch (error) {
+    console.error('Erro ao carregar categorias:', error);
+  }
+};
+
+// Carregamento faseado
+// Carregamento faseado
 const carregarDados = async (): Promise<void> => {
   carregandoInicial.value = true;
 
   try {
-    // ==========================================
-    // FASE 1: DADOS ESSENCIAIS (rápidos)
-    // ==========================================
-    console.log('🚀 FASE 1: Carregando dados essenciais...');
-
     await Promise.all([
       clienteStore.fetchDashboard(),
-      clienteStore.fetchPedidos(),
+      clienteStore.fetchMeusPedidos(),
       clienteStore.fetchNotificacoes(),
       clienteStore.fetchFavoritos(),
     ]);
 
-    // ==========================================
-    // FASE 2: PRESTADORES (podem ser mais lentos)
-    // ==========================================
-    console.log('📦 FASE 2: Carregando prestadores...');
-
-    // Carregar em paralelo com loading individual
     const prestadoresPromise = Promise.all([
       clienteStore.fetchPrestadoresDestaque().finally(() => {
         carregandoDestaque.value = false;
@@ -501,43 +742,23 @@ const carregarDados = async (): Promise<void> => {
       }),
     ]);
 
-    // ==========================================
-    // FASE 3: CATEGORIAS (não bloqueantes)
-    // ==========================================
-    console.log('🏷️ FASE 3: Carregando categorias...');
-
-    clienteStore.fetchCategorias()
-      .then(categorias => {
+    clienteStore
+      .fetchCategorias()
+      .then((categorias) => {
         if (categorias && Array.isArray(categorias)) {
           categoriasCarregadas.value = categorias;
         }
       })
-      .catch(error => {
-        console.error('Erro ao carregar categorias:', error);
+      .catch(() => {
         categoriasCarregadas.value = [];
       });
 
-    // ==========================================
-    // FASE 4: PROMOÇÕES (opcionais, não bloqueiam)
-    // ==========================================
-    console.log('🎁 FASE 4: Carregando promoções (não bloqueante)...');
+    promocaoStore.fetchPromocoes().catch(() => {});
 
-    promocaoStore.fetchPromocoes().catch(error => {
-      console.warn('⚠️ Promoções não carregaram, mas app continua:', error.message);
-    });
-
-    // Aguardar prestadores (opcional - pode não esperar)
     await prestadoresPromise;
-
-    console.log('✅ Todas as fases concluídas!');
-
-  } catch (error) {
-    console.error('❌ Erro ao carregar dados:', error);
-
-    // Finalizar loadings individuais em caso de erro
+  } catch {
     carregandoDestaque.value = false;
     carregandoTop.value = false;
-
     $q.notify({
       type: 'negative',
       message: 'Erro ao carregar alguns dados. Tente novamente.',
@@ -552,6 +773,7 @@ const carregarDados = async (): Promise<void> => {
 // Iniciar carregamento
 onMounted(() => {
   void carregarDados();
+  void carregarCategoriasSelect();
 });
 </script>
 
@@ -924,5 +1146,70 @@ $gray-900: #212121;
   background: white;
   border-radius: 16px;
   margin: 20px;
+}
+
+/* Botão flutuante */
+.fab-button {
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 30px rgba(102, 126, 234, 0.5);
+  }
+}
+
+/* Input label */
+.input-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $gray-700;
+  margin-bottom: 5px;
+}
+
+/* Upload de foto */
+.photo-upload-area {
+  border: 2px dashed $gray-300;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: $gray-50;
+
+  &:hover {
+    border-color: $purple-primary;
+    background: rgba(102, 126, 234, 0.05);
+  }
+
+  .photo-preview {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    max-width: 200px;
+    height: 150px;
+
+    .remove-photo {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .photo-placeholder {
+    .placeholder-text {
+      margin-top: 10px;
+      color: $gray-600;
+      font-weight: 500;
+    }
+
+    .placeholder-hint {
+      font-size: 0.7rem;
+      color: $gray-500;
+      margin-top: 5px;
+    }
+  }
 }
 </style>

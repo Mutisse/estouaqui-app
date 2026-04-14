@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { useQuasar } from 'quasar';
+import { useQuasar, type QNotifyCreateOptions } from 'quasar';
 import { api } from 'src/boot/axios';
 import { CLIENTE_ENDPOINTS } from 'src/router/Api/cliente-endpoints';
 import type { AxiosError } from 'axios';
@@ -54,12 +54,16 @@ export interface PedidoData {
   id: number;
   numero: string;
   status: string;
+  descricao?: string;
+  foto?: string | null;
   data: string;
   endereco: string;
-  valor: number;
   observacoes?: string;
+  valor: number | null;
+  created_at: string;
   prestador?: PrestadorData;
   servico?: { id: number; nome: string; preco: number };
+  categoria?: { id: number; nome: string; icone: string; cor: string };
   avaliacao?: { id: number; nota: number; comentario: string };
 }
 
@@ -121,40 +125,16 @@ export interface ConversaData {
   nao_lidas: number;
 }
 
-export interface SystemHealthData {
-  status: string;
-  timestamp: string;
-  version: string;
-  environment: string;
-  checks: {
-    app: Record<string, unknown>;
-    database: { status: string; response_time_ms?: number; error?: string };
-    cache: { status: string; response_time_ms?: number; error?: string };
-    storage: { status: string; free_space_gb?: number; total_space_gb?: number; error?: string };
-  };
-  response_time_ms: number;
-}
-
-export interface SystemMetricsData {
-  timestamp: string;
-  system: {
-    cpu: { load_1min: number; load_5min: number; load_15min: number };
-    memory: { total_mb: number; peak_mb: number; limit_mb: number };
-    php_version: string;
-    server_software: string;
-  };
-  database: { connection: string; status: string; table_count?: number };
-  cache: { driver: string; store: string; prefix: string };
-  queue: { connection: string; driver: string };
-  storage: { disk: string; free_gb: number; used_gb: number; total_gb: number; usage_percent: number };
-  response_time_ms: number;
-}
-
-export interface NotificationPreferencesData {
-  email: boolean;
-  push: boolean;
-  sms: boolean;
-  types: Record<string, boolean>;
+export interface PropostaData {
+  id: number;
+  pedido_id: number;
+  prestador_id: number;
+  valor: number;
+  mensagem: string | null;
+  status: 'pendente' | 'aceita' | 'recusada';
+  created_at: string;
+  prestador?: PrestadorData;
+  pedido?: PedidoData;
 }
 
 export interface PreferencesData {
@@ -169,43 +149,22 @@ export interface LocalizacaoData {
   raio: number;
 }
 
-export interface SystemPerformanceData {
-  period: string;
-  avg_response_time: number;
-  requests_per_minute: number;
-  error_rate: number;
-  slow_queries: number;
-  cache_hit_rate: number;
-}
-
-export interface SystemCacheStatsData {
-  default_driver: string;
-  stores: Record<string, { available: boolean; status?: string; error?: string }>;
-  keys_count: number;
-  memory_usage_mb: number;
-}
-
-export interface SystemDatabaseStatsData {
-  connection: string;
-  database: string;
-  status: string;
-  tables: Array<{ name: string; rows: number; size_mb: number }>;
-  total_rows: number;
-  total_size_mb: number;
-  connection_time_ms?: number;
-  error?: string;
-}
-
-export interface SystemQueueStatsData {
-  connection: string;
-  queues: Record<string, { pending_jobs: number; failed_jobs: number; status: string }>;
-  total_pending: number;
-  total_failed: number;
-  workers_active: number;
+export interface CupomValidadoData {
+  valido: boolean;
+  id: number;
+  codigo: string;
+  titulo: string;
+  descricao: string | null;
+  tipo_desconto: 'percentual' | 'fixo';
+  valor_desconto: number;
+  desconto_aplicado: number;
+  valor_minimo: number;
+  validade: string;
+  novo_total: number;
 }
 
 // ==========================================
-// STORE DO CLIENTE (COMPLETO E OTIMIZADO)
+// STORE DO CLIENTE
 // ==========================================
 
 export const useClienteStore = defineStore('cliente', () => {
@@ -237,11 +196,7 @@ export const useClienteStore = defineStore('cliente', () => {
   const conversas = ref<ConversaData[]>([]);
   const mensagensChat = ref<MensagemData[]>([]);
   const unreadCount = ref(0);
-
-  // Monitoramento
-  const systemHealth = ref<SystemHealthData | null>(null);
-  const systemMetrics = ref<SystemMetricsData | null>(null);
-  const systemAlerts = ref<Array<{ level: string; type: string; message: string; timestamp: string }>>([]);
+  const propostas = ref<PropostaData[]>([]);
 
   // Cache para evitar requisições duplicadas
   const pendingRequests = new Map<string, Promise<unknown>>();
@@ -318,49 +273,7 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
-  // 1. AUTENTICAÇÃO
-  // ==========================================
-
-  async function login(email: string, password: string): Promise<{ success: boolean; user?: unknown; token?: string; error?: string }> {
-    try {
-      const response = await api.post(CLIENTE_ENDPOINTS.LOGIN, { email, password });
-      if (response.data.success) {
-        const token = response.data.data?.token;
-        if (token) {
-          localStorage.setItem('auth_token', token);
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        }
-        return { success: true, user: response.data.data?.user, token };
-      }
-      return { success: false, error: response.data.error || 'Erro no login' };
-    } catch (err) {
-      const error = err as AxiosError<{ error?: string }>;
-      return { success: false, error: error.response?.data?.error || error.message };
-    }
-  }
-
-  async function logout(): Promise<boolean> {
-    try {
-      await api.post(CLIENTE_ENDPOINTS.LOGOUT);
-      localStorage.removeItem('auth_token');
-      delete api.defaults.headers.common['Authorization'];
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async function verifyToken(): Promise<boolean> {
-    try {
-      const response = await api.get(CLIENTE_ENDPOINTS.VERIFY_TOKEN);
-      return response.data.success === true;
-    } catch {
-      return false;
-    }
-  }
-
-  // ==========================================
-  // 2. PERFIL
+  // PERFIL
   // ==========================================
 
   async function fetchProfile(): Promise<Record<string, unknown> | null> {
@@ -424,7 +337,7 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
-  // 3. DASHBOARD
+  // DASHBOARD
   // ==========================================
 
   async function fetchDashboard(): Promise<boolean> {
@@ -446,124 +359,157 @@ export const useClienteStore = defineStore('cliente', () => {
     }
   }
 
-  async function fetchStats(): Promise<Record<string, unknown> | null> {
-    return dedupeRequest('stats', async () => {
-      try {
-        const response = await api.get(CLIENTE_ENDPOINTS.STATS);
-        return response.data.data as Record<string, unknown>;
-      } catch (err) {
-        showError(err);
-        return null;
-      }
-    });
-  }
-
-  async function fetchRecentActivities(limit = 10): Promise<unknown[]> {
-    return dedupeRequest(`recent_activities_${limit}`, async () => {
-      try {
-        const response = await api.get(`${CLIENTE_ENDPOINTS.RECENT_ACTIVITIES}?limit=${limit}`);
-        return extractDataFromResponse<unknown[]>(response.data);
-      } catch (err) {
-        showError(err);
-        return [];
-      }
-    });
-  }
-
-  async function fetchActivitiesHistory(page = 1, perPage = 20): Promise<{ data: unknown[]; last_page: number; total: number }> {
-    const cacheKey = `activities_history_${page}_${perPage}`;
-    return dedupeRequest(cacheKey, async () => {
-      try {
-        const response = await api.get(`${CLIENTE_ENDPOINTS.ACTIVITIES_HISTORY}?page=${page}&per_page=${perPage}`);
-        return {
-          data: extractDataFromResponse<unknown[]>(response.data),
-          last_page: response.data.data?.last_page || 1,
-          total: response.data.data?.total || 0,
-        };
-      } catch (err) {
-        showError(err);
-        return { data: [], last_page: 1, total: 0 };
-      }
-    });
-  }
-
   // ==========================================
-  // 4. PEDIDOS
+  // PEDIDOS DO CLIENTE
   // ==========================================
 
-  async function fetchPedidos(status?: string): Promise<PedidoData[] | null> {
-    const cacheKey = `pedidos_${status || 'all'}`;
-    return dedupeRequest(cacheKey, async () => {
+  async function criarPedidoServico(data: {
+    categoria_id: number;
+    descricao: string;
+    endereco: string;
+    foto?: File | null;
+  }): Promise<PedidoData | null> {
+    loading.value = true;
+    try {
+      const formData = new FormData();
+      formData.append('categoria_id', String(data.categoria_id));
+      formData.append('descricao', data.descricao);
+      formData.append('endereco', data.endereco);
+      if (data.foto) {
+        formData.append('foto', data.foto);
+      }
+
+      const response = await api.post(CLIENTE_ENDPOINTS.CRIAR_PEDIDO, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 30000,
+      });
+
+      if (response.data.success) {
+        showNotification('positive', 'Pedido publicado com sucesso!', 'check_circle');
+        await fetchMeusPedidos();
+        return response.data.data;
+      }
+      return null;
+    } catch (err) {
+      showError(err);
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function fetchMeusPedidos(): Promise<PedidoData[]> {
+    return dedupeRequest('meus_pedidos', async () => {
+      loading.value = true;
       try {
-        const url = status ? CLIENTE_ENDPOINTS.PEDIDOS_BY_STATUS(status) : CLIENTE_ENDPOINTS.PEDIDOS;
-        const response = await api.get(url);
+        const response = await api.get(CLIENTE_ENDPOINTS.MEUS_PEDIDOS);
         const data = extractDataFromResponse<PedidoData[]>(response.data);
         pedidos.value = data;
         return pedidos.value;
       } catch (err) {
         showError(err);
-        return null;
+        return [];
+      } finally {
+        loading.value = false;
       }
     });
   }
 
-  async function fetchPedidoDetalhes(id: string | number): Promise<PedidoData | null> {
-    const cacheKey = `pedido_detalhes_${id}`;
-    return dedupeRequest(cacheKey, async () => {
+  async function fetchDetalhesPedido(id: number): Promise<PedidoData | null> {
+    return dedupeRequest(`detalhes_pedido_${id}`, async () => {
+      loading.value = true;
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.PEDIDO_DETALHES(id.toString()));
+        const response = await api.get(CLIENTE_ENDPOINTS.DETALHES_PEDIDO(id.toString()));
         const data = extractDataFromResponse<PedidoData>(response.data);
         pedidoDetalhes.value = data;
         return pedidoDetalhes.value;
       } catch (err) {
         showError(err);
         return null;
+      } finally {
+        loading.value = false;
       }
     });
   }
 
-  async function criarPedido(data: {
-    prestador_id: number;
-    servico_id: number;
-    data: string;
-    endereco: string;
-    observacoes?: string;
-  }): Promise<PedidoData | null> {
+  async function cancelarPedidoCliente(id: number): Promise<boolean> {
+    loading.value = true;
     try {
-      const response = await api.post(CLIENTE_ENDPOINTS.CRIAR_PEDIDO, data);
-      await fetchPedidos();
-      return extractDataFromResponse<PedidoData>(response.data);
-    } catch (err) {
-      showError(err);
-      return null;
-    }
-  }
-
-  async function cancelarPedido(id: string | number): Promise<boolean> {
-    try {
-      const response = await api.put(CLIENTE_ENDPOINTS.CANCELAR_PEDIDO(id.toString()));
-      await fetchPedidos();
-      return response.data.success === true;
+      const response = await api.put(CLIENTE_ENDPOINTS.CANCELAR_PEDIDO_CLIENTE(id.toString()));
+      if (response.data.success) {
+        showNotification('positive', 'Pedido cancelado com sucesso!', 'cancel');
+        await fetchMeusPedidos();
+        return true;
+      }
+      return false;
     } catch (err) {
       showError(err);
       return false;
+    } finally {
+      loading.value = false;
     }
   }
 
-  async function checkPedidoAvaliado(pedidoId: string | number): Promise<boolean> {
-    const cacheKey = `pedido_avaliado_${pedidoId}`;
-    return dedupeRequest(cacheKey, async () => {
+  // ==========================================
+  // PROPOSTAS DO CLIENTE
+  // ==========================================
+
+  async function fetchMinhasPropostas(): Promise<PropostaData[]> {
+    return dedupeRequest('minhas_propostas', async () => {
+      loading.value = true;
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.CHECK_PEDIDO_AVALIACAO(pedidoId.toString()));
-        return response.data.data?.avaliado === true;
-      } catch {
-        return false;
+        const response = await api.get(CLIENTE_ENDPOINTS.PROPOSTAS);
+        const data = extractDataFromResponse<PropostaData[]>(response.data);
+        propostas.value = data;
+        return propostas.value;
+      } catch (err) {
+        showError(err);
+        return [];
+      } finally {
+        loading.value = false;
       }
     });
   }
 
+  async function aceitarProposta(id: number): Promise<boolean> {
+    loading.value = true;
+    try {
+      const response = await api.put(CLIENTE_ENDPOINTS.ACEITAR_PROPOSTA(id));
+      if (response.data.success) {
+        showNotification('positive', 'Proposta aceita! Prestador será contactado.', 'check_circle');
+        await fetchMinhasPropostas();
+        await fetchMeusPedidos();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      showError(err);
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function recusarProposta(id: number): Promise<boolean> {
+    loading.value = true;
+    try {
+      const response = await api.put(CLIENTE_ENDPOINTS.RECUSAR_PROPOSTA(id));
+      if (response.data.success) {
+        showNotification('info', 'Proposta recusada', 'cancel');
+        await fetchMinhasPropostas();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      showError(err);
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   // ==========================================
-  // 5. AVALIAÇÕES
+  // AVALIAÇÕES
   // ==========================================
 
   async function fetchAvaliacoes(): Promise<AvaliacaoData[] | null> {
@@ -586,7 +532,6 @@ export const useClienteStore = defineStore('cliente', () => {
     nota: number;
     comentario?: string;
     categorias?: string[];
-    recomenda?: boolean;
   }): Promise<AvaliacaoData | null> {
     try {
       const response = await api.post(CLIENTE_ENDPOINTS.CRIAR_AVALIACAO, data);
@@ -624,7 +569,7 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
-  // 6. FAVORITOS
+  // FAVORITOS
   // ==========================================
 
   async function fetchFavoritos(): Promise<FavoritoData[] | null> {
@@ -676,7 +621,7 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
-  // 7. PRESTADORES (público)
+  // PRESTADORES (consulta pública)
   // ==========================================
 
   async function fetchPrestadoresProximos(lat: number, lng: number, raio?: number): Promise<PrestadorData[]> {
@@ -765,7 +710,7 @@ export const useClienteStore = defineStore('cliente', () => {
   async function fetchCategorias(): Promise<CategoriaData[]> {
     return dedupeRequest('categorias', async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.PRESTADORES_CATEGORIAS);
+        const response = await api.get(CLIENTE_ENDPOINTS.CATEGORIAS_PUBLICAS);
         return extractDataFromResponse<CategoriaData[]>(response.data);
       } catch (err) {
         showError(err);
@@ -775,7 +720,7 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
-  // 8. NOTIFICAÇÕES
+  // NOTIFICAÇÕES
   // ==========================================
 
   async function fetchNotificacoes(): Promise<NotificacaoData[] | null> {
@@ -814,35 +759,8 @@ export const useClienteStore = defineStore('cliente', () => {
     }
   }
 
-  async function fetchNotificationPreferences(): Promise<NotificationPreferencesData | null> {
-    return dedupeRequest('notif_preferences', async () => {
-      try {
-        const response = await api.get(CLIENTE_ENDPOINTS.NOTIFICATION_PREFERENCES);
-        return response.data.data as NotificationPreferencesData;
-      } catch (err) {
-        showError(err);
-        return null;
-      }
-    });
-  }
-
-  async function updateNotificationPreferences(preferences: {
-    email?: boolean;
-    push?: boolean;
-    sms?: boolean;
-    types?: Record<string, boolean>;
-  }): Promise<boolean> {
-    try {
-      const response = await api.put(CLIENTE_ENDPOINTS.UPDATE_NOTIFICATION_PREFERENCES, preferences);
-      return response.data.success === true;
-    } catch (err) {
-      showError(err);
-      return false;
-    }
-  }
-
   // ==========================================
-  // 9. PREFERÊNCIAS
+  // PREFERÊNCIAS
   // ==========================================
 
   async function fetchPreferences(): Promise<PreferencesData | null> {
@@ -868,7 +786,7 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
-  // 10. LOCALIZAÇÃO
+  // LOCALIZAÇÃO
   // ==========================================
 
   async function fetchLocalizacao(): Promise<LocalizacaoData | null> {
@@ -894,7 +812,7 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
-  // 11. ENDEREÇOS
+  // ENDEREÇOS
   // ==========================================
 
   async function fetchEnderecos(): Promise<EnderecoData[] | null> {
@@ -956,7 +874,7 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
-  // 12. CHAT
+  // CHAT
   // ==========================================
 
   async function fetchConversas(): Promise<ConversaData[] | null> {
@@ -1037,102 +955,37 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
-  // 13. MONITORAMENTO DE SISTEMA
+  // PROMOÇÕES
   // ==========================================
 
-  async function fetchSystemHealth(): Promise<SystemHealthData | null> {
-    return dedupeRequest('system_health', async () => {
+  async function fetchPromocoes(): Promise<unknown[]> {
+    return dedupeRequest('promocoes', async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.SYSTEM_HEALTH);
-        systemHealth.value = response.data as SystemHealthData;
-        return systemHealth.value;
-      } catch {
-        return null;
-      }
-    });
-  }
-
-  async function fetchSystemMetrics(): Promise<SystemMetricsData | null> {
-    return dedupeRequest('system_metrics', async () => {
-      try {
-        const response = await api.get(CLIENTE_ENDPOINTS.SYSTEM_METRICS);
-        systemMetrics.value = response.data.data as SystemMetricsData;
-        return systemMetrics.value;
-      } catch {
-        return null;
-      }
-    });
-  }
-
-  async function fetchSystemPerformance(period: 'hour' | 'day' | 'week' = 'hour'): Promise<SystemPerformanceData | null> {
-    return dedupeRequest(`system_performance_${period}`, async () => {
-      try {
-        const response = await api.get(`${CLIENTE_ENDPOINTS.SYSTEM_PERFORMANCE}?period=${period}`);
-        return response.data.data as SystemPerformanceData;
-      } catch {
-        return null;
-      }
-    });
-  }
-
-  async function fetchSystemAlerts(): Promise<Array<{ level: string; type: string; message: string; timestamp: string }>> {
-    return dedupeRequest('system_alerts', async () => {
-      try {
-        const response = await api.get(CLIENTE_ENDPOINTS.SYSTEM_ALERTS);
-        systemAlerts.value = response.data.data?.alerts || [];
-        return systemAlerts.value;
-      } catch {
+        const response = await api.get(CLIENTE_ENDPOINTS.PROMOCOES_ATIVAS);
+        return extractDataFromResponse<unknown[]>(response.data);
+      } catch (err) {
+        showError(err);
         return [];
       }
     });
   }
 
-  async function fetchSystemLogs(lines = 100, level = 'all'): Promise<{ total: number; logs: Array<{ timestamp: string | null; level: string; message: string }> }> {
-    return dedupeRequest(`system_logs_${lines}_${level}`, async () => {
-      try {
-        const response = await api.get(`${CLIENTE_ENDPOINTS.SYSTEM_LOGS_RECENT}?lines=${lines}&level=${level}`);
-        return response.data.data as { total: number; logs: Array<{ timestamp: string | null; level: string; message: string }> };
-      } catch {
-        return { total: 0, logs: [] };
+  async function validarCupom(codigo: string): Promise<CupomValidadoData | null> {
+    try {
+      const response = await api.post(CLIENTE_ENDPOINTS.VALIDAR_CUPOM, { codigo });
+      if (response.data.success) {
+        showNotification('positive', `Cupom ${codigo} aplicado com sucesso!`, 'local_offer');
+        return response.data.data as CupomValidadoData;
       }
-    });
-  }
-
-  async function fetchCacheStats(): Promise<SystemCacheStatsData | null> {
-    return dedupeRequest('cache_stats', async () => {
-      try {
-        const response = await api.get(CLIENTE_ENDPOINTS.SYSTEM_CACHE_STATS);
-        return response.data.data as SystemCacheStatsData;
-      } catch {
-        return null;
-      }
-    });
-  }
-
-  async function fetchDatabaseStats(): Promise<SystemDatabaseStatsData | null> {
-    return dedupeRequest('database_stats', async () => {
-      try {
-        const response = await api.get(CLIENTE_ENDPOINTS.SYSTEM_DATABASE_STATS);
-        return response.data.data as SystemDatabaseStatsData;
-      } catch {
-        return null;
-      }
-    });
-  }
-
-  async function fetchQueueStats(): Promise<SystemQueueStatsData | null> {
-    return dedupeRequest('queue_stats', async () => {
-      try {
-        const response = await api.get(CLIENTE_ENDPOINTS.SYSTEM_QUEUE_STATS);
-        return response.data.data as SystemQueueStatsData;
-      } catch {
-        return null;
-      }
-    });
+      return null;
+    } catch (err) {
+      showError(err);
+      return null;
+    }
   }
 
   // ==========================================
-  // 14. REGISTRO - MÉTODOS
+  // REGISTRO - MÉTODOS
   // ==========================================
 
   const registerForm = ref({
@@ -1385,15 +1238,23 @@ export const useClienteStore = defineStore('cliente', () => {
   // MÉTODOS AUXILIARES
   // ==========================================
 
-  function showError(error: unknown) {
-    const err = error as AxiosError<{ error?: string; message?: string }>;
-    const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Erro ao carregar dados';
-    $q.notify({
-      type: 'negative',
+  function showNotification(type: 'positive' | 'negative' | 'warning' | 'info', message: string, icon?: string) {
+    const notifyOptions: QNotifyCreateOptions = {
+      type,
       message,
       position: 'top',
       timeout: 3000,
-    });
+    };
+    if (icon) {
+      notifyOptions.icon = icon;
+    }
+    $q.notify(notifyOptions);
+  }
+
+  function showError(error: unknown) {
+    const err = error as AxiosError<{ error?: string; message?: string }>;
+    const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Erro ao carregar dados';
+    showNotification('negative', message);
   }
 
   function clearCache(): void {
@@ -1422,11 +1283,7 @@ export const useClienteStore = defineStore('cliente', () => {
     conversas,
     mensagensChat,
     unreadCount,
-
-    // Monitoramento State
-    systemHealth,
-    systemMetrics,
-    systemAlerts,
+    propostas,
 
     // Registro State
     registerForm,
@@ -1441,11 +1298,6 @@ export const useClienteStore = defineStore('cliente', () => {
     passwordStrength,
     isFormValid,
 
-    // Autenticação
-    login,
-    logout,
-    verifyToken,
-
     // Perfil
     fetchProfile,
     updateProfile,
@@ -1455,16 +1307,17 @@ export const useClienteStore = defineStore('cliente', () => {
 
     // Dashboard
     fetchDashboard,
-    fetchStats,
-    fetchRecentActivities,
-    fetchActivitiesHistory,
 
     // Pedidos
-    fetchPedidos,
-    fetchPedidoDetalhes,
-    criarPedido,
-    cancelarPedido,
-    checkPedidoAvaliado,
+    criarPedidoServico,
+    fetchMeusPedidos,
+    fetchDetalhesPedido,
+    cancelarPedidoCliente,
+
+    // Propostas
+    fetchMinhasPropostas,
+    aceitarProposta,
+    recusarProposta,
 
     // Avaliações
     fetchAvaliacoes,
@@ -1491,8 +1344,6 @@ export const useClienteStore = defineStore('cliente', () => {
     fetchNotificacoes,
     marcarNotificacaoLida,
     marcarTodasNotificacoesLidas,
-    fetchNotificationPreferences,
-    updateNotificationPreferences,
 
     // Preferências
     fetchPreferences,
@@ -1517,15 +1368,9 @@ export const useClienteStore = defineStore('cliente', () => {
     markMessagesAsRead,
     fetchUnreadCount,
 
-    // Monitoramento
-    fetchSystemHealth,
-    fetchSystemMetrics,
-    fetchSystemPerformance,
-    fetchSystemAlerts,
-    fetchSystemLogs,
-    fetchCacheStats,
-    fetchDatabaseStats,
-    fetchQueueStats,
+    // Promoções
+    fetchPromocoes,
+    validarCupom,
 
     // Registro Métodos
     setRegisterField,
@@ -1538,6 +1383,7 @@ export const useClienteStore = defineStore('cliente', () => {
     resetRegisterForm,
 
     // Utilitários
+    showNotification,
     showError,
     clearCache,
   };
