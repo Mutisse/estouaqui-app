@@ -251,7 +251,6 @@
           active-class="tab-active"
         />
 
-        <!-- ✅ NOVA ABA - PESQUISAR SERVIÇOS -->
         <q-route-tab
           to="/mobile/prestador/pedidos-disponiveis"
           icon="search"
@@ -419,17 +418,21 @@ const userTotalAvaliacoes = computed(
   () => (authStore.user as PrestadorUser)?.total_avaliacoes || 0,
 );
 
-// Solicitações pendentes count
+// ✅ CORREÇÃO 1: Computed com verificação de segurança para evitar erro "filter is not a function"
 const solicitacoesPendentesCount = computed(() => {
-  return prestadorStore.solicitacoes.filter((s) => s.status === 'pendente').length;
+  // Verifica se solicitacoes é um array antes de usar filter
+  if (prestadorStore.solicitacoes && Array.isArray(prestadorStore.solicitacoes)) {
+    return prestadorStore.solicitacoes.filter((s) => s.status === 'pendente').length;
+  }
+  return 0;
 });
 
 // Notificações (inicializado como array vazio)
 const notificacoes = ref<NotificacaoData[]>([]);
 
-// Computed com verificação de segurança
+// ✅ CORREÇÃO 2: Computed com verificação de segurança
 const unreadCount = computed(() => {
-  if (Array.isArray(notificacoes.value)) {
+  if (notificacoes.value && Array.isArray(notificacoes.value)) {
     return notificacoes.value.filter((n) => !n.lida).length;
   }
   return 0;
@@ -482,7 +485,7 @@ const formatarData = (dataString: string) => {
   }
 };
 
-// Carregar notificações do prestador (usando endpoint compartilhado)
+// Carregar notificações do prestador
 const carregarNotificacoes = async () => {
   if (!authStore.isPrestador) {
     console.log('Usuário não é prestador, ignorando notificações');
@@ -555,7 +558,7 @@ const openNotifications = () => {
   void carregarNotificacoes();
 };
 
-// Carregar solicitações pendentes do prestador
+// ✅ CORREÇÃO 3: Função segura para carregar solicitações
 const carregarSolicitacoesPendentes = async () => {
   if (!authStore.isPrestador) {
     return;
@@ -611,23 +614,27 @@ const confirmLogout = () => {
   });
 };
 
-// ✅ CORREÇÃO: Removido o await do initialize() que é síncrono
+// ✅ CORREÇÃO 4: onMounted sem await no initialize
 onMounted(async () => {
-  // Inicializa o auth store (operação síncrona - sem await)
+  // Inicializa o auth store (operação síncrona)
   if (!authStore.isAuthenticated) {
-    authStore.initialize(); // ← AQUI ESTAVA O ERRO - removido o await
+    authStore.initialize();
   }
 
   // Se estiver autenticado e for prestador, carrega os dados
   if (authStore.isAuthenticated && authStore.isPrestador) {
-    await Promise.all([
-      carregarNotificacoes(),
-      carregarSolicitacoesPendentes(),
-      prestadorStore.fetchStats(),
-      prestadorStore.fetchGanhos(),
-      prestadorStore.fetchProximosServicos(5),
-      prestadorStore.fetchAvaliacoesRecentes(5),
-    ]);
+    try {
+      await Promise.all([
+        carregarNotificacoes(),
+        carregarSolicitacoesPendentes(),
+        prestadorStore.fetchStats(),
+        prestadorStore.fetchGanhos(),
+        prestadorStore.fetchProximosServicos(5),
+        prestadorStore.fetchAvaliacoesRecentes(5),
+      ]);
+    } catch (error) {
+      console.error('Erro ao carregar dados iniciais:', error);
+    }
   }
 
   // Inicia polling apenas se for prestador autenticado
