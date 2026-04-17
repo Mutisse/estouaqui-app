@@ -1,4 +1,3 @@
-<!-- src/App.vue -->
 <template>
   <div v-if="loading" class="app-loading">
     <div class="loading-content">
@@ -16,12 +15,11 @@ import { useAuthStore } from 'src/stores/auth-store';
 const loading = ref(true);
 const authStore = useAuthStore();
 
-onMounted(async () => {
+onMounted(() => {
   try {
-    // Verificar se tem token e restaurar usuário
-    await authStore.initialize();
-  } catch (error) {
-    console.error('❌ Erro na inicialização:', error);
+    authStore.initialize();
+  } catch {
+    // Erro silencioso - ignorado intencionalmente
   } finally {
     loading.value = false;
   }

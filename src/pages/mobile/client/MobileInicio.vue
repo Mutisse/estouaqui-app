@@ -126,7 +126,7 @@
                 </div>
                 <div class="service-rating">
                   <q-rating
-                    :model-value="prestador.media_avaliacao || 0"
+                    :model-value="obterMediaAvaliacao(prestador.media_avaliacao)"
                     size="14px"
                     :max="5"
                     color="yellow"
@@ -236,7 +236,7 @@
                 </div>
                 <div class="provider-rating">
                   <q-rating
-                    :model-value="prestador.media_avaliacao || 0"
+                    :model-value="obterMediaAvaliacao(prestador.media_avaliacao)"
                     size="14px"
                     :max="5"
                     color="yellow"
@@ -420,11 +420,11 @@
     </q-dialog>
   </q-page>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
+import type { AxiosError } from 'axios';
 import { useAuthStore } from 'src/stores/auth-store';
 import {
   useClienteStore,
@@ -434,7 +434,6 @@ import {
   type NotificacaoData,
 } from 'src/stores/cliente-store';
 import { usePromocaoStore, type PromocaoData } from 'src/stores/promocao-store';
-import { api } from 'src/boot/axios';
 
 defineOptions({
   name: 'MobileInicio',
@@ -478,6 +477,13 @@ const ensureArray = <T,>(value: T[] | null | undefined): T[] => {
     return value;
   }
   return [];
+};
+
+// Função auxiliar para converter media_avaliacao para número
+const obterMediaAvaliacao = (media: string | number | null | undefined): number => {
+  if (media === null || media === undefined) return 0;
+  const num = typeof media === 'string' ? parseFloat(media) : media;
+  return isNaN(num) ? 0 : num;
 };
 
 // Computed com dados reais do store
@@ -649,16 +655,32 @@ const removerFoto = () => {
   }
 };
 
+// ✅ MÉTODO CORRIGIDO - COM LOGS PARA VERIFICAR OS DADOS
 const criarPedido = async () => {
+  // 🔍 LOGS DE VERIFICAÇÃO
+  console.log('========== VERIFICANDO DADOS ANTES DE ENVIAR ==========');
+  console.log('📌 categoria_id:', novoPedido.value.categoria_id);
+  console.log('📌 tipo da categoria_id:', typeof novoPedido.value.categoria_id);
+  console.log('📌 descricao:', novoPedido.value.descricao);
+  console.log('📌 endereco:', novoPedido.value.endereco);
+  console.log('📌 fotoFile:', fotoFile.value ? fotoFile.value.name : 'Nenhuma foto');
+  console.log('=======================================================');
+
+  // ✅ VALIDAÇÃO EXPLÍCITA
   if (!novoPedido.value.categoria_id) {
+    console.error('❌ categoria_id é NULL ou undefined!');
     $q.notify({ type: 'warning', message: 'Selecione o tipo de serviço', position: 'top' });
     return;
   }
-  if (!novoPedido.value.descricao) {
+
+  if (!novoPedido.value.descricao || novoPedido.value.descricao.trim() === '') {
+    console.error('❌ descricao está vazia!');
     $q.notify({ type: 'warning', message: 'Descreva o serviço que precisa', position: 'top' });
     return;
   }
-  if (!novoPedido.value.endereco) {
+
+  if (!novoPedido.value.endereco || novoPedido.value.endereco.trim() === '') {
+    console.error('❌ endereco está vazio!');
     $q.notify({ type: 'warning', message: 'Informe o endereço', position: 'top' });
     return;
   }
@@ -666,38 +688,41 @@ const criarPedido = async () => {
   carregandoCriarPedido.value = true;
 
   try {
-    const formData = new FormData();
-    formData.append('categoria_id', String(novoPedido.value.categoria_id));
-    formData.append('descricao', novoPedido.value.descricao);
-    formData.append('endereco', novoPedido.value.endereco);
-    if (fotoFile.value) {
-      formData.append('foto', fotoFile.value);
-    }
-
-    const response = await api.post('/cliente/pedidos', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    console.log('🚀 Enviando para o store...');
+    const resultado = await clienteStore.criarPedidoServico({
+      categoria_id: Number(novoPedido.value.categoria_id), // ✅ GARANTIR QUE É NÚMERO
+      descricao: novoPedido.value.descricao.trim(),
+      endereco: novoPedido.value.endereco.trim(),
+      foto: fotoFile.value,
     });
 
-    if (response.data.success) {
+    console.log('📦 Resposta do store:', resultado);
+
+    if (resultado) {
+      console.log('✅ Pedido criado com sucesso! ID:', resultado.id);
       $q.notify({
         type: 'positive',
         message: 'Pedido publicado com sucesso! Prestadores vão analisar.',
         position: 'top',
       });
       modalCriarPedido.value = false;
-      await clienteStore.fetchMeusPedidos();
+      await clienteStore.fetchDashboard(true);
+      await clienteStore.fetchMeusPedidos(true);
     } else {
+      console.error('❌ Store retornou null');
       $q.notify({
         type: 'negative',
-        message: response.data.message || 'Erro ao criar pedido',
+        message: 'Erro ao criar pedido. Tente novamente.',
         position: 'top',
       });
     }
   } catch (error) {
-    console.error('Erro ao criar pedido:', error);
+    const err = error as AxiosError<{ message?: string }>;
+    console.error('❌ Erro detalhado:', err);
+    console.error('❌ Resposta do erro:', err.response?.data);
     $q.notify({
       type: 'negative',
-      message: 'Erro ao criar pedido. Tente novamente.',
+      message: err.response?.data?.message || 'Erro ao criar pedido. Tente novamente.',
       position: 'top',
     });
   } finally {
@@ -708,12 +733,13 @@ const criarPedido = async () => {
 // Carregar categorias para o select
 const carregarCategoriasSelect = async () => {
   try {
-    const response = await api.get('/public/categorias');
-    if (response.data.success && Array.isArray(response.data.data)) {
-      categoriasOptions.value = response.data.data.map((cat: CategoriaData) => ({
+    const categorias = await clienteStore.fetchCategorias();
+    if (categorias && Array.isArray(categorias)) {
+      categoriasOptions.value = categorias.map((cat: CategoriaData) => ({
         label: cat.nome,
         value: cat.id,
       }));
+
     }
   } catch (error) {
     console.error('Erro ao carregar categorias:', error);
@@ -721,11 +747,25 @@ const carregarCategoriasSelect = async () => {
 };
 
 // Carregamento faseado
-// Carregamento faseado
 const carregarDados = async (): Promise<void> => {
   carregandoInicial.value = true;
 
   try {
+    // ✅ CARREGAR CATEGORIAS PRIMEIRO
+    try {
+      const categorias = await clienteStore.fetchCategorias();
+      if (categorias && Array.isArray(categorias)) {
+        categoriasCarregadas.value = categorias;
+        
+      } else {
+        categoriasCarregadas.value = [];
+      }
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+      categoriasCarregadas.value = [];
+    }
+
+    // Carregar outros dados em paralelo
     await Promise.all([
       clienteStore.fetchDashboard(),
       clienteStore.fetchMeusPedidos(),
@@ -733,7 +773,8 @@ const carregarDados = async (): Promise<void> => {
       clienteStore.fetchFavoritos(),
     ]);
 
-    const prestadoresPromise = Promise.all([
+    // Carregar prestadores
+    await Promise.all([
       clienteStore.fetchPrestadoresDestaque().finally(() => {
         carregandoDestaque.value = false;
       }),
@@ -742,21 +783,10 @@ const carregarDados = async (): Promise<void> => {
       }),
     ]);
 
-    clienteStore
-      .fetchCategorias()
-      .then((categorias) => {
-        if (categorias && Array.isArray(categorias)) {
-          categoriasCarregadas.value = categorias;
-        }
-      })
-      .catch(() => {
-        categoriasCarregadas.value = [];
-      });
-
-    promocaoStore.fetchPromocoes().catch(() => {});
-
-    await prestadoresPromise;
-  } catch {
+    // Carregar promoções
+    await promocaoStore.fetchPromocoes().catch(() => {});
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
     carregandoDestaque.value = false;
     carregandoTop.value = false;
     $q.notify({

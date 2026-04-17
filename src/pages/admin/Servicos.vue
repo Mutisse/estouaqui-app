@@ -17,13 +17,6 @@
           @click="carregarServicos"
           :loading="adminStore.loading"
         />
-        <q-btn
-          label="Novo Serviço"
-          icon="add"
-          color="primary"
-          glossy
-          @click="novoServico"
-        />
       </div>
     </div>
 
@@ -70,7 +63,12 @@
         <template v-slot:body-cell-nome="props">
           <q-td :props="props">
             <div class="servico-nome">
-              <q-icon :name="getIconeCategoria(props.row.categoria?.nome)" size="20px" class="q-mr-sm" :color="getCorCategoria(props.row.categoria?.nome)" />
+              <q-icon
+                :name="getIconeCategoria(props.row.categoria?.nome)"
+                size="20px"
+                class="q-mr-sm"
+                :color="getCorCategoria(props.row.categoria?.nome)"
+              />
               <span class="text-weight-medium">{{ props.row.nome }}</span>
             </div>
           </q-td>
@@ -113,7 +111,11 @@
         <template v-slot:body-cell-ativo="props">
           <q-td :props="props">
             <q-badge :color="props.row.ativo ? 'positive' : 'grey'" class="status-badge">
-              <q-icon :name="props.row.ativo ? 'check_circle' : 'cancel'" size="12px" class="q-mr-xs" />
+              <q-icon
+                :name="props.row.ativo ? 'check_circle' : 'cancel'"
+                size="12px"
+                class="q-mr-xs"
+              />
               {{ props.row.ativo ? 'Ativo' : 'Inativo' }}
             </q-badge>
           </q-td>
@@ -151,19 +153,18 @@
           <div class="text-center q-pa-md">
             <q-icon name="construction" size="48px" color="grey" />
             <div class="text-subtitle1 q-mt-sm">Nenhum serviço encontrado</div>
-            <div class="text-caption text-grey">Clique em "Novo Serviço" para adicionar</div>
           </div>
         </template>
       </q-table>
     </q-card>
 
-    <!-- Dialog para novo/editar serviço -->
+    <!-- Dialog para editar serviço (apenas edição, sem criação) -->
     <q-dialog v-model="mostrarDialog" persistent transition="scale">
       <q-card style="min-width: 500px" class="servico-dialog">
-        <q-card-section class="dialog-header bg-primary text-white">
+        <q-card-section class="dialog-header bg-secondary text-white">
           <div class="text-h6">
-            <q-icon :name="editando ? 'edit' : 'add'" class="q-mr-sm" />
-            {{ editando ? 'Editar' : 'Novo' }} Serviço
+            <q-icon name="edit" class="q-mr-sm" />
+            Editar Serviço
           </div>
           <q-btn flat round dense icon="close" v-close-popup text-color="white" />
         </q-card-section>
@@ -174,12 +175,18 @@
             label="Nome do serviço"
             outlined
             dense
-            :rules="[val => !!val || 'Nome é obrigatório']"
+            :rules="[(val) => !!val || 'Nome é obrigatório']"
             counter
             maxlength="100"
+            disable
           >
             <template v-slot:prepend>
-              <q-icon name="title" color="primary" />
+              <q-icon name="title" color="secondary" />
+            </template>
+            <template v-slot:append>
+              <q-icon name="info" color="grey">
+                <q-tooltip>Nome não pode ser alterado</q-tooltip>
+              </q-icon>
             </template>
           </q-input>
 
@@ -191,10 +198,10 @@
             dense
             emit-value
             map-options
-            :rules="[val => !!val || 'Selecione uma categoria']"
+            :rules="[(val) => !!val || 'Selecione uma categoria']"
           >
             <template v-slot:prepend>
-              <q-icon name="category" color="primary" />
+              <q-icon name="category" color="secondary" />
             </template>
           </q-select>
 
@@ -208,7 +215,7 @@
             rows="3"
           >
             <template v-slot:prepend>
-              <q-icon name="description" color="primary" />
+              <q-icon name="description" color="secondary" />
             </template>
           </q-input>
 
@@ -220,10 +227,10 @@
                 outlined
                 dense
                 type="number"
-                :rules="[val => val > 0 || 'Preço deve ser maior que 0']"
+                :rules="[(val) => val > 0 || 'Preço deve ser maior que 0']"
               >
                 <template v-slot:prepend>
-                  <q-icon name="attach_money" color="primary" />
+                  <q-icon name="attach_money" color="secondary" />
                 </template>
               </q-input>
             </div>
@@ -235,16 +242,16 @@
                 outlined
                 dense
                 type="number"
-                :rules="[val => val >= 5 || 'Duração mínima de 5 minutos']"
+                :rules="[(val) => val >= 5 || 'Duração mínima de 5 minutos']"
               >
                 <template v-slot:prepend>
-                  <q-icon name="schedule" color="primary" />
+                  <q-icon name="schedule" color="secondary" />
                 </template>
               </q-input>
             </div>
           </div>
 
-          <q-toggle v-model="form.ativo" label="Serviço ativo" left-label color="primary" />
+          <q-toggle v-model="form.ativo" label="Serviço ativo" left-label color="secondary" />
         </q-card-section>
 
         <q-card-actions align="right" class="dialog-actions">
@@ -252,7 +259,7 @@
           <q-btn
             unelevated
             label="Salvar"
-            color="primary"
+            color="secondary"
             @click="salvarServico"
             :disable="!form.nome || !form.categoria_id || !form.preco"
             :loading="salvando"
@@ -264,75 +271,74 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useQuasar, type QTableColumn } from 'quasar'
-import { useAdminStore } from 'src/stores/admin-store'
-import type { ServicoData, CategoriaData, CreateServicoData } from 'src/stores/admin-store'
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useQuasar, type QTableColumn } from 'quasar';
+import { useAdminStore } from 'src/stores/admin-store';
+import type { ServicoData, CategoriaData } from 'src/stores/admin-store';
 
 defineOptions({
-  name: 'AdminServicos'
-})
+  name: 'AdminServicos',
+});
 
-const $q = useQuasar()
-const adminStore = useAdminStore()
+const $q = useQuasar();
+const adminStore = useAdminStore();
 
 // Estados
-const mostrarDialog = ref(false)
-const editando = ref(false)
-const salvando = ref(false)
-const servicoEditandoId = ref<number | null>(null)
-const filtroCategoria = ref<number | null>(null)
-const filtroAtivo = ref<boolean | null>(null)
+const mostrarDialog = ref(false);
+const salvando = ref(false);
+const servicoEditandoId = ref<number | null>(null);
+const filtroCategoria = ref<number | null>(null);
+const filtroAtivo = ref<boolean | null>(null);
 
 // Opções para filtros
 const statusOptions = [
   { label: 'Ativos', value: true },
-  { label: 'Inativos', value: false }
-]
+  { label: 'Inativos', value: false },
+];
 
 // Categorias para os filtros e select
-const categoriasSelectOptions = ref<{ label: string; value: number }[]>([])
+const categoriasSelectOptions = ref<{ label: string; value: number }[]>([]);
 const categoriasOptions = computed(() => [
   ...categoriasSelectOptions.value,
-  { label: 'Todas', value: null }
-])
+  { label: 'Todas', value: null },
+]);
 
 // Funções auxiliares para cores e ícones
 const getCorCategoria = (nomeCategoria?: string): string => {
   const cores: Record<string, string> = {
-    'Eletricista': 'warning',
-    'Canalizador': 'info',
-    'Pintor': 'accent',
-    'Informático': 'primary',
-    'Limpeza': 'positive',
-    'Motorista': 'secondary',
-    'Cabeleireiro': 'pink',
-    'Manicure': 'purple'
-  }
-  return cores[nomeCategoria || ''] || 'grey'
-}
+    Eletricista: 'warning',
+    Canalizador: 'info',
+    Pintor: 'accent',
+    Informático: 'primary',
+    Limpeza: 'positive',
+    Motorista: 'secondary',
+    Cabeleireiro: 'pink',
+    Manicure: 'purple',
+  };
+  return cores[nomeCategoria || ''] || 'grey';
+};
 
 const getIconeCategoria = (nomeCategoria?: string): string => {
   const icones: Record<string, string> = {
-    'Eletricista': 'bolt',
-    'Canalizador': 'water_drop',
-    'Pintor': 'brush',
-    'Informático': 'computer',
-    'Limpeza': 'cleaning_services',
-    'Motorista': 'local_taxi',
-    'Cabeleireiro': 'content_cut',
-    'Manicure': 'handshake'
-  }
-  return icones[nomeCategoria || ''] || 'handyman'
-}
+    Eletricista: 'bolt',
+    Canalizador: 'water_drop',
+    Pintor: 'brush',
+    Informático: 'computer',
+    Limpeza: 'cleaning_services',
+    Motorista: 'local_taxi',
+    Cabeleireiro: 'content_cut',
+    Manicure: 'handshake',
+  };
+  return icones[nomeCategoria || ''] || 'handyman';
+};
 
 const formatMoney = (value: number) => {
   return new Intl.NumberFormat('pt-PT', {
     style: 'currency',
     currency: 'MZN',
-    minimumFractionDigits: 0
-  }).format(value)
-}
+    minimumFractionDigits: 0,
+  }).format(value);
+};
 
 // Colunas da tabela
 const colunas: QTableColumn[] = [
@@ -341,8 +347,8 @@ const colunas: QTableColumn[] = [
   { name: 'preco', label: 'Preço', field: 'preco', align: 'center', sortable: true },
   { name: 'duracao', label: 'Duração', field: 'duracao', align: 'center', sortable: true },
   { name: 'ativo', label: 'Status', field: 'ativo', align: 'center', sortable: false },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center', sortable: false }
-]
+  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center', sortable: false },
+];
 
 // Formulário
 const form = reactive({
@@ -351,21 +357,21 @@ const form = reactive({
   descricao: '',
   preco: 0,
   duracao: 30,
-  ativo: true
-})
+  ativo: true,
+});
 
 // Carregar categorias para os selects
 const carregarCategorias = async () => {
   try {
-    const cats = await adminStore.fetchCategorias()
+    const cats = await adminStore.fetchCategorias();
     categoriasSelectOptions.value = cats.map((cat: CategoriaData) => ({
       label: cat.nome,
-      value: cat.id
-    }))
+      value: cat.id,
+    }));
   } catch (error) {
-    console.error('Erro ao carregar categorias:', error)
+    console.error('Erro ao carregar categorias:', error);
   }
-}
+};
 
 // Carregar serviços
 const carregarServicos = async () => {
@@ -373,43 +379,30 @@ const carregarServicos = async () => {
     const params: {
       categoria?: number;
       ativo?: boolean;
-    } = {}
-    if (filtroCategoria.value) params.categoria = filtroCategoria.value
-    if (filtroAtivo.value !== null) params.ativo = filtroAtivo.value
+    } = {};
+    if (filtroCategoria.value) params.categoria = filtroCategoria.value;
+    if (filtroAtivo.value !== null) params.ativo = filtroAtivo.value;
 
-    await adminStore.fetchServicos(params)
+    await adminStore.fetchServicos(params);
   } catch (error) {
-    console.error('Erro ao carregar serviços:', error)
+    console.error('Erro ao carregar serviços:', error);
   }
-}
-
-// Novo serviço
-const novoServico = () => {
-  editando.value = false
-  servicoEditandoId.value = null
-  form.nome = ''
-  form.categoria_id = null
-  form.descricao = ''
-  form.preco = 0
-  form.duracao = 30
-  form.ativo = true
-  mostrarDialog.value = true
-}
+};
 
 // Editar serviço
 const editarServico = (servico: ServicoData) => {
-  editando.value = true
-  servicoEditandoId.value = servico.id
-  form.nome = servico.nome
-  form.categoria_id = servico.categoria?.id || null
-  form.descricao = servico.descricao || ''
-  form.preco = servico.preco
-  form.duracao = servico.duracao
-  form.ativo = servico.ativo
-  mostrarDialog.value = true
-}
+  servicoEditandoId.value = servico.id;
+  form.nome = servico.nome;
+  form.categoria_id = servico.categoria?.id || null;
+  form.descricao = servico.descricao || '';
+  form.preco = servico.preco;
+  form.duracao = servico.duracao;
+  form.ativo = servico.ativo;
+  mostrarDialog.value = true;
+};
 
-// Salvar serviço
+// Salvar serviço (apenas edição)
+// Salvar serviço (apenas edição)
 const salvarServico = async () => {
   if (!form.nome || !form.categoria_id || !form.preco) {
     $q.notify({
@@ -422,35 +415,15 @@ const salvarServico = async () => {
 
   salvando.value = true
   try {
-    // Criar objeto com os campos necessários para CreateServicoData
-    const data: CreateServicoData = {
-      prestador_id: 1, // ID do prestador - você precisa definir como pegar isso
-      categoria_id: form.categoria_id,
-      nome: form.nome,
-      descricao: form.descricao,
-      preco: form.preco,
-      duracao: form.duracao
-    }
+    // TODO: Implementar update de serviço quando disponível
+    await new Promise(resolve => setTimeout(resolve, 100)) // Simula operação assíncrona
 
-    if (editando.value && servicoEditandoId.value) {
-      // TODO: Implementar update de serviço quando disponível
-      $q.notify({
-        type: 'info',
-        message: 'Edição de serviço em desenvolvimento',
-        position: 'top'
-      })
-    } else {
-      const result = await adminStore.createServico(data)
-      if (result) {
-        $q.notify({
-          type: 'positive',
-          message: 'Serviço criado com sucesso!',
-          position: 'top'
-        })
-        await carregarServicos()
-        mostrarDialog.value = false
-      }
-    }
+    $q.notify({
+      type: 'info',
+      message: 'Edição de serviço em desenvolvimento',
+      position: 'top'
+    })
+    mostrarDialog.value = false
   } catch (err) {
     console.error('Erro ao salvar serviço:', err)
     $q.notify({
@@ -463,27 +436,28 @@ const salvarServico = async () => {
   }
 }
 
+
 // Remover serviço
 const removerServico = (servico: ServicoData) => {
   $q.dialog({
     title: 'Confirmar remoção',
     message: `Remover o serviço "${servico.nome}"?`,
     cancel: true,
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     $q.notify({
       type: 'info',
       message: 'Remoção de serviço em desenvolvimento',
-      position: 'top'
-    })
-  })
-}
+      position: 'top',
+    });
+  });
+};
 
 // Carregar dados ao montar
 onMounted(() => {
-  void carregarCategorias()
-  void carregarServicos()
-})
+  void carregarCategorias();
+  void carregarServicos();
+});
 </script>
 
 <style scoped lang="scss">

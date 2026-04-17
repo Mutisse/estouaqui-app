@@ -1,4 +1,4 @@
-// src/router/index.ts - VERSÃO CORRIGIDA (sem parâmetros não utilizados)
+// src/router/index.ts - VERSÃO CORRIGIDA (sem async desnecessário)
 
 import { defineRouter } from '#q-app/wrappers';
 import {
@@ -23,13 +23,13 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     history: createHistory(process.env.VUE_ROUTER_BASE),
   });
 
-  // ✅ GUARDA DE AUTENTICAÇÃO - VERSÃO MODERNA (sem next)
-  Router.beforeEach(async (to) => {
+  // ✅ GUARDA DE AUTENTICAÇÃO - CORRIGIDA (sem async e sem await)
+  Router.beforeEach((to) => {  // ← Removeu o 'async'
     const authStore = useAuthStore();
 
-    // Inicializar store se necessário
+    // Inicializar store se necessário (operação síncrona)
     if (!authStore.initialized) {
-      await authStore.initialize();
+      authStore.initialize();
     }
 
     // 🔓 REGRA ESPECIAL: Rota de login do admin

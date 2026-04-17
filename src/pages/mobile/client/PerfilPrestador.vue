@@ -37,7 +37,7 @@
           </div>
           <div class="profile-rating">
             <q-icon name="star" color="yellow" size="20px" />
-            <span class="rating-value">{{ prestador.media_avaliacao?.toFixed(1) || 0 }}</span>
+            <span class="rating-value">{{ mediaFormatada }}</span>
             <span class="rating-count">({{ prestador.total_avaliacoes || 0 }} avaliações)</span>
           </div>
         </div>
@@ -175,6 +175,23 @@ const defaultAvatar = 'https://ui-avatars.com/api/?background=667eea&color=fff&b
 const coverImage = computed(() => {
   // Imagem de capa padrão
   return 'https://images.unsplash.com/photo-1577412647305-991150c7d163?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+});
+
+// Computed property para formatar a média de avaliação
+const mediaFormatada = computed(() => {
+  const media = prestador.value?.media_avaliacao;
+
+  // Se for null, undefined ou vazio
+  if (media === null || media === undefined) return '0';
+
+  // Converter para número se for string
+  const num = typeof media === 'string' ? parseFloat(media) : media;
+
+  // Verificar se é um número válido
+  if (isNaN(num)) return '0';
+
+  // Retornar com 1 casa decimal
+  return num.toFixed(1);
 });
 
 // Funções auxiliares

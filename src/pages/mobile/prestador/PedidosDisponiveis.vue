@@ -209,7 +209,6 @@
     </q-dialog>
   </q-page>
 </template>
-
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -338,7 +337,7 @@ const aplicarFiltros = () => {
   // Os filtros são reativos, o computed já atualiza automaticamente
 };
 
-// ✅ CORRIGIDO: Carregar categorias sem usar 'any'
+// Carregar categorias
 const carregarCategorias = async () => {
   try {
     const response = await api.get('/public/categorias');
@@ -432,12 +431,20 @@ const enviarProposta = async () => {
   }
 };
 
-// Inicialização
+// ✅ VERSÃO SIMPLIFICADA - SEM initialize()
 onMounted(async () => {
+  // Verifica se está autenticado
   if (!authStore.isAuthenticated) {
-    await authStore.initialize();
+    $q.notify({
+      type: 'warning',
+      message: 'Por favor, faça login para continuar',
+      position: 'top',
+    });
+    await router.push('/auth/login');
+    return;
   }
 
+  // Verifica se é prestador
   if (!authStore.isPrestador) {
     $q.notify({
       type: 'warning',
@@ -448,6 +455,7 @@ onMounted(async () => {
     return;
   }
 
+  // Carrega apenas os dados necessários para esta página
   await Promise.all([carregarCategorias(), carregarPedidosDisponiveis()]);
 });
 </script>

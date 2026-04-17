@@ -91,7 +91,9 @@
             </q-item-section>
             <q-item-section>Pedidos Recebidos</q-item-section>
             <q-item-section side>
-              <q-badge v-if="solicitacoesPendentesCount > 0" color="red">{{ solicitacoesPendentesCount }}</q-badge>
+              <q-badge v-if="solicitacoesPendentesCount > 0" color="red">{{
+                solicitacoesPendentesCount
+              }}</q-badge>
             </q-item-section>
           </q-item>
 
@@ -265,7 +267,9 @@
           class="tab-item"
           active-class="tab-active"
         >
-          <q-badge v-if="solicitacoesPendentesCount > 0" color="red" floating>{{ solicitacoesPendentesCount }}</q-badge>
+          <q-badge v-if="solicitacoesPendentesCount > 0" color="red" floating>{{
+            solicitacoesPendentesCount
+          }}</q-badge>
         </q-route-tab>
 
         <q-route-tab
@@ -607,12 +611,14 @@ const confirmLogout = () => {
   });
 };
 
-// Inicialização
+// ✅ CORREÇÃO: Removido o await do initialize() que é síncrono
 onMounted(async () => {
+  // Inicializa o auth store (operação síncrona - sem await)
   if (!authStore.isAuthenticated) {
-    await authStore.initialize();
+    authStore.initialize(); // ← AQUI ESTAVA O ERRO - removido o await
   }
 
+  // Se estiver autenticado e for prestador, carrega os dados
   if (authStore.isAuthenticated && authStore.isPrestador) {
     await Promise.all([
       carregarNotificacoes(),
@@ -624,6 +630,7 @@ onMounted(async () => {
     ]);
   }
 
+  // Inicia polling apenas se for prestador autenticado
   if (authStore.isAuthenticated && authStore.isPrestador) {
     iniciarPolling();
   }

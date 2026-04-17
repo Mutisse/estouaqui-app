@@ -1,3 +1,4 @@
+// stores/cliente-store.ts
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useQuasar, type QNotifyCreateOptions } from 'quasar';
@@ -143,12 +144,6 @@ export interface PreferencesData {
   notifications: boolean;
 }
 
-export interface LocalizacaoData {
-  latitude: number | null;
-  longitude: number | null;
-  raio: number;
-}
-
 export interface CupomValidadoData {
   valido: boolean;
   id: number;
@@ -162,6 +157,55 @@ export interface CupomValidadoData {
   validade: string;
   novo_total: number;
 }
+
+// ==========================================
+// TIPO PARA DADOS BRUTOS DO PRESTADOR (API)
+// ==========================================
+
+interface RawPrestadorData {
+  id: number;
+  nome: string;
+  email: string;
+  telefone: string;
+  foto: string | null;
+  profissao?: string;
+  sobre?: string;
+  media_avaliacao: number;
+  total_avaliacoes: number;
+  verificado: boolean;
+  categorias?: { id: number; nome: string }[];
+  distancia?: number;
+  disponivel?: boolean;
+  latitude?: number;
+  longitude?: number;
+}
+
+// ==========================================
+// CONSTANTES DE CACHE
+// ==========================================
+
+const CACHE_TTL = {
+  SHORT: 2 * 60 * 1000,
+  MEDIUM: 5 * 60 * 1000,
+  LONG: 30 * 60 * 1000,
+  VERY_LONG: 24 * 60 * 60 * 1000,
+};
+
+const CACHE_KEYS = {
+  PROFILE: 'profile',
+  DASHBOARD: 'dashboard',
+  MEUS_PEDIDOS: 'meus_pedidos',
+  AVALIACOES: 'avaliacoes',
+  FAVORITOS: 'favoritos',
+  ENDERECOS: 'enderecos',
+  NOTIFICACOES: 'notificacoes',
+  CONVERSAS: 'conversas',
+  CATEGORIAS: 'categorias',
+  PREFERENCES: 'preferences',
+  PRESTADORES_TOP: 'prestadores_top',
+  PRESTADORES_DESTAQUE: 'prestadores_destaque',
+  MINHAS_PROPOSTAS: 'minhas_propostas',
+};
 
 // ==========================================
 // STORE DO CLIENTE
@@ -198,7 +242,6 @@ export const useClienteStore = defineStore('cliente', () => {
   const unreadCount = ref(0);
   const propostas = ref<PropostaData[]>([]);
 
-  // Cache para evitar requisições duplicadas
   const pendingRequests = new Map<string, Promise<unknown>>();
 
   // ==========================================
@@ -273,14 +316,66 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
+  // FUNÇÕES DE CACHE E UTILITÁRIOS
+  // ==========================================
+
+  function isUserLoggedIn(): boolean {
+    const token = localStorage.getItem('auth_token');
+    return !!token;
+  }
+
+  function clearUserCache(): void {
+    const userCacheKeys = [
+      CACHE_KEYS.PROFILE,
+      CACHE_KEYS.DASHBOARD,
+      CACHE_KEYS.MEUS_PEDIDOS,
+      CACHE_KEYS.AVALIACOES,
+      CACHE_KEYS.FAVORITOS,
+      CACHE_KEYS.ENDERECOS,
+      CACHE_KEYS.NOTIFICACOES,
+      CACHE_KEYS.CONVERSAS,
+      CACHE_KEYS.PREFERENCES,
+      CACHE_KEYS.MINHAS_PROPOSTAS,
+    ];
+
+    userCacheKeys.forEach((key) => cacheStore.invalidate(key));
+    pendingRequests.clear();
+    console.log('🗑️ Cache do usuário limpo');
+  }
+
+  function setupCacheInvalidation(): void {
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'auth_token' && !event.newValue) {
+        clearUserCache();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      if (isUserLoggedIn()) {
+        void fetchNotificacoes();
+        void fetchUnreadCount();
+      }
+    });
+  }
+
+  setupCacheInvalidation();
+
+  // ==========================================
   // PERFIL
   // ==========================================
 
   async function fetchProfile(): Promise<Record<string, unknown> | null> {
-    return dedupeRequest('profile', async () => {
+    return dedupeRequest(CACHE_KEYS.PROFILE, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.GET_PROFILE);
-        return response.data.data as Record<string, unknown>;
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.PROFILE,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.GET_PROFILE);
+            return response.data.data as Record<string, unknown>;
+          },
+          CACHE_TTL.LONG,
+        );
+        return data;
       } catch (err) {
         showError(err);
         return null;
@@ -288,10 +383,18 @@ export const useClienteStore = defineStore('cliente', () => {
     });
   }
 
-  async function updateProfile(data: { nome?: string; telefone?: string; endereco?: string }): Promise<boolean> {
+  async function updateProfile(data: {
+    nome?: string;
+    telefone?: string;
+    endereco?: string;
+  }): Promise<boolean> {
     try {
       const response = await api.put(CLIENTE_ENDPOINTS.UPDATE_PROFILE, data);
-      return response.data.success === true;
+      if (response.data.success === true) {
+        cacheStore.invalidate(CACHE_KEYS.PROFILE);
+        return true;
+      }
+      return false;
     } catch (err) {
       showError(err);
       return false;
@@ -305,6 +408,7 @@ export const useClienteStore = defineStore('cliente', () => {
       const response = await api.post(CLIENTE_ENDPOINTS.UPDATE_AVATAR, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      cacheStore.invalidate(CACHE_KEYS.PROFILE);
       return response.data.data?.foto || null;
     } catch (err) {
       showError(err);
@@ -315,7 +419,11 @@ export const useClienteStore = defineStore('cliente', () => {
   async function removeAvatar(): Promise<boolean> {
     try {
       const response = await api.delete(CLIENTE_ENDPOINTS.REMOVE_AVATAR);
-      return response.data.success === true;
+      if (response.data.success === true) {
+        cacheStore.invalidate(CACHE_KEYS.PROFILE);
+        return true;
+      }
+      return false;
     } catch (err) {
       showError(err);
       return false;
@@ -340,16 +448,16 @@ export const useClienteStore = defineStore('cliente', () => {
   // DASHBOARD
   // ==========================================
 
-  async function fetchDashboard(): Promise<boolean> {
+  async function fetchDashboard(forceRefresh: boolean = false): Promise<boolean> {
     try {
-      const cacheKey = `dashboard_${Date.now()}`;
       const data = await cacheStore.fetchWithCache(
-        cacheKey,
+        CACHE_KEYS.DASHBOARD,
         async () => {
           const response = await api.get(CLIENTE_ENDPOINTS.DASHBOARD);
           return extractDataFromResponse<DashboardData>(response.data);
         },
-        2 * 60 * 1000,
+        CACHE_TTL.MEDIUM,
+        forceRefresh,
       );
       dashboard.value = data;
       return true;
@@ -363,6 +471,11 @@ export const useClienteStore = defineStore('cliente', () => {
   // PEDIDOS DO CLIENTE
   // ==========================================
 
+  // cliente-store.ts - já está correto
+  // ==========================================
+  // PEDIDOS DO CLIENTE
+  // ==========================================
+
   async function criarPedidoServico(data: {
     categoria_id: number;
     descricao: string;
@@ -370,27 +483,40 @@ export const useClienteStore = defineStore('cliente', () => {
     foto?: File | null;
   }): Promise<PedidoData | null> {
     loading.value = true;
+
+    
+
     try {
       const formData = new FormData();
+
+      // ✅ GARANTIR QUE OS CAMPOS SÃO ADICIONADOS CORRETAMENTE
       formData.append('categoria_id', String(data.categoria_id));
       formData.append('descricao', data.descricao);
       formData.append('endereco', data.endereco);
+
       if (data.foto) {
         formData.append('foto', data.foto);
       }
+
+
 
       const response = await api.post(CLIENTE_ENDPOINTS.CRIAR_PEDIDO, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 30000,
       });
 
+      console.log('📦 Resposta da API:', response.data);
+
       if (response.data.success) {
         showNotification('positive', 'Pedido publicado com sucesso!', 'check_circle');
-        await fetchMeusPedidos();
+        cacheStore.invalidate(CACHE_KEYS.MEUS_PEDIDOS);
+        cacheStore.invalidate(CACHE_KEYS.DASHBOARD);
+        await fetchMeusPedidos(true);
         return response.data.data;
       }
       return null;
     } catch (err) {
+      console.error('❌ Erro em criarPedidoServico:', err);
       showError(err);
       return null;
     } finally {
@@ -398,12 +524,19 @@ export const useClienteStore = defineStore('cliente', () => {
     }
   }
 
-  async function fetchMeusPedidos(): Promise<PedidoData[]> {
-    return dedupeRequest('meus_pedidos', async () => {
+  async function fetchMeusPedidos(forceRefresh: boolean = false): Promise<PedidoData[]> {
+    return dedupeRequest(CACHE_KEYS.MEUS_PEDIDOS, async () => {
       loading.value = true;
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.MEUS_PEDIDOS);
-        const data = extractDataFromResponse<PedidoData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.MEUS_PEDIDOS,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.MEUS_PEDIDOS);
+            return extractDataFromResponse<PedidoData[]>(response.data);
+          },
+          CACHE_TTL.SHORT,
+          forceRefresh,
+        );
         pedidos.value = data;
         return pedidos.value;
       } catch (err) {
@@ -438,7 +571,9 @@ export const useClienteStore = defineStore('cliente', () => {
       const response = await api.put(CLIENTE_ENDPOINTS.CANCELAR_PEDIDO_CLIENTE(id.toString()));
       if (response.data.success) {
         showNotification('positive', 'Pedido cancelado com sucesso!', 'cancel');
-        await fetchMeusPedidos();
+        cacheStore.invalidate(CACHE_KEYS.MEUS_PEDIDOS);
+        cacheStore.invalidate(CACHE_KEYS.DASHBOARD);
+        await fetchMeusPedidos(true);
         return true;
       }
       return false;
@@ -454,12 +589,19 @@ export const useClienteStore = defineStore('cliente', () => {
   // PROPOSTAS DO CLIENTE
   // ==========================================
 
-  async function fetchMinhasPropostas(): Promise<PropostaData[]> {
-    return dedupeRequest('minhas_propostas', async () => {
+  async function fetchMinhasPropostas(forceRefresh: boolean = false): Promise<PropostaData[]> {
+    return dedupeRequest(CACHE_KEYS.MINHAS_PROPOSTAS, async () => {
       loading.value = true;
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.PROPOSTAS);
-        const data = extractDataFromResponse<PropostaData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.MINHAS_PROPOSTAS,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.PROPOSTAS);
+            return extractDataFromResponse<PropostaData[]>(response.data);
+          },
+          CACHE_TTL.SHORT,
+          forceRefresh,
+        );
         propostas.value = data;
         return propostas.value;
       } catch (err) {
@@ -477,8 +619,11 @@ export const useClienteStore = defineStore('cliente', () => {
       const response = await api.put(CLIENTE_ENDPOINTS.ACEITAR_PROPOSTA(id));
       if (response.data.success) {
         showNotification('positive', 'Proposta aceita! Prestador será contactado.', 'check_circle');
-        await fetchMinhasPropostas();
-        await fetchMeusPedidos();
+        cacheStore.invalidate(CACHE_KEYS.MINHAS_PROPOSTAS);
+        cacheStore.invalidate(CACHE_KEYS.MEUS_PEDIDOS);
+        cacheStore.invalidate(CACHE_KEYS.DASHBOARD);
+        await fetchMinhasPropostas(true);
+        await fetchMeusPedidos(true);
         return true;
       }
       return false;
@@ -496,7 +641,8 @@ export const useClienteStore = defineStore('cliente', () => {
       const response = await api.put(CLIENTE_ENDPOINTS.RECUSAR_PROPOSTA(id));
       if (response.data.success) {
         showNotification('info', 'Proposta recusada', 'cancel');
-        await fetchMinhasPropostas();
+        cacheStore.invalidate(CACHE_KEYS.MINHAS_PROPOSTAS);
+        await fetchMinhasPropostas(true);
         return true;
       }
       return false;
@@ -512,11 +658,18 @@ export const useClienteStore = defineStore('cliente', () => {
   // AVALIAÇÕES
   // ==========================================
 
-  async function fetchAvaliacoes(): Promise<AvaliacaoData[] | null> {
-    return dedupeRequest('avaliacoes', async () => {
+  async function fetchAvaliacoes(forceRefresh: boolean = false): Promise<AvaliacaoData[] | null> {
+    return dedupeRequest(CACHE_KEYS.AVALIACOES, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.AVALIACOES);
-        const data = extractDataFromResponse<AvaliacaoData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.AVALIACOES,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.AVALIACOES);
+            return extractDataFromResponse<AvaliacaoData[]>(response.data);
+          },
+          CACHE_TTL.MEDIUM,
+          forceRefresh,
+        );
         avaliacoes.value = data;
         return avaliacoes.value;
       } catch (err) {
@@ -535,7 +688,8 @@ export const useClienteStore = defineStore('cliente', () => {
   }): Promise<AvaliacaoData | null> {
     try {
       const response = await api.post(CLIENTE_ENDPOINTS.CRIAR_AVALIACAO, data);
-      await fetchAvaliacoes();
+      cacheStore.invalidate(CACHE_KEYS.AVALIACOES);
+      await fetchAvaliacoes(true);
       return extractDataFromResponse<AvaliacaoData>(response.data);
     } catch (err) {
       showError(err);
@@ -549,7 +703,8 @@ export const useClienteStore = defineStore('cliente', () => {
   ): Promise<AvaliacaoData | null> {
     try {
       const response = await api.put(CLIENTE_ENDPOINTS.ATUALIZAR_AVALIACAO(id.toString()), data);
-      await fetchAvaliacoes();
+      cacheStore.invalidate(CACHE_KEYS.AVALIACOES);
+      await fetchAvaliacoes(true);
       return extractDataFromResponse<AvaliacaoData>(response.data);
     } catch (err) {
       showError(err);
@@ -560,7 +715,8 @@ export const useClienteStore = defineStore('cliente', () => {
   async function removerAvaliacao(id: string | number): Promise<boolean> {
     try {
       const response = await api.delete(CLIENTE_ENDPOINTS.REMOVER_AVALIACAO(id.toString()));
-      await fetchAvaliacoes();
+      cacheStore.invalidate(CACHE_KEYS.AVALIACOES);
+      await fetchAvaliacoes(true);
       return response.data.success === true;
     } catch (err) {
       showError(err);
@@ -572,11 +728,18 @@ export const useClienteStore = defineStore('cliente', () => {
   // FAVORITOS
   // ==========================================
 
-  async function fetchFavoritos(): Promise<FavoritoData[] | null> {
-    return dedupeRequest('favoritos', async () => {
+  async function fetchFavoritos(forceRefresh: boolean = false): Promise<FavoritoData[] | null> {
+    return dedupeRequest(CACHE_KEYS.FAVORITOS, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.FAVORITOS);
-        const data = extractDataFromResponse<FavoritoData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.FAVORITOS,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.FAVORITOS);
+            return extractDataFromResponse<FavoritoData[]>(response.data);
+          },
+          CACHE_TTL.LONG,
+          forceRefresh,
+        );
         favoritos.value = data;
         return favoritos.value;
       } catch (err) {
@@ -589,7 +752,8 @@ export const useClienteStore = defineStore('cliente', () => {
   async function adicionarFavorito(prestadorId: string | number): Promise<boolean> {
     try {
       const response = await api.post(CLIENTE_ENDPOINTS.ADICIONAR_FAVORITO(prestadorId.toString()));
-      await fetchFavoritos();
+      cacheStore.invalidate(CACHE_KEYS.FAVORITOS);
+      await fetchFavoritos(true);
       return response.data.success === true;
     } catch (err) {
       showError(err);
@@ -600,7 +764,8 @@ export const useClienteStore = defineStore('cliente', () => {
   async function removerFavorito(prestadorId: string | number): Promise<boolean> {
     try {
       const response = await api.delete(CLIENTE_ENDPOINTS.REMOVER_FAVORITO(prestadorId.toString()));
-      await fetchFavoritos();
+      cacheStore.invalidate(CACHE_KEYS.FAVORITOS);
+      await fetchFavoritos(true);
       return response.data.success === true;
     } catch (err) {
       showError(err);
@@ -624,13 +789,35 @@ export const useClienteStore = defineStore('cliente', () => {
   // PRESTADORES (consulta pública)
   // ==========================================
 
-  async function fetchPrestadoresProximos(lat: number, lng: number, raio?: number): Promise<PrestadorData[]> {
+  async function fetchPrestadoresProximos(
+    lat: number,
+    lng: number,
+    raio?: number,
+    forceRefresh: boolean = false,
+  ): Promise<PrestadorData[]> {
     const cacheKey = `prestadores_proximos_${lat}_${lng}_${raio || 10}`;
     return dedupeRequest(cacheKey, async () => {
       try {
-        const url = CLIENTE_ENDPOINTS.PRESTADORES_PROXIMOS_LOCAL(lat, lng, raio);
-        const response = await api.get(url);
-        const data = extractDataFromResponse<PrestadorData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          cacheKey,
+          async () => {
+            const url = CLIENTE_ENDPOINTS.PRESTADORES_PROXIMOS_LOCAL(lat, lng, raio);
+            const response = await api.get(url);
+            const dados = extractDataFromResponse<RawPrestadorData[]>(response.data);
+
+            const prestadoresMapeados = dados.map((prestador: RawPrestadorData) => ({
+              ...prestador,
+              lat: prestador.latitude ?? 0,
+              lng: prestador.longitude ?? 0,
+              disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
+              categorias: prestador.categorias || [],
+            }));
+
+            return prestadoresMapeados as PrestadorData[];
+          },
+          CACHE_TTL.SHORT,
+          forceRefresh,
+        );
         prestadoresProximos.value = data;
         return prestadoresProximos.value;
       } catch (err) {
@@ -640,11 +827,28 @@ export const useClienteStore = defineStore('cliente', () => {
     });
   }
 
-  async function fetchPrestadoresTop(): Promise<PrestadorData[]> {
-    return dedupeRequest('prestadores_top', async () => {
+  async function fetchPrestadoresTop(forceRefresh: boolean = false): Promise<PrestadorData[]> {
+    return dedupeRequest(CACHE_KEYS.PRESTADORES_TOP, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.PRESTADORES_TOP);
-        const data = extractDataFromResponse<PrestadorData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.PRESTADORES_TOP,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.PRESTADORES_TOP);
+            const dados = extractDataFromResponse<RawPrestadorData[]>(response.data);
+
+            const prestadoresMapeados = dados.map((prestador: RawPrestadorData) => ({
+              ...prestador,
+              lat: prestador.latitude ?? 0,
+              lng: prestador.longitude ?? 0,
+              disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
+              categorias: prestador.categorias || [],
+            }));
+
+            return prestadoresMapeados as PrestadorData[];
+          },
+          CACHE_TTL.MEDIUM,
+          forceRefresh,
+        );
         prestadoresTop.value = data;
         return prestadoresTop.value;
       } catch (err) {
@@ -654,11 +858,28 @@ export const useClienteStore = defineStore('cliente', () => {
     });
   }
 
-  async function fetchPrestadoresDestaque(): Promise<PrestadorData[]> {
-    return dedupeRequest('prestadores_destaque', async () => {
+  async function fetchPrestadoresDestaque(forceRefresh: boolean = false): Promise<PrestadorData[]> {
+    return dedupeRequest(CACHE_KEYS.PRESTADORES_DESTAQUE, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.PRESTADORES_DESTAQUE);
-        const data = extractDataFromResponse<PrestadorData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.PRESTADORES_DESTAQUE,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.PRESTADORES_DESTAQUE);
+            const dados = extractDataFromResponse<RawPrestadorData[]>(response.data);
+
+            const prestadoresMapeados = dados.map((prestador: RawPrestadorData) => ({
+              ...prestador,
+              lat: prestador.latitude ?? 0,
+              lng: prestador.longitude ?? 0,
+              disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
+              categorias: prestador.categorias || [],
+            }));
+
+            return prestadoresMapeados as PrestadorData[];
+          },
+          CACHE_TTL.MEDIUM,
+          forceRefresh,
+        );
         prestadoresDestaque.value = data;
         return prestadoresDestaque.value;
       } catch (err) {
@@ -672,8 +893,23 @@ export const useClienteStore = defineStore('cliente', () => {
     const cacheKey = `prestador_detalhes_${id}`;
     return dedupeRequest(cacheKey, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.PRESTADOR_DETALHES(id.toString()));
-        return extractDataFromResponse<PrestadorData>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          cacheKey,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.PRESTADOR_DETALHES(id.toString()));
+            const prestador = extractDataFromResponse<RawPrestadorData>(response.data);
+
+            return {
+              ...prestador,
+              lat: prestador.latitude ?? 0,
+              lng: prestador.longitude ?? 0,
+              disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
+              categorias: prestador.categorias || [],
+            } as PrestadorData;
+          },
+          CACHE_TTL.LONG,
+        );
+        return data;
       } catch (err) {
         showError(err);
         return null;
@@ -681,12 +917,33 @@ export const useClienteStore = defineStore('cliente', () => {
     });
   }
 
-  async function buscarPrestadoresPorCategoria(categoriaId: number): Promise<PrestadorData[]> {
+  async function buscarPrestadoresPorCategoria(
+    categoriaId: number,
+    forceRefresh: boolean = false,
+  ): Promise<PrestadorData[]> {
     const cacheKey = `prestadores_categoria_${categoriaId}`;
     return dedupeRequest(cacheKey, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.PRESTADORES_BY_CATEGORIA(categoriaId));
-        return extractDataFromResponse<PrestadorData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          cacheKey,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.PRESTADORES_BY_CATEGORIA(categoriaId));
+            const dados = extractDataFromResponse<RawPrestadorData[]>(response.data);
+
+            const prestadoresMapeados = dados.map((prestador: RawPrestadorData) => ({
+              ...prestador,
+              lat: prestador.latitude ?? 0,
+              lng: prestador.longitude ?? 0,
+              disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
+              categorias: prestador.categorias || [],
+            }));
+
+            return prestadoresMapeados as PrestadorData[];
+          },
+          CACHE_TTL.MEDIUM,
+          forceRefresh,
+        );
+        return data;
       } catch (err) {
         showError(err);
         return [];
@@ -694,12 +951,33 @@ export const useClienteStore = defineStore('cliente', () => {
     });
   }
 
-  async function buscarPrestadoresPorNome(busca: string): Promise<PrestadorData[]> {
+  async function buscarPrestadoresPorNome(
+    busca: string,
+    forceRefresh: boolean = false,
+  ): Promise<PrestadorData[]> {
     const cacheKey = `prestadores_busca_${busca}`;
     return dedupeRequest(cacheKey, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.PRESTADORES_BY_BUSCA(busca));
-        return extractDataFromResponse<PrestadorData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          cacheKey,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.PRESTADORES_BY_BUSCA(busca));
+            const dados = extractDataFromResponse<RawPrestadorData[]>(response.data);
+
+            const prestadoresMapeados = dados.map((prestador: RawPrestadorData) => ({
+              ...prestador,
+              lat: prestador.latitude ?? 0,
+              lng: prestador.longitude ?? 0,
+              disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
+              categorias: prestador.categorias || [],
+            }));
+
+            return prestadoresMapeados as PrestadorData[];
+          },
+          CACHE_TTL.SHORT,
+          forceRefresh,
+        );
+        return data;
       } catch (err) {
         showError(err);
         return [];
@@ -707,11 +985,19 @@ export const useClienteStore = defineStore('cliente', () => {
     });
   }
 
-  async function fetchCategorias(): Promise<CategoriaData[]> {
-    return dedupeRequest('categorias', async () => {
+  async function fetchCategorias(forceRefresh: boolean = false): Promise<CategoriaData[]> {
+    return dedupeRequest(CACHE_KEYS.CATEGORIAS, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.CATEGORIAS_PUBLICAS);
-        return extractDataFromResponse<CategoriaData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.CATEGORIAS,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.CATEGORIAS_PUBLICAS);
+            return extractDataFromResponse<CategoriaData[]>(response.data);
+          },
+          CACHE_TTL.VERY_LONG,
+          forceRefresh,
+        );
+        return data;
       } catch (err) {
         showError(err);
         return [];
@@ -723,11 +1009,20 @@ export const useClienteStore = defineStore('cliente', () => {
   // NOTIFICAÇÕES
   // ==========================================
 
-  async function fetchNotificacoes(): Promise<NotificacaoData[] | null> {
-    return dedupeRequest('notificacoes', async () => {
+  async function fetchNotificacoes(
+    forceRefresh: boolean = false,
+  ): Promise<NotificacaoData[] | null> {
+    return dedupeRequest(CACHE_KEYS.NOTIFICACOES, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.NOTIFICATIONS);
-        const data = extractDataFromResponse<NotificacaoData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.NOTIFICACOES,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.NOTIFICATIONS);
+            return extractDataFromResponse<NotificacaoData[]>(response.data);
+          },
+          CACHE_TTL.SHORT,
+          forceRefresh,
+        );
         notificacoes.value = data;
         return notificacoes.value;
       } catch (err) {
@@ -740,7 +1035,8 @@ export const useClienteStore = defineStore('cliente', () => {
   async function marcarNotificacaoLida(id: string | number): Promise<boolean> {
     try {
       const response = await api.put(CLIENTE_ENDPOINTS.MARK_NOTIFICATION_READ(id.toString()));
-      await fetchNotificacoes();
+      cacheStore.invalidate(CACHE_KEYS.NOTIFICACOES);
+      await fetchNotificacoes(true);
       return response.data.success === true;
     } catch (err) {
       showError(err);
@@ -751,7 +1047,8 @@ export const useClienteStore = defineStore('cliente', () => {
   async function marcarTodasNotificacoesLidas(): Promise<boolean> {
     try {
       const response = await api.put(CLIENTE_ENDPOINTS.MARK_ALL_NOTIFICATIONS_READ);
-      await fetchNotificacoes();
+      cacheStore.invalidate(CACHE_KEYS.NOTIFICACOES);
+      await fetchNotificacoes(true);
       return response.data.success === true;
     } catch (err) {
       showError(err);
@@ -763,11 +1060,19 @@ export const useClienteStore = defineStore('cliente', () => {
   // PREFERÊNCIAS
   // ==========================================
 
-  async function fetchPreferences(): Promise<PreferencesData | null> {
-    return dedupeRequest('preferences', async () => {
+  async function fetchPreferences(forceRefresh: boolean = false): Promise<PreferencesData | null> {
+    return dedupeRequest(CACHE_KEYS.PREFERENCES, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.PREFERENCES);
-        return response.data.data as PreferencesData;
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.PREFERENCES,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.PREFERENCES);
+            return response.data.data as PreferencesData;
+          },
+          CACHE_TTL.VERY_LONG,
+          forceRefresh,
+        );
+        return data;
       } catch (err) {
         showError(err);
         return null;
@@ -775,36 +1080,18 @@ export const useClienteStore = defineStore('cliente', () => {
     });
   }
 
-  async function updatePreferences(preferences: { theme?: string; language?: string; notifications?: boolean }): Promise<boolean> {
+  async function updatePreferences(preferences: {
+    theme?: string;
+    language?: string;
+    notifications?: boolean;
+  }): Promise<boolean> {
     try {
       const response = await api.put(CLIENTE_ENDPOINTS.UPDATE_PREFERENCES, preferences);
-      return response.data.success === true;
-    } catch (err) {
-      showError(err);
-      return false;
-    }
-  }
-
-  // ==========================================
-  // LOCALIZAÇÃO
-  // ==========================================
-
-  async function fetchLocalizacao(): Promise<LocalizacaoData | null> {
-    return dedupeRequest('localizacao', async () => {
-      try {
-        const response = await api.get(CLIENTE_ENDPOINTS.LOCALIZACAO);
-        return response.data.data as LocalizacaoData;
-      } catch (err) {
-        showError(err);
-        return null;
+      if (response.data.success === true) {
+        cacheStore.invalidate(CACHE_KEYS.PREFERENCES);
+        return true;
       }
-    });
-  }
-
-  async function updateLocalizacao(latitude: number, longitude: number, raio?: number): Promise<boolean> {
-    try {
-      const response = await api.post(CLIENTE_ENDPOINTS.UPDATE_LOCALIZACAO, { latitude, longitude, raio });
-      return response.data.success === true;
+      return false;
     } catch (err) {
       showError(err);
       return false;
@@ -815,11 +1102,18 @@ export const useClienteStore = defineStore('cliente', () => {
   // ENDEREÇOS
   // ==========================================
 
-  async function fetchEnderecos(): Promise<EnderecoData[] | null> {
-    return dedupeRequest('enderecos', async () => {
+  async function fetchEnderecos(forceRefresh: boolean = false): Promise<EnderecoData[] | null> {
+    return dedupeRequest(CACHE_KEYS.ENDERECOS, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.ADDRESSES);
-        const data = extractDataFromResponse<EnderecoData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.ENDERECOS,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.ADDRESSES);
+            return extractDataFromResponse<EnderecoData[]>(response.data);
+          },
+          CACHE_TTL.LONG,
+          forceRefresh,
+        );
         enderecos.value = data;
         return enderecos.value;
       } catch (err) {
@@ -832,7 +1126,8 @@ export const useClienteStore = defineStore('cliente', () => {
   async function criarEndereco(data: Omit<EnderecoData, 'id'>): Promise<EnderecoData | null> {
     try {
       const response = await api.post(CLIENTE_ENDPOINTS.CREATE_ADDRESS, data);
-      await fetchEnderecos();
+      cacheStore.invalidate(CACHE_KEYS.ENDERECOS);
+      await fetchEnderecos(true);
       return extractDataFromResponse<EnderecoData>(response.data);
     } catch (err) {
       showError(err);
@@ -840,10 +1135,14 @@ export const useClienteStore = defineStore('cliente', () => {
     }
   }
 
-  async function atualizarEndereco(id: number, data: Partial<EnderecoData>): Promise<EnderecoData | null> {
+  async function atualizarEndereco(
+    id: number,
+    data: Partial<EnderecoData>,
+  ): Promise<EnderecoData | null> {
     try {
       const response = await api.put(CLIENTE_ENDPOINTS.UPDATE_ADDRESS(id.toString()), data);
-      await fetchEnderecos();
+      cacheStore.invalidate(CACHE_KEYS.ENDERECOS);
+      await fetchEnderecos(true);
       return extractDataFromResponse<EnderecoData>(response.data);
     } catch (err) {
       showError(err);
@@ -854,7 +1153,8 @@ export const useClienteStore = defineStore('cliente', () => {
   async function deletarEndereco(id: number): Promise<boolean> {
     try {
       const response = await api.delete(CLIENTE_ENDPOINTS.DELETE_ADDRESS(id.toString()));
-      await fetchEnderecos();
+      cacheStore.invalidate(CACHE_KEYS.ENDERECOS);
+      await fetchEnderecos(true);
       return response.data.success === true;
     } catch (err) {
       showError(err);
@@ -865,7 +1165,8 @@ export const useClienteStore = defineStore('cliente', () => {
   async function setEnderecoPrincipal(id: number): Promise<boolean> {
     try {
       const response = await api.put(CLIENTE_ENDPOINTS.SET_PRIMARY_ADDRESS(id.toString()));
-      await fetchEnderecos();
+      cacheStore.invalidate(CACHE_KEYS.ENDERECOS);
+      await fetchEnderecos(true);
       return response.data.success === true;
     } catch (err) {
       showError(err);
@@ -877,11 +1178,18 @@ export const useClienteStore = defineStore('cliente', () => {
   // CHAT
   // ==========================================
 
-  async function fetchConversas(): Promise<ConversaData[] | null> {
-    return dedupeRequest('conversas', async () => {
+  async function fetchConversas(forceRefresh: boolean = false): Promise<ConversaData[] | null> {
+    return dedupeRequest(CACHE_KEYS.CONVERSAS, async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.CHAT_CONVERSATIONS);
-        const data = extractDataFromResponse<ConversaData[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          CACHE_KEYS.CONVERSAS,
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.CHAT_CONVERSATIONS);
+            return extractDataFromResponse<ConversaData[]>(response.data);
+          },
+          CACHE_TTL.SHORT,
+          forceRefresh,
+        );
         conversas.value = data;
         return conversas.value;
       } catch (err) {
@@ -915,6 +1223,7 @@ export const useClienteStore = defineStore('cliente', () => {
       if (response.data.success) {
         const novaMensagem = extractDataFromResponse<MensagemData>(response.data);
         mensagensChat.value.push(novaMensagem);
+        cacheStore.invalidate(CACHE_KEYS.CONVERSAS);
         return novaMensagem;
       }
       return null;
@@ -924,7 +1233,10 @@ export const useClienteStore = defineStore('cliente', () => {
     }
   }
 
-  async function fetchLatestMessages(prestadorId: number, lastId?: number): Promise<MensagemData[]> {
+  async function fetchLatestMessages(
+    prestadorId: number,
+    lastId?: number,
+  ): Promise<MensagemData[]> {
     try {
       const response = await api.get(CLIENTE_ENDPOINTS.CHAT_LATEST_MESSAGES(prestadorId, lastId));
       return extractDataFromResponse<MensagemData[]>(response.data);
@@ -936,17 +1248,29 @@ export const useClienteStore = defineStore('cliente', () => {
   async function markMessagesAsRead(prestadorId: number): Promise<boolean> {
     try {
       const response = await api.put(CLIENTE_ENDPOINTS.CHAT_MARK_AS_READ(prestadorId));
-      return response.data.success === true;
+      if (response.data.success === true) {
+        cacheStore.invalidate(CACHE_KEYS.CONVERSAS);
+        return true;
+      }
+      return false;
     } catch {
       return false;
     }
   }
 
-  async function fetchUnreadCount(): Promise<number> {
+  async function fetchUnreadCount(forceRefresh: boolean = false): Promise<number> {
     return dedupeRequest('unread_count', async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.CHAT_UNREAD_COUNT);
-        unreadCount.value = response.data.data?.total || 0;
+        const data = await cacheStore.fetchWithCache(
+          'unread_count',
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.CHAT_UNREAD_COUNT);
+            return response.data.data?.total || 0;
+          },
+          CACHE_TTL.SHORT,
+          forceRefresh,
+        );
+        unreadCount.value = data;
         return unreadCount.value;
       } catch {
         return 0;
@@ -958,11 +1282,19 @@ export const useClienteStore = defineStore('cliente', () => {
   // PROMOÇÕES
   // ==========================================
 
-  async function fetchPromocoes(): Promise<unknown[]> {
+  async function fetchPromocoes(forceRefresh: boolean = false): Promise<unknown[]> {
     return dedupeRequest('promocoes', async () => {
       try {
-        const response = await api.get(CLIENTE_ENDPOINTS.PROMOCOES_ATIVAS);
-        return extractDataFromResponse<unknown[]>(response.data);
+        const data = await cacheStore.fetchWithCache(
+          'promocoes',
+          async () => {
+            const response = await api.get(CLIENTE_ENDPOINTS.PROMOCOES_ATIVAS);
+            return extractDataFromResponse<unknown[]>(response.data);
+          },
+          CACHE_TTL.MEDIUM,
+          forceRefresh,
+        );
+        return data;
       } catch (err) {
         showError(err);
         return [];
@@ -1039,7 +1371,10 @@ export const useClienteStore = defineStore('cliente', () => {
     );
   });
 
-  function setRegisterField<K extends keyof typeof registerForm.value>(field: K, value: (typeof registerForm.value)[K]) {
+  function setRegisterField<K extends keyof typeof registerForm.value>(
+    field: K,
+    value: (typeof registerForm.value)[K],
+  ) {
     registerForm.value[field] = value;
   }
 
@@ -1177,7 +1512,10 @@ export const useClienteStore = defineStore('cliente', () => {
         formData.append('foto', registerForm.value.foto);
       }
 
-      const endpoint = registerForm.value.tipo === 'cliente' ? CLIENTE_ENDPOINTS.REGISTER : CLIENTE_ENDPOINTS.REGISTER_PRESTADOR;
+      const endpoint =
+        registerForm.value.tipo === 'cliente'
+          ? CLIENTE_ENDPOINTS.REGISTER
+          : CLIENTE_ENDPOINTS.REGISTER_PRESTADOR;
       const response = await api.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -1238,7 +1576,11 @@ export const useClienteStore = defineStore('cliente', () => {
   // MÉTODOS AUXILIARES
   // ==========================================
 
-  function showNotification(type: 'positive' | 'negative' | 'warning' | 'info', message: string, icon?: string) {
+  function showNotification(
+    type: 'positive' | 'negative' | 'warning' | 'info',
+    message: string,
+    icon?: string,
+  ) {
     const notifyOptions: QNotifyCreateOptions = {
       type,
       message,
@@ -1253,14 +1595,17 @@ export const useClienteStore = defineStore('cliente', () => {
 
   function showError(error: unknown) {
     const err = error as AxiosError<{ error?: string; message?: string }>;
-    const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Erro ao carregar dados';
+    const message =
+      err.response?.data?.error ||
+      err.response?.data?.message ||
+      err.message ||
+      'Erro ao carregar dados';
     showNotification('negative', message);
   }
 
   function clearCache(): void {
     cacheStore.clear();
     pendingRequests.clear();
-    console.log('🗑️ Cache do cliente limpo');
   }
 
   // ==========================================
@@ -1349,10 +1694,6 @@ export const useClienteStore = defineStore('cliente', () => {
     fetchPreferences,
     updatePreferences,
 
-    // Localização
-    fetchLocalizacao,
-    updateLocalizacao,
-
     // Endereços
     fetchEnderecos,
     criarEndereco,
@@ -1386,5 +1727,6 @@ export const useClienteStore = defineStore('cliente', () => {
     showNotification,
     showError,
     clearCache,
+    clearUserCache,
   };
 });

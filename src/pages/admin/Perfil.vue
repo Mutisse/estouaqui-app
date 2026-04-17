@@ -304,15 +304,23 @@ const getTipoIcon = (tipo?: string) => {
   return icons[tipo || ''] || 'person'
 }
 
-// Carregar dados do usuário
-const carregarPerfil = async () => {
+// ✅ CORREÇÃO: Removido async pois não há operações assíncronas
+const carregarPerfil = () => {
   carregando.value = true
   try {
-    await authStore.verifyToken()
-    if (authStore.user) {
+    // verifyToken() retorna boolean, não é async
+    const tokenValido = authStore.verifyToken()
+
+    if (tokenValido && authStore.user) {
       perfil.nome = authStore.user.nome || ''
       perfil.email = authStore.user.email || ''
       perfil.telefone = authStore.user.telefone || ''
+    } else if (!tokenValido) {
+      $q.notify({
+        type: 'warning',
+        message: 'Sessão expirada. Faça login novamente.',
+        position: 'top'
+      })
     }
   } catch (error) {
     console.error('Erro ao carregar perfil:', error)
@@ -355,6 +363,15 @@ const salvarPerfil = async () => {
   try {
     // TODO: Implementar endpoint de atualização de perfil
     await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Atualizar o store localmente
+    if (authStore.user) {
+      authStore.user.nome = perfil.nome
+      authStore.user.email = perfil.email
+      authStore.user.telefone = perfil.telefone
+      // Atualizar localStorage
+      localStorage.setItem('auth_user', JSON.stringify(authStore.user))
+    }
 
     $q.notify({
       type: 'positive',
@@ -414,7 +431,7 @@ const salvarFoto = async () => {
       position: 'top'
     })
     mostrarDialogFoto.value = false
-    await carregarPerfil()
+    carregarPerfil() // ✅ Não precisa de await, é síncrono
   } catch (error) {
     console.error('Erro ao salvar foto:', error)
     $q.notify({
@@ -489,7 +506,7 @@ watch([() => senha.nova, () => senha.confirmar], () => {
 
 // Carregar dados ao montar
 onMounted(() => {
-  void carregarPerfil() // ✅ CORREÇÃO: adicionado 'void'
+  carregarPerfil() // ✅ Não precisa de void ou await, é síncrono
 })
 </script>
 

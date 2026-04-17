@@ -57,11 +57,11 @@ export const CLIENTE_ENDPOINTS = {
   // ==========================================
   // 7. PEDIDOS DO CLIENTE
   // ==========================================
-  CRIAR_PEDIDO: '/cliente/pedidos',
-  MEUS_PEDIDOS: '/cliente/pedidos',
-  DETALHES_PEDIDO: (id: string | number) => `/cliente/pedidos/${id}`,
-  CANCELAR_PEDIDO_CLIENTE: (id: string | number) => `/cliente/pedidos/${id}/cancelar`,
-  CHECK_PEDIDO_AVALIACAO: (pedidoId: string | number) => `/cliente/pedidos/${pedidoId}/avaliacao`,
+  CRIAR_PEDIDO: '/cliente/pedidos',                                    // POST - Criar pedido
+  MEUS_PEDIDOS: '/cliente/pedidos/meus-pedidos',                       // ✅ GET - Listar meus pedidos (CORRIGIDO)
+  DETALHES_PEDIDO: (id: string | number) => `/cliente/pedidos/${id}`,  // GET - Detalhes de um pedido
+  CANCELAR_PEDIDO_CLIENTE: (id: string | number) => `/cliente/pedidos/${id}/cancelar`, // PUT - Cancelar pedido
+  CHECK_PEDIDO_AVALIACAO: (pedidoId: string | number) => `/cliente/pedidos/${pedidoId}/avaliacao`, // GET - Verificar avaliação
 
   // ==========================================
   // 8. AVALIAÇÕES DO CLIENTE

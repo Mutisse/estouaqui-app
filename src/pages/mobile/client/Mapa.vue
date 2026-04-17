@@ -3,48 +3,104 @@
     <!-- Header -->
     <div class="header q-pa-md">
       <q-btn flat round icon="arrow_back" @click="router.back()" />
-      <div class="header-title">Mapa de prestadores</div>
+      <div class="header-title">Prestadores próximos</div>
       <q-btn
         flat
         round
         icon="my_location"
+        color="primary"
         @click="centralizarNaLocalizacao"
-        :loading="buscandoLocalizacao"
-      />
+        :loading="locationStore.isLoading"
+      >
+        <q-tooltip>Minha localização</q-tooltip>
+      </q-btn>
+    </div>
+
+    <!-- Status da localização -->
+    <div v-if="locationStore.hasLocation" class="status-bar q-px-md q-py-xs">
+      <div class="flex items-center">
+        <q-icon name="gps_fixed" color="positive" size="16px" class="q-mr-xs" />
+        <span class="text-caption">Localização atual obtida</span>
+        <span v-if="locationStore.accuracy" class="text-caption q-ml-sm text-grey-7">
+          (precisão: {{ locationStore.accuracy.toFixed(0) }}m)
+        </span>
+      </div>
+    </div>
+
+    <div v-else-if="locationStore.isLoading" class="status-bar q-px-md q-py-xs">
+      <div class="flex items-center">
+        <q-spinner size="16px" class="q-mr-xs" />
+        <span class="text-caption">A obter localização...</span>
+      </div>
+    </div>
+
+    <div v-else class="status-bar q-px-md q-py-xs bg-warning">
+      <div class="flex items-center">
+        <q-icon name="warning" color="warning" size="16px" class="q-mr-xs" />
+        <span class="text-caption">Localização não disponível. Clique no ícone de localização.</span>
+      </div>
+    </div>
+
+    <!-- Filtro de Raio -->
+    <div class="filtro-raio q-pa-md">
+      <div class="row items-center justify-between">
+        <div class="text-subtitle2">
+          <q-icon name="radar" size="18px" class="q-mr-xs text-primary" />
+          Raio de busca
+        </div>
+        <div class="row q-gutter-sm">
+          <q-btn
+            v-for="raio in opcoesRaio"
+            :key="raio.value"
+            :label="raio.label"
+            :color="filtroDistancia === raio.value ? 'primary' : 'grey-4'"
+            :text-color="filtroDistancia === raio.value ? 'white' : 'dark'"
+            :outline="filtroDistancia !== raio.value"
+            dense
+            rounded
+            size="sm"
+            @click="alterarRaio(raio.value)"
+          />
+        </div>
+      </div>
+      <div class="text-caption text-grey-6 q-mt-sm">
+        Mostrando <strong>{{ prestadoresFiltrados.length }}</strong> prestadores num raio de <strong>{{ filtroDistancia }} km</strong>
+      </div>
     </div>
 
     <!-- Loading -->
     <div v-if="carregando" class="loading-container">
-      <q-spinner color="primary" size="50px" />
-      <p class="q-mt-md">A carregar mapa...</p>
+      <q-spinner color="primary" size="40px" />
+      <p class="q-mt-sm">A carregar mapa...</p>
     </div>
 
-    <!-- Container do mapa -->
-    <div class="map-container" :class="{ hidden: carregando }">
+    <!-- Mapa -->
+    <div class="map-container">
       <div id="map"></div>
     </div>
 
     <!-- Lista de prestadores -->
     <div class="prestadores-list q-pa-md">
-      <div class="text-subtitle1 q-mb-md flex items-center justify-between">
-        <span>Prestadores próximos ({{ prestadoresProximos.length }})</span>
-        <q-btn
-          size="sm"
-          flat
-          dense
-          icon="refresh"
-          @click="recarregarPrestadores"
-          :loading="carregandoPrestadores"
-        />
+      <div class="text-subtitle1 q-mb-md">Prestadores encontrados ({{ prestadoresFiltrados.length }})</div>
+
+      <div v-if="prestadoresFiltrados.length === 0 && !carregandoPrestadores" class="text-center q-pa-xl">
+        <q-icon name="search_off" size="48px" color="grey" />
+        <div class="text-subtitle1 q-mt-sm">Nenhum prestador encontrado</div>
+        <div class="text-caption q-mt-xs">Tente aumentar o raio de busca</div>
       </div>
 
-      <q-list separator v-if="prestadoresProximos.length > 0">
+      <div v-if="carregandoPrestadores" class="text-center q-pa-xl">
+        <q-spinner color="primary" size="30px" />
+        <div class="text-caption q-mt-sm">A buscar prestadores...</div>
+      </div>
+
+      <q-list separator v-else-if="prestadoresFiltrados.length > 0">
         <q-item
-          v-for="prestador in prestadoresProximos"
+          v-for="prestador in prestadoresFiltrados"
           :key="prestador.id"
           clickable
           v-ripple
-          @click="centralizarNoPrestador(prestador)"
+          @click="verPerfil(prestador.id)"
         >
           <q-item-section avatar>
             <q-avatar>
@@ -55,10 +111,19 @@
           <q-item-section>
             <q-item-label>{{ prestador.nome }}</q-item-label>
             <q-item-label caption>
-              <q-icon name="star" color="yellow" size="16px" />
-              {{ (prestador.media_avaliacao || 0).toFixed(1) }}
-              <q-icon name="place" size="14px" class="q-ml-sm" />
-              {{ formatarDistancia(prestador.distancia) }}
+              <div class="flex items-center gap-2">
+                <div class="flex items-center">
+                  <q-icon name="star" color="amber" size="14px" />
+                  <span>{{ (prestador.media_avaliacao || 0).toFixed(1) }}</span>
+                </div>
+                <div class="flex items-center">
+                  <q-icon name="place" color="blue" size="14px" />
+                  <span>{{ formatarDistancia(prestador.distancia) }}</span>
+                </div>
+                <q-badge :color="prestador.disponivel !== false ? 'positive' : 'negative'">
+                  {{ prestador.disponivel !== false ? 'Disponível' : 'Indisponível' }}
+                </q-badge>
+              </div>
             </q-item-label>
             <q-item-label caption class="text-grey-6">
               {{ prestador.categorias?.map((c) => c.nome).join(', ') || 'Sem categorias' }}
@@ -66,377 +131,289 @@
           </q-item-section>
 
           <q-item-section side>
-            <q-badge :color="prestador.disponivel !== false ? 'positive' : 'grey'">
-              {{ prestador.disponivel !== false ? 'Disponível' : 'Indisponível' }}
-            </q-badge>
+            <q-btn
+              icon="directions"
+              flat
+              round
+              dense
+              color="primary"
+              @click.stop="tracejarRota(prestador)"
+              :loading="carregandoRota && prestadorRotaId === prestador.id"
+            >
+              <q-tooltip>Traçar rota</q-tooltip>
+            </q-btn>
           </q-item-section>
         </q-item>
       </q-list>
-
-      <div v-else class="text-center q-pa-xl">
-        <q-icon name="location_off" size="48px" color="grey" />
-        <div class="text-subtitle1 q-mt-sm">Nenhum prestador encontrado</div>
-        <q-btn flat color="primary" label="Tentar novamente" @click="recarregarPrestadores" class="q-mt-md" />
-      </div>
     </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useClienteStore } from 'src/stores/cliente-store';
+import { useLocationStore } from 'src/stores/location-store';
 import type { PrestadorData } from 'src/stores/cliente-store';
 
-defineOptions({
-  name: 'MapaPage'
+defineOptions({ name: 'MapaPage' });
+
+// Configurar ícones do Leaflet - CORRIGIDO (sem any)
+const iconDefault = L.icon({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
 });
 
-// CORREÇÃO DOS ÍCONES DO LEAFLET
-interface LeafletIconDefault extends L.Icon.Default {
-  _getIconUrl?: string;
-}
-
-delete (L.Icon.Default.prototype as LeafletIconDefault)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+L.Marker.prototype.options.icon = iconDefault;
 
 const router = useRouter();
 const $q = useQuasar();
 const clienteStore = useClienteStore();
+const locationStore = useLocationStore();
 
 // Estados
 const carregando = ref(true);
 const carregandoPrestadores = ref(false);
-const buscandoLocalizacao = ref(false);
+const carregandoRota = ref(false);
+const prestadorRotaId = ref<number | null>(null);
+const filtroDistancia = ref(10);
 const localizacaoAtual = ref<{ lat: number; lng: number } | null>(null);
 
-// Computed do store
-const prestadoresProximos = computed(() => clienteStore.prestadoresProximos);
+// Opções
+const opcoesRaio = [
+  { label: '5km', value: 5 },
+  { label: '10km', value: 10 },
+  { label: '15km', value: 15 },
+  { label: '20km', value: 20 },
+  { label: '30km', value: 30 },
+  { label: '50km', value: 50 }
+];
+
+// Computed - Apenas prestadores DENTRO do raio selecionado
+const prestadoresFiltrados = computed(() => {
+  return clienteStore.prestadoresProximos.filter(p => (p.distancia || 0) <= filtroDistancia.value);
+});
 
 // Variáveis do mapa
 let map: L.Map | null = null;
-let markersLayer: L.LayerGroup | null = null;
 let userMarker: L.Marker | null = null;
-// Array para manter referência dos marcadores e seus prestadores
-const markersMap = new Map<number, L.Marker>();
+let userCircle: L.Circle | null = null;
+let markersLayer: L.LayerGroup | null = null;
 
-// Formatar distância
+// Funções
 const formatarDistancia = (distancia?: number): string => {
   if (!distancia) return '? km';
   if (distancia < 1) return `${Math.round(distancia * 1000)}m`;
   return `${distancia.toFixed(1)}km`;
 };
 
-// Centralizar no prestador (CORRIGIDO)
-const centralizarNoPrestador = (prestador: PrestadorData): void => {
-  if (!map || !prestador.lat || !prestador.lng) return;
-
-  map.setView([prestador.lat, prestador.lng], 16);
-
-  // Busca o marcador pelo ID do prestador
-  const marker = markersMap.get(prestador.id);
-  if (marker) {
-    marker.openPopup();
-  }
+const verPerfil = (prestadorId: number): void => {
+  void router.push(`/mobile/perfil-prestador/${prestadorId}`);
 };
 
-// Recarregar prestadores usando o store
-const recarregarPrestadores = async (): Promise<void> => {
-  if (localizacaoAtual.value) {
-    carregandoPrestadores.value = true;
-    try {
-      await clienteStore.fetchPrestadoresProximos(
-        localizacaoAtual.value.lat,
-        localizacaoAtual.value.lng,
-        10
-      );
-      atualizarMarcadores(prestadoresProximos.value);
-    } catch (error) {
-      console.error('Erro ao recarregar prestadores:', error);
-    } finally {
-      carregandoPrestadores.value = false;
-    }
-  }
-};
+const tracejarRota = (prestador: PrestadorData): void => {
+  if (!localizacaoAtual.value || !prestador.lat || !prestador.lng) return;
 
-// Centralizar na localização atual
-const centralizarNaLocalizacao = (): void => {
-  if (map && localizacaoAtual.value) {
-    map.setView([localizacaoAtual.value.lat, localizacaoAtual.value.lng], 14);
-    if (userMarker) {
-      userMarker.openPopup();
-    }
-  }
-};
-
-// Criar ícone 3D para prestador
-const criarIcone3DPrestador = (prestador: PrestadorData): L.DivIcon => {
-  const avaliacao = (prestador.media_avaliacao || 0).toFixed(1);
-  const cor = prestador.disponivel !== false ? '#667eea' : '#999';
-
-  return L.divIcon({
-    className: 'marker-3d-prestador',
-    html: `
-      <div class="marker-3d" style="background: ${cor};">
-        <div class="marker-3d-inner">
-          <span class="marker-3d-rating">⭐ ${avaliacao}</span>
-        </div>
-        <div class="marker-3d-shadow"></div>
-      </div>
-    `,
-    iconSize: [50, 50],
-    iconAnchor: [25, 25],
-    popupAnchor: [0, -25]
-  });
-};
-
-// Criar ícone 3D para usuário
-const criarIcone3DUsuario = (): L.DivIcon => {
-  return L.divIcon({
-    className: 'marker-3d-usuario',
-    html: `
-      <div class="marker-3d-user">
-        <div class="marker-3d-user-pulse"></div>
-        <div class="marker-3d-user-inner">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
-        </div>
-      </div>
-    `,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
-    popupAnchor: [0, -20]
-  });
-};
-
-// Atualizar marcadores dos prestadores (CORRIGIDO)
-const atualizarMarcadores = (prestadores: PrestadorData[]): void => {
-  if (!map) return;
-
-  // Limpa todos os marcadores existentes
-  if (markersLayer) {
-    markersLayer.clearLayers();
-  } else {
-    markersLayer = L.layerGroup().addTo(map);
-  }
-
-  // Limpa o mapa de referências
-  markersMap.clear();
-
-  // Adiciona novos marcadores
-  for (const prestador of prestadores) {
-    if (prestador.lat && prestador.lng) {
-      const icon = criarIcone3DPrestador(prestador);
-      const marker = L.marker([prestador.lat, prestador.lng], { icon });
-
-      marker.bindPopup(`
-        <div style="min-width: 220px; padding: 5px;">
-          <strong style="font-size: 16px;">${prestador.nome}</strong><br/>
-          <div style="margin: 8px 0;">
-            ⭐ <strong>${(prestador.media_avaliacao || 0).toFixed(1)}</strong> / 5.0
-          </div>
-          <div style="margin: 5px 0; color: #666;">
-            📍 ${formatarDistancia(prestador.distancia)} de distância
-          </div>
-          <div style="margin: 5px 0; color: #666;">
-            ${prestador.categorias?.map(c => c.nome).join(', ') || 'Sem categorias'}
-          </div>
-          <hr style="margin: 8px 0;"/>
-          <a href="/mobile/perfil-prestador/${prestador.id}" style="color: #667eea; text-decoration: none;">
-            👤 Ver perfil completo →
-          </a>
-        </div>
-      `, { maxWidth: 280 });
-
-      marker.addTo(markersLayer);
-
-      // Armazena referência do marcador pelo ID do prestador
-      markersMap.set(prestador.id, marker);
-
-      // Adiciona animação de bounce ao criar
-      setTimeout(() => {
-        const element = marker.getElement();
-        if (element) {
-          element.classList.add('marker-bounce');
-          setTimeout(() => {
-            element.classList.remove('marker-bounce');
-          }, 1000);
-        }
-      }, 100 * prestadores.indexOf(prestador));
-    }
-  }
-};
-
-// Adicionar marcador 3D do usuário
-const adicionarMarcadorUsuario = (lat: number, lng: number): void => {
-  if (!map) return;
-
-  if (userMarker) {
-    userMarker.remove();
-  }
-
-  const userIcon = criarIcone3DUsuario();
-  userMarker = L.marker([lat, lng], { icon: userIcon });
-  userMarker.bindPopup(`
-    <div style="text-align: center; padding: 5px;">
-      <strong>📍 Você está aqui</strong><br/>
-      <small>Posição atual</small>
-    </div>
-  `).addTo(map);
-};
-
-// Inicializar o mapa
-const inicializarMapa = (lat: number, lng: number): boolean => {
-  const mapContainer = document.getElementById('map');
-
-  if (!mapContainer) {
-    console.error('Container do mapa não encontrado!');
-    return false;
-  }
-
-  if (map) {
-    map.remove();
-    map = null;
-  }
+  carregandoRota.value = true;
+  prestadorRotaId.value = prestador.id;
 
   try {
-    map = L.map('map').setView([lat, lng], 13);
+    const url = `https://www.google.com/maps/dir/${localizacaoAtual.value.lat},${localizacaoAtual.value.lng}/${prestador.lat},${prestador.lng}`;
+    window.open(url, '_blank');
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 19,
-      minZoom: 3
-    }).addTo(map);
-
-    setTimeout(() => {
-      if (map) {
-        map.invalidateSize();
-      }
-    }, 200);
-
-    console.log('Mapa inicializado com sucesso');
-    return true;
-
-  } catch (error) {
-    console.error('Erro ao inicializar mapa:', error);
-    return false;
+    $q.notify({
+      message: 'Abrindo rota no Google Maps',
+      color: 'positive',
+      icon: 'directions',
+      timeout: 2000
+    });
+  } catch {
+    $q.notify({ type: 'negative', message: 'Erro ao abrir rota', position: 'top' });
+  } finally {
+    carregandoRota.value = false;
+    prestadorRotaId.value = null;
   }
 };
 
-// Obter localização do usuário
-const obterLocalizacaoUsuario = (): Promise<{ lat: number; lng: number }> => {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) {
-      console.warn('Geolocalização não suportada, usando localização padrão');
-      resolve({ lat: -8.839988, lng: 13.289437 });
-      return;
-    }
-
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        console.log('Localização obtida:', latitude, longitude);
-        resolve({ lat: latitude, lng: longitude });
-      },
-      (error) => {
-        console.error('Erro na geolocalização:', error.code, error.message);
-
-        let mensagem = '';
-        if (error.code === 1) {
-          mensagem = 'Permissão de localização negada. Usando localização padrão.';
-        } else if (error.code === 2) {
-          mensagem = 'Posição indisponível. Usando localização padrão.';
-        } else {
-          mensagem = 'Erro ao obter localização. Usando localização padrão.';
-        }
-
-        void $q.notify({
-          type: 'warning',
-          message: mensagem,
-          position: 'top',
-          timeout: 3000
-        });
-
-        resolve({ lat: -8.839988, lng: 13.289437 });
-      },
-      options
-    );
-  });
+const centralizarNaLocalizacao = (): void => {
+  if (!localizacaoAtual.value || !map) return;
+  map.setView([localizacaoAtual.value.lat, localizacaoAtual.value.lng], 15);
+  if (userMarker) userMarker?.openPopup();
 };
 
-// Função principal para iniciar o mapa
+// FUNÇÃO PRINCIPAL: Alterar raio e buscar prestadores
+const alterarRaio = async (novoRaio: number): Promise<void> => {
+  if (novoRaio === filtroDistancia.value) return;
+  if (!localizacaoAtual.value) {
+    $q.notify({ type: 'warning', message: 'Localização não disponível', position: 'top' });
+    return;
+  }
+
+  filtroDistancia.value = novoRaio;
+  carregandoPrestadores.value = true;
+
+  try {
+    await clienteStore.fetchPrestadoresProximos(
+      localizacaoAtual.value.lat,
+      localizacaoAtual.value.lng,
+      novoRaio,
+      true
+    );
+
+    atualizarMarcadores();
+
+    $q.notify({
+      type: 'positive',
+      message: `${prestadoresFiltrados.value.length} prestadores encontrados num raio de ${novoRaio} km`,
+      position: 'top',
+      timeout: 2000,
+      icon: 'radar'
+    });
+  } catch {
+    $q.notify({ type: 'negative', message: 'Erro ao buscar prestadores', position: 'top' });
+  } finally {
+    carregandoPrestadores.value = false;
+  }
+};
+
+// Criar marcador do prestador
+const criarMarcadorPrestador = (prestador: PrestadorData): L.Marker => {
+  const marker = L.marker([prestador.lat!, prestador.lng!]);
+
+  marker.bindPopup(`
+    <div style="min-width: 180px; padding: 5px;">
+      <strong>${prestador.nome}</strong><br/>
+      ⭐ ${(prestador.media_avaliacao || 0).toFixed(1)}<br/>
+      📍 ${formatarDistancia(prestador.distancia)}<br/>
+      <button onclick="window.location.href='#/mobile/perfil-prestador/${prestador.id}'"
+              style="background: #667eea; color: white; border: none; padding: 5px 10px; border-radius: 5px; margin-top: 8px; width: 100%; cursor: pointer;">
+        Ver perfil
+      </button>
+    </div>
+  `);
+
+  return marker;
+};
+
+// Criar marcador do usuário
+const criarMarcadorUsuario = (): L.Marker => {
+  const marker = L.marker([0, 0]);
+
+  marker.bindPopup(`
+    <div style="text-align: center;">
+      <strong>📍 Você está aqui</strong>
+    </div>
+  `);
+
+  return marker;
+};
+
+// Atualizar marcadores dos prestadores
+const atualizarMarcadores = (): void => {
+  if (!map) return;
+
+  if (markersLayer) markersLayer.clearLayers();
+  else markersLayer = L.layerGroup().addTo(map);
+
+  for (const prestador of prestadoresFiltrados.value) {
+    if (prestador.lat && prestador.lng) {
+      const marker = criarMarcadorPrestador(prestador);
+      marker.addTo(markersLayer);
+    }
+  }
+};
+
+// Atualizar localização do usuário
+const atualizarLocalizacaoUsuario = (lat: number, lng: number, accuracy: number = 50): void => {
+  if (!map) return;
+
+  if (userMarker) userMarker.remove();
+  if (userCircle) userCircle.remove();
+
+  userMarker = criarMarcadorUsuario();
+  userMarker.setLatLng([lat, lng]);
+  userMarker.addTo(map);
+
+  userCircle = L.circle([lat, lng], {
+    radius: accuracy,
+    color: '#1976d2',
+    fillColor: '#1976d2',
+    fillOpacity: 0.15,
+    weight: 2
+  }).addTo(map);
+
+  localizacaoAtual.value = { lat, lng };
+};
+
+// Inicializar o mapa e obter localização REAL
 const iniciar = async (): Promise<void> => {
   carregando.value = true;
 
-  await new Promise(resolve => setTimeout(resolve, 100));
+  try {
+    map = L.map('map').setView([-25.9692, 32.5732], 13);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap, CARTO',
+      maxZoom: 19
+    }).addTo(map);
 
-  const posicao = await obterLocalizacaoUsuario();
-  localizacaoAtual.value = posicao;
+    const posicao = await locationStore.getCurrentLocation(true);
 
-  const mapaOk = inicializarMapa(posicao.lat, posicao.lng);
+    if (posicao) {
+      atualizarLocalizacaoUsuario(posicao.lat, posicao.lng, posicao.accuracy || 50);
+      map.setView([posicao.lat, posicao.lng], 14);
 
-  if (mapaOk && map) {
-    adicionarMarcadorUsuario(posicao.lat, posicao.lng);
+      await clienteStore.fetchPrestadoresProximos(
+        posicao.lat,
+        posicao.lng,
+        filtroDistancia.value,
+        true
+      );
 
-    // Usando o store para buscar prestadores próximos
-    carregandoPrestadores.value = true;
-    try {
-      await clienteStore.fetchPrestadoresProximos(posicao.lat, posicao.lng, 10);
-      atualizarMarcadores(prestadoresProximos.value);
-    } catch (error) {
-      console.error('Erro ao buscar prestadores:', error);
-    } finally {
-      carregandoPrestadores.value = false;
+      atualizarMarcadores();
+
+      $q.notify({
+        type: 'positive',
+        message: `${prestadoresFiltrados.value.length} prestadores encontrados`,
+        position: 'top',
+        timeout: 2000
+      });
+    } else {
+      $q.notify({
+        type: 'warning',
+        message: 'Clique no ícone de localização para obter sua posição',
+        position: 'top',
+        timeout: 3000
+      });
     }
+  } catch {
+    // Erro silencioso
+  } finally {
+    carregando.value = false;
+    setTimeout(() => map?.invalidateSize(), 200);
   }
-
-  carregando.value = false;
-
-  setTimeout(() => {
-    if (map) {
-      map.invalidateSize();
-    }
-  }, 500);
 };
 
-// Evento de redimensionamento
-const handleResize = (): void => {
-  if (map) {
-    setTimeout(() => {
-      if (map) {
-        map.invalidateSize();
-      }
-    }, 200);
-  }
-};
+// Watch para quando o filtro muda
+watch(filtroDistancia, () => {
+  atualizarMarcadores();
+});
 
 // Lifecycle
 onMounted(() => {
-  void iniciar();
-  window.addEventListener('resize', handleResize);
+  setTimeout(() => void iniciar(), 100);
+  window.addEventListener('resize', () => setTimeout(() => map?.invalidateSize(), 200));
 });
 
 onUnmounted(() => {
-  if (map) {
-    map.remove();
-    map = null;
-  }
-  window.removeEventListener('resize', handleResize);
+  if (map) map.remove();
 });
 </script>
 
@@ -454,7 +431,7 @@ onUnmounted(() => {
   border-bottom: 1px solid #e0e0e0;
   display: flex;
   align-items: center;
-  gap: 15px;
+  justify-content: space-between;
   flex-shrink: 0;
   padding: 12px 16px;
   z-index: 10;
@@ -464,11 +441,30 @@ onUnmounted(() => {
     font-weight: 600;
     color: #333;
     flex: 1;
+    margin-left: 10px;
   }
 }
 
+.status-bar {
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.filtro-raio {
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
 .loading-container {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255,255,255,0.95);
+  z-index: 100;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -476,21 +472,16 @@ onUnmounted(() => {
 }
 
 .map-container {
-  height: 50vh;
-  min-height: 350px;
+  height: 45vh;
+  min-height: 300px;
   width: 100%;
   position: relative;
   background: #f0f0f0;
   flex-shrink: 0;
 
-  &.hidden {
-    display: none;
-  }
-
   #map {
     width: 100%;
     height: 100%;
-    background: #e5e5e5;
   }
 }
 
@@ -500,165 +491,12 @@ onUnmounted(() => {
   background: white;
 }
 
-// ESTILOS DOS MARCADORES 3D
-:deep(.marker-3d-prestador) {
-  z-index: 1000;
-
-  .marker-3d {
-    position: relative;
-    width: 50px;
-    height: 50px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: -5px;
-      left: -5px;
-      right: -5px;
-      bottom: -5px;
-      background: rgba(102, 126, 234, 0.4);
-      border-radius: 50%;
-      animation: pulse-ring 1.5s infinite;
-    }
-
-    .marker-3d-inner {
-      background: rgba(255,255,255,0.95);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-
-      .marker-3d-rating {
-        font-size: 11px;
-        font-weight: bold;
-        color: #333;
-      }
-    }
-
-    .marker-3d-shadow {
-      position: absolute;
-      bottom: -8px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 40px;
-      height: 8px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 50%;
-      filter: blur(3px);
-    }
-  }
-}
-
-:deep(.marker-3d-usuario) {
-  z-index: 2000;
-
-  .marker-3d-user {
-    position: relative;
-    width: 40px;
-    height: 40px;
-
-    .marker-3d-user-pulse {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: rgba(25, 118, 210, 0.4);
-      border-radius: 50%;
-      animation: pulse 1.5s infinite;
-    }
-
-    .marker-3d-user-inner {
-      position: absolute;
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      border: 3px solid white;
-      animation: float 2s ease-in-out infinite;
-
-      svg {
-        width: 24px;
-        height: 24px;
-        filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
-      }
-    }
-  }
-}
-
-// Animações
-@keyframes pulse-ring {
-  0% {
-    transform: scale(1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1.5);
-    opacity: 0;
-  }
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1.8);
-    opacity: 0;
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-15px) scale(1.1);
-  }
-}
-
-:deep(.marker-bounce) {
-  animation: bounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
-}
-
-// Hover effects
-:deep(.marker-3d-prestador .marker-3d:hover) {
-  transform: scale(1.1);
-  transition: transform 0.3s ease;
-}
-
-// Scrollbar
 .prestadores-list::-webkit-scrollbar {
   width: 6px;
 }
-
 .prestadores-list::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
-
 .prestadores-list::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
