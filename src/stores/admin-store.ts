@@ -1,5 +1,3 @@
-// src/stores/admin-store.ts
-
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useQuasar } from 'quasar';
@@ -73,6 +71,7 @@ export interface CategoriaData {
   descricao: string;
   ativo: boolean;
   servicos_count: number;
+  imagem_url?: string;
 }
 
 export interface ServicoData {
@@ -224,6 +223,18 @@ export interface NotificacaoData {
   cor?: string;
 }
 
+export interface CreateCategoriaData {
+  nome: string;
+  descricao?: string;
+  icone?: string;
+  cor?: string;
+  imagem_url?: string;
+}
+
+export interface UpdateCategoriaData extends Partial<CreateCategoriaData> {
+  ativo?: boolean;
+}
+
 // ==========================================
 // STORE DO ADMIN
 // ==========================================
@@ -289,11 +300,10 @@ export const useAdminStore = defineStore('admin', () => {
   const logs = ref<LogData[]>([]);
   const notificacoesAdmin = ref<NotificacaoData[]>([]);
 
-  // Cache para evitar requisições duplicadas
   const pendingRequests = new Map<string, Promise<unknown>>();
 
   // ==========================================
-  // MÉTODO AUXILIAR PARA EVITAR REQUISIÇÕES DUPLICADAS
+  // MÉTODO AUXILIAR
   // ==========================================
 
   async function dedupeRequest<T>(key: string, request: () => Promise<T>): Promise<T> {
@@ -535,7 +545,7 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   // ==========================================
-  // 4. GESTÃO DE CATEGORIAS
+  // 4. GESTÃO DE CATEGORIAS (COM IMAGEM)
   // ==========================================
 
   const fetchCategorias = async () => {
@@ -551,12 +561,7 @@ export const useAdminStore = defineStore('admin', () => {
     });
   };
 
-  const createCategoria = async (data: {
-    nome: string;
-    descricao?: string;
-    icone?: string;
-    cor?: string;
-  }) => {
+  const createCategoria = async (data: CreateCategoriaData) => {
     try {
       const response = await api.post(ADMIN_ENDPOINTS.CREATE_CATEGORIA, data);
       if (response.data.success) {
@@ -569,7 +574,7 @@ export const useAdminStore = defineStore('admin', () => {
     }
   };
 
-  const updateCategoria = async (id: number, data: Partial<CategoriaData>) => {
+  const updateCategoria = async (id: number, data: UpdateCategoriaData) => {
     try {
       const response = await api.put(ADMIN_ENDPOINTS.UPDATE_CATEGORIA(id), data);
       if (response.data.success) {
@@ -592,6 +597,38 @@ export const useAdminStore = defineStore('admin', () => {
     } catch (error) {
       showError(error);
       return null;
+    }
+  };
+
+  const uploadCategoriaImagem = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('imagem', file);
+
+    try {
+      const response = await api.post(ADMIN_ENDPOINTS.UPLOAD_CATEGORIA_IMAGEM, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data.url;
+    } catch (error) {
+      console.error('Erro no upload da imagem:', error);
+      showError(error);
+      return null;
+    }
+  };
+
+  const removerCategoriaImagem = async (categoriaId: number): Promise<boolean> => {
+    try {
+      const response = await api.delete(ADMIN_ENDPOINTS.REMOVER_CATEGORIA_IMAGEM(categoriaId));
+      if (response.data.success) {
+        await fetchCategorias();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      showError(error);
+      return false;
     }
   };
 
@@ -805,7 +842,7 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   // ==========================================
-  // 9. CONFIGURAÇÕES DO SISTEMA
+  // 9. CONFIGURAÇÕES
   // ==========================================
 
   const fetchConfiguracoes = async () => {
@@ -835,7 +872,7 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   // ==========================================
-  // 10. LOGS DO SISTEMA
+  // 10. LOGS
   // ==========================================
 
   const fetchLogs = async () => {
@@ -852,17 +889,22 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   // ==========================================
-  // 11. NOTIFICAÇÕES DO ADMIN
+  // 11. NOTIFICAÇÕES
   // ==========================================
 
   const fetchNotificacoesAdmin = async () => {
     return dedupeRequest('notificacoes_admin', async () => {
       try {
         const response = await api.get(ADMIN_ENDPOINTS.NOTIFICACOES);
-        notificacoesAdmin.value = response.data.data || [];
+        const data = response.data.data || [];
+        notificacoesAdmin.value = Array.isArray(data) ? data : [];
         return notificacoesAdmin.value;
       } catch (error) {
-        console.error('Erro ao carregar notificações admin:', error);
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status !== 404) {
+          console.error('Erro ao carregar notificações admin:', error);
+          showError(error);
+        }
         notificacoesAdmin.value = [];
         return [];
       }
@@ -896,7 +938,37 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   // ==========================================
-  // 12. MÉTODOS AUXILIARES
+  // 12. GESTÃO DE AVALIAÇÕES (ADMIN)
+  // ==========================================
+
+  const fetchAvaliacoes = async (params?: { nota?: number; per_page?: number }) => {
+    const cacheKey = `avaliacoes_${JSON.stringify(params)}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.AVALIACOES, { params });
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
+  };
+
+  const deleteAvaliacao = async (id: number) => {
+    try {
+      const response = await api.delete(ADMIN_ENDPOINTS.DELETE_AVALIACAO(id));
+      if (response.data.success) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      showError(error);
+      return false;
+    }
+  };
+
+  // ==========================================
+  // 13. MÉTODOS AUXILIARES
   // ==========================================
 
   const carregarTodosDados = async () => {
@@ -982,7 +1054,7 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   // ==========================================
-  // GETTERS FORMATADOS (como propriedades computadas)
+  // GETTERS FORMATADOS
   // ==========================================
 
   const atividadeFormatada = computed(() => {
@@ -1140,6 +1212,8 @@ export const useAdminStore = defineStore('admin', () => {
     createCategoria,
     updateCategoria,
     deleteCategoria,
+    uploadCategoriaImagem,
+    removerCategoriaImagem,
 
     // Serviços
     fetchServicos,
@@ -1174,6 +1248,10 @@ export const useAdminStore = defineStore('admin', () => {
     marcarNotificacaoLida,
     marcarTodasNotificacoesLidas,
 
+    // Avaliações
+    fetchAvaliacoes,
+    deleteAvaliacao,
+
     // Utilitários
     carregarTodosDados,
     getStatusText,
@@ -1183,7 +1261,7 @@ export const useAdminStore = defineStore('admin', () => {
     clearCache,
     formatMoney,
 
-    // Getters formatados (como propriedades)
+    // Getters
     atividadeFormatada,
     cardsPrincipais,
     cardsSecundarios,

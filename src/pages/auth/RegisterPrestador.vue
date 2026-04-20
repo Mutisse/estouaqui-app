@@ -8,7 +8,9 @@
             <q-icon name="handyman" size="32px" color="white" />
           </div>
           <div class="header-title">Criar Conta de Prestador</div>
-          <div class="header-subtitle">Passo {{ currentStep }} de 5 • {{ getStepTitle(currentStep) }}</div>
+          <div class="header-subtitle">
+            Passo {{ currentStep }} de 5 • {{ getStepTitle(currentStep) }}
+          </div>
 
           <!-- Progress Bar -->
           <div class="progress-container">
@@ -110,7 +112,7 @@
                     class="custom-input"
                     :rules="[
                       (val) => !!val || 'Palavra-passe é obrigatória',
-                      (val) => val.length >= 6 || 'Mínimo 6 caracteres'
+                      (val) => val.length >= 6 || 'Mínimo 6 caracteres',
                     ]"
                     bg-color="white"
                   >
@@ -152,7 +154,7 @@
                     class="custom-input"
                     :rules="[
                       (val) => !!val || 'Confirmação de palavra-passe é obrigatória',
-                      (val) => val === formData.password || 'As palavras-passe não coincidem'
+                      (val) => val === formData.password || 'As palavras-passe não coincidem',
                     ]"
                     bg-color="white"
                   >
@@ -170,14 +172,18 @@
                   </q-input>
 
                   <div
-                    v-if="formData.confirmPassword && formData.password !== formData.confirmPassword"
+                    v-if="
+                      formData.confirmPassword && formData.password !== formData.confirmPassword
+                    "
                     class="confirm-error q-mt-sm"
                   >
                     <q-icon name="error" size="14px" />
                     <span>As palavras-passe não coincidem</span>
                   </div>
                   <div
-                    v-else-if="formData.confirmPassword && formData.password === formData.confirmPassword"
+                    v-else-if="
+                      formData.confirmPassword && formData.password === formData.confirmPassword
+                    "
                     class="confirm-success q-mt-sm"
                   >
                     <q-icon name="check_circle" size="14px" />
@@ -308,12 +314,13 @@
             </div>
           </div>
 
-          <!-- Step 4: Área e Disponibilidade -->
+          <!-- Step 4: Área e Disponibilidade (MODIFICADO) -->
           <div v-show="currentStep === 4">
             <div class="step-content">
               <div class="step-title">Área e Disponibilidade</div>
 
               <div class="row q-col-gutter-md">
+                <!-- ✅ RAIO DE ATUAÇÃO - Ao selecionar, obtém localização automaticamente -->
                 <div class="col-12">
                   <div class="input-label">
                     Raio de atuação (km) <span class="required">*</span>
@@ -329,24 +336,58 @@
                     bg-color="white"
                     emit-value
                     map-options
+                    @update:model-value="obterLocalizacaoAutomatica"
                   />
+                  <div class="raio-hint q-mt-sm" v-if="formData.raio">
+                    <q-icon name="info" size="12px" color="grey-6" />
+                    <span
+                      >Você atenderá clientes num raio de {{ formData.raio }} km a partir da sua
+                      localização</span
+                    >
+                  </div>
+
+                  <!-- ✅ STATUS DA LOCALIZAÇÃO -->
+                  <div v-if="carregandoLocalizacao" class="location-status loading q-mt-sm">
+                    <q-spinner size="14px" color="primary" />
+                    <span class="text-primary">Obtendo sua localização...</span>
+                  </div>
+                  <div v-else-if="localizacaoObtida" class="location-status success q-mt-sm">
+                    <q-icon name="check_circle" size="14px" class="text-positive" />
+                    <span class="text-positive">Localização definida com sucesso!</span>
+                  </div>
+                  <div
+                    v-else-if="formData.raio && !localizacaoObtida && !carregandoLocalizacao"
+                    class="location-status error q-mt-sm"
+                  >
+                    <q-icon name="error" size="14px" class="text-negative" />
+                    <span class="text-negative"
+                      >Não foi possível obter localização. Verifique as permissões do
+                      navegador.</span
+                    >
+                  </div>
                 </div>
 
+                <!-- ✅ DISPONIBILIDADE EM 2 COLUNAS -->
                 <div class="col-12">
                   <div class="input-label">Disponibilidade</div>
-                  <div class="availability-grid">
+                  <div class="availability-grid two-columns">
                     <div v-for="dia in diasSemana" :key="dia.value" class="availability-item">
                       <div class="day-label">{{ dia.label }}</div>
                       <q-checkbox
                         :model-value="getDisponibilidadeAtivo(dia.value)"
-                        @update:model-value="(val: boolean) => setDisponibilidadeAtivo(dia.value, val)"
+                        @update:model-value="
+                          (val: boolean) => setDisponibilidadeAtivo(dia.value, val)
+                        "
                         label="Disponível"
                         dense
                       />
                       <q-input
                         v-if="getDisponibilidadeAtivo(dia.value)"
                         :model-value="getDisponibilidadeHorario(dia.value)"
-                        @update:model-value="(val: string | number | null) => setDisponibilidadeHorario(dia.value, val === null ? '' : String(val))"
+                        @update:model-value="
+                          (val: string | number | null) =>
+                            setDisponibilidadeHorario(dia.value, val === null ? '' : String(val))
+                        "
                         placeholder="8h-17h"
                         dense
                         outlined
@@ -436,10 +477,26 @@
                     </div>
 
                     <div class="review-section">
-                      <div class="review-icon"><q-icon name="location_on" size="16px" /></div>
+                      <div class="review-icon"><q-icon name="radar" size="16px" /></div>
                       <div class="review-content">
                         <div class="review-label">Raio de atuação</div>
-                        <div class="review-value">{{ formData.raio ? formData.raio + ' km' : '—' }}</div>
+                        <div class="review-value">
+                          {{ formData.raio ? formData.raio + ' km' : '—' }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="review-section">
+                      <div class="review-icon"><q-icon name="check_circle" size="16px" /></div>
+                      <div class="review-content">
+                        <div class="review-label">Localização</div>
+                        <div class="review-value" :class="{ 'text-warning': !localizacaoObtida }">
+                          {{
+                            localizacaoObtida
+                              ? '✅ Localização definida'
+                              : '⚠️ Localização não definida'
+                          }}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -517,6 +574,12 @@ const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const loading = ref(false);
 const acceptTerms = ref(false);
+
+// ✅ VARIÁVEIS DE LOCALIZAÇÃO (sem expor coordenadas ao usuário)
+const carregandoLocalizacao = ref(false);
+const latitude = ref('');
+const longitude = ref('');
+const localizacaoObtida = ref(false);
 
 const categoriasOptions = ref<{ label: string; value: string }[]>([]);
 const raioOptions = ref<{ label: string; value: number }[]>([]);
@@ -604,6 +667,82 @@ const formData = ref<FormData>({
   tipo: 'prestador',
 });
 
+// ✅ FUNÇÃO DE LOCALIZAÇÃO AUTOMÁTICA (sem mostrar coordenadas)
+// ✅ FUNÇÃO DE LOCALIZAÇÃO AUTOMÁTICA (sem mostrar coordenadas) - CORRIGIDA
+const obterLocalizacaoAutomatica = () => {
+  // Removido o 'async' pois não tem await
+  // Só obtém localização se o raio foi selecionado e ainda não temos coordenadas
+  if (!formData.value.raio) return;
+  if (localizacaoObtida.value) return;
+  if (carregandoLocalizacao.value) return;
+
+  if (!navigator.geolocation) {
+    $q.notify({
+      type: 'warning',
+      message: 'Seu navegador não suporta geolocalização. Por favor, insira manualmente.',
+      position: 'top',
+      timeout: 5000,
+    });
+    return;
+  }
+
+  carregandoLocalizacao.value = true;
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      // Sucesso - captura as coordenadas
+      latitude.value = position.coords.latitude.toFixed(6);
+      longitude.value = position.coords.longitude.toFixed(6);
+      localizacaoObtida.value = true;
+      carregandoLocalizacao.value = false;
+
+      // ✅ NOTIFICAÇÃO DE SUCESSO
+      $q.notify({
+        type: 'positive',
+        message: '📍 Posição definida com sucesso! Sua área de atuação foi configurada.',
+        position: 'top',
+        timeout: 3000,
+        icon: 'my_location',
+      });
+    },
+    (error) => {
+      console.error('Erro de geolocalização:', error);
+      carregandoLocalizacao.value = false;
+      localizacaoObtida.value = false;
+
+      let mensagem = 'Não foi possível obter sua localização. ';
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          mensagem +=
+            'Permissão negada. Por favor, permita o acesso à localização nas configurações do navegador.';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          mensagem += 'Localização indisponível. Tente novamente.';
+          break;
+        case error.TIMEOUT:
+          mensagem += 'Tempo limite excedido. Tente novamente.';
+          break;
+        default:
+          mensagem += 'Erro desconhecido. Tente novamente.';
+      }
+
+      // ✅ NOTIFICAÇÃO DE ERRO
+      $q.notify({
+        type: 'negative',
+        message: mensagem,
+        position: 'top',
+        timeout: 8000,
+        icon: 'error',
+      });
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    },
+  );
+};
+
 const getDisponibilidadeAtivo = (diaKey: string): boolean => {
   return formData.value.disponibilidade[diaKey]?.ativo ?? false;
 };
@@ -627,7 +766,13 @@ const setDisponibilidadeHorario = (diaKey: string, value: string): void => {
 };
 
 const getStepTitle = (stepNum: number) => {
-  const titles = ['Dados Básicos', 'Perfil Profissional', 'Portfólio', 'Área e Disponibilidade', 'Documentos e Revisão'];
+  const titles = [
+    'Dados Básicos',
+    'Perfil Profissional',
+    'Portfólio',
+    'Área e Disponibilidade',
+    'Documentos e Revisão',
+  ];
   return titles[stepNum - 1];
 };
 
@@ -671,7 +816,11 @@ const validateStep = () => {
         return false;
       }
       if (formData.value.password.length < 6) {
-        $q.notify({ type: 'warning', message: 'A palavra-passe deve ter pelo menos 6 caracteres', position: 'top' });
+        $q.notify({
+          type: 'warning',
+          message: 'A palavra-passe deve ter pelo menos 6 caracteres',
+          position: 'top',
+        });
         return false;
       }
       if (formData.value.password !== formData.value.confirmPassword) {
@@ -685,17 +834,33 @@ const validateStep = () => {
         return false;
       }
       if (!formData.value.descricao) {
-        $q.notify({ type: 'warning', message: 'Preencha a descrição do seu trabalho', position: 'top' });
+        $q.notify({
+          type: 'warning',
+          message: 'Preencha a descrição do seu trabalho',
+          position: 'top',
+        });
         return false;
       }
       if (formData.value.categorias.length === 0) {
-        $q.notify({ type: 'warning', message: 'Selecione pelo menos uma categoria', position: 'top' });
+        $q.notify({
+          type: 'warning',
+          message: 'Selecione pelo menos uma categoria',
+          position: 'top',
+        });
         return false;
       }
       break;
     case 3:
-      if (!formData.value.portfolio[0] || !formData.value.portfolio[1] || !formData.value.portfolio[2]) {
-        $q.notify({ type: 'warning', message: 'Adicione as 3 fotos do portfólio', position: 'top' });
+      if (
+        !formData.value.portfolio[0] ||
+        !formData.value.portfolio[1] ||
+        !formData.value.portfolio[2]
+      ) {
+        $q.notify({
+          type: 'warning',
+          message: 'Adicione as 3 fotos do portfólio',
+          position: 'top',
+        });
         return false;
       }
       break;
@@ -704,10 +869,34 @@ const validateStep = () => {
         $q.notify({ type: 'warning', message: 'Selecione o raio de atuação', position: 'top' });
         return false;
       }
+      if (!localizacaoObtida.value && !carregandoLocalizacao.value) {
+        $q.notify({
+          type: 'warning',
+          message: 'Aguarde enquanto obtemos sua localização automaticamente...',
+          position: 'top',
+          timeout: 3000,
+        });
+        // Tenta obter localização novamente
+        obterLocalizacaoAutomatica();
+        return false;
+      }
+      if (carregandoLocalizacao.value) {
+        $q.notify({
+          type: 'info',
+          message: 'Obtendo localização... Por favor, aguarde.',
+          position: 'top',
+          timeout: 2000,
+        });
+        return false;
+      }
       break;
     case 5:
       if (!formData.value.documento) {
-        $q.notify({ type: 'warning', message: 'Adicione o documento de identificação', position: 'top' });
+        $q.notify({
+          type: 'warning',
+          message: 'Adicione o documento de identificação',
+          position: 'top',
+        });
         return false;
       }
       if (!acceptTerms.value) {
@@ -805,25 +994,25 @@ const getDocumentIcon = (filename: string) => {
 const carregarDadosAuxiliares = async () => {
   try {
     await prestadorStore.fetchServicoTiposOptions();
-    categoriasOptions.value = prestadorStore.servicoTiposOptions.map(opt => ({
+    categoriasOptions.value = prestadorStore.servicoTiposOptions.map((opt) => ({
       label: opt.label,
-      value: opt.value
+      value: opt.value,
     }));
 
     await prestadorStore.fetchRaioOpcoesOptions();
-    raioOptions.value = prestadorStore.raioOpcoesOptions.map(opt => ({
+    raioOptions.value = prestadorStore.raioOpcoesOptions.map((opt) => ({
       label: opt.label,
-      value: opt.value
+      value: opt.value,
     }));
 
     await prestadorStore.fetchDiasOptions();
-    diasSemana.value = prestadorStore.diasOptions.map(opt => ({
+    diasSemana.value = prestadorStore.diasOptions.map((opt) => ({
       label: opt.label,
-      value: opt.value
+      value: opt.value,
     }));
 
     const disponibilidadeInicial: Disponibilidade = {};
-    diasSemana.value.forEach(dia => {
+    diasSemana.value.forEach((dia) => {
       disponibilidadeInicial[dia.value] = { ativo: false, horario: '' };
     });
     formData.value.disponibilidade = disponibilidadeInicial;
@@ -832,6 +1021,7 @@ const carregarDadosAuxiliares = async () => {
   }
 };
 
+// ✅ HANDLE REGISTER MODIFICADO COM LOCALIZAÇÃO
 const handleRegister = async () => {
   if (!acceptTerms.value) {
     $q.notify({ type: 'warning', message: 'Aceite os termos para continuar', position: 'top' });
@@ -851,6 +1041,16 @@ const handleRegister = async () => {
     formDataToSend.append('raio', String(formData.value.raio));
     formDataToSend.append('disponibilidade', JSON.stringify(formData.value.disponibilidade));
 
+    // ✅ ENVIAR LATITUDE E LONGITUDE (se obtidas)
+    if (latitude.value && longitude.value) {
+      formDataToSend.append('latitude', latitude.value);
+      formDataToSend.append('longitude', longitude.value);
+      console.log('📍 Localização enviada:', {
+        latitude: latitude.value,
+        longitude: longitude.value,
+      });
+    }
+
     if (formData.value.foto) {
       formDataToSend.append('foto', formData.value.foto);
     }
@@ -867,6 +1067,7 @@ const handleRegister = async () => {
 
     const response = await api.post(PRESTADOR_ENDPOINTS.REGISTER, formDataToSend, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
     });
 
     if (response.data.success) {
@@ -875,7 +1076,11 @@ const handleRegister = async () => {
         void router.push('/auth/login');
       }, 1500);
     } else {
-      $q.notify({ type: 'negative', message: response.data.error || 'Erro ao registar', position: 'top' });
+      $q.notify({
+        type: 'negative',
+        message: response.data.error || 'Erro ao registar',
+        position: 'top',
+      });
     }
   } catch (err) {
     console.error('Erro no registro:', err);
@@ -1091,6 +1296,39 @@ $gray-900: #212121;
   }
 }
 
+// ✅ ESTILOS PARA STATUS DA LOCALIZAÇÃO
+.location-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+
+  &.loading {
+    background: rgba(102, 126, 234, 0.1);
+    color: $purple-primary;
+  }
+
+  &.success {
+    background: rgba(72, 187, 120, 0.1);
+    color: #48bb78;
+  }
+
+  &.error {
+    background: rgba(245, 101, 101, 0.1);
+    color: #f56565;
+  }
+}
+
+.raio-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: $gray-600;
+}
+
 .password-strength {
   .strength-bar {
     height: 4px;
@@ -1100,19 +1338,35 @@ $gray-900: #212121;
     .strength-fill {
       height: 100%;
       transition: width 0.3s ease;
-      &.weak { background: #f56565; }
-      &.fair { background: #ed8936; }
-      &.good { background: #48bb78; }
-      &.strong { background: #38a169; }
+      &.weak {
+        background: #f56565;
+      }
+      &.fair {
+        background: #ed8936;
+      }
+      &.good {
+        background: #48bb78;
+      }
+      &.strong {
+        background: #38a169;
+      }
     }
   }
   .strength-text {
     font-size: 0.7rem;
     margin-top: 4px;
-    &.weak { color: #f56565; }
-    &.fair { color: #ed8936; }
-    &.good { color: #48bb78; }
-    &.strong { color: #38a169; }
+    &.weak {
+      color: #f56565;
+    }
+    &.fair {
+      color: #ed8936;
+    }
+    &.good {
+      color: #48bb78;
+    }
+    &.strong {
+      color: #38a169;
+    }
   }
 }
 
@@ -1201,11 +1455,23 @@ $gray-900: #212121;
   }
 }
 
+// ✅ DISPONIBILIDADE EM 2 COLUNAS
 .availability-grid {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-top: 10px;
+
+  &.two-columns {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+
+    @media (max-width: 599px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .availability-item {
     display: flex;
     align-items: center;
@@ -1213,11 +1479,13 @@ $gray-900: #212121;
     padding: 10px;
     background: $gray-50;
     border-radius: 12px;
+
     .day-label {
       min-width: 80px;
       font-weight: 500;
       color: $gray-700;
     }
+
     .time-input {
       width: 120px;
     }
@@ -1303,8 +1571,12 @@ $gray-900: #212121;
         font-size: 0.95rem;
         font-weight: 500;
         color: $gray-800;
+        word-break: break-all;
         :deep(.q-chip) {
           margin: 2px;
+        }
+        &.text-warning {
+          color: #ed8936;
         }
       }
     }
@@ -1363,8 +1635,12 @@ $gray-900: #212121;
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 599px) {

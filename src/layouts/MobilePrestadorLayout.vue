@@ -369,6 +369,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
 import { usePrestadorStore } from 'src/stores/prestador-store';
 import { useQuasar } from 'quasar';
+import { api } from 'src/boot/axios';
 
 // Interface para notificações
 interface NotificacaoData {
@@ -418,9 +419,8 @@ const userTotalAvaliacoes = computed(
   () => (authStore.user as PrestadorUser)?.total_avaliacoes || 0,
 );
 
-// ✅ CORREÇÃO 1: Computed com verificação de segurança para evitar erro "filter is not a function"
+// Computed com verificação de segurança para evitar erro "filter is not a function"
 const solicitacoesPendentesCount = computed(() => {
-  // Verifica se solicitacoes é um array antes de usar filter
   if (prestadorStore.solicitacoes && Array.isArray(prestadorStore.solicitacoes)) {
     return prestadorStore.solicitacoes.filter((s) => s.status === 'pendente').length;
   }
@@ -430,7 +430,7 @@ const solicitacoesPendentesCount = computed(() => {
 // Notificações (inicializado como array vazio)
 const notificacoes = ref<NotificacaoData[]>([]);
 
-// ✅ CORREÇÃO 2: Computed com verificação de segurança
+// Computed com verificação de segurança
 const unreadCount = computed(() => {
   if (notificacoes.value && Array.isArray(notificacoes.value)) {
     return notificacoes.value.filter((n) => !n.lida).length;
@@ -485,7 +485,7 @@ const formatarData = (dataString: string) => {
   }
 };
 
-// Carregar notificações do prestador
+// ✅ CORREÇÃO: Usando o método correto do prestador-store para notificações
 const carregarNotificacoes = async () => {
   if (!authStore.isPrestador) {
     console.log('Usuário não é prestador, ignorando notificações');
@@ -495,7 +495,7 @@ const carregarNotificacoes = async () => {
 
   loadingNotificacoes.value = true;
   try {
-    const { api } = await import('src/boot/axios');
+    // Usando o endpoint de notificações diretamente (mesmo padrão do admin)
     const response = await api.get('/notifications');
 
     if (response.data.success && Array.isArray(response.data.data)) {
@@ -513,7 +513,6 @@ const carregarNotificacoes = async () => {
 
 const marcarNotificacaoLida = async (id: number) => {
   try {
-    const { api } = await import('src/boot/axios');
     const response = await api.put(`/notifications/${id}/read`);
 
     if (response.data.success && Array.isArray(notificacoes.value)) {
@@ -529,7 +528,6 @@ const marcarNotificacaoLida = async (id: number) => {
 
 const marcarTodasComoLidas = async () => {
   try {
-    const { api } = await import('src/boot/axios');
     const response = await api.put('/notifications/read-all');
 
     if (response.data.success && Array.isArray(notificacoes.value)) {
@@ -558,7 +556,7 @@ const openNotifications = () => {
   void carregarNotificacoes();
 };
 
-// ✅ CORREÇÃO 3: Função segura para carregar solicitações
+// Função segura para carregar solicitações
 const carregarSolicitacoesPendentes = async () => {
   if (!authStore.isPrestador) {
     return;
@@ -614,7 +612,7 @@ const confirmLogout = () => {
   });
 };
 
-// ✅ CORREÇÃO 4: onMounted sem await no initialize
+// onMounted
 onMounted(async () => {
   // Inicializa o auth store (operação síncrona)
   if (!authStore.isAuthenticated) {

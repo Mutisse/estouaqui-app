@@ -3,18 +3,6 @@
  * ALINHADOS COM AS ROTAS DO BACKEND LARAVEL
  */
 export const ADMIN_ENDPOINTS = {
-
-
-
-
-  // src/router/Api/admin-endpoints.ts (adicione)
-
-// ==========================================
-// 11. NOTIFICAÇÕES
-// ==========================================
-NOTIFICACOES: '/admin/notifications',
-MARK_NOTIFICATION_READ: (id: number) => `/admin/notifications/${id}/read`,
-MARK_ALL_NOTIFICATIONS_READ: '/admin/notifications/read-all',
   // ==========================================
   // 1. DASHBOARD E ESTATÍSTICAS
   // ==========================================
@@ -42,10 +30,10 @@ MARK_ALL_NOTIFICATIONS_READ: '/admin/notifications/read-all',
   UPDATE_USER: (id: number) => `/admin/users/${id}`,
 
   // Bloquear utilizador
-  BLOCK_USER: (id: number) => `/admin/users/${id}/block`,
+  BLOCK_USER: (id: number) => `/admin/users/${id}/status/block`,
 
   // Desbloquear utilizador
-  UNBLOCK_USER: (id: number) => `/admin/users/${id}/unblock`,
+  UNBLOCK_USER: (id: number) => `/admin/users/${id}/status/unblock`,
 
   // Deletar utilizador (soft delete)
   DELETE_USER: (id: number) => `/admin/users/${id}`,
@@ -76,7 +64,7 @@ MARK_ALL_NOTIFICATIONS_READ: '/admin/notifications/read-all',
   REPROVAR_PRESTADOR: (id: number) => `/admin/prestadores/${id}/reprovar`,
 
   // ==========================================
-  // 4. GESTÃO DE CATEGORIAS
+  // 4. GESTÃO DE CATEGORIAS (ATUALIZADO)
   // ==========================================
 
   // Listar categorias
@@ -93,6 +81,12 @@ MARK_ALL_NOTIFICATIONS_READ: '/admin/notifications/read-all',
 
   // Deletar categoria
   DELETE_CATEGORIA: (id: number) => `/admin/categorias/${id}`,
+
+  // Upload de imagem para categoria (CORRIGIDO)
+  UPLOAD_CATEGORIA_IMAGEM: '/admin/categorias/upload-imagem',
+
+  // Remover imagem da categoria (CORRIGIDO)
+  REMOVER_CATEGORIA_IMAGEM: (id: number) => `/admin/categorias/${id}/imagem`,
 
   // ==========================================
   // 5. GESTÃO DE SERVIÇOS
@@ -155,14 +149,27 @@ MARK_ALL_NOTIFICATIONS_READ: '/admin/notifications/read-all',
   // Exportar relatório
   EXPORT_RELATORIO: (tipo: string) => `/admin/export?tipo=${tipo}`,
 
-  // Relatório de serviços
-  RELATORIO_SERVICOS: (periodo: string) => `/admin/relatorios/servicos?periodo=${periodo}`,
+  // Relatório de serviços (com período opcional)
+  RELATORIO_SERVICOS: (periodo?: string) => {
+    if (periodo) {
+      return `/admin/relatorios/servicos?periodo=${periodo}`;
+    }
+    return '/admin/relatorios/servicos';
+  },
 
   // Relatório de prestadores
   RELATORIO_PRESTADORES: '/admin/relatorios/prestadores',
 
-  // Relatório financeiro
-  RELATORIO_FINANCEIRO: (periodo: string) => `/admin/relatorios/financeiro?periodo=${periodo}`,
+  // Relatório financeiro (com período opcional)
+  RELATORIO_FINANCEIRO: (periodo?: string) => {
+    if (periodo) {
+      return `/admin/relatorios/financeiro?periodo=${periodo}`;
+    }
+    return '/admin/relatorios/financeiro';
+  },
+
+  // Relatório de usuários
+  RELATORIO_USUARIOS: '/admin/relatorios/usuarios',
 
   // ==========================================
   // 9. CONFIGURAÇÕES DO SISTEMA
@@ -180,6 +187,44 @@ MARK_ALL_NOTIFICATIONS_READ: '/admin/notifications/read-all',
 
   // Listar logs
   LOGS: '/admin/logs',
+
+  // ==========================================
+  // 11. NOTIFICAÇÕES
+  // ==========================================
+  // NOTA: As notificações estão em /notifications (fora do admin)
+  NOTIFICACOES: '/notifications',
+
+  // Marcar notificação como lida
+  MARK_NOTIFICATION_READ: (id: number) => `/notifications/${id}/read`,
+
+  // Marcar todas notificações como lidas
+  MARK_ALL_NOTIFICATIONS_READ: '/notifications/read-all',
+
+  // ==========================================
+  // 12. GESTÃO DE AVALIAÇÕES (ADMIN)
+  // ==========================================
+
+  // Listar avaliações
+  AVALIACOES: '/admin/avaliacoes',
+
+  // Detalhes da avaliação
+  AVALIACAO_DETAILS: (id: number) => `/admin/avaliacoes/${id}`,
+
+  // Deletar avaliação
+  DELETE_AVALIACAO: (id: number) => `/admin/avaliacoes/${id}`,
+
+  // ==========================================
+  // 13. GESTÃO DE PROMOÇÕES (ADMIN)
+  // ==========================================
+
+  // Criar promoção
+  CREATE_PROMOCAO: '/admin/promocoes',
+
+  // Atualizar promoção
+  UPDATE_PROMOCAO: (id: number) => `/admin/promocoes/${id}`,
+
+  // Deletar promoção
+  DELETE_PROMOCAO: (id: number) => `/admin/promocoes/${id}`,
 } as const;
 
 export type AdminEndpoints = typeof ADMIN_ENDPOINTS;

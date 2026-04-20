@@ -367,7 +367,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
 import { useAdminStore, type NotificacaoData } from 'src/stores/admin-store';
@@ -396,10 +396,11 @@ const globalLoading = ref(false);
 const loadingNotificacoes = ref(false);
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-// Notificações
-const notificacoes = ref<NotificacaoData[]>([]);
+// Notificações - usando diretamente do store
+const notificacoes = computed(() => adminStore.notificacoesAdmin);
 const unreadNotificationsCount = computed(() => {
-  return notificacoes.value.filter((n) => !n.lida).length;
+  const notifs = notificacoes.value;
+  return Array.isArray(notifs) ? notifs.filter((n) => !n.lida).length : 0;
 });
 
 // Funções auxiliares para notificações
@@ -449,15 +450,11 @@ const formatarData = (dataString: string) => {
   }
 };
 
-// Ações de notificações
+// Ações de notificações - usando métodos do store
 const carregarNotificacoes = async () => {
   loadingNotificacoes.value = true;
   try {
-    // Usar o endpoint de notificações do admin
-    const response = await adminStore.fetchNotificacoesAdmin();
-    if (response) {
-      notificacoes.value = response;
-    }
+    await adminStore.fetchNotificacoesAdmin();
   } catch (error) {
     console.error('Erro ao carregar notificações:', error);
   } finally {
@@ -467,13 +464,8 @@ const carregarNotificacoes = async () => {
 
 const marcarNotificacaoLida = async (id: number) => {
   try {
-    const success = await adminStore.marcarNotificacaoLida(id);
-    if (success) {
-      const notif = notificacoes.value.find((n) => n.id === id);
-      if (notif) {
-        notif.lida = true;
-      }
-    }
+    await adminStore.marcarNotificacaoLida(id);
+    // O store já atualiza a lista automaticamente
   } catch (error) {
     console.error('Erro ao marcar notificação como lida:', error);
   }
@@ -483,9 +475,6 @@ const marcarTodasComoLidas = async () => {
   try {
     const success = await adminStore.marcarTodasNotificacoesLidas();
     if (success) {
-      notificacoes.value.forEach((n) => {
-        n.lida = true;
-      });
       $q.notify({
         type: 'positive',
         message: 'Todas notificações marcadas como lidas',
@@ -513,7 +502,7 @@ const iniciarPolling = () => {
 
   pollingInterval = setInterval(() => {
     if (document.hasFocus()) {
-      void carregarNotificacoes();
+      void adminStore.fetchNotificacoesAdmin();
     }
   }, 30000);
 };
@@ -566,7 +555,7 @@ const logout = (): void => {
   });
 };
 
-// Verificar permissões
+// Carregar notificações iniciais
 onMounted(() => {
   if (!authStore.isAuthenticated || !authStore.isAdmin) {
     void router.push('/admin/login');
@@ -578,6 +567,18 @@ onMounted(() => {
 onUnmounted(() => {
   pararPolling();
 });
+
+// Watch para atualizar quando o store mudar
+watch(
+  () => adminStore.notificacoesAdmin,
+  (newVal) => {
+    // Garantir que notificacoesAdmin seja um array
+    if (!Array.isArray(newVal)) {
+      adminStore.notificacoesAdmin = [];
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped lang="scss">

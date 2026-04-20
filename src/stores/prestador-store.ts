@@ -346,7 +346,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // PEDIDOS DISPONÍVEIS (NOVO)
+  // PEDIDOS DISPONÍVEIS
   // ==========================================
 
   async function fetchPedidosDisponiveis(): Promise<PedidoDisponivelData[]> {
@@ -355,11 +355,11 @@ export const usePrestadorStore = defineStore('prestador', () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.PEDIDOS_DISPONIVEIS);
         const data = extractDataFromResponse<PedidoDisponivelData[]>(response.data);
-        pedidosDisponiveis.value = data;
+        pedidosDisponiveis.value = Array.isArray(data) ? data : [];
         return pedidosDisponiveis.value;
       } catch (error) {
         console.error('Erro ao carregar pedidos disponíveis:', error);
-        showError(error);
+        pedidosDisponiveis.value = [];
         return [];
       } finally {
         loading.value = false;
@@ -368,7 +368,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // PROPOSTAS DO PRESTADOR (NOVO)
+  // PROPOSTAS DO PRESTADOR
   // ==========================================
 
   async function enviarProposta(data: {
@@ -399,11 +399,11 @@ export const usePrestadorStore = defineStore('prestador', () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_PROPOSTAS);
         const data = extractDataFromResponse<PropostaData[]>(response.data);
-        minhasPropostas.value = data;
+        minhasPropostas.value = Array.isArray(data) ? data : [];
         return minhasPropostas.value;
       } catch (error) {
         console.error('Erro ao carregar propostas:', error);
-        showError(error);
+        minhasPropostas.value = [];
         return [];
       } finally {
         loading.value = false;
@@ -421,7 +421,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.SERVICOS);
         const data = extractDataFromResponse<ServicoData[]>(response.data);
-        servicos.value = data;
+        servicos.value = Array.isArray(data) ? data : [];
         return servicos.value;
       } catch (error) {
         showError(error);
@@ -549,7 +549,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AGENDA, { params });
-        agenda.value = extractDataFromResponse<AgendaData[]>(response.data);
+        const data = extractDataFromResponse<AgendaData[]>(response.data);
+        agenda.value = Array.isArray(data) ? data : [];
         return agenda.value;
       } catch (error) {
         showError(error);
@@ -612,7 +613,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
           ? PRESTADOR_ENDPOINTS.SOLICITACOES_BY_STATUS(status)
           : PRESTADOR_ENDPOINTS.SOLICITACOES;
         const response = await api.get(url);
-        solicitacoes.value = extractDataFromResponse<SolicitacaoData[]>(response.data);
+        const data = extractDataFromResponse<SolicitacaoData[]>(response.data);
+        solicitacoes.value = Array.isArray(data) ? data : [];
         return solicitacoes.value;
       } catch (error) {
         showError(error);
@@ -674,7 +676,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_CATEGORIAS);
-        minhasCategorias.value = extractDataFromResponse<CategoriaPrestadorData[]>(response.data);
+        const data = extractDataFromResponse<CategoriaPrestadorData[]>(response.data);
+        minhasCategorias.value = Array.isArray(data) ? data : [];
         return minhasCategorias.value;
       } catch (error) {
         showError(error);
@@ -734,7 +737,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.GANHOS);
-        ganhos.value = extractDataFromResponse<GanhosData>(response.data);
+        const data = extractDataFromResponse<GanhosData>(response.data);
+        ganhos.value = data;
         return ganhos.value;
       } catch (error) {
         showError(error);
@@ -750,7 +754,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.SAQUES);
-        saques.value = extractDataFromResponse<SaqueData[]>(response.data);
+        const data = extractDataFromResponse<SaqueData[]>(response.data);
+        saques.value = Array.isArray(data) ? data : [];
         return saques.value;
       } catch (error) {
         showError(error);
@@ -788,7 +793,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.HISTORICO_SAQUES);
-        historicoSaques.value = extractDataFromResponse<SaqueData[]>(response.data);
+        const data = extractDataFromResponse<SaqueData[]>(response.data);
+        historicoSaques.value = Array.isArray(data) ? data : [];
         return historicoSaques.value;
       } catch (error) {
         showError(error);
@@ -808,7 +814,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.PRESTADOR_STATS);
-        stats.value = extractDataFromResponse<StatsData>(response.data);
+        const data = extractDataFromResponse<StatsData>(response.data);
+        stats.value = data;
         return stats.value;
       } catch (error) {
         showError(error);
@@ -830,7 +837,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
         const response = await api.get(PRESTADOR_ENDPOINTS.PROXIMOS_SERVICOS, {
           params: { limit },
         });
-        proximosServicos.value = extractDataFromResponse<ProximoServicoData[]>(response.data);
+        const data = extractDataFromResponse<ProximoServicoData[]>(response.data);
+        proximosServicos.value = Array.isArray(data) ? data : [];
         return proximosServicos.value;
       } catch (error) {
         showError(error);
@@ -848,7 +856,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
         const response = await api.get(PRESTADOR_ENDPOINTS.AVALIACOES_RECENTES, {
           params: { limit },
         });
-        avaliacoesRecentes.value = extractDataFromResponse<AvaliacaoRecenteData[]>(response.data);
+        const data = extractDataFromResponse<AvaliacaoRecenteData[]>(response.data);
+        avaliacoesRecentes.value = Array.isArray(data) ? data : [];
         return avaliacoesRecentes.value;
       } catch (error) {
         showError(error);
@@ -867,7 +876,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('dias_semana', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AUX_DIAS_SEMANA);
-        diasSemana.value = extractDataFromResponse<DiaSemanaData[]>(response.data);
+        const data = extractDataFromResponse<DiaSemanaData[]>(response.data);
+        diasSemana.value = Array.isArray(data) ? data : [];
         return diasSemana.value;
       } catch (error) {
         showError(error);
@@ -880,7 +890,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('meses', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AUX_MESES);
-        meses.value = extractDataFromResponse<MesData[]>(response.data);
+        const data = extractDataFromResponse<MesData[]>(response.data);
+        meses.value = Array.isArray(data) ? data : [];
         return meses.value;
       } catch (error) {
         showError(error);
@@ -893,7 +904,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('horarios_padrao', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AUX_HORARIOS_PADRAO);
-        horariosPadrao.value = extractDataFromResponse<HorarioPadraoData[]>(response.data);
+        const data = extractDataFromResponse<HorarioPadraoData[]>(response.data);
+        horariosPadrao.value = Array.isArray(data) ? data : [];
         return horariosPadrao.value;
       } catch (error) {
         showError(error);
@@ -906,10 +918,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('dias_options', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AUX_DIAS_OPTIONS);
-        diasOptions.value = extractDataFromResponse<DiaOptionData[]>(response.data);
+        const data = extractDataFromResponse<DiaOptionData[]>(response.data);
+        diasOptions.value = Array.isArray(data) ? data : [];
         return diasOptions.value;
       } catch (error) {
-        showError(error);
+        console.error('Erro ao carregar dias options:', error);
+        diasOptions.value = [];
         return [];
       }
     });
@@ -919,10 +933,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('horarios_options', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.AUX_HORARIOS_OPTIONS);
-        horariosOptions.value = extractDataFromResponse<HorarioOptionData[]>(response.data);
+        const data = extractDataFromResponse<HorarioOptionData[]>(response.data);
+        horariosOptions.value = Array.isArray(data) ? data : [];
         return horariosOptions.value;
       } catch (error) {
-        showError(error);
+        console.error('Erro ao carregar horarios options:', error);
+        horariosOptions.value = [];
         return [];
       }
     });
@@ -936,7 +952,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('servico_tipos', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS);
-        servicoTipos.value = extractDataFromResponse<ServicoTipoData[]>(response.data);
+        const data = extractDataFromResponse<ServicoTipoData[]>(response.data);
+        servicoTipos.value = Array.isArray(data) ? data : [];
         return servicoTipos.value;
       } catch (error) {
         showError(error);
@@ -949,10 +966,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('servico_tipos_options', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS_OPTIONS);
-        servicoTiposOptions.value = extractDataFromResponse<ServicoTipoOptionData[]>(response.data);
+        const data = extractDataFromResponse<ServicoTipoOptionData[]>(response.data);
+        servicoTiposOptions.value = Array.isArray(data) ? data : [];
         return servicoTiposOptions.value;
       } catch (error) {
-        showError(error);
+        console.error('Erro ao carregar servico tipos options:', error);
+        servicoTiposOptions.value = [];
         return [];
       }
     });
@@ -966,7 +985,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('raio_opcoes', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES);
-        raioOpcoes.value = extractDataFromResponse<RaioOpcaoData[]>(response.data);
+        const data = extractDataFromResponse<RaioOpcaoData[]>(response.data);
+        raioOpcoes.value = Array.isArray(data) ? data : [];
         return raioOpcoes.value;
       } catch (error) {
         showError(error);
@@ -979,10 +999,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
     return dedupeRequest('raio_opcoes_options', async () => {
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES_OPTIONS);
-        raioOpcoesOptions.value = extractDataFromResponse<RaioOpcaoOptionData[]>(response.data);
+        const data = extractDataFromResponse<RaioOpcaoOptionData[]>(response.data);
+        raioOpcoesOptions.value = Array.isArray(data) ? data : [];
         return raioOpcoesOptions.value;
       } catch (error) {
-        showError(error);
+        console.error('Erro ao carregar raio opcoes options:', error);
+        raioOpcoesOptions.value = [];
         return [];
       }
     });
@@ -997,7 +1019,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.INTERVALOS);
-        intervalos.value = extractDataFromResponse<IntervaloData[]>(response.data);
+        const data = extractDataFromResponse<IntervaloData[]>(response.data);
+        intervalos.value = Array.isArray(data) ? data : [];
         return intervalos.value;
       } catch (error) {
         showError(error);
@@ -1084,7 +1107,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       loading.value = true;
       try {
         const response = await api.get(PRESTADOR_ENDPOINTS.DISPONIBILIDADE);
-        disponibilidade.value = extractDataFromResponse<DisponibilidadeData>(response.data);
+        const data = extractDataFromResponse<DisponibilidadeData>(response.data);
+        disponibilidade.value = data;
         return disponibilidade.value;
       } catch (error) {
         showError(error);
