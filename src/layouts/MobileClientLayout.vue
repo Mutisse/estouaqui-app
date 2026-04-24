@@ -247,7 +247,7 @@
                 clickable
                 v-ripple
                 :class="{ 'notification-unread': !notif.lida }"
-                @click="marcarNotificacaoLida(notif.id)"
+                @click="abrirNotificacao(notif)"
               >
                 <q-item-section avatar>
                   <q-icon :name="getNotificacaoIcone(notif)" :color="getNotificacaoCor(notif)" size="32px" />
@@ -308,7 +308,6 @@ let pollingInterval: ReturnType<typeof setInterval> | null = null;
 const userName = computed(() => authStore.user?.nome || 'Cliente');
 const userAvatar = computed(() => authStore.user?.foto || 'https://cdn.quasar.dev/img/avatar.png');
 
-// ✅ CORREÇÃO: Garantir que notificacoesLista seja sempre um array
 const notificacoesLista = computed<NotificacaoData[]>(() => {
   if (Array.isArray(clienteStore.notificacoes)) {
     return clienteStore.notificacoes;
@@ -316,7 +315,6 @@ const notificacoesLista = computed<NotificacaoData[]>(() => {
   return [];
 });
 
-// ✅ CORREÇÃO: unreadCount seguro
 const unreadCount = computed(() => {
   if (!Array.isArray(clienteStore.notificacoes)) return 0;
   return clienteStore.notificacoes.filter((n: NotificacaoData) => !n.lida).length;
@@ -324,23 +322,35 @@ const unreadCount = computed(() => {
 
 // Funções auxiliares
 const getNotificacaoIcone = (notif: NotificacaoData) => {
-  const tipo = notif.tipo || 'default';
+  const tipo = notif.tipo || notif.type || 'default';
   const icones: Record<string, string> = {
     pedido: 'assignment',
     avaliacao: 'star',
     promocao: 'local_offer',
     sistema: 'info',
+    proposta: 'request_quote',
+    mensagem: 'chat',
+    favorito: 'favorite',
+    categoria: 'category',
+    servico: 'handyman',
+    transacao: 'payments',
     default: 'notifications',
   };
   return icones[tipo] || icones.default;
 };
 
 const getNotificacaoCor = (notif: NotificacaoData) => {
-  const tipo = notif.tipo || 'default';
+  const tipo = notif.tipo || notif.type || 'default';
   const cores: Record<string, string> = {
     pedido: 'primary',
-    avaliacao: 'yellow',
+    avaliacao: 'yellow-8',
     promocao: 'orange',
+    proposta: 'purple',
+    mensagem: 'teal',
+    favorito: 'red',
+    categoria: 'green',
+    servico: 'blue',
+    transacao: 'indigo',
     sistema: 'grey',
     default: 'primary',
   };
@@ -367,6 +377,112 @@ const formatarData = (dataString: string) => {
   }
 };
 
+// ✅ Função principal: Abrir notificação baseado no tipo
+const abrirNotificacao = async (notificacao: NotificacaoData) => {
+  // Fechar o modal
+  notificationsDialog.value = false;
+
+  // Extrair dados da notificação
+  const tipo = notificacao.tipo || notificacao.type || '';
+  const dados = notificacao.data || {};
+
+  // Marcar como lida (se não estiver)
+  if (!notificacao.lida) {
+    await marcarNotificacaoLida(notificacao.id);
+  }
+
+  // Redirecionar baseado no tipo
+  // Pedidos e Propostas
+  if (tipo === 'nova_proposta' ||
+      tipo === 'pedido_confirmado' ||
+      tipo === 'pedido_em_andamento' ||
+      tipo === 'pedido_concluido' ||
+      tipo === 'pedido_cancelado' ||
+      tipo === 'nova_solicitacao' ||
+      tipo === 'solicitacao_aceita' ||
+      tipo === 'solicitacao_recusada') {
+    if (dados.pedido_id) {
+      void router.push(`/mobile/detalhes-pedido/${dados.pedido_id}`);
+    } else {
+      void router.push('/mobile/meus-pedidos');
+    }
+    return;
+  }
+
+  // Avaliações
+  if (tipo === 'nova_avaliacao' ||
+      tipo === 'avaliacao_atualizada' ||
+      tipo === 'avaliacao_removida') {
+    if (dados.avaliacao_id) {
+      void router.push(`/mobile/avaliacao/${dados.avaliacao_id}`);
+    } else if (dados.pedido_id) {
+      void router.push(`/mobile/detalhes-pedido/${dados.pedido_id}`);
+    } else {
+      void router.push('/mobile/lista-prestadores');
+    }
+    return;
+  }
+
+  // Mensagens
+  if (tipo === 'nova_mensagem') {
+    if (dados.conversa_id) {
+      void router.push(`/mobile/chat/${dados.conversa_id}`);
+    } else if (dados.prestador_id) {
+      void router.push(`/mobile/chat/${dados.prestador_id}`);
+    }
+    return;
+  }
+
+  // Promoções
+  if (tipo === 'promocao_nova' || tipo === 'promocao_atualizada') {
+    void router.push('/mobile/promocoes');
+    return;
+  }
+
+  // Favoritos
+  if (tipo === 'novo_favorito') {
+    void router.push('/mobile/favoritos');
+    return;
+  }
+
+  // Categorias e Serviços
+  if (tipo === 'nova_categoria' ||
+      tipo === 'categoria_atualizada' ||
+      tipo === 'categoria_removida' ||
+      tipo === 'novo_servico' ||
+      tipo === 'servico_atualizado' ||
+      tipo === 'servico_removido' ||
+      tipo === 'novo_tipo_servico' ||
+      tipo === 'tipo_servico_atualizado' ||
+      tipo === 'tipo_servico_removido') {
+    void router.push('/mobile/lista-prestadores');
+    return;
+  }
+
+  // Transações
+  if (tipo === 'nova_transacao' || tipo === 'transacao_status') {
+    if (authStore.isPrestador) {
+      void router.push('/mobile/prestador/ganhos');
+    } else {
+      void router.push('/mobile/perfil');
+    }
+    return;
+  }
+
+  // Prestador aprovado/reprovado
+  if (tipo === 'prestador_aprovado' || tipo === 'prestador_reprovado') {
+    if (authStore.isPrestador) {
+      void router.push('/mobile/prestador/perfil');
+    } else {
+      void router.push('/mobile/perfil');
+    }
+    return;
+  }
+
+  // Padrão: não faz nada
+  console.log('Notificação sem destino definido:', tipo);
+};
+
 // Ações de notificações
 const carregarNotificacoes = async () => {
   loadingNotificacoes.value = true;
@@ -379,14 +495,16 @@ const carregarNotificacoes = async () => {
   }
 };
 
-const marcarNotificacaoLida = async (id: number) => {
+const marcarNotificacaoLida = async (id: number): Promise<boolean> => {
   try {
     const success = await clienteStore.marcarNotificacaoLida(id);
     if (success) {
       await carregarNotificacoes();
     }
+    return success;
   } catch (error) {
     console.error('Erro ao marcar notificação como lida:', error);
+    return false;
   }
 };
 

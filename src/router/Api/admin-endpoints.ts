@@ -16,8 +16,34 @@ export const ADMIN_ENDPOINTS = {
   // Estatísticas gerais
   STATS: '/admin/stats',
 
+  // Logs do sistema
+  LOGS: '/admin/logs',
+
   // ==========================================
-  // 2. GESTÃO DE UTILIZADORES
+  // 2. CONFIGURAÇÕES DO SISTEMA
+  // ==========================================
+
+  // Obter configurações
+  CONFIGURACOES: '/admin/configuracoes',
+
+  // Atualizar configurações
+  UPDATE_CONFIGURACOES: '/admin/configuracoes',
+
+  // ==========================================
+  // 3. NOTIFICAÇÕES DO ADMIN
+  // ==========================================
+
+  // Listar notificações do admin
+  NOTIFICACOES: '/admin/notifications',
+
+  // Marcar notificação como lida
+  MARK_NOTIFICATION_READ: (id: string) => `/admin/notifications/${id}/read`,
+
+  // Marcar todas notificações como lidas
+  MARK_ALL_NOTIFICATIONS_READ: '/admin/notifications/read-all',
+
+  // ==========================================
+  // 4. GESTÃO DE UTILIZADORES
   // ==========================================
 
   // Listar todos os utilizadores
@@ -48,7 +74,7 @@ export const ADMIN_ENDPOINTS = {
   EXPORT_USERS: '/admin/users/export',
 
   // ==========================================
-  // 3. GESTÃO DE PRESTADORES
+  // 5. GESTÃO DE PRESTADORES
   // ==========================================
 
   // Listar prestadores
@@ -64,7 +90,7 @@ export const ADMIN_ENDPOINTS = {
   REPROVAR_PRESTADOR: (id: number) => `/admin/prestadores/${id}/reprovar`,
 
   // ==========================================
-  // 4. GESTÃO DE CATEGORIAS (ATUALIZADO)
+  // 6. GESTÃO DE CATEGORIAS
   // ==========================================
 
   // Listar categorias
@@ -82,14 +108,14 @@ export const ADMIN_ENDPOINTS = {
   // Deletar categoria
   DELETE_CATEGORIA: (id: number) => `/admin/categorias/${id}`,
 
-  // Upload de imagem para categoria (CORRIGIDO)
+  // Upload de imagem para categoria
   UPLOAD_CATEGORIA_IMAGEM: '/admin/categorias/upload-imagem',
 
-  // Remover imagem da categoria (CORRIGIDO)
+  // Remover imagem da categoria
   REMOVER_CATEGORIA_IMAGEM: (id: number) => `/admin/categorias/${id}/imagem`,
 
   // ==========================================
-  // 5. GESTÃO DE SERVIÇOS
+  // 7. GESTÃO DE SERVIÇOS
   // ==========================================
 
   // Listar serviços
@@ -108,7 +134,7 @@ export const ADMIN_ENDPOINTS = {
   DELETE_SERVICO: (id: number) => `/admin/servicos/${id}`,
 
   // ==========================================
-  // 6. GESTÃO DE PEDIDOS
+  // 8. GESTÃO DE PEDIDOS
   // ==========================================
 
   // Listar pedidos
@@ -124,7 +150,20 @@ export const ADMIN_ENDPOINTS = {
   CANCELAR_PEDIDO: (id: number) => `/admin/pedidos/${id}/cancel`,
 
   // ==========================================
-  // 7. FINANCEIRO
+  // 9. GESTÃO DE AVALIAÇÕES
+  // ==========================================
+
+  // Listar avaliações
+  AVALIACOES: '/admin/avaliacoes',
+
+  // Detalhes da avaliação
+  AVALIACAO_DETAILS: (id: number) => `/admin/avaliacoes/${id}`,
+
+  // Deletar avaliação
+  DELETE_AVALIACAO: (id: number) => `/admin/avaliacoes/${id}`,
+
+  // ==========================================
+  // 10. FINANCEIRO
   // ==========================================
 
   // Resumo financeiro
@@ -143,11 +182,14 @@ export const ADMIN_ENDPOINTS = {
   UPDATE_TRANSACAO_STATUS: (id: number) => `/admin/financeiro/transacoes/${id}/status`,
 
   // ==========================================
-  // 8. RELATÓRIOS
+  // 11. RELATÓRIOS
   // ==========================================
 
-  // Exportar relatório
-  EXPORT_RELATORIO: (tipo: string) => `/admin/export?tipo=${tipo}`,
+  // Relatório de usuários
+  RELATORIO_USUARIOS: '/admin/relatorios/usuarios',
+
+  // Relatório de prestadores
+  RELATORIO_PRESTADORES: '/admin/relatorios/prestadores',
 
   // Relatório de serviços (com período opcional)
   RELATORIO_SERVICOS: (periodo?: string) => {
@@ -157,9 +199,6 @@ export const ADMIN_ENDPOINTS = {
     return '/admin/relatorios/servicos';
   },
 
-  // Relatório de prestadores
-  RELATORIO_PRESTADORES: '/admin/relatorios/prestadores',
-
   // Relatório financeiro (com período opcional)
   RELATORIO_FINANCEIRO: (periodo?: string) => {
     if (periodo) {
@@ -168,53 +207,8 @@ export const ADMIN_ENDPOINTS = {
     return '/admin/relatorios/financeiro';
   },
 
-  // Relatório de usuários
-  RELATORIO_USUARIOS: '/admin/relatorios/usuarios',
-
   // ==========================================
-  // 9. CONFIGURAÇÕES DO SISTEMA
-  // ==========================================
-
-  // Obter configurações
-  CONFIGURACOES: '/admin/configuracoes',
-
-  // Atualizar configurações
-  UPDATE_CONFIGURACOES: '/admin/configuracoes',
-
-  // ==========================================
-  // 10. LOGS DO SISTEMA
-  // ==========================================
-
-  // Listar logs
-  LOGS: '/admin/logs',
-
-  // ==========================================
-  // 11. NOTIFICAÇÕES
-  // ==========================================
-  // NOTA: As notificações estão em /notifications (fora do admin)
-  NOTIFICACOES: '/notifications',
-
-  // Marcar notificação como lida
-  MARK_NOTIFICATION_READ: (id: number) => `/notifications/${id}/read`,
-
-  // Marcar todas notificações como lidas
-  MARK_ALL_NOTIFICATIONS_READ: '/notifications/read-all',
-
-  // ==========================================
-  // 12. GESTÃO DE AVALIAÇÕES (ADMIN)
-  // ==========================================
-
-  // Listar avaliações
-  AVALIACOES: '/admin/avaliacoes',
-
-  // Detalhes da avaliação
-  AVALIACAO_DETAILS: (id: number) => `/admin/avaliacoes/${id}`,
-
-  // Deletar avaliação
-  DELETE_AVALIACAO: (id: number) => `/admin/avaliacoes/${id}`,
-
-  // ==========================================
-  // 13. GESTÃO DE PROMOÇÕES (ADMIN)
+  // 12. GESTÃO DE PROMOÇÕES
   // ==========================================
 
   // Criar promoção
@@ -225,6 +219,49 @@ export const ADMIN_ENDPOINTS = {
 
   // Deletar promoção
   DELETE_PROMOCAO: (id: number) => `/admin/promocoes/${id}`,
+
+  // ==========================================
+  // 13. MONITORAMENTO (SYSTEM)
+  // ==========================================
+
+  // Health check
+  SYSTEM_HEALTH: '/system/health',
+
+  // Métricas do sistema
+  SYSTEM_METRICS: '/system/metrics',
+
+  // Performance
+  SYSTEM_PERFORMANCE: '/system/performance',
+
+  // Cache stats
+  SYSTEM_CACHE_STATS: '/system/cache-stats',
+
+  // Database stats
+  SYSTEM_DATABASE_STATS: '/system/database-stats',
+
+  // Queue stats
+  SYSTEM_QUEUE_STATS: '/system/queue-stats',
+
+  // Logs recentes
+  SYSTEM_LOGS_RECENT: '/system/logs/recent',
+
+  // Alertas
+  SYSTEM_ALERTS: '/system/alerts',
+
+  // Resolver alerta
+  SYSTEM_RESOLVE_ALERT: (id: string) => `/system/alerts/${id}/resolve`,
+
+  // Histórico
+  SYSTEM_HISTORY: '/system/history',
+
+  // Métricas de negócio
+  SYSTEM_BUSINESS_METRICS: '/system/business-metrics',
+
+  // Exportar métricas
+  SYSTEM_EXPORT: '/system/export',
+
+  // Salvar métricas diárias
+  SYSTEM_SAVE_DAILY_METRICS: '/system/save-daily-metrics',
 } as const;
 
 export type AdminEndpoints = typeof ADMIN_ENDPOINTS;

@@ -6,76 +6,20 @@
       <div class="text-caption text-grey-6">Encontre serviços perto de si</div>
     </div>
 
-    <!-- Barra de pesquisa -->
-    <div class="search-section q-px-md q-mb-md">
-      <q-input
-        v-model="filtros.busca"
-        outlined
-        dense
-        placeholder="Pesquisar por serviço, localização..."
-        class="search-input"
-        @update:model-value="aplicarFiltros"
-      >
-        <template v-slot:prepend>
-          <q-icon name="search" color="grey-6" />
-        </template>
-        <template v-slot:append v-if="filtros.busca">
-          <q-icon name="close" class="cursor-pointer" color="grey-6" @click="limparBusca" />
-        </template>
-      </q-input>
-    </div>
-
-    <!-- Filtros -->
-    <div class="filters-section q-px-md q-mb-md">
-      <div class="row q-col-gutter-sm">
-        <!-- Filtro por categoria -->
-        <div class="col-6">
-          <q-select
-            v-model="filtros.categoria_id"
-            :options="categoriasOptions"
-            label="Categoria"
-            outlined
-            dense
-            emit-value
-            map-options
-            clearable
-            placeholder="Todas categorias"
-            @update:model-value="aplicarFiltros"
-          />
-        </div>
-
-        <!-- Filtro por raio -->
-        <div class="col-6">
-          <q-select
-            v-model="filtros.raio"
-            :options="raioOptions"
-            label="Raio (km)"
-            outlined
-            dense
-            emit-value
-            map-options
-            @update:model-value="aplicarFiltros"
-          />
-        </div>
-      </div>
-
-      <!-- Ordenação -->
-      <div class="sort-section q-mt-sm">
-        <q-btn
-          v-for="opt in opcoesOrdenacao"
-          :key="opt.value"
-          :flat="filtros.ordenacao !== opt.value"
-          :outline="filtros.ordenacao === opt.value"
-          :color="filtros.ordenacao === opt.value ? 'primary' : 'grey-7'"
-          :label="opt.label"
-          size="sm"
+    <!-- Filtro de Raio -->
+    <div class="radius-filter q-px-md q-mb-md">
+      <div class="row items-center justify-between">
+        <div class="text-subtitle2 text-grey-7">Raio de busca:</div>
+        <q-select
+          v-model="filtros.raio"
+          :options="raioOptions"
+          label="Distância"
+          outlined
           dense
-          no-caps
-          class="q-mr-sm q-mb-sm"
-          @click="
-            filtros.ordenacao = opt.value;
-            aplicarFiltros();
-          "
+          emit-value
+          map-options
+          style="width: 120px"
+          @update:model-value="aplicarFiltroRaio"
         />
       </div>
     </div>
@@ -90,7 +34,7 @@
     <div v-else-if="pedidosFiltrados.length === 0" class="empty-state q-pa-xl text-center">
       <q-icon name="search_off" size="64px" color="grey-4" />
       <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido encontrado</div>
-      <div class="text-grey-6">Tente ajustar os filtros ou ampliar o raio de busca</div>
+      <div class="text-grey-6">Não há pedidos disponíveis num raio de {{ filtros.raio }} km</div>
     </div>
 
     <div v-else class="pedidos-list q-px-md">
@@ -126,10 +70,16 @@
           <div class="descricao-text">{{ pedido.descricao || 'Sem descrição' }}</div>
         </div>
 
-        <!-- Localização -->
-        <div class="pedido-localizacao row items-center q-mt-sm">
-          <q-icon name="location_on" size="16px" color="grey-6" />
-          <span class="text-caption text-grey-7">{{ pedido.endereco }}</span>
+        <!-- Localização e Distância -->
+        <div class="pedido-localizacao row items-center justify-between q-mt-sm">
+          <div class="row items-center">
+            <q-icon name="location_on" size="16px" color="grey-6" />
+            <span class="text-caption text-grey-7">{{ pedido.endereco }}</span>
+          </div>
+          <div v-if="pedido.distancia_km" class="distancia-badge">
+            <q-icon name="near_me" size="14px" color="primary" />
+            <span class="text-caption text-primary">{{ pedido.distancia_km }} km</span>
+          </div>
         </div>
 
         <!-- Footer do card -->
@@ -209,25 +159,13 @@
     </q-dialog>
   </q-page>
 </template>
+
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/auth-store';
 import { usePrestadorStore, type PedidoDisponivelData } from 'src/stores/prestador-store';
-import { api } from 'src/boot/axios';
-
-// Interface para categoria da API
-interface CategoriaApiData {
-  id: number;
-  nome: string;
-  slug: string;
-  icone: string;
-  cor: string;
-  descricao: string | null;
-  ativo: boolean;
-  servicos_count: number;
-}
 
 defineOptions({
   name: 'PedidosDisponiveisPage',
@@ -243,27 +181,19 @@ const carregando = ref(true);
 const carregandoEnvio = ref(false);
 const pedidos = ref<PedidoDisponivelData[]>([]);
 
-// Opções para selects
-const categoriasOptions = ref<{ label: string; value: number }[]>([]);
+// Opções para raio
 const raioOptions = ref<{ label: string; value: number }[]>([
   { label: '5 km', value: 5 },
   { label: '10 km', value: 10 },
   { label: '20 km', value: 20 },
+  { label: '30 km', value: 30 },
   { label: '50 km', value: 50 },
+  { label: '100 km', value: 100 },
 ]);
 
-const opcoesOrdenacao = [
-  { label: 'Mais recentes', value: 'recentes' },
-  { label: 'Mais antigos', value: 'antigos' },
-  { label: 'Mais próximos', value: 'proximos' },
-];
-
-// Filtros
+// Filtros (apenas raio)
 const filtros = reactive({
-  busca: '',
-  categoria_id: null as number | null,
   raio: 10,
-  ordenacao: 'recentes',
 });
 
 // Modal de proposta
@@ -277,35 +207,24 @@ const novaProposta = reactive({
   mensagem: '',
 });
 
-// Computed para pedidos filtrados
+// Computed para pedidos filtrados por raio
 const pedidosFiltrados = computed(() => {
   let resultado = [...pedidos.value];
 
-  if (filtros.busca) {
-    const buscaLower = filtros.busca.toLowerCase();
-    resultado = resultado.filter(
-      (p) =>
-        p.descricao?.toLowerCase().includes(buscaLower) ||
-        p.endereco?.toLowerCase().includes(buscaLower) ||
-        p.cliente?.nome?.toLowerCase().includes(buscaLower),
-    );
+  // Filtrar por raio (se o pedido tiver distancia_km)
+  if (filtros.raio) {
+    resultado = resultado.filter((p) => {
+      if (p.distancia_km === undefined || p.distancia_km === null) return true;
+      return p.distancia_km <= filtros.raio;
+    });
   }
 
-  if (filtros.categoria_id) {
-    resultado = resultado.filter((p) => p.categoria?.id === filtros.categoria_id);
-  }
-
-  switch (filtros.ordenacao) {
-    case 'recentes':
-      resultado.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      break;
-    case 'antigos':
-      resultado.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      break;
-    case 'proximos':
-      // TODO: Implementar ordenação por distância quando tiver geolocalização
-      break;
-  }
+  // Ordenar por distância (mais próximos primeiro)
+  resultado.sort((a, b) => {
+    const distA = a.distancia_km ?? 9999;
+    const distB = b.distancia_km ?? 9999;
+    return distA - distB;
+  });
 
   return resultado;
 });
@@ -328,28 +247,9 @@ const formatarData = (data: string) => {
   }
 };
 
-const limparBusca = () => {
-  filtros.busca = '';
-  aplicarFiltros();
-};
-
-const aplicarFiltros = () => {
-  // Os filtros são reativos, o computed já atualiza automaticamente
-};
-
-// Carregar categorias
-const carregarCategorias = async () => {
-  try {
-    const response = await api.get('/public/categorias');
-    if (response.data.success && Array.isArray(response.data.data)) {
-      categoriasOptions.value = response.data.data.map((cat: CategoriaApiData) => ({
-        label: cat.nome,
-        value: cat.id,
-      }));
-    }
-  } catch (error) {
-    console.error('Erro ao carregar categorias:', error);
-  }
+const aplicarFiltroRaio = () => {
+  // O computed já atualiza automaticamente
+  console.log('Raio alterado para:', filtros.raio);
 };
 
 // Carregar pedidos disponíveis
@@ -417,6 +317,7 @@ const enviarProposta = async () => {
         position: 'top',
       });
       modalProposta.visivel = false;
+      // Remove o pedido da lista após enviar proposta
       pedidos.value = pedidos.value.filter((p) => p.id !== modalProposta.pedido?.id);
     }
   } catch (error) {
@@ -431,7 +332,6 @@ const enviarProposta = async () => {
   }
 };
 
-// ✅ VERSÃO SIMPLIFICADA - SEM initialize()
 onMounted(async () => {
   // Verifica se está autenticado
   if (!authStore.isAuthenticated) {
@@ -455,8 +355,8 @@ onMounted(async () => {
     return;
   }
 
-  // Carrega apenas os dados necessários para esta página
-  await Promise.all([carregarCategorias(), carregarPedidosDisponiveis()]);
+  // Carrega os pedidos
+  await carregarPedidosDisponiveis();
 });
 </script>
 
@@ -482,17 +382,10 @@ $gray-900: #212121;
   border-bottom: 1px solid $gray-200;
 }
 
-.search-input {
-  :deep(.q-field__control) {
-    border-radius: 30px;
-  }
-}
-
-.filters-section {
-  .sort-section {
-    display: flex;
-    flex-wrap: wrap;
-  }
+.radius-filter {
+  background: white;
+  padding: 12px 16px;
+  border-bottom: 1px solid $gray-200;
 }
 
 .pedido-card {
@@ -532,6 +425,15 @@ $gray-900: #212121;
 
   .pedido-localizacao {
     gap: 4px;
+
+    .distancia-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(102, 126, 234, 0.1);
+      padding: 4px 8px;
+      border-radius: 20px;
+    }
   }
 
   .pedido-footer {

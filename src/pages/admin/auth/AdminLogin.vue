@@ -62,6 +62,19 @@
             </template>
           </q-input>
 
+          <!-- Informação do tipo de admin (Root vs Normal) -->
+          <div v-if="detectedAdminType" class="admin-type-info q-mt-sm">
+            <q-chip
+              :color="detectedAdminType === 'root' ? 'positive' : 'primary'"
+              text-color="white"
+              size="sm"
+              dense
+              icon="info"
+            >
+              {{ detectedAdminType === 'root' ? '🔐 Acesso Root - Gestão Total' : '📋 Acesso Admin - Gestão Limitada' }}
+            </q-chip>
+          </div>
+
           <!-- Link para recuperar senha -->
           <div class="forgot-password">
             <q-btn
@@ -116,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
 import { useQuasar } from 'quasar';
@@ -135,6 +148,7 @@ const password = ref('');
 const showPassword = ref(false);
 const loading = ref(false);
 const globalLoading = ref(false);
+const detectedAdminType = ref<'root' | 'admin' | null>(null);
 
 // Validações
 const isValidEmail = (value: string) => {
@@ -144,6 +158,17 @@ const isValidEmail = (value: string) => {
 
 const isFormValid = computed(() => {
   return isValidEmail(email.value) && password.value.length >= 6;
+});
+
+// Detectar tipo de admin baseado no email
+watch(email, (newEmail) => {
+  if (newEmail === 'root@estouaqui.com') {
+    detectedAdminType.value = 'root';
+  } else if (isValidEmail(newEmail)) {
+    detectedAdminType.value = 'admin';
+  } else {
+    detectedAdminType.value = null;
+  }
 });
 
 // Login
@@ -176,13 +201,21 @@ const handleLogin = async () => {
     if (success) {
       // Verificar se o usuário é administrador
       if (authStore.isAdmin) {
+        // Verificar se é Root
+        const isRootUser = authStore.user?.email === 'root@estouaqui.com';
+
+        const message = isRootUser
+          ? 'Login efetuado como Root! Acesso total ao sistema.'
+          : 'Login efetuado como Administrador!';
+
         $q.notify({
           type: 'positive',
-          message: 'Login efetuado com sucesso!',
+          message: message,
           position: 'top',
-          icon: 'check_circle',
+          icon: isRootUser ? 'admin_panel_settings' : 'check_circle',
           timeout: 3000,
         });
+
         await router.push('/admin/dashboard');
       } else {
         // Se não for admin, fazer logout e mostrar erro
@@ -231,6 +264,8 @@ const forgotPassword = () => {
     persistent: true,
   }).onOk((emailRecuperacao) => {
     // TODO: Chamar API de recuperação de senha
+    // Para Root, enviar para email root@estouaqui.com
+    // Para Admin, enviar para email do admin
     $q.notify({
       type: 'info',
       message: `Instruções enviadas para ${emailRecuperacao}`,
@@ -371,6 +406,16 @@ $gray-900: #212121;
   }
 }
 
+.admin-type-info {
+  display: flex;
+  justify-content: center;
+
+  .q-chip {
+    font-size: 0.7rem;
+    animation: fadeIn 0.3s ease;
+  }
+}
+
 .forgot-password {
   text-align: right;
   margin-top: 5px;
@@ -435,6 +480,17 @@ $gray-900: #212121;
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

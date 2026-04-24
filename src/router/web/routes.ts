@@ -48,6 +48,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'meus-pedidos', component: () => import('pages/mobile/client/MeusPedidos.vue') },
       { path: 'favoritos', component: () => import('pages/mobile/client/Favoritos.vue') },
       { path: 'promocoes', component: () => import('pages/mobile/client/Promocoes.vue') },
+      {
+        path: '/mobile/detalhes-pedido/:id',
+        component: () => import('src/pages/mobile/client/DetalhesPedido.vue'),
+      },
     ],
   },
 
@@ -71,7 +75,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'relatorios', component: () => import('pages/admin/Relatorios.vue') },
       { path: 'financeiro', component: () => import('pages/admin/Financeiro.vue') },
       { path: 'configuracoes', component: () => import('pages/admin/Configuracoes.vue') },
-      { path: 'logs', component: () => import('pages/admin/Logs.vue') },
+      { path: 'monitoring', component: () => import('pages/admin/Monitoring.vue') },
       { path: 'perfil', component: () => import('pages/admin/Perfil.vue') },
     ],
   },

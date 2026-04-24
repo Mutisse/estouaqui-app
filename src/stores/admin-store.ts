@@ -213,12 +213,12 @@ export interface CreateServicoData {
 }
 
 export interface NotificacaoData {
-  id: number;
+  id: string;
+  tipo: string;
   titulo: string;
   mensagem: string;
   lida: boolean;
   created_at: string;
-  tipo?: 'pedido' | 'avaliacao' | 'promocao' | 'prestador' | 'sistema';
   icone?: string;
   cor?: string;
 }
@@ -232,6 +232,55 @@ export interface CreateCategoriaData {
 }
 
 export interface UpdateCategoriaData extends Partial<CreateCategoriaData> {
+  ativo?: boolean;
+}
+
+export interface CreateTransacaoData {
+  user_id: number;
+  valor: number;
+  tipo: 'entrada' | 'saida' | 'comissao';
+  status: 'pendente' | 'concluido' | 'cancelado';
+  descricao?: string;
+  metodo?: string;
+}
+
+export interface UpdateTransacaoStatusData {
+  status: 'pendente' | 'concluido' | 'cancelado';
+}
+
+export interface PromocaoData {
+  id: number;
+  titulo: string;
+  descricao: string;
+  codigo: string;
+  tipo: 'percentual' | 'fixo';
+  valor: number;
+  data_inicio: string;
+  data_fim: string;
+  ativo: boolean;
+  uso_por_usuario?: number;
+  uso_total?: number;
+  min_valor_pedido?: number;
+  max_desconto?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreatePromocaoData {
+  titulo: string;
+  descricao: string;
+  codigo: string;
+  tipo: 'percentual' | 'fixo';
+  valor: number;
+  data_inicio: string;
+  data_fim: string;
+  uso_por_usuario?: number;
+  uso_total?: number;
+  min_valor_pedido?: number;
+  max_desconto?: number;
+}
+
+export interface UpdatePromocaoData extends Partial<CreatePromocaoData> {
   ativo?: boolean;
 }
 
@@ -271,6 +320,7 @@ export const useAdminStore = defineStore('admin', () => {
   const pedidos = ref<PedidoData[]>([]);
   const pedidoDetalhes = ref<PedidoData | null>(null);
   const transacoes = ref<TransacaoData[]>([]);
+  const transacaoDetalhes = ref<TransacaoData | null>(null);
   const resumoFinanceiro = ref<ResumoFinanceiroData>({
     saldo_atual: 0,
     pendente: 0,
@@ -299,6 +349,7 @@ export const useAdminStore = defineStore('admin', () => {
   });
   const logs = ref<LogData[]>([]);
   const notificacoesAdmin = ref<NotificacaoData[]>([]);
+  const avaliacoes = ref<AvaliacaoData[]>([]);
 
   const pendingRequests = new Map<string, Promise<unknown>>();
 
@@ -356,8 +407,117 @@ export const useAdminStore = defineStore('admin', () => {
     }
   };
 
+  const fetchLogs = async () => {
+    return dedupeRequest('logs', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.LOGS);
+        logs.value = response.data.data || [];
+        return logs.value;
+      } catch (error) {
+        showError(error);
+        return [];
+      }
+    });
+  };
+
   // ==========================================
-  // 2. GESTÃO DE UTILIZADORES
+  // 2. CONFIGURAÇÕES
+  // ==========================================
+
+  const fetchConfiguracoes = async () => {
+    return dedupeRequest('configuracoes', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.CONFIGURACOES);
+        configuracoes.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
+  };
+
+  const updateConfiguracoes = async (data: Partial<ConfiguracoesData>) => {
+    try {
+      const response = await api.put(ADMIN_ENDPOINTS.UPDATE_CONFIGURACOES, data);
+      if (response.data.success) {
+        await fetchConfiguracoes();
+      }
+      return response.data;
+    } catch (error) {
+      showError(error);
+      return null;
+    }
+  };
+
+  // ==========================================
+  // 3. NOTIFICAÇÕES DO ADMIN
+  // ==========================================
+
+  const fetchNotificacoesAdmin = async () => {
+    return dedupeRequest('notificacoes_admin', async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.NOTIFICACOES);
+        const data = response.data.data || [];
+        notificacoesAdmin.value = Array.isArray(data) ? data : [];
+        return notificacoesAdmin.value;
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status !== 404) {
+          console.error('Erro ao carregar notificações admin:', error);
+          showError(error);
+        }
+        notificacoesAdmin.value = [];
+        return [];
+      }
+    });
+  };
+
+  const marcarNotificacaoLida = async (id: string) => {
+    try {
+      const response = await api.put(ADMIN_ENDPOINTS.MARK_NOTIFICATION_READ(id));
+      if (response.data.success) {
+        const notificacao = notificacoesAdmin.value.find((n) => n.id === id);
+        if (notificacao) {
+          notificacao.lida = true;
+        }
+        await fetchNotificacoesAdmin();
+      }
+      return response.data.success;
+    } catch (error) {
+      showError(error);
+      return false;
+    }
+  };
+
+  const marcarTodasNotificacoesLidas = async () => {
+    try {
+      const response = await api.put(ADMIN_ENDPOINTS.MARK_ALL_NOTIFICATIONS_READ);
+      if (response.data.success) {
+        notificacoesAdmin.value.forEach((n) => {
+          n.lida = true;
+        });
+        await fetchNotificacoesAdmin();
+      }
+      return response.data.success;
+    } catch (error) {
+      showError(error);
+      return false;
+    }
+  };
+
+  const notificacoesNaoLidas = computed(() => {
+    return notificacoesAdmin.value.filter((n) => !n.lida).length;
+  });
+
+  const notificacoesRecentes = computed(() => {
+    return [...notificacoesAdmin.value]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 10);
+  });
+
+  // ==========================================
+  // 4. GESTÃO DE UTILIZADORES
   // ==========================================
 
   const fetchUtilizadores = async (params?: {
@@ -479,8 +639,18 @@ export const useAdminStore = defineStore('admin', () => {
     });
   };
 
+  const exportUtilizadores = async () => {
+    try {
+      const response = await api.get(ADMIN_ENDPOINTS.EXPORT_USERS);
+      return response.data;
+    } catch (error) {
+      showError(error);
+      return null;
+    }
+  };
+
   // ==========================================
-  // 3. GESTÃO DE PRESTADORES
+  // 5. GESTÃO DE PRESTADORES
   // ==========================================
 
   const fetchPrestadores = async (params?: {
@@ -507,7 +677,7 @@ export const useAdminStore = defineStore('admin', () => {
     return dedupeRequest('prestadores_pendentes', async () => {
       try {
         const response = await api.get(ADMIN_ENDPOINTS.PRESTADORES_PENDENTES);
-        prestadoresPendentes.value = response.data.data;
+        prestadoresPendentes.value = response.data.data.data || [];
         return response.data.data;
       } catch (error) {
         showError(error);
@@ -530,9 +700,9 @@ export const useAdminStore = defineStore('admin', () => {
     }
   };
 
-  const reprovarPrestador = async (id: number) => {
+  const reprovarPrestador = async (id: number, motivo?: string) => {
     try {
-      const response = await api.put(ADMIN_ENDPOINTS.REPROVAR_PRESTADOR(id));
+      const response = await api.put(ADMIN_ENDPOINTS.REPROVAR_PRESTADOR(id), { motivo });
       if (response.data.success) {
         await fetchPrestadores();
         await fetchPrestadoresPendentes();
@@ -545,7 +715,7 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   // ==========================================
-  // 4. GESTÃO DE CATEGORIAS (COM IMAGEM)
+  // 6. GESTÃO DE CATEGORIAS (COM IMAGEM)
   // ==========================================
 
   const fetchCategorias = async () => {
@@ -557,6 +727,19 @@ export const useAdminStore = defineStore('admin', () => {
       } catch (error) {
         showError(error);
         return [];
+      }
+    });
+  };
+
+  const fetchCategoriaDetalhes = async (id: number) => {
+    const cacheKey = `categoria_${id}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.CATEGORIA_DETAILS(id));
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
       }
     });
   };
@@ -633,7 +816,7 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   // ==========================================
-  // 5. GESTÃO DE SERVIÇOS
+  // 7. GESTÃO DE SERVIÇOS
   // ==========================================
 
   const fetchServicos = async (params?: {
@@ -646,6 +829,19 @@ export const useAdminStore = defineStore('admin', () => {
       try {
         const response = await api.get(ADMIN_ENDPOINTS.SERVICOS, { params });
         servicos.value = response.data.data.data || [];
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
+  };
+
+  const fetchServicoDetalhes = async (id: number) => {
+    const cacheKey = `servico_${id}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.SERVICO_DETAILS(id));
         return response.data.data;
       } catch (error) {
         showError(error);
@@ -693,8 +889,37 @@ export const useAdminStore = defineStore('admin', () => {
     }
   };
 
+  const updateServico = async (
+    id: number,
+    data: Partial<CreateServicoData & { ativo?: boolean }>,
+  ) => {
+    try {
+      const response = await api.put(ADMIN_ENDPOINTS.UPDATE_SERVICO(id), data);
+      if (response.data.success) {
+        await fetchServicos();
+      }
+      return response.data;
+    } catch (error) {
+      showError(error);
+      return null;
+    }
+  };
+
+  const deleteServico = async (id: number) => {
+    try {
+      const response = await api.delete(ADMIN_ENDPOINTS.DELETE_SERVICO(id));
+      if (response.data.success) {
+        await fetchServicos();
+      }
+      return response.data;
+    } catch (error) {
+      showError(error);
+      return null;
+    }
+  };
+
   // ==========================================
-  // 6. GESTÃO DE PEDIDOS
+  // 8. GESTÃO DE PEDIDOS
   // ==========================================
 
   const fetchPedidos = async (params?: { status?: string; per_page?: number }) => {
@@ -752,7 +977,7 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   // ==========================================
-  // 7. FINANCEIRO
+  // 9. FINANCEIRO
   // ==========================================
 
   const fetchResumoFinanceiro = async () => {
@@ -786,8 +1011,50 @@ export const useAdminStore = defineStore('admin', () => {
     });
   };
 
+  const fetchTransacaoDetalhes = async (id: number) => {
+    const cacheKey = `transacao_${id}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.TRANSACAO_DETAILS(id));
+        transacaoDetalhes.value = response.data.data;
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
+  };
+
+  const createTransacao = async (data: CreateTransacaoData) => {
+    try {
+      const response = await api.post(ADMIN_ENDPOINTS.CREATE_TRANSACAO, data);
+      if (response.data.success) {
+        await fetchTransacoes();
+        await fetchResumoFinanceiro();
+      }
+      return response.data;
+    } catch (error) {
+      showError(error);
+      return null;
+    }
+  };
+
+  const updateTransacaoStatus = async (id: number, status: string) => {
+    try {
+      const response = await api.put(ADMIN_ENDPOINTS.UPDATE_TRANSACAO_STATUS(id), { status });
+      if (response.data.success) {
+        await fetchTransacoes();
+        await fetchResumoFinanceiro();
+      }
+      return response.data;
+    } catch (error) {
+      showError(error);
+      return null;
+    }
+  };
+
   // ==========================================
-  // 8. RELATÓRIOS
+  // 10. RELATÓRIOS
   // ==========================================
 
   const fetchRelatorioServicos = async (periodo: string = 'mes') => {
@@ -831,25 +1098,10 @@ export const useAdminStore = defineStore('admin', () => {
     });
   };
 
-  const exportRelatorio = async (tipo: string = 'usuarios') => {
-    try {
-      const response = await api.get(ADMIN_ENDPOINTS.EXPORT_RELATORIO(tipo));
-      return response.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
-  };
-
-  // ==========================================
-  // 9. CONFIGURAÇÕES
-  // ==========================================
-
-  const fetchConfiguracoes = async () => {
-    return dedupeRequest('configuracoes', async () => {
+  const fetchRelatorioUsuarios = async () => {
+    return dedupeRequest('relatorio_usuarios', async () => {
       try {
-        const response = await api.get(ADMIN_ENDPOINTS.CONFIGURACOES);
-        configuracoes.value = response.data.data;
+        const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_USUARIOS);
         return response.data.data;
       } catch (error) {
         showError(error);
@@ -858,87 +1110,8 @@ export const useAdminStore = defineStore('admin', () => {
     });
   };
 
-  const updateConfiguracoes = async (data: Partial<ConfiguracoesData>) => {
-    try {
-      const response = await api.put(ADMIN_ENDPOINTS.UPDATE_CONFIGURACOES, data);
-      if (response.data.success) {
-        await fetchConfiguracoes();
-      }
-      return response.data;
-    } catch (error) {
-      showError(error);
-      return null;
-    }
-  };
-
   // ==========================================
-  // 10. LOGS
-  // ==========================================
-
-  const fetchLogs = async () => {
-    return dedupeRequest('logs', async () => {
-      try {
-        const response = await api.get(ADMIN_ENDPOINTS.LOGS);
-        logs.value = response.data.data || [];
-        return logs.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      }
-    });
-  };
-
-  // ==========================================
-  // 11. NOTIFICAÇÕES
-  // ==========================================
-
-  const fetchNotificacoesAdmin = async () => {
-    return dedupeRequest('notificacoes_admin', async () => {
-      try {
-        const response = await api.get(ADMIN_ENDPOINTS.NOTIFICACOES);
-        const data = response.data.data || [];
-        notificacoesAdmin.value = Array.isArray(data) ? data : [];
-        return notificacoesAdmin.value;
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response?.status !== 404) {
-          console.error('Erro ao carregar notificações admin:', error);
-          showError(error);
-        }
-        notificacoesAdmin.value = [];
-        return [];
-      }
-    });
-  };
-
-  const marcarNotificacaoLida = async (id: number) => {
-    try {
-      const response = await api.put(ADMIN_ENDPOINTS.MARK_NOTIFICATION_READ(id));
-      if (response.data.success) {
-        await fetchNotificacoesAdmin();
-      }
-      return response.data.success;
-    } catch (error) {
-      showError(error);
-      return false;
-    }
-  };
-
-  const marcarTodasNotificacoesLidas = async () => {
-    try {
-      const response = await api.put(ADMIN_ENDPOINTS.MARK_ALL_NOTIFICATIONS_READ);
-      if (response.data.success) {
-        await fetchNotificacoesAdmin();
-      }
-      return response.data.success;
-    } catch (error) {
-      showError(error);
-      return false;
-    }
-  };
-
-  // ==========================================
-  // 12. GESTÃO DE AVALIAÇÕES (ADMIN)
+  // 11. GESTÃO DE AVALIAÇÕES (ADMIN)
   // ==========================================
 
   const fetchAvaliacoes = async (params?: { nota?: number; per_page?: number }) => {
@@ -946,6 +1119,20 @@ export const useAdminStore = defineStore('admin', () => {
     return dedupeRequest(cacheKey, async () => {
       try {
         const response = await api.get(ADMIN_ENDPOINTS.AVALIACOES, { params });
+        avaliacoes.value = response.data.data.data || [];
+        return response.data.data;
+      } catch (error) {
+        showError(error);
+        return null;
+      }
+    });
+  };
+
+  const fetchAvaliacaoDetalhes = async (id: number) => {
+    const cacheKey = `avaliacao_${id}`;
+    return dedupeRequest(cacheKey, async () => {
+      try {
+        const response = await api.get(ADMIN_ENDPOINTS.AVALIACAO_DETAILS(id));
         return response.data.data;
       } catch (error) {
         showError(error);
@@ -958,12 +1145,47 @@ export const useAdminStore = defineStore('admin', () => {
     try {
       const response = await api.delete(ADMIN_ENDPOINTS.DELETE_AVALIACAO(id));
       if (response.data.success) {
+        await fetchAvaliacoes();
         return true;
       }
       return false;
     } catch (error) {
       showError(error);
       return false;
+    }
+  };
+
+  // ==========================================
+  // 12. GESTÃO DE PROMOÇÕES
+  // ==========================================
+
+  const createPromocao = async (data: CreatePromocaoData) => {
+    try {
+      const response = await api.post(ADMIN_ENDPOINTS.CREATE_PROMOCAO, data);
+      return response.data;
+    } catch (error) {
+      showError(error);
+      return null;
+    }
+  };
+
+  const updatePromocao = async (id: number, data: UpdatePromocaoData) => {
+    try {
+      const response = await api.put(ADMIN_ENDPOINTS.UPDATE_PROMOCAO(id), data);
+      return response.data;
+    } catch (error) {
+      showError(error);
+      return null;
+    }
+  };
+
+  const deletePromocao = async (id: number) => {
+    try {
+      const response = await api.delete(ADMIN_ENDPOINTS.DELETE_PROMOCAO(id));
+      return response.data;
+    } catch (error) {
+      showError(error);
+      return null;
     }
   };
 
@@ -981,6 +1203,7 @@ export const useAdminStore = defineStore('admin', () => {
         fetchServicosRecentes(5),
         fetchStats(),
         fetchResumoFinanceiro(),
+        fetchNotificacoesAdmin(),
       ]);
       return true;
     } catch (error) {
@@ -1177,6 +1400,7 @@ export const useAdminStore = defineStore('admin', () => {
     pedidos,
     pedidoDetalhes,
     transacoes,
+    transacaoDetalhes,
     resumoFinanceiro,
     estatisticas,
     relatorioServicos,
@@ -1185,11 +1409,24 @@ export const useAdminStore = defineStore('admin', () => {
     configuracoes,
     logs,
     notificacoesAdmin,
+    avaliacoes,
 
     // Dashboard
     fetchDashboard,
     fetchAtividade,
     fetchStats,
+    fetchLogs,
+
+    // Configurações
+    fetchConfiguracoes,
+    updateConfiguracoes,
+
+    // Notificações
+    fetchNotificacoesAdmin,
+    marcarNotificacaoLida,
+    marcarTodasNotificacoesLidas,
+    notificacoesNaoLidas,
+    notificacoesRecentes,
 
     // Utilizadores
     fetchUtilizadores,
@@ -1200,6 +1437,7 @@ export const useAdminStore = defineStore('admin', () => {
     unblockUtilizador,
     deleteUtilizador,
     getUtilizadorByEmail,
+    exportUtilizadores,
 
     // Prestadores
     fetchPrestadores,
@@ -1209,6 +1447,7 @@ export const useAdminStore = defineStore('admin', () => {
 
     // Categorias
     fetchCategorias,
+    fetchCategoriaDetalhes,
     createCategoria,
     updateCategoria,
     deleteCategoria,
@@ -1217,8 +1456,11 @@ export const useAdminStore = defineStore('admin', () => {
 
     // Serviços
     fetchServicos,
+    fetchServicoDetalhes,
     fetchServicosRecentes,
     createServico,
+    updateServico,
+    deleteServico,
 
     // Pedidos
     fetchPedidos,
@@ -1229,28 +1471,25 @@ export const useAdminStore = defineStore('admin', () => {
     // Financeiro
     fetchResumoFinanceiro,
     fetchTransacoes,
+    fetchTransacaoDetalhes,
+    createTransacao,
+    updateTransacaoStatus,
 
     // Relatórios
     fetchRelatorioServicos,
     fetchRelatorioPrestadores,
     fetchRelatorioFinanceiro,
-    exportRelatorio,
-
-    // Configurações
-    fetchConfiguracoes,
-    updateConfiguracoes,
-
-    // Logs
-    fetchLogs,
-
-    // Notificações
-    fetchNotificacoesAdmin,
-    marcarNotificacaoLida,
-    marcarTodasNotificacoesLidas,
+    fetchRelatorioUsuarios,
 
     // Avaliações
     fetchAvaliacoes,
+    fetchAvaliacaoDetalhes,
     deleteAvaliacao,
+
+    // Promoções
+    createPromocao,
+    updatePromocao,
+    deletePromocao,
 
     // Utilitários
     carregarTodosDados,

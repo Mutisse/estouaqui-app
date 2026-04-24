@@ -55,6 +55,7 @@ export interface PedidoDisponivelData {
   endereco: string;
   status: string;
   created_at: string;
+  distancia_km?: number; // ✅ Adicionado para filtro de raio
   categoria?: { id: number; nome: string; icone: string; cor: string };
   cliente?: { id: number; nome: string; foto: string | null };
 }

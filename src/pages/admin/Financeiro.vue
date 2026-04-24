@@ -1,15 +1,23 @@
 <template>
   <q-page class="admin-financeiro q-pa-md">
-    <!-- Cabeçalho -->
+    <!-- Cabeçalho com indicador de permissão -->
     <div class="page-header">
       <div class="page-title-section">
         <div class="page-title">
           <q-icon name="payments" size="32px" class="q-mr-sm" />
           Financeiro
         </div>
-        <div class="page-subtitle">Visão geral das movimentações financeiras</div>
+        <div class="page-subtitle">
+          {{ isRoot ? 'Visão geral e gestão das movimentações financeiras' : 'Visão geral das movimentações financeiras (consulta)' }}
+        </div>
       </div>
       <div class="header-actions">
+        <q-chip v-if="!isRoot" color="info" text-color="white" icon="visibility" class="q-mr-sm">
+          Modo: Apenas Consulta
+        </q-chip>
+        <q-chip v-if="isRoot" color="positive" text-color="white" icon="admin_panel_settings">
+          Root: Gestão Total
+        </q-chip>
         <q-btn
           label="Atualizar"
           icon="refresh"
@@ -18,7 +26,9 @@
           @click="carregarDados"
           :loading="adminStore.loading"
         />
+        <!-- Botão de exportar APENAS para Root -->
         <q-btn
+          v-if="isRoot"
           label="Exportar Relatório"
           icon="download"
           color="primary"
@@ -28,7 +38,7 @@
       </div>
     </div>
 
-    <!-- Cards de Resumo -->
+    <!-- Cards de Resumo (ambos veem) -->
     <div class="row q-col-gutter-lg q-mb-lg">
       <div class="col-12 col-sm-6 col-md-3">
         <div class="finance-card saldo-card">
@@ -112,8 +122,8 @@
               <div class="chart-bars">
                 <div v-for="(item, index) in dadosGrafico" :key="index" class="chart-bar-item">
                   <div class="bar-wrapper">
-                    <div 
-                      class="bar" 
+                    <div
+                      class="bar"
                       :style="{ height: `${item.altura}px`, backgroundColor: item.cor }"
                     >
                       <span class="bar-value">{{ formatMoney(item.valor) }}</span>
@@ -303,8 +313,8 @@
       </q-card-section>
     </q-card>
 
-    <!-- Modal de Exportação -->
-    <q-dialog v-model="mostrarModalExportacao">
+    <!-- Modal de Exportação (APENAS Root vê) -->
+    <q-dialog v-if="isRoot" v-model="mostrarModalExportacao">
       <q-card style="min-width: 400px">
         <q-card-section class="bg-primary text-white">
           <div class="text-h6">
@@ -351,6 +361,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar, type QTableColumn } from 'quasar'
 import { useAdminStore } from 'src/stores/admin-store'
+import { useAuthStore } from 'src/stores/auth-store'
 
 defineOptions({
   name: 'AdminFinanceiro'
@@ -358,6 +369,12 @@ defineOptions({
 
 const $q = useQuasar()
 const adminStore = useAdminStore()
+const authStore = useAuthStore()
+
+// ✅ DETECTAR SE É ROOT (super admin)
+const isRoot = computed(() => {
+  return authStore.user?.email === 'root@estouaqui.com'
+})
 
 // Estados
 const filtroTipo = ref<string | null>(null)
@@ -365,7 +382,7 @@ const filtroStatus = ref<string | null>(null)
 const busca = ref('')
 const mostrarModalExportacao = ref(false)
 
-// Configuração de exportação
+// Configuração de exportação (apenas Root)
 const exportConfig = ref({
   formato: 'csv',
   periodo: 'mes',
@@ -427,7 +444,7 @@ const dadosGrafico = computed(() => {
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
   const entradasPorMes = new Array(12).fill(0)
   const saidasPorMes = new Array(12).fill(0)
-  
+
   adminStore.transacoes.forEach(transacao => {
     if (transacao.created_at) {
       const mes = new Date(transacao.created_at).getMonth()
@@ -438,7 +455,7 @@ const dadosGrafico = computed(() => {
       }
     }
   })
-  
+
   // Pegar últimos 6 meses
   const mesAtualIndex = new Date().getMonth()
   const ultimosMeses = []
@@ -471,7 +488,7 @@ const transacoesFiltradas = computed(() => {
 
   if (busca.value) {
     const termo = busca.value.toLowerCase()
-    transacoes = transacoes.filter(t => 
+    transacoes = transacoes.filter(t =>
       t.descricao?.toLowerCase().includes(termo) ||
       t.numero?.toLowerCase().includes(termo)
     )
@@ -609,15 +626,17 @@ const carregarTransacoes = async () => {
   const params: { tipo?: string; status?: string } = {}
   if (filtroTipo.value) params.tipo = filtroTipo.value
   if (filtroStatus.value) params.status = filtroStatus.value
-  
+
   await adminStore.fetchTransacoes(params)
 }
 
 const exportarRelatorioCompleto = () => {
+  if (!isRoot.value) return
   mostrarModalExportacao.value = true
 }
 
 const gerarExportacao = () => {
+  if (!isRoot.value) return
   $q.notify({
     type: 'positive',
     message: `Relatório em ${exportConfig.value.formato.toUpperCase()} gerado com sucesso!`,
@@ -718,7 +737,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 4px;
-    
+
     &.trend-up { color: #2e7d32; }
     &.trend-waiting { color: #ed6c02; }
   }
@@ -784,7 +803,7 @@ onMounted(() => {
 
     &:hover {
       opacity: 0.9;
-      
+
       .bar-value {
         opacity: 1;
         transform: translateY(-20px);
@@ -883,12 +902,12 @@ onMounted(() => {
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 500;
-  
+
   &.entrada {
     background: rgba(46, 125, 50, 0.1);
     color: #2e7d32;
   }
-  
+
   &.saida {
     background: rgba(211, 47, 47, 0.1);
     color: #d32f2f;

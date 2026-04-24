@@ -84,16 +84,25 @@ export interface FavoritoData {
   created_at: string;
 }
 
+// Interface completa para notificações
 export interface NotificacaoData {
   id: number;
+  type: string;
+  tipo: string;
   titulo: string;
   mensagem: string;
   lida: boolean;
   created_at: string;
-  tipo?: 'pedido' | 'avaliacao' | 'promocao' | 'sistema';
-  icone?: string;
-  cor?: string;
-  data?: string;
+  data?: {
+    pedido_id?: number;
+    avaliacao_id?: number;
+    conversa_id?: number;
+    prestador_id?: number;
+    cliente_nome?: string;
+    valor?: string;
+    pedido_numero?: string;
+    [key: string]: unknown;  // Para outros campos
+  };
 }
 
 export interface DashboardData {
@@ -484,7 +493,7 @@ export const useClienteStore = defineStore('cliente', () => {
   }): Promise<PedidoData | null> {
     loading.value = true;
 
-    
+
 
     try {
       const formData = new FormData();
