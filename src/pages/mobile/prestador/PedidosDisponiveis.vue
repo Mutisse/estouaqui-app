@@ -6,20 +6,62 @@
       <div class="text-caption text-grey-6">Encontre serviços perto de si</div>
     </div>
 
-    <!-- Filtro de Raio -->
-    <div class="radius-filter q-px-md q-mb-md">
-      <div class="row items-center justify-between">
-        <div class="text-subtitle2 text-grey-7">Raio de busca:</div>
-        <q-select
-          v-model="filtros.raio"
-          :options="raioOptions"
-          label="Distância"
-          outlined
+    <!-- Filtros -->
+    <div class="filters-container q-px-md q-mb-md">
+      <div class="row items-center justify-between q-col-gutter-md">
+        <!-- Filtro de Categoria -->
+        <div class="col-12 col-sm-6">
+          <div class="filter-label">
+            <q-icon name="category" size="16px" class="q-mr-xs" />
+            <span>Categoria</span>
+          </div>
+          <q-select
+            v-model="filtros.categoriaId"
+            :options="categoriasOptions"
+            label="Todas as categorias"
+            outlined
+            dense
+            emit-value
+            map-options
+            clearable
+            class="filter-select"
+            @update:model-value="aplicarFiltros"
+          />
+        </div>
+
+        <!-- Filtro de Raio -->
+        <div class="col-12 col-sm-6">
+          <div class="filter-label">
+            <q-icon name="radar" size="16px" class="q-mr-xs" />
+            <span>Raio de busca</span>
+          </div>
+          <q-select
+            v-model="filtros.raio"
+            :options="raioOptions"
+            label="Distância máxima"
+            outlined
+            dense
+            emit-value
+            map-options
+            class="filter-select"
+            @update:model-value="aplicarFiltros"
+          />
+        </div>
+      </div>
+
+      <!-- Ordenação -->
+      <div class="row items-center justify-between q-mt-md">
+        <div class="filter-label">
+          <q-icon name="sort" size="16px" class="q-mr-xs" />
+          <span>Ordenar por</span>
+        </div>
+        <q-btn-toggle
+          v-model="filtros.ordenacao"
+          :options="ordenacaoOptions"
+          toggle-color="primary"
           dense
-          emit-value
-          map-options
-          style="width: 120px"
-          @update:model-value="aplicarFiltroRaio"
+          no-caps
+          class="ordenacao-toggle"
         />
       </div>
     </div>
@@ -34,10 +76,11 @@
     <div v-else-if="pedidosFiltrados.length === 0" class="empty-state q-pa-xl text-center">
       <q-icon name="search_off" size="64px" color="grey-4" />
       <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido encontrado</div>
-      <div class="text-grey-6">Não há pedidos disponíveis num raio de {{ filtros.raio }} km</div>
+      <div class="text-grey-6">Não há pedidos disponíveis com os filtros selecionados</div>
+      <q-btn flat color="primary" label="Limpar filtros" class="q-mt-md" @click="limparFiltros" />
     </div>
 
-    <div v-else class="pedidos-list q-px-md">
+    <div v-else class="pedidos-list q-px-md q-pb-xl">
       <div
         v-for="pedido in pedidosFiltrados"
         :key="pedido.id"
@@ -78,14 +121,20 @@
           </div>
           <div v-if="pedido.distancia_km" class="distancia-badge">
             <q-icon name="near_me" size="14px" color="primary" />
-            <span class="text-caption text-primary">{{ pedido.distancia_km }} km</span>
+            <span class="text-caption text-primary">
+              {{
+                pedido.distancia_km < 1
+                  ? (pedido.distancia_km * 1000).toFixed(0) + 'm'
+                  : pedido.distancia_km.toFixed(1) + ' km'
+              }}
+            </span>
           </div>
         </div>
 
         <!-- Footer do card -->
         <div class="pedido-footer row justify-between items-center q-mt-md">
           <div class="pedido-status">
-            <q-badge color="positive" outline>Aberto</q-badge>
+            <q-badge color="positive" outline>Disponível</q-badge>
           </div>
           <q-btn
             color="primary"
@@ -114,7 +163,7 @@
 
         <q-card-section class="q-pa-md">
           <div class="info-pedido q-mb-md">
-            <div class="text-weight-bold">Serviço:</div>
+            <div class="text-weight-bold">Categoria:</div>
             <div>{{ modalProposta.pedido?.categoria?.nome }}</div>
             <div class="text-weight-bold q-mt-sm">Descrição:</div>
             <div class="text-caption">{{ modalProposta.pedido?.descricao }}</div>
@@ -159,9 +208,8 @@
     </q-dialog>
   </q-page>
 </template>
-
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/auth-store';
@@ -181,7 +229,7 @@ const carregando = ref(true);
 const carregandoEnvio = ref(false);
 const pedidos = ref<PedidoDisponivelData[]>([]);
 
-// Opções para raio
+// Opções
 const raioOptions = ref<{ label: string; value: number }[]>([
   { label: '5 km', value: 5 },
   { label: '10 km', value: 10 },
@@ -191,9 +239,31 @@ const raioOptions = ref<{ label: string; value: number }[]>([
   { label: '100 km', value: 100 },
 ]);
 
-// Filtros (apenas raio)
+const ordenacaoOptions = ref([
+  { label: 'Mais próximos', value: 'distancia' },
+  { label: 'Mais recentes', value: 'data' },
+  { label: 'Maior distância', value: 'distancia_desc' },
+]);
+
+// Categorias do prestador (para filtro)
+const categoriasOptions = computed(() => {
+  const minhasCats = prestadorStore.minhasCategorias;
+  return [
+    { label: 'Todas as categorias', value: null },
+    ...minhasCats.map((cat) => ({
+      label: cat.nome,
+      value: cat.id,
+      icon: cat.icone,
+      color: cat.cor,
+    })),
+  ];
+});
+
+// Filtros
 const filtros = reactive({
+  categoriaId: null as number | null,
   raio: 10,
+  ordenacao: 'distancia' as 'distancia' | 'distancia_desc' | 'data',
 });
 
 // Modal de proposta
@@ -207,11 +277,16 @@ const novaProposta = reactive({
   mensagem: '',
 });
 
-// Computed para pedidos filtrados por raio
+// Computed para pedidos filtrados e ordenados
 const pedidosFiltrados = computed(() => {
   let resultado = [...pedidos.value];
 
-  // Filtrar por raio (se o pedido tiver distancia_km)
+  // Filtrar por categoria
+  if (filtros.categoriaId) {
+    resultado = resultado.filter((p) => p.categoria?.id === filtros.categoriaId);
+  }
+
+  // Filtrar por raio
   if (filtros.raio) {
     resultado = resultado.filter((p) => {
       if (p.distancia_km === undefined || p.distancia_km === null) return true;
@@ -219,12 +294,26 @@ const pedidosFiltrados = computed(() => {
     });
   }
 
-  // Ordenar por distância (mais próximos primeiro)
-  resultado.sort((a, b) => {
-    const distA = a.distancia_km ?? 9999;
-    const distB = b.distancia_km ?? 9999;
-    return distA - distB;
-  });
+  // Ordenar
+  if (filtros.ordenacao === 'distancia') {
+    resultado.sort((a, b) => {
+      const distA = a.distancia_km ?? 9999;
+      const distB = b.distancia_km ?? 9999;
+      return distA - distB;
+    });
+  } else if (filtros.ordenacao === 'distancia_desc') {
+    resultado.sort((a, b) => {
+      const distA = a.distancia_km ?? -1;
+      const distB = b.distancia_km ?? -1;
+      return distB - distA;
+    });
+  } else if (filtros.ordenacao === 'data') {
+    resultado.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return dateB - dateA;
+    });
+  }
 
   return resultado;
 });
@@ -247,9 +336,14 @@ const formatarData = (data: string) => {
   }
 };
 
-const aplicarFiltroRaio = () => {
-  // O computed já atualiza automaticamente
-  console.log('Raio alterado para:', filtros.raio);
+const aplicarFiltros = () => {
+  console.log('Filtros aplicados:', filtros);
+};
+
+const limparFiltros = () => {
+  filtros.categoriaId = null;
+  filtros.raio = 10;
+  filtros.ordenacao = 'distancia';
 };
 
 // Carregar pedidos disponíveis
@@ -267,6 +361,15 @@ const carregarPedidosDisponiveis = async () => {
     });
   } finally {
     carregando.value = false;
+  }
+};
+
+// Carregar minhas categorias
+const carregarMinhasCategorias = async () => {
+  try {
+    await prestadorStore.fetchMinhasCategorias();
+  } catch (error) {
+    console.error('Erro ao carregar categorias:', error);
   }
 };
 
@@ -308,17 +411,17 @@ const enviarProposta = async () => {
       propostaData.mensagem = novaProposta.mensagem.trim();
     }
 
-    const success = await prestadorStore.enviarProposta(propostaData);
+    const result = await prestadorStore.enviarProposta(propostaData);
 
-    if (success) {
+    if (result) {
       $q.notify({
         type: 'positive',
         message: 'Proposta enviada com sucesso!',
         position: 'top',
       });
       modalProposta.visivel = false;
-      // Remove o pedido da lista após enviar proposta
       pedidos.value = pedidos.value.filter((p) => p.id !== modalProposta.pedido?.id);
+      await carregarPedidosDisponiveis();
     }
   } catch (error) {
     console.error('Erro ao enviar proposta:', error);
@@ -332,8 +435,19 @@ const enviarProposta = async () => {
   }
 };
 
+// Watch para recarregar quando o usuário mudar
+watch(
+  () => authStore.isAuthenticated,
+  async (isAuth) => {
+    if (isAuth && authStore.isPrestador) {
+      await carregarPedidosDisponiveis();
+      await carregarMinhasCategorias();
+    }
+  },
+);
+
+// Inicialização
 onMounted(async () => {
-  // Verifica se está autenticado
   if (!authStore.isAuthenticated) {
     $q.notify({
       type: 'warning',
@@ -344,7 +458,6 @@ onMounted(async () => {
     return;
   }
 
-  // Verifica se é prestador
   if (!authStore.isPrestador) {
     $q.notify({
       type: 'warning',
@@ -355,8 +468,7 @@ onMounted(async () => {
     return;
   }
 
-  // Carrega os pedidos
-  await carregarPedidosDisponiveis();
+  await Promise.all([carregarPedidosDisponiveis(), carregarMinhasCategorias()]);
 });
 </script>
 
@@ -382,10 +494,32 @@ $gray-900: #212121;
   border-bottom: 1px solid $gray-200;
 }
 
-.radius-filter {
+.filters-container {
   background: white;
-  padding: 12px 16px;
-  border-bottom: 1px solid $gray-200;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  .filter-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: $gray-600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+  }
+
+  .filter-select {
+    :deep(.q-field__control) {
+      border-radius: 12px;
+    }
+  }
+
+  .ordenacao-toggle {
+    :deep(.q-btn) {
+      min-width: 90px;
+    }
+  }
 }
 
 .pedido-card {
@@ -401,14 +535,15 @@ $gray-900: #212121;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
-  .pedido-cliente {
-    font-weight: 600;
-    color: $gray-800;
-  }
-
-  .pedido-data {
-    font-size: 0.7rem;
-    color: $gray-500;
+  .pedido-header {
+    .pedido-cliente {
+      font-weight: 600;
+      color: $gray-800;
+    }
+    .pedido-data {
+      font-size: 0.7rem;
+      color: $gray-500;
+    }
   }
 
   .pedido-descricao {
@@ -452,5 +587,16 @@ $gray-900: #212121;
   background: $gray-50;
   padding: 12px;
   border-radius: 12px;
+}
+
+@media (max-width: 599px) {
+  .filters-container {
+    .ordenacao-toggle {
+      width: 100%;
+      :deep(.q-btn) {
+        flex: 1;
+      }
+    }
+  }
 }
 </style>

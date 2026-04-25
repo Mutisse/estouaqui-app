@@ -3,7 +3,6 @@
     <!-- Header compacto para mobile -->
     <q-header elevated class="header-custom">
       <q-toolbar class="toolbar-compact">
-        <!-- Menu hamburguer -->
         <q-btn
           flat
           round
@@ -13,7 +12,6 @@
           @click="leftDrawerOpen = !leftDrawerOpen"
         />
 
-        <!-- Logo centralizada com badge de prestador -->
         <q-toolbar-title class="text-center">
           <div class="logo-mini">
             <q-icon name="handyman" size="16px" class="logo-icon" />
@@ -24,7 +22,6 @@
           </div>
         </q-toolbar-title>
 
-        <!-- Notificações -->
         <q-btn flat round dense class="notification-btn" @click="openNotifications">
           <q-icon name="notifications" size="20px" />
           <q-badge v-if="unreadCount > 0" color="red" floating class="notification-badge">
@@ -34,7 +31,6 @@
       </q-toolbar>
     </q-header>
 
-    <!-- Drawer lateral com menu do prestador -->
     <q-drawer
       v-model="leftDrawerOpen"
       side="left"
@@ -228,12 +224,10 @@
       </q-scroll-area>
     </q-drawer>
 
-    <!-- Conteúdo principal -->
     <q-page-container class="page-container">
       <router-view />
     </q-page-container>
 
-    <!-- Rodapé com navegação específica para prestador -->
     <q-footer class="footer-custom">
       <q-tabs
         class="tabs-custom"
@@ -289,7 +283,6 @@
       </q-tabs>
     </q-footer>
 
-    <!-- Modal de Notificações -->
     <q-dialog v-model="notificationsDialog" position="top" class="notifications-dialog">
       <q-card style="min-width: 350px; max-width: 500px">
         <q-card-section class="row items-center q-pb-none">
@@ -306,7 +299,7 @@
             <div class="text-grey-6 q-mt-sm">Carregando notificações...</div>
           </div>
 
-          <div v-else-if="notificacoes.length === 0" class="text-center q-pa-md">
+          <div v-else-if="notificacoesList.length === 0" class="text-center q-pa-md">
             <q-icon name="notifications_none" size="48px" color="grey-5" />
             <div class="text-grey-6 q-mt-sm">Nenhuma notificação</div>
           </div>
@@ -314,12 +307,12 @@
           <div v-else>
             <q-list separator>
               <q-item
-                v-for="notif in notificacoes"
+                v-for="notif in notificacoesList"
                 :key="notif.id"
                 clickable
                 v-ripple
                 :class="{ 'notification-unread': !notif.lida }"
-                @click="marcarNotificacaoLida(notif.id)"
+                @click="handleMarcaNotificacaoLida(notif.id)"
               >
                 <q-item-section avatar>
                   <q-icon
@@ -354,7 +347,7 @@
             v-if="unreadCount > 0"
             flat
             label="Marcar todas como lidas"
-            @click="marcarTodasComoLidas"
+            @click="handleMarcarTodasComoLidas"
             no-caps
           />
         </q-card-actions>
@@ -368,20 +361,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
 import { usePrestadorStore } from 'src/stores/prestador-store';
+import type { NotificacaoData } from 'src/stores/prestador-store';
 import { useQuasar } from 'quasar';
-import { api } from 'src/boot/axios';
 
-// Interface para notificações
-interface NotificacaoData {
-  id: number;
-  titulo: string;
-  mensagem: string;
-  tipo?: string;
-  lida: boolean;
-  created_at: string;
-}
-
-// Interface para usuário prestador com campos específicos
 interface PrestadorUser {
   id: number;
   nome: string;
@@ -411,7 +393,6 @@ const notificationsDialog = ref(false);
 const loadingNotificacoes = ref(false);
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-// Dados do prestador
 const userNome = computed(() => authStore.user?.nome || 'Prestador');
 const userAvatar = computed(() => authStore.user?.foto || 'https://cdn.quasar.dev/img/avatar.png');
 const userRating = computed(() => (authStore.user as PrestadorUser)?.media_avaliacao || 0);
@@ -419,7 +400,6 @@ const userTotalAvaliacoes = computed(
   () => (authStore.user as PrestadorUser)?.total_avaliacoes || 0,
 );
 
-// Computed com verificação de segurança para evitar erro "filter is not a function"
 const solicitacoesPendentesCount = computed(() => {
   if (prestadorStore.solicitacoes && Array.isArray(prestadorStore.solicitacoes)) {
     return prestadorStore.solicitacoes.filter((s) => s.status === 'pendente').length;
@@ -427,18 +407,10 @@ const solicitacoesPendentesCount = computed(() => {
   return 0;
 });
 
-// Notificações (inicializado como array vazio)
-const notificacoes = ref<NotificacaoData[]>([]);
+const notificacoesList = computed(() => prestadorStore.notificacoes || []);
 
-// Computed com verificação de segurança
-const unreadCount = computed(() => {
-  if (notificacoes.value && Array.isArray(notificacoes.value)) {
-    return notificacoes.value.filter((n) => !n.lida).length;
-  }
-  return 0;
-});
+const unreadCount = computed(() => prestadorStore.unreadCount || 0);
 
-// Funções auxiliares para notificações
 const getNotificacaoIcone = (notif: NotificacaoData) => {
   const tipo = notif.tipo || 'default';
   const icones: Record<string, string> = {
@@ -485,62 +457,39 @@ const formatarData = (dataString: string) => {
   }
 };
 
-// ✅ CORREÇÃO: Usando o método correto do prestador-store para notificações
 const carregarNotificacoes = async () => {
   if (!authStore.isPrestador) {
     console.log('Usuário não é prestador, ignorando notificações');
-    notificacoes.value = [];
     return;
   }
 
   loadingNotificacoes.value = true;
   try {
-    // Usando o endpoint de notificações diretamente (mesmo padrão do admin)
-    const response = await api.get('/notifications');
-
-    if (response.data.success && Array.isArray(response.data.data)) {
-      notificacoes.value = response.data.data;
-    } else {
-      notificacoes.value = [];
-    }
+    await prestadorStore.fetchNotificacoes();
   } catch (error) {
     console.error('Erro ao carregar notificações:', error);
-    notificacoes.value = [];
   } finally {
     loadingNotificacoes.value = false;
   }
 };
 
-const marcarNotificacaoLida = async (id: number) => {
+const handleMarcaNotificacaoLida = async (id: number) => {
   try {
-    const response = await api.put(`/notifications/${id}/read`);
-
-    if (response.data.success && Array.isArray(notificacoes.value)) {
-      const notif = notificacoes.value.find((n) => n.id === id);
-      if (notif) {
-        notif.lida = true;
-      }
-    }
+    await prestadorStore.marcarNotificacaoLida(id);
   } catch (error) {
     console.error('Erro ao marcar notificação como lida:', error);
   }
 };
 
-const marcarTodasComoLidas = async () => {
+const handleMarcarTodasComoLidas = async () => {
   try {
-    const response = await api.put('/notifications/read-all');
-
-    if (response.data.success && Array.isArray(notificacoes.value)) {
-      notificacoes.value.forEach((n) => {
-        n.lida = true;
-      });
-      $q.notify({
-        type: 'positive',
-        message: 'Todas notificações marcadas como lidas',
-        position: 'top',
-        timeout: 2000,
-      });
-    }
+    await prestadorStore.marcarTodasNotificacoesLidas();
+    $q.notify({
+      type: 'positive',
+      message: 'Todas notificações marcadas como lidas',
+      position: 'top',
+      timeout: 2000,
+    });
   } catch (error) {
     console.error('Erro ao marcar todas notificações:', error);
     $q.notify({
@@ -556,7 +505,6 @@ const openNotifications = () => {
   void carregarNotificacoes();
 };
 
-// Função segura para carregar solicitações
 const carregarSolicitacoesPendentes = async () => {
   if (!authStore.isPrestador) {
     return;
@@ -569,13 +517,12 @@ const carregarSolicitacoesPendentes = async () => {
   }
 };
 
-// Polling para buscar novos dados
 const iniciarPolling = () => {
   if (pollingInterval) clearInterval(pollingInterval);
 
   pollingInterval = setInterval(() => {
     if (document.hasFocus() && authStore.isAuthenticated && authStore.isPrestador) {
-      void carregarNotificacoes();
+      void prestadorStore.fetchNotificacoes();
       void carregarSolicitacoesPendentes();
       void prestadorStore.fetchStats();
     }
@@ -589,7 +536,6 @@ const pararPolling = () => {
   }
 };
 
-// Logout
 const confirmLogout = () => {
   $q.dialog({
     title: 'Confirmar saída',
@@ -612,18 +558,15 @@ const confirmLogout = () => {
   });
 };
 
-// onMounted
 onMounted(async () => {
-  // Inicializa o auth store (operação síncrona)
   if (!authStore.isAuthenticated) {
     authStore.initialize();
   }
 
-  // Se estiver autenticado e for prestador, carrega os dados
   if (authStore.isAuthenticated && authStore.isPrestador) {
     try {
       await Promise.all([
-        carregarNotificacoes(),
+        prestadorStore.fetchNotificacoes(),
         carregarSolicitacoesPendentes(),
         prestadorStore.fetchStats(),
         prestadorStore.fetchGanhos(),
@@ -635,7 +578,6 @@ onMounted(async () => {
     }
   }
 
-  // Inicia polling apenas se for prestador autenticado
   if (authStore.isAuthenticated && authStore.isPrestador) {
     iniciarPolling();
   }
@@ -669,7 +611,6 @@ $gray-900: #212121;
   flex-direction: column;
 }
 
-/* Header */
 .header-custom {
   background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
   box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
@@ -740,7 +681,6 @@ $gray-900: #212121;
   right: 4px;
 }
 
-/* Drawer */
 .drawer-custom {
   background: white;
 }
@@ -849,13 +789,11 @@ $gray-900: #212121;
   }
 }
 
-/* Page container */
 .page-container {
   padding-bottom: 70px;
   flex: 1;
 }
 
-/* Rodapé */
 .footer-custom {
   background: white !important;
   border-top: 1px solid $gray-200;
@@ -910,7 +848,6 @@ $gray-900: #212121;
   }
 }
 
-/* Modal de Notificações */
 .notifications-dialog {
   :deep(.q-dialog__inner) {
     margin-top: 56px;
@@ -922,7 +859,6 @@ $gray-900: #212121;
   border-left: 3px solid $purple-primary;
 }
 
-/* Safe area */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .footer-custom {
     padding-bottom: env(safe-area-inset-bottom);

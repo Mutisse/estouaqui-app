@@ -55,7 +55,7 @@ export interface PedidoDisponivelData {
   endereco: string;
   status: string;
   created_at: string;
-  distancia_km?: number; // ✅ Adicionado para filtro de raio
+  distancia_km?: number;
   categoria?: { id: number; nome: string; icone: string; cor: string };
   cliente?: { id: number; nome: string; foto: string | null };
 }
@@ -229,6 +229,17 @@ export interface RaioOpcaoOptionData {
   value: number;
 }
 
+export interface NotificacaoData {
+  id: number;
+  titulo: string;
+  mensagem: string;
+  tipo?: string;
+  lida: boolean;
+  created_at: string;
+  updated_at?: string;
+  data?: string;
+}
+
 // ==========================================
 // STORE DO PRESTADOR
 // ==========================================
@@ -270,16 +281,16 @@ export const usePrestadorStore = defineStore('prestador', () => {
   const servicoTiposOptions = ref<ServicoTipoOptionData[]>([]);
   const raioOpcoes = ref<RaioOpcaoData[]>([]);
   const raioOpcoesOptions = ref<RaioOpcaoOptionData[]>([]);
-
-  // NOVOS STATES
   const pedidosDisponiveis = ref<PedidoDisponivelData[]>([]);
   const minhasPropostas = ref<PropostaData[]>([]);
+  const notificacoes = ref<NotificacaoData[]>([]);
+  const unreadCount = ref(0);
 
-  // Cache para evitar requisições duplicadas
   const pendingRequests = new Map<string, Promise<unknown>>();
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   // ==========================================
-  // MÉTODO AUXILIAR PARA EVITAR REQUISIÇÕES DUPLICADAS
+  // MÉTODOS AUXILIARES
   // ==========================================
 
   async function dedupeRequest<T>(key: string, request: () => Promise<T>): Promise<T> {
@@ -294,10 +305,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
     pendingRequests.set(key, promise);
     return promise;
   }
-
-  // ==========================================
-  // FUNÇÃO AUXILIAR PARA EXTRAIR DADOS
-  // ==========================================
 
   function extractDataFromResponse<T>(response: unknown): T {
     if (!response) {
@@ -344,6 +351,26 @@ export const usePrestadorStore = defineStore('prestador', () => {
 
     console.warn('Formato de resposta inesperado:', response);
     return [] as T;
+  }
+
+  function showNotification(
+    type: 'positive' | 'negative' | 'warning' | 'info',
+    message: string,
+    icon?: string,
+  ) {
+    const options: QNotifyCreateOptions = { type, message, position: 'top', timeout: 3000 };
+    if (icon) options.icon = icon;
+    $q.notify(options);
+  }
+
+  function showError(error: unknown) {
+    const err = error as AxiosError<{ error?: string; message?: string }>;
+    const message =
+      err.response?.data?.error ||
+      err.response?.data?.message ||
+      err.message ||
+      'Erro ao carregar dados';
+    showNotification('negative', message);
   }
 
   // ==========================================
@@ -602,7 +629,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // SOLICITAÇÕES/PEDIDOS (antigo sistema)
+  // SOLICITAÇÕES/PEDIDOS
   // ==========================================
 
   async function fetchSolicitacoes(status?: string): Promise<SolicitacaoData[]> {
@@ -1141,29 +1168,105 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // MÉTODOS AUXILIARES
+  // NOTIFICAÇÕES
   // ==========================================
 
-  function showNotification(
-    type: 'positive' | 'negative' | 'warning' | 'info',
-    message: string,
-    icon?: string,
-  ) {
-    const options: QNotifyCreateOptions = { type, message, position: 'top', timeout: 3000 };
-    if (icon) options.icon = icon;
-    $q.notify(options);
+  async function fetchNotificacoes(): Promise<NotificacaoData[]> {
+    return dedupeRequest('notificacoes', async () => {
+      loading.value = true;
+      try {
+        const response = await api.get(PRESTADOR_ENDPOINTS.NOTIFICATIONS);
+        const data = extractDataFromResponse<NotificacaoData[]>(response.data);
+        notificacoes.value = Array.isArray(data) ? data : [];
+        unreadCount.value = notificacoes.value.filter((n) => !n.lida).length;
+        return notificacoes.value;
+      } catch (error) {
+        console.error('Erro ao carregar notificações:', error);
+        notificacoes.value = [];
+        unreadCount.value = 0;
+        return [];
+      } finally {
+        loading.value = false;
+      }
+    });
   }
 
-  function showError(error: unknown) {
-    const err = error as AxiosError<{ error?: string; message?: string }>;
-    const message =
-      err.response?.data?.error ||
-      err.response?.data?.message ||
-      err.message ||
-      'Erro ao carregar dados';
-    console.error('Erro:', message);
-    showNotification('negative', message);
+  async function fetchNotificacoesNaoLidas(): Promise<NotificacaoData[]> {
+    return dedupeRequest('notificacoes_nao_lidas', async () => {
+      try {
+        const response = await api.get(PRESTADOR_ENDPOINTS.NOTIFICATIONS, {
+          params: { lida: false },
+        });
+        const data = extractDataFromResponse<NotificacaoData[]>(response.data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Erro ao carregar notificações não lidas:', error);
+        return [];
+      }
+    });
   }
+
+  async function marcarNotificacaoLida(id: number): Promise<boolean> {
+    try {
+      const response = await api.put(PRESTADOR_ENDPOINTS.MARK_NOTIFICATION_READ(id.toString()));
+      if (response.data.success) {
+        const notif = notificacoes.value.find((n) => n.id === id);
+        if (notif && !notif.lida) {
+          notif.lida = true;
+          unreadCount.value = Math.max(0, unreadCount.value - 1);
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Erro ao marcar notificação como lida:', error);
+      return false;
+    }
+  }
+
+  async function marcarTodasNotificacoesLidas(): Promise<boolean> {
+    try {
+      const response = await api.put(PRESTADOR_ENDPOINTS.MARK_ALL_NOTIFICATIONS_READ);
+      if (response.data.success) {
+        notificacoes.value.forEach((n) => {
+          n.lida = true;
+        });
+        unreadCount.value = 0;
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Erro ao marcar todas notificações como lidas:', error);
+      return false;
+    }
+  }
+
+  async function fetchUnreadCount(): Promise<number> {
+    try {
+      const response = await api.get(PRESTADOR_ENDPOINTS.NOTIFICATIONS, {
+        params: { lida: false, per_page: 1 },
+      });
+      if (response.data && typeof response.data === 'object') {
+        if (response.data.total !== undefined) {
+          unreadCount.value = response.data.total;
+          return response.data.total;
+        }
+        const data = extractDataFromResponse<NotificacaoData[]>(response.data);
+        unreadCount.value = Array.isArray(data) ? data.length : 0;
+        return unreadCount.value;
+      }
+      unreadCount.value = 0;
+      return 0;
+    } catch (error) {
+      console.error('Erro ao contar notificações não lidas:', error);
+      unreadCount.value = 0;
+      return 0;
+    }
+  }
+
+  // ==========================================
+  // MÉTODOS DE CARREGAMENTO ORGANIZADOS (SEM LOGS)
+  // ==========================================
 
   async function carregarDashboard(): Promise<void> {
     loading.value = true;
@@ -1182,42 +1285,72 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   async function carregarDadosAuxiliares(): Promise<void> {
-    await Promise.all([
-      fetchDiasSemana(),
-      fetchMeses(),
-      fetchHorariosPadrao(),
-      fetchDiasOptions(),
-      fetchHorariosOptions(),
-      fetchServicoTiposOptions(),
-      fetchRaioOpcoesOptions(),
-    ]);
+    try {
+      await fetchDiasSemana();
+      await delay(300);
+      await fetchMeses();
+      await delay(300);
+      await fetchHorariosPadrao();
+      await delay(300);
+      await fetchDiasOptions();
+      await delay(300);
+      await fetchHorariosOptions();
+      await delay(300);
+      await fetchServicoTiposOptions();
+      await delay(300);
+      await fetchRaioOpcoesOptions();
+    } catch (error) {
+      console.error('Erro ao carregar dados auxiliares:', error);
+    }
   }
 
   async function carregarTodosDados(): Promise<void> {
     loading.value = true;
     try {
-      await Promise.all([
-        fetchServicos(),
-        fetchMinhasCategorias(),
-        fetchSolicitacoes(),
-        fetchIntervalos(),
-        fetchDisponibilidade(),
-        carregarDadosAuxiliares(),
-        fetchPedidosDisponiveis(),
-        fetchMinhasPropostas(),
-      ]);
+      // ETAPA 1: Dados essenciais
+      await fetchStats();
+      await delay(500);
+      await fetchServicos();
+      await delay(500);
+      await fetchMinhasCategorias();
+      await delay(500);
+
+      // ETAPA 2: Configurações
+      await fetchDisponibilidade();
+      await delay(500);
+      await fetchSolicitacoes();
+      await delay(500);
+
+      // ETAPA 3: Dados auxiliares
+      await carregarDadosAuxiliares();
+
+      // ETAPA 4: Dados complementares
+      await fetchProximosServicos(5);
+      await delay(300);
+      await fetchAvaliacoesRecentes(5);
+      await delay(300);
+      await fetchGanhos();
+
+      // ETAPA 5: Dados opcionais
+      // ETAPA 5: Dados opcionais
+      await fetchPedidosDisponiveis().catch(() => {});
+      await fetchMinhasPropostas().catch(() => {});
+      await fetchNotificacoes().catch(() => {});
       initialized.value = true;
     } catch (error) {
       console.error('❌ Erro ao carregar dados:', error);
+      showNotification(
+        'warning',
+        'Alguns dados não puderam ser carregados. Recarregue a página.',
+        'refresh',
+      );
     } finally {
       loading.value = false;
     }
   }
 
   async function initialize(): Promise<void> {
-    if (initialized.value) {
-      return;
-    }
+    if (initialized.value) return;
     await carregarTodosDados();
   }
 
@@ -1229,6 +1362,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
     disponibilidade.value = null;
     pedidosDisponiveis.value = [];
     minhasPropostas.value = [];
+    notificacoes.value = [];
+    unreadCount.value = 0;
     initialized.value = false;
     pendingRequests.clear();
   }
@@ -1266,6 +1401,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
     raioOpcoesOptions,
     pedidosDisponiveis,
     minhasPropostas,
+    notificacoes,
+    unreadCount,
 
     // Serviços
     fetchServicos,
@@ -1280,7 +1417,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     bloquearHorario,
     desbloquearHorario,
 
-    // Solicitações (antigo)
+    // Solicitações
     fetchSolicitacoes,
     aceitarSolicitacao,
     recusarSolicitacao,
@@ -1310,11 +1447,11 @@ export const usePrestadorStore = defineStore('prestador', () => {
     fetchDiasOptions,
     fetchHorariosOptions,
 
-    // Tipos de Serviço (públicos)
+    // Tipos de Serviço
     fetchServicoTipos,
     fetchServicoTiposOptions,
 
-    // Opções de Raio (públicas)
+    // Opções de Raio
     fetchRaioOpcoes,
     fetchRaioOpcoesOptions,
 
@@ -1328,10 +1465,17 @@ export const usePrestadorStore = defineStore('prestador', () => {
     fetchDisponibilidade,
     updateDisponibilidade,
 
-    // NOVOS MÉTODOS
+    // Propostas
     fetchPedidosDisponiveis,
     enviarProposta,
     fetchMinhasPropostas,
+
+    // Notificações
+    fetchNotificacoes,
+    fetchNotificacoesNaoLidas,
+    marcarNotificacaoLida,
+    marcarTodasNotificacoesLidas,
+    fetchUnreadCount,
 
     // Utilitários
     carregarDashboard,

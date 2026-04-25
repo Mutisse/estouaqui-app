@@ -581,7 +581,7 @@ const latitude = ref('');
 const longitude = ref('');
 const localizacaoObtida = ref(false);
 
-const categoriasOptions = ref<{ label: string; value: string }[]>([]);
+const categoriasOptions = ref<{ label: string; value: number }[]>([]);
 const raioOptions = ref<{ label: string; value: number }[]>([]);
 const diasSemana = ref<{ label: string; value: string }[]>([]);
 
@@ -996,7 +996,7 @@ const carregarDadosAuxiliares = async () => {
     await prestadorStore.fetchServicoTiposOptions();
     categoriasOptions.value = prestadorStore.servicoTiposOptions.map((opt) => ({
       label: opt.label,
-      value: opt.value,
+       value: Number(opt.value),
     }));
 
     await prestadorStore.fetchRaioOpcoesOptions();

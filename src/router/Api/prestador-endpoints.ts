@@ -1,6 +1,6 @@
 /**
  * Endpoints completos da API para Prestador
- * ALINHADOS COM AS ROTAS DO BACKEND LARAVEL
+ * ALINHADOS COM AS ROTAS DO BACKEND LARAVEL - ATUALIZADO
  */
 export const PRESTADOR_ENDPOINTS = {
   // ==========================================
@@ -28,11 +28,14 @@ export const PRESTADOR_ENDPOINTS = {
   ACTIVITIES_HISTORY: '/activities',
 
   // ==========================================
-  // 4. NOTIFICAÇÕES
+  // 4. NOTIFICAÇÕES (CORRIGIDO - alinhado com backend)
   // ==========================================
-  NOTIFICATIONS: '/notifications',
-  MARK_NOTIFICATION_READ: (id: string) => `/notifications/${id}/read`,
-  MARK_ALL_NOTIFICATIONS_READ: '/notifications/read-all',
+  NOTIFICATIONS: '/notifications/notifications',           // ✅ Corrigido
+  NOTIFICATIONS_RECENT: '/notifications/notifications/recent',  // ✅ Adicionado
+  UNREAD_COUNT: '/notifications/notifications/unread-count',    // ✅ Adicionado
+  MARK_NOTIFICATION_READ: (id: string) => `/notifications/notifications/${id}/read`,  // ✅ Corrigido
+  MARK_ALL_NOTIFICATIONS_READ: '/notifications/notifications/read-all',  // ✅ Corrigido
+  CREATE_NOTIFICATION_INDEXES: '/notifications/notifications/create-indexes', // ✅ Adicionado
 
   // ==========================================
   // 5. SERVIÇOS DO PRESTADOR
