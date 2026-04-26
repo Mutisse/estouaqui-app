@@ -88,8 +88,44 @@
       </q-card-section>
     </q-card>
 
-    <!-- Tabela de prestadores -->
-    <q-card class="prestadores-table-card">
+    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
+    <div v-if="adminStore.loading" class="skeleton-container">
+      <!-- Table header skeleton -->
+      <div class="skeleton-table-header">
+        <div class="row justify-between items-center">
+          <div class="skeleton-total"></div>
+          <div class="skeleton-pagination"></div>
+        </div>
+      </div>
+
+      <!-- Table skeleton -->
+      <div class="skeleton-table">
+        <!-- Header row -->
+        <div class="skeleton-table-header-row">
+          <div v-for="i in colunas.length" :key="`header-${i}`" class="skeleton-header-cell"></div>
+        </div>
+
+        <!-- Body rows -->
+        <div v-for="row in 5" :key="row" class="skeleton-table-row">
+          <div class="skeleton-cell">
+            <div class="skeleton-text"></div>
+            <div class="skeleton-text-short q-mt-xs"></div>
+          </div>
+          <div class="skeleton-cell"><div class="skeleton-text"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-text-short"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-badge"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-rating"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-chips"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-actions"></div></div>
+        </div>
+      </div>
+
+      <!-- Shimmer animation -->
+      <div class="skeleton-shimmer"></div>
+    </div>
+
+    <!-- Tabela de prestadores (apenas quando não está carregando) -->
+    <q-card v-else class="prestadores-table-card">
       <q-card-section class="table-header">
         <div class="row justify-between items-center">
           <div class="total-info">
@@ -115,7 +151,6 @@
         :rows="adminStore.prestadores"
         :columns="colunas"
         row-key="id"
-        :loading="adminStore.loading"
         hide-bottom
         class="prestadores-table"
         :rows-per-page-options="[0]"
@@ -129,7 +164,6 @@
           </q-td>
         </template>
 
-        <!-- CORREÇÃO: Avaliação com fallback para 0 -->
         <template v-slot:body-cell-avaliacao="props">
           <q-td :props="props">
             <div class="rating-container">
@@ -314,6 +348,7 @@
         </q-card-section>
 
         <q-card-section v-if="prestadorSelecionado" class="details-content">
+          <!-- conteúdo mantido igual ao original -->
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-4 text-center">
               <q-avatar size="120px" class="avatar-large">
@@ -338,7 +373,6 @@
                   </q-item-section>
                 </q-item>
 
-                <!-- CORREÇÃO: Avaliação no detalhe com fallback para 0 -->
                 <q-item>
                   <q-item-section>
                     <q-item-label caption>Avaliação</q-item-label>
@@ -419,7 +453,6 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { useQuasar, type QTableColumn } from 'quasar'
 import { useAdminStore } from 'src/stores/admin-store'
 
-// Definir interfaces localmente
 interface PrestadorCategoria {
   id: number
   nome: string
@@ -747,6 +780,13 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+$primary-color: #667eea;
+$gray-100: #f5f5f5;
+$gray-200: #eeeeee;
+$gray-300: #e0e0e0;
+$gray-400: #bdbdbd;
+$gray-500: #9e9e9e;
+
 .admin-prestadores {
   max-width: 1400px;
   margin: 0 auto;
@@ -795,6 +835,166 @@ onMounted(() => {
     padding: 20px;
   }
 }
+
+// ==========================================
+// SKELETON LOADING (Facebook/Instagram style)
+// ==========================================
+
+.skeleton-container {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.skeleton-table-header {
+  padding: 20px;
+  border-bottom: 1px solid $gray-200;
+
+  .skeleton-total {
+    width: 180px;
+    height: 20px;
+    background: $gray-200;
+    border-radius: 4px;
+  }
+
+  .skeleton-pagination {
+    width: 200px;
+    height: 32px;
+    background: $gray-200;
+    border-radius: 4px;
+  }
+}
+
+.skeleton-table {
+  .skeleton-table-header-row {
+    display: flex;
+    background: $gray-100;
+    padding: 12px 16px;
+    border-bottom: 1px solid $gray-200;
+
+    .skeleton-header-cell {
+      flex: 1;
+      height: 20px;
+      background: $gray-300;
+      border-radius: 4px;
+      margin: 0 8px;
+
+      &:first-child { margin-left: 0; width: 20%; flex: none; }
+      &:nth-child(2) { width: 20%; flex: none; }
+      &:nth-child(3) { width: 15%; flex: none; }
+      &:nth-child(4) { width: 10%; flex: none; }
+      &:nth-child(5) { width: 12%; flex: none; }
+      &:nth-child(6) { width: 15%; flex: none; }
+      &:last-child { margin-right: 0; width: 8%; flex: none; }
+    }
+  }
+
+  .skeleton-table-row {
+    display: flex;
+    padding: 16px;
+    border-bottom: 1px solid $gray-200;
+
+    .skeleton-cell {
+      flex: 1;
+      margin: 0 8px;
+
+      &:first-child { margin-left: 0; width: 20%; flex: none; }
+      &:nth-child(2) { width: 20%; flex: none; }
+      &:nth-child(3) { width: 15%; flex: none; }
+      &:nth-child(4) { width: 10%; flex: none; }
+      &:nth-child(5) { width: 12%; flex: none; }
+      &:nth-child(6) { width: 15%; flex: none; }
+      &:last-child { margin-right: 0; width: 8%; flex: none; }
+
+      .skeleton-text {
+        width: 100%;
+        height: 16px;
+        background: $gray-200;
+        border-radius: 4px;
+      }
+
+      .skeleton-text-short {
+        width: 60%;
+        height: 12px;
+        background: $gray-200;
+        border-radius: 4px;
+      }
+
+      .skeleton-badge {
+        width: 80px;
+        height: 24px;
+        background: $gray-200;
+        border-radius: 12px;
+        margin: 0 auto;
+      }
+
+      .skeleton-rating {
+        display: flex;
+        gap: 4px;
+
+        &::before {
+          content: '★★★★★';
+          color: $gray-200;
+          font-size: 14px;
+          letter-spacing: 2px;
+        }
+      }
+
+      .skeleton-chips {
+        display: flex;
+        gap: 4px;
+
+        &::before {
+          content: 'Chip';
+          color: transparent;
+          background: $gray-200;
+          width: 60px;
+          height: 24px;
+          border-radius: 16px;
+        }
+      }
+
+      .skeleton-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+
+        &::before, &::after {
+          content: '';
+          width: 28px;
+          height: 28px;
+          background: $gray-200;
+          border-radius: 50%;
+        }
+        &::after {
+          content: '';
+        }
+      }
+    }
+  }
+}
+
+.skeleton-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// ==========================================
+// ESTILOS PRINCIPAIS
+// ==========================================
 
 .table-header {
   border-bottom: 1px solid #e9ecef;

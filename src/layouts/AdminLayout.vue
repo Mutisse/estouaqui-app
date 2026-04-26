@@ -1,5 +1,59 @@
 <template>
-  <q-layout view="hHh LpR fFf" class="admin-layout">
+  <!-- Skeleton Loading (mostra enquanto carrega) -->
+  <div v-if="isLoading" class="skeleton-admin-layout">
+    <!-- Skeleton Header -->
+    <div class="skeleton-header">
+      <div class="skeleton-menu-btn"></div>
+      <div class="skeleton-logo"></div>
+      <div class="skeleton-header-actions">
+        <div class="skeleton-notification"></div>
+        <div class="skeleton-avatar"></div>
+      </div>
+    </div>
+
+    <!-- Skeleton Drawer -->
+    <div class="skeleton-drawer">
+      <div class="skeleton-profile">
+        <div class="skeleton-profile-avatar"></div>
+        <div class="skeleton-profile-info">
+          <div class="skeleton-line w-60"></div>
+          <div class="skeleton-line w-40"></div>
+        </div>
+      </div>
+      <div class="skeleton-menu">
+        <div v-for="i in 8" :key="i" class="skeleton-menu-item">
+          <div class="skeleton-icon"></div>
+          <div class="skeleton-line w-50"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skeleton Content -->
+    <div class="skeleton-content">
+      <div class="skeleton-stats">
+        <div v-for="i in 4" :key="i" class="skeleton-stat-card">
+          <div class="skeleton-stat-icon"></div>
+          <div class="skeleton-stat-info">
+            <div class="skeleton-line w-60"></div>
+            <div class="skeleton-line w-40"></div>
+          </div>
+        </div>
+      </div>
+      <div class="skeleton-table">
+        <div class="skeleton-table-header">
+          <div v-for="i in 5" :key="i" class="skeleton-line w-15"></div>
+        </div>
+        <div v-for="i in 5" :key="i" class="skeleton-table-row">
+          <div v-for="j in 5" :key="j" class="skeleton-line w-15"></div>
+        </div>
+      </div>
+    </div>
+
+   
+  </div>
+
+  <!-- Layout real -->
+  <q-layout v-else view="hHh LpR fFf" class="admin-layout">
     <!-- Header Responsivo -->
     <q-header elevated class="admin-header text-white">
       <q-toolbar class="q-px-sm q-px-md-sm q-px-lg-md">
@@ -434,7 +488,10 @@ const $q = useQuasar();
 const authStore = useAuthStore();
 const adminStore = useAdminStore();
 
-// ✅ DETECTAR SE É ROOT (super admin)
+// Estado de loading do skeleton
+const isLoading = ref(true);
+
+// DETECTAR SE É ROOT (super admin)
 const isRoot = computed(() => {
   return authStore.user?.email === 'root@estouaqui.com';
 });
@@ -625,14 +682,38 @@ const logout = (): void => {
   });
 };
 
+// Carregar dados iniciais com skeleton
+const carregarDadosIniciais = async () => {
+  isLoading.value = true;
+
+  try {
+    if (!authStore.isAuthenticated || !authStore.isAdmin) {
+      await router.push('/admin/login');
+      isLoading.value = false;
+      return;
+    }
+
+    await Promise.all([carregarNotificacoes()]);
+  } catch (error) {
+    console.error('Erro ao carregar dados iniciais:', error);
+  } finally {
+    // Tempo mínimo para o skeleton aparecer (evita flicker)
+    setTimeout(() => {
+      isLoading.value = false;
+    }, 600);
+  }
+};
+
 onMounted(() => {
   window.addEventListener('resize', updateWindowWidth);
 
   if (!authStore.isAuthenticated || !authStore.isAdmin) {
     void router.push('/admin/login');
+    isLoading.value = false;
+  } else {
+    void carregarDadosIniciais();
+    iniciarPolling();
   }
-  void carregarNotificacoes();
-  iniciarPolling();
 });
 
 onUnmounted(() => {
@@ -663,6 +744,232 @@ $gray-600: #757575;
 $gray-700: #616161;
 $gray-800: #424242;
 $gray-900: #212121;
+
+// ==========================================
+// SKELETON LOADING STYLES
+// ==========================================
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-admin-layout {
+  background: $gray-50;
+  min-height: 100vh;
+  display: flex;
+}
+
+.skeleton-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 2000;
+}
+
+.skeleton-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.skeleton-logo {
+  width: 120px;
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.skeleton-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.skeleton-notification {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.skeleton-drawer {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  width: 280px;
+  height: calc(100vh - 60px);
+  background: white;
+  border-right: 1px solid $gray-200;
+  z-index: 1999;
+}
+
+.skeleton-profile {
+  padding: 16px;
+  background: linear-gradient(135deg, $gray-100 0%, $gray-200 100%);
+  border-bottom: 1px solid $gray-300;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-profile-info {
+  flex: 1;
+}
+
+.skeleton-menu {
+  padding: 16px;
+}
+
+.skeleton-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin: 4px 0;
+  border-radius: 10px;
+}
+
+.skeleton-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+  margin-left: 280px;
+  margin-top: 60px;
+  padding: 24px;
+}
+
+.skeleton-stats {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.skeleton-stat-card {
+  flex: 1;
+  min-width: 200px;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.skeleton-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-stat-info {
+  flex: 1;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin: 6px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.w-15 { width: 15%; }
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-60 { width: 60%; }
+.w-70 { width: 70%; }
+.w-80 { width: 80%; }
+
+.skeleton-table {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.skeleton-table-header {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: $gray-100;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-table-row {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+}
+
+@media (max-width: 768px) {
+  .skeleton-drawer {
+    width: 260px;
+  }
+  .skeleton-content {
+    margin-left: 0;
+  }
+}
+
+// ==========================================
+// LAYOUT REAL STYLES
+// ==========================================
 
 .admin-layout {
   background: $gray-50;
@@ -883,6 +1190,3 @@ $gray-900: #212121;
   }
 }
 </style>
-
-
-

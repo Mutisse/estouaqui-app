@@ -1,152 +1,196 @@
 <template>
   <q-page class="pedidos-disponiveis-page bg-grey-1">
-    <!-- Header -->
-    <div class="page-header q-pa-md">
-      <div class="text-h6 text-bold">Pedidos Disponíveis</div>
-      <div class="text-caption text-grey-6">Encontre serviços perto de si</div>
-    </div>
-
-    <!-- Filtros -->
-    <div class="filters-container q-px-md q-mb-md">
-      <div class="row items-center justify-between q-col-gutter-md">
-        <!-- Filtro de Categoria -->
-        <div class="col-12 col-sm-6">
-          <div class="filter-label">
-            <q-icon name="category" size="16px" class="q-mr-xs" />
-            <span>Categoria</span>
-          </div>
-          <q-select
-            v-model="filtros.categoriaId"
-            :options="categoriasOptions"
-            label="Todas as categorias"
-            outlined
-            dense
-            emit-value
-            map-options
-            clearable
-            class="filter-select"
-            @update:model-value="aplicarFiltros"
-          />
+    <!-- Skeleton Loading (enquanto carrega) -->
+    <div v-if="carregamentoInicial" class="skeleton-loading">
+      <div class="skeleton-header">
+        <div class="skeleton-title"></div>
+        <div class="skeleton-subtitle"></div>
+      </div>
+      <div class="skeleton-filters q-px-md q-mb-md">
+        <div class="skeleton-filter-item">
+          <div class="skeleton-line w-30"></div>
+          <div class="skeleton-select"></div>
         </div>
-
-        <!-- Filtro de Raio -->
-        <div class="col-12 col-sm-6">
-          <div class="filter-label">
-            <q-icon name="radar" size="16px" class="q-mr-xs" />
-            <span>Raio de busca</span>
+        <div class="skeleton-filter-item">
+          <div class="skeleton-line w-30"></div>
+          <div class="skeleton-select"></div>
+        </div>
+        <div class="skeleton-filter-item">
+          <div class="skeleton-line w-30"></div>
+          <div class="skeleton-toggle">
+            <div class="skeleton-btn"></div>
+            <div class="skeleton-btn"></div>
+            <div class="skeleton-btn"></div>
           </div>
-          <q-select
-            v-model="filtros.raio"
-            :options="raioOptions"
-            label="Distância máxima"
-            outlined
-            dense
-            emit-value
-            map-options
-            class="filter-select"
-            @update:model-value="aplicarFiltros"
-          />
         </div>
       </div>
-
-      <!-- Ordenação -->
-      <div class="row items-center justify-between q-mt-md">
-        <div class="filter-label">
-          <q-icon name="sort" size="16px" class="q-mr-xs" />
-          <span>Ordenar por</span>
+      <div class="skeleton-cards q-px-md">
+        <div v-for="i in 3" :key="i" class="skeleton-card">
+          <div class="skeleton-card-header">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-card-info">
+              <div class="skeleton-line w-50"></div>
+              <div class="skeleton-line w-30"></div>
+            </div>
+            <div class="skeleton-chip"></div>
+          </div>
+          <div class="skeleton-card-body">
+            <div class="skeleton-line w-80"></div>
+            <div class="skeleton-line w-60"></div>
+          </div>
+          <div class="skeleton-card-footer">
+            <div class="skeleton-line w-40"></div>
+            <div class="skeleton-btn-small"></div>
+          </div>
         </div>
-        <q-btn-toggle
-          v-model="filtros.ordenacao"
-          :options="ordenacaoOptions"
-          toggle-color="primary"
-          dense
-          no-caps
-          class="ordenacao-toggle"
-        />
       </div>
+      
     </div>
 
-    <!-- Loading -->
-    <div v-if="carregando" class="text-center q-pa-xl">
-      <q-spinner color="primary" size="50px" />
-      <p class="q-mt-md text-grey-7">A carregar pedidos disponíveis...</p>
-    </div>
+    <!-- Conteúdo original -->
+    <template v-else>
+      <!-- Header -->
+      <div class="page-header q-pa-md">
+        <div class="text-h6 text-bold">Pedidos Disponíveis</div>
+        <div class="text-caption text-grey-6">Encontre serviços perto de si</div>
+      </div>
 
-    <!-- Lista de pedidos -->
-    <div v-else-if="pedidosFiltrados.length === 0" class="empty-state q-pa-xl text-center">
-      <q-icon name="search_off" size="64px" color="grey-4" />
-      <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido encontrado</div>
-      <div class="text-grey-6">Não há pedidos disponíveis com os filtros selecionados</div>
-      <q-btn flat color="primary" label="Limpar filtros" class="q-mt-md" @click="limparFiltros" />
-    </div>
-
-    <div v-else class="pedidos-list q-px-md q-pb-xl">
-      <div
-        v-for="pedido in pedidosFiltrados"
-        :key="pedido.id"
-        class="pedido-card q-mb-md"
-        @click="abrirDetalhes(pedido)"
-      >
-        <!-- Cabeçalho do card -->
-        <div class="pedido-header row items-center">
-          <q-avatar size="45px" class="q-mr-sm">
-            <img
-              :src="
-                pedido.cliente?.foto ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.cliente?.nome || 'Cliente')}&background=667eea&color=fff`
-              "
+      <!-- Filtros -->
+      <div class="filters-container q-px-md q-mb-md">
+        <div class="row items-center justify-between q-col-gutter-md">
+          <!-- Filtro de Categoria -->
+          <div class="col-12 col-sm-6">
+            <div class="filter-label">
+              <q-icon name="category" size="16px" class="q-mr-xs" />
+              <span>Categoria</span>
+            </div>
+            <q-select
+              v-model="filtros.categoriaId"
+              :options="categoriasOptions"
+              label="Todas as categorias"
+              outlined
+              dense
+              emit-value
+              map-options
+              clearable
+              class="filter-select"
+              @update:model-value="aplicarFiltros"
             />
-          </q-avatar>
-          <div class="col">
-            <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
-            <div class="pedido-data">{{ formatarData(pedido.created_at) }}</div>
           </div>
-          <div class="pedido-categoria">
-            <q-chip :color="pedido.categoria?.cor || 'primary'" text-color="white" size="sm">
-              {{ pedido.categoria?.nome || 'Serviço' }}
-            </q-chip>
+
+          <!-- Filtro de Raio -->
+          <div class="col-12 col-sm-6">
+            <div class="filter-label">
+              <q-icon name="radar" size="16px" class="q-mr-xs" />
+              <span>Raio de busca</span>
+            </div>
+            <q-select
+              v-model="filtros.raio"
+              :options="raioOptions"
+              label="Distância máxima"
+              outlined
+              dense
+              emit-value
+              map-options
+              class="filter-select"
+              @update:model-value="aplicarFiltros"
+            />
           </div>
         </div>
 
-        <!-- Descrição -->
-        <div class="pedido-descricao q-mt-sm">
-          <div class="descricao-text">{{ pedido.descricao || 'Sem descrição' }}</div>
-        </div>
-
-        <!-- Localização e Distância -->
-        <div class="pedido-localizacao row items-center justify-between q-mt-sm">
-          <div class="row items-center">
-            <q-icon name="location_on" size="16px" color="grey-6" />
-            <span class="text-caption text-grey-7">{{ pedido.endereco }}</span>
+        <!-- Ordenação -->
+        <div class="row items-center justify-between q-mt-md">
+          <div class="filter-label">
+            <q-icon name="sort" size="16px" class="q-mr-xs" />
+            <span>Ordenar por</span>
           </div>
-          <div v-if="pedido.distancia_km" class="distancia-badge">
-            <q-icon name="near_me" size="14px" color="primary" />
-            <span class="text-caption text-primary">
-              {{
-                pedido.distancia_km < 1
-                  ? (pedido.distancia_km * 1000).toFixed(0) + 'm'
-                  : pedido.distancia_km.toFixed(1) + ' km'
-              }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Footer do card -->
-        <div class="pedido-footer row justify-between items-center q-mt-md">
-          <div class="pedido-status">
-            <q-badge color="positive" outline>Disponível</q-badge>
-          </div>
-          <q-btn
-            color="primary"
-            label="Fazer Proposta"
-            size="sm"
-            unelevated
+          <q-btn-toggle
+            v-model="filtros.ordenacao"
+            :options="ordenacaoOptions"
+            toggle-color="primary"
+            dense
             no-caps
-            @click.stop="abrirModalProposta(pedido)"
+            class="ordenacao-toggle"
           />
         </div>
       </div>
-    </div>
+
+      <!-- Lista de pedidos -->
+      <div v-if="pedidosFiltrados.length === 0" class="empty-state q-pa-xl text-center">
+        <q-icon name="search_off" size="64px" color="grey-4" />
+        <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido encontrado</div>
+        <div class="text-grey-6">Não há pedidos disponíveis com os filtros selecionados</div>
+        <q-btn flat color="primary" label="Limpar filtros" class="q-mt-md" @click="limparFiltros" />
+      </div>
+
+      <div v-else class="pedidos-list q-px-md q-pb-xl">
+        <div
+          v-for="pedido in pedidosFiltrados"
+          :key="pedido.id"
+          class="pedido-card q-mb-md"
+          @click="abrirDetalhes(pedido)"
+        >
+          <!-- Cabeçalho do card -->
+          <div class="pedido-header row items-center">
+            <q-avatar size="45px" class="q-mr-sm">
+              <img
+                :src="
+                  pedido.cliente?.foto ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.cliente?.nome || 'Cliente')}&background=667eea&color=fff`
+                "
+              />
+            </q-avatar>
+            <div class="col">
+              <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+              <div class="pedido-data">{{ formatarData(pedido.created_at) }}</div>
+            </div>
+            <div class="pedido-categoria">
+              <q-chip :color="pedido.categoria?.cor || 'primary'" text-color="white" size="sm">
+                {{ pedido.categoria?.nome || 'Serviço' }}
+              </q-chip>
+            </div>
+          </div>
+
+          <!-- Descrição -->
+          <div class="pedido-descricao q-mt-sm">
+            <div class="descricao-text">{{ pedido.descricao || 'Sem descrição' }}</div>
+          </div>
+
+          <!-- Localização e Distância -->
+          <div class="pedido-localizacao row items-center justify-between q-mt-sm">
+            <div class="row items-center">
+              <q-icon name="location_on" size="16px" color="grey-6" />
+              <span class="text-caption text-grey-7">{{ pedido.endereco }}</span>
+            </div>
+            <div v-if="pedido.distancia_km" class="distancia-badge">
+              <q-icon name="near_me" size="14px" color="primary" />
+              <span class="text-caption text-primary">
+                {{
+                  pedido.distancia_km < 1
+                    ? (pedido.distancia_km * 1000).toFixed(0) + 'm'
+                    : pedido.distancia_km.toFixed(1) + ' km'
+                }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Footer do card -->
+          <div class="pedido-footer row justify-between items-center q-mt-md">
+            <div class="pedido-status">
+              <q-badge color="positive" outline>Disponível</q-badge>
+            </div>
+            <q-btn
+              color="primary"
+              label="Fazer Proposta"
+              size="sm"
+              unelevated
+              no-caps
+              @click.stop="abrirModalProposta(pedido)"
+            />
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- Modal para fazer proposta -->
     <q-dialog v-model="modalProposta.visivel" persistent>
@@ -208,6 +252,7 @@
     </q-dialog>
   </q-page>
 </template>
+
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
@@ -225,7 +270,7 @@ const authStore = useAuthStore();
 const prestadorStore = usePrestadorStore();
 
 // Estados
-const carregando = ref(true);
+const carregamentoInicial = ref(true);
 const carregandoEnvio = ref(false);
 const pedidos = ref<PedidoDisponivelData[]>([]);
 
@@ -281,12 +326,10 @@ const novaProposta = reactive({
 const pedidosFiltrados = computed(() => {
   let resultado = [...pedidos.value];
 
-  // Filtrar por categoria
   if (filtros.categoriaId) {
     resultado = resultado.filter((p) => p.categoria?.id === filtros.categoriaId);
   }
 
-  // Filtrar por raio
   if (filtros.raio) {
     resultado = resultado.filter((p) => {
       if (p.distancia_km === undefined || p.distancia_km === null) return true;
@@ -294,7 +337,6 @@ const pedidosFiltrados = computed(() => {
     });
   }
 
-  // Ordenar
   if (filtros.ordenacao === 'distancia') {
     resultado.sort((a, b) => {
       const distA = a.distancia_km ?? 9999;
@@ -318,7 +360,6 @@ const pedidosFiltrados = computed(() => {
   return resultado;
 });
 
-// Funções auxiliares
 const formatarData = (data: string) => {
   if (!data) return '';
   try {
@@ -346,9 +387,7 @@ const limparFiltros = () => {
   filtros.ordenacao = 'distancia';
 };
 
-// Carregar pedidos disponíveis
 const carregarPedidosDisponiveis = async () => {
-  carregando.value = true;
   try {
     await prestadorStore.fetchPedidosDisponiveis();
     pedidos.value = prestadorStore.pedidosDisponiveis;
@@ -359,12 +398,9 @@ const carregarPedidosDisponiveis = async () => {
       message: 'Erro ao carregar pedidos disponíveis',
       position: 'top',
     });
-  } finally {
-    carregando.value = false;
   }
 };
 
-// Carregar minhas categorias
 const carregarMinhasCategorias = async () => {
   try {
     await prestadorStore.fetchMinhasCategorias();
@@ -373,12 +409,10 @@ const carregarMinhasCategorias = async () => {
   }
 };
 
-// Abrir detalhes do pedido
 const abrirDetalhes = (pedido: PedidoDisponivelData) => {
   console.log('Ver detalhes do pedido:', pedido.id);
 };
 
-// Abrir modal para fazer proposta
 const abrirModalProposta = (pedido: PedidoDisponivelData) => {
   modalProposta.pedido = pedido;
   novaProposta.valor = 0;
@@ -386,7 +420,6 @@ const abrirModalProposta = (pedido: PedidoDisponivelData) => {
   modalProposta.visivel = true;
 };
 
-// Enviar proposta
 const enviarProposta = async () => {
   if (!novaProposta.valor || novaProposta.valor <= 0) {
     $q.notify({
@@ -435,7 +468,6 @@ const enviarProposta = async () => {
   }
 };
 
-// Watch para recarregar quando o usuário mudar
 watch(
   () => authStore.isAuthenticated,
   async (isAuth) => {
@@ -468,7 +500,14 @@ onMounted(async () => {
     return;
   }
 
-  await Promise.all([carregarPedidosDisponiveis(), carregarMinhasCategorias()]);
+  carregamentoInicial.value = true;
+  try {
+    await Promise.all([carregarPedidosDisponiveis(), carregarMinhasCategorias()]);
+  } finally {
+    setTimeout(() => {
+      carregamentoInicial.value = false;
+    }, 500);
+  }
 });
 </script>
 
@@ -484,6 +523,173 @@ $gray-600: #757575;
 $gray-700: #616161;
 $gray-800: #424242;
 $gray-900: #212121;
+
+/* ========================================== */
+/* SKELETON LOADING STYLES */
+/* ========================================== */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-loading {
+  background: $gray-100;
+  min-height: 100vh;
+}
+
+.skeleton-header {
+  background: white;
+  padding: 16px;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-title {
+  width: 180px;
+  height: 24px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-subtitle {
+  width: 120px;
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-filters {
+  background: white;
+  padding: 16px;
+  border-radius: 16px;
+  margin: 16px;
+}
+
+.skeleton-filter-item {
+  margin-bottom: 16px;
+}
+
+.skeleton-select {
+  height: 44px;
+  border-radius: 12px;
+  margin-top: 6px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-toggle {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.skeleton-btn {
+  width: 80px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-cards {
+  padding: 0 16px;
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.skeleton-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-card-info {
+  flex: 1;
+}
+
+.skeleton-chip {
+  width: 80px;
+  height: 28px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-card-body {
+  margin-bottom: 12px;
+}
+
+.skeleton-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid $gray-200;
+}
+
+.skeleton-btn-small {
+  width: 100px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin: 6px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+}
+
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-60 { width: 60%; }
+.w-80 { width: 80%; }
+
+/* ========================================== */
+/* ESTILOS ORIGINAIS (mantidos sem alterações) */
+/* ========================================== */
 
 .pedidos-disponiveis-page {
   min-height: 100vh;

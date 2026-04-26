@@ -1,11 +1,36 @@
 ﻿<template>
   <q-page class="chat-page">
-    <!-- Loading -->
-    <div v-if="loading" class="text-center q-pa-xl">
-      <q-spinner color="primary" size="50px" />
-      <p class="q-mt-md text-grey-7">A carregar conversa...</p>
+    <!-- Skeleton Loading (enquanto carrega) -->
+    <div v-if="carregamentoInicial" class="skeleton-loading">
+      <div class="skeleton-header">
+        <div class="skeleton-back-btn"></div>
+        <div class="skeleton-header-info">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-header-details">
+            <div class="skeleton-line w-40"></div>
+            <div class="skeleton-line w-20"></div>
+          </div>
+        </div>
+        <div class="skeleton-menu-btn"></div>
+      </div>
+      <div class="skeleton-messages-area">
+        <div v-for="i in 5" :key="i" class="skeleton-message">
+          <div class="skeleton-bubble" :class="i % 2 === 0 ? 'skeleton-right' : 'skeleton-left'">
+            <div class="skeleton-line w-60"></div>
+            <div class="skeleton-line w-30"></div>
+          </div>
+        </div>
+      </div>
+      <div class="skeleton-input-area">
+        <div class="skeleton-input"></div>
+        <div class="skeleton-send-btn"></div>
+      </div>
+      <div class="skeleton-spinner">
+        <q-spinner color="primary" size="40px" />
+      </div>
     </div>
 
+    <!-- Conteúdo original (sem alterações) -->
     <template v-else>
       <!-- Header -->
       <div class="header q-pa-md">
@@ -85,7 +110,7 @@ const $q = useQuasar();
 const clienteStore = useClienteStore();
 
 // Estados
-const loading = ref(true);
+const carregamentoInicial = ref(true);
 const enviando = ref(false);
 const novaMensagem = ref('');
 const messagesArea = ref<HTMLElement | null>(null);
@@ -231,7 +256,6 @@ const buscarNovasMensagens = () => {
         mensagens.value = [...mensagens.value, ...novasMensagens];
         await scrollToBottom();
 
-        // Marcar como lidas se a janela estiver ativa
         if (document.hasFocus()) {
           await marcarComoLidas();
         }
@@ -244,7 +268,7 @@ const buscarNovasMensagens = () => {
 
 // Inicializar chat
 const iniciarChat = async () => {
-  loading.value = true;
+  carregamentoInicial.value = true;
   try {
     await carregarPrestador();
     await carregarMensagens();
@@ -252,17 +276,19 @@ const iniciarChat = async () => {
   } catch (error) {
     console.error('Erro ao iniciar chat:', error);
   } finally {
-    loading.value = false;
+    setTimeout(() => {
+      carregamentoInicial.value = false;
+    }, 500);
   }
 };
 
-// Polling para novas mensagens - CORRIGIDO
+// Polling para novas mensagens
 const iniciarPolling = () => {
   if (pollingInterval) clearInterval(pollingInterval);
 
   pollingInterval = setInterval(() => {
     buscarNovasMensagens();
-  }, 5000); // Polling a cada 5 segundos
+  }, 5000);
 };
 
 // Parar polling
@@ -297,6 +323,171 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
 }
+
+/* ========================================== */
+/* SKELETON LOADING STYLES */
+/* ========================================== */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-loading {
+  background: #f0f2f5;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-header {
+  background: white;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.skeleton-back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-header-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-header-details {
+  flex: 1;
+}
+
+.skeleton-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-messages-area {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.skeleton-message {
+  margin-bottom: 20px;
+}
+
+.skeleton-bubble {
+  max-width: 70%;
+  padding: 10px 15px;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-left {
+  margin-right: auto;
+}
+
+.skeleton-right {
+  margin-left: auto;
+  background: #667eea;
+}
+
+.skeleton-right .skeleton-line {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.skeleton-input-area {
+  background: white;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.skeleton-input {
+  flex: 1;
+  height: 44px;
+  border-radius: 30px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin: 6px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+}
+
+.w-20 {
+  width: 20%;
+}
+.w-30 {
+  width: 30%;
+}
+.w-40 {
+  width: 40%;
+}
+.w-60 {
+  width: 60%;
+}
+
+/* ========================================== */
+/* ESTILOS ORIGINAIS (mantidos sem alterações) */
+/* ========================================== */
 
 .header {
   background: white;

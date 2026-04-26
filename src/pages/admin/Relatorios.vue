@@ -18,245 +18,307 @@
       />
     </div>
 
-    <div class="row q-col-gutter-lg">
-      <!-- Seletor de Período -->
-      <div class="col-12 col-md-3">
-        <q-card class="periodo-card">
-          <q-card-section>
-            <div class="text-h6">
-              <q-icon name="calendar_today" class="q-mr-sm" />
-              Período
-            </div>
-            <q-select
-              v-model="periodo"
-              :options="periodos"
-              label="Selecione o período"
-              dense
-              outlined
-              class="q-mt-md"
-              @update:model-value="carregarDados"
-            />
-            <div v-if="periodo === 'custom'" class="q-mt-md">
-              <q-input
-                v-model="dataInicio"
-                label="Data Início"
-                dense
-                outlined
-                type="date"
-              />
-              <q-input
-                v-model="dataFim"
-                label="Data Fim"
-                dense
-                outlined
-                type="date"
-                class="q-mt-sm"
-              />
-              <q-btn
-                label="Aplicar"
-                color="primary"
-                dense
-                class="q-mt-md full-width"
-                @click="carregarDados"
-              />
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
+    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
+    <div v-if="adminStore.loading" class="skeleton-container">
+      <!-- Periodo Card skeleton -->
+      <div class="row q-col-gutter-lg">
+        <div class="col-12 col-md-3">
+          <div class="skeleton-card">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-select"></div>
+            <div class="skeleton-input"></div>
+            <div class="skeleton-input"></div>
+            <div class="skeleton-button"></div>
+          </div>
+        </div>
 
-      <!-- Resumo do Período -->
-      <div class="col-12 col-md-9">
-        <q-card class="resumo-card">
-          <q-card-section>
-            <div class="text-h6">
-              <q-icon name="summarize" class="q-mr-sm" />
-              Resumo do Período
-            </div>
+        <!-- Resumo Card skeleton -->
+        <div class="col-12 col-md-9">
+          <div class="skeleton-card">
+            <div class="skeleton-title"></div>
             <div class="row q-col-gutter-md q-mt-md">
-              <div class="col-12 col-sm-4">
-                <div class="resumo-item">
-                  <div class="resumo-icon" style="background: rgba(46, 125, 50, 0.1)">
-                    <q-icon name="payments" size="28px" color="positive" />
-                  </div>
-                  <div class="resumo-content">
-                    <div class="resumo-label">Receita Total</div>
-                    <div class="resumo-value text-positive">{{ formatMoney(receitaPeriodo) }}</div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-sm-4">
-                <div class="resumo-item">
-                  <div class="resumo-icon" style="background: rgba(25, 118, 210, 0.1)">
-                    <q-icon name="assignment" size="28px" color="primary" />
-                  </div>
-                  <div class="resumo-content">
-                    <div class="resumo-label">Serviços</div>
-                    <div class="resumo-value">{{ formatNumber(servicosPeriodo) }}</div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-sm-4">
-                <div class="resumo-item">
-                  <div class="resumo-icon" style="background: rgba(156, 39, 176, 0.1)">
-                    <q-icon name="person_add" size="28px" color="secondary" />
-                  </div>
-                  <div class="resumo-content">
-                    <div class="resumo-label">Novos Utilizadores</div>
-                    <div class="resumo-value">{{ formatNumber(novosUtilizadoresPeriodo) }}</div>
+              <div v-for="i in 3" :key="i" class="col-12 col-sm-4">
+                <div class="skeleton-resumo-item">
+                  <div class="skeleton-icon"></div>
+                  <div class="skeleton-resumo-content">
+                    <div class="skeleton-label"></div>
+                    <div class="skeleton-value"></div>
                   </div>
                 </div>
               </div>
             </div>
-          </q-card-section>
-        </q-card>
+          </div>
+        </div>
+
+        <!-- Tabs skeleton -->
+        <div class="col-12">
+          <div class="skeleton-card">
+            <div class="skeleton-tabs">
+              <div v-for="i in 3" :key="i" class="skeleton-tab"></div>
+            </div>
+            <div class="skeleton-table-header">
+              <div class="skeleton-panel-header"></div>
+              <div class="skeleton-table">
+                <div class="skeleton-table-header-row">
+                  <div v-for="i in 4" :key="`th-${i}`" class="skeleton-header-cell"></div>
+                </div>
+                <div v-for="row in 4" :key="row" class="skeleton-table-row">
+                  <div v-for="i in 4" :key="`td-${row}-${i}`" class="skeleton-cell">
+                    <div class="skeleton-text"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Relatórios por Tipo -->
-      <div class="col-12">
-        <q-card class="relatorios-card">
-          <q-card-section>
-            <q-tabs v-model="tabRelatorio" class="relatorio-tabs" dense>
-              <q-tab name="servicos" label="Serviços" icon="construction" />
-              <q-tab name="prestadores" label="Prestadores" icon="handyman" />
-              <q-tab name="financeiro" label="Financeiro" icon="payments" />
-            </q-tabs>
-
-            <q-separator />
-
-            <q-tab-panels v-model="tabRelatorio" animated>
-              <!-- Painel de Serviços -->
-              <q-tab-panel name="servicos" class="q-pa-none">
-                <div class="panel-header">
-                  <div class="panel-title">
-                    <q-icon name="construction" class="q-mr-sm" />
-                    Relatório de Serviços
-                  </div>
-                  <q-btn
-                    color="primary"
-                    icon="download"
-                    label="Exportar"
-                    flat
-                    @click="exportarRelatorio('servicos')"
-                    :loading="exportando"
-                  />
-                </div>
-                <q-table
-                  :rows="relatorioServicos"
-                  :columns="servicosColumns"
-                  row-key="periodo"
-                  :loading="adminStore.loading"
-                  :rows-per-page-options="[5, 10, 20]"
-                  flat
-                  bordered
-                  class="relatorio-table"
-                >
-                  <template v-slot:body-cell-receita_total="props">
-                    <q-td :props="props">
-                      <span class="text-primary">{{ formatMoney(props.row.receita_total) }}</span>
-                    </q-td>
-                  </template>
-                  <template v-slot:body-cell-servicos_por_status="props">
-                    <q-td :props="props">
-                      <div class="status-chips">
-                        <q-chip size="sm" color="info" dense>Pendente: {{ props.row.servicos_por_status?.pendente || 0 }}</q-chip>
-                        <q-chip size="sm" color="warning" dense>Aceito: {{ props.row.servicos_por_status?.aceito || 0 }}</q-chip>
-                        <q-chip size="sm" color="positive" dense>Concluído: {{ props.row.servicos_por_status?.concluido || 0 }}</q-chip>
-                      </div>
-                    </q-td>
-                  </template>
-                </q-table>
-              </q-tab-panel>
-
-              <!-- Painel de Prestadores -->
-              <q-tab-panel name="prestadores" class="q-pa-none">
-                <div class="panel-header">
-                  <div class="panel-title">
-                    <q-icon name="handyman" class="q-mr-sm" />
-                    Relatório de Prestadores
-                  </div>
-                  <q-btn
-                    color="primary"
-                    icon="download"
-                    label="Exportar"
-                    flat
-                    @click="exportarRelatorio('prestadores')"
-                    :loading="exportando"
-                  />
-                </div>
-                <q-table
-                  :rows="relatorioPrestadores"
-                  :columns="prestadoresColumns"
-                  row-key="total"
-                  :loading="adminStore.loading"
-                  :rows-per-page-options="[5, 10, 20]"
-                  flat
-                  bordered
-                  class="relatorio-table"
-                >
-                  <template v-slot:body-cell-top_prestadores="props">
-                    <q-td :props="props">
-                      <div class="top-prestadores">
-                        <div v-for="prestador in props.row.top_prestadores" :key="prestador.id" class="prestador-item">
-                          <q-icon name="star" size="12px" color="warning" />
-                          <span>{{ prestador.nome }}</span>
-                          <span class="text-caption text-grey">({{ prestador.media_avaliacao }} ★)</span>
-                        </div>
-                      </div>
-                    </q-td>
-                  </template>
-                </q-table>
-              </q-tab-panel>
-
-              <!-- Painel Financeiro -->
-              <q-tab-panel name="financeiro" class="q-pa-none">
-                <div class="panel-header">
-                  <div class="panel-title">
-                    <q-icon name="payments" class="q-mr-sm" />
-                    Relatório Financeiro
-                  </div>
-                  <q-btn
-                    color="primary"
-                    icon="download"
-                    label="Exportar"
-                    flat
-                    @click="exportarRelatorio('financeiro')"
-                    :loading="exportando"
-                  />
-                </div>
-                <q-table
-                  :rows="relatorioFinanceiro"
-                  :columns="financeiroColumns"
-                  row-key="periodo"
-                  :loading="adminStore.loading"
-                  :rows-per-page-options="[5, 10, 20]"
-                  flat
-                  bordered
-                  class="relatorio-table"
-                >
-                  <template v-slot:body-cell-entradas="props">
-                    <q-td :props="props">
-                      <span class="text-positive">{{ formatMoney(props.row.entradas) }}</span>
-                    </q-td>
-                  </template>
-                  <template v-slot:body-cell-saidas="props">
-                    <q-td :props="props">
-                      <span class="text-negative">{{ formatMoney(props.row.saidas) }}</span>
-                    </q-td>
-                  </template>
-                  <template v-slot:body-cell-saldo="props">
-                    <q-td :props="props">
-                      <span :class="props.row.saldo >= 0 ? 'text-positive' : 'text-negative'">
-                        {{ formatMoney(props.row.saldo) }}
-                      </span>
-                    </q-td>
-                  </template>
-                </q-table>
-              </q-tab-panel>
-            </q-tab-panels>
-          </q-card-section>
-        </q-card>
-      </div>
+      <!-- Shimmer animation -->
+      <div class="skeleton-shimmer"></div>
     </div>
+
+    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <template v-else>
+      <div class="row q-col-gutter-lg">
+        <!-- Seletor de Período -->
+        <div class="col-12 col-md-3">
+          <q-card class="periodo-card">
+            <q-card-section>
+              <div class="text-h6">
+                <q-icon name="calendar_today" class="q-mr-sm" />
+                Período
+              </div>
+              <q-select
+                v-model="periodo"
+                :options="periodos"
+                label="Selecione o período"
+                dense
+                outlined
+                class="q-mt-md"
+                @update:model-value="carregarDados"
+              />
+              <div v-if="periodo === 'custom'" class="q-mt-md">
+                <q-input
+                  v-model="dataInicio"
+                  label="Data Início"
+                  dense
+                  outlined
+                  type="date"
+                />
+                <q-input
+                  v-model="dataFim"
+                  label="Data Fim"
+                  dense
+                  outlined
+                  type="date"
+                  class="q-mt-sm"
+                />
+                <q-btn
+                  label="Aplicar"
+                  color="primary"
+                  dense
+                  class="q-mt-md full-width"
+                  @click="carregarDados"
+                />
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <!-- Resumo do Período -->
+        <div class="col-12 col-md-9">
+          <q-card class="resumo-card">
+            <q-card-section>
+              <div class="text-h6">
+                <q-icon name="summarize" class="q-mr-sm" />
+                Resumo do Período
+              </div>
+              <div class="row q-col-gutter-md q-mt-md">
+                <div class="col-12 col-sm-4">
+                  <div class="resumo-item">
+                    <div class="resumo-icon" style="background: rgba(46, 125, 50, 0.1)">
+                      <q-icon name="payments" size="28px" color="positive" />
+                    </div>
+                    <div class="resumo-content">
+                      <div class="resumo-label">Receita Total</div>
+                      <div class="resumo-value text-positive">{{ formatMoney(receitaPeriodo) }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-sm-4">
+                  <div class="resumo-item">
+                    <div class="resumo-icon" style="background: rgba(25, 118, 210, 0.1)">
+                      <q-icon name="assignment" size="28px" color="primary" />
+                    </div>
+                    <div class="resumo-content">
+                      <div class="resumo-label">Serviços</div>
+                      <div class="resumo-value">{{ formatNumber(servicosPeriodo) }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-sm-4">
+                  <div class="resumo-item">
+                    <div class="resumo-icon" style="background: rgba(156, 39, 176, 0.1)">
+                      <q-icon name="person_add" size="28px" color="secondary" />
+                    </div>
+                    <div class="resumo-content">
+                      <div class="resumo-label">Novos Utilizadores</div>
+                      <div class="resumo-value">{{ formatNumber(novosUtilizadoresPeriodo) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <!-- Relatórios por Tipo -->
+        <div class="col-12">
+          <q-card class="relatorios-card">
+            <q-card-section>
+              <q-tabs v-model="tabRelatorio" class="relatorio-tabs" dense>
+                <q-tab name="servicos" label="Serviços" icon="construction" />
+                <q-tab name="prestadores" label="Prestadores" icon="handyman" />
+                <q-tab name="financeiro" label="Financeiro" icon="payments" />
+              </q-tabs>
+
+              <q-separator />
+
+              <q-tab-panels v-model="tabRelatorio" animated>
+                <!-- Painel de Serviços -->
+                <q-tab-panel name="servicos" class="q-pa-none">
+                  <div class="panel-header">
+                    <div class="panel-title">
+                      <q-icon name="construction" class="q-mr-sm" />
+                      Relatório de Serviços
+                    </div>
+                    <q-btn
+                      color="primary"
+                      icon="download"
+                      label="Exportar"
+                      flat
+                      @click="exportarRelatorio('servicos')"
+                      :loading="exportando"
+                    />
+                  </div>
+                  <q-table
+                    :rows="relatorioServicos"
+                    :columns="servicosColumns"
+                    row-key="periodo"
+                    :loading="adminStore.loading"
+                    :rows-per-page-options="[5, 10, 20]"
+                    flat
+                    bordered
+                    class="relatorio-table"
+                  >
+                    <template v-slot:body-cell-receita_total="props">
+                      <q-td :props="props">
+                        <span class="text-primary">{{ formatMoney(props.row.receita_total) }}</span>
+                      </q-td>
+                    </template>
+                    <template v-slot:body-cell-servicos_por_status="props">
+                      <q-td :props="props">
+                        <div class="status-chips">
+                          <q-chip size="sm" color="info" dense>Pendente: {{ props.row.servicos_por_status?.pendente || 0 }}</q-chip>
+                          <q-chip size="sm" color="warning" dense>Aceito: {{ props.row.servicos_por_status?.aceito || 0 }}</q-chip>
+                          <q-chip size="sm" color="positive" dense>Concluído: {{ props.row.servicos_por_status?.concluido || 0 }}</q-chip>
+                        </div>
+                      </q-td>
+                    </template>
+                  </q-table>
+                </q-tab-panel>
+
+                <!-- Painel de Prestadores -->
+                <q-tab-panel name="prestadores" class="q-pa-none">
+                  <div class="panel-header">
+                    <div class="panel-title">
+                      <q-icon name="handyman" class="q-mr-sm" />
+                      Relatório de Prestadores
+                    </div>
+                    <q-btn
+                      color="primary"
+                      icon="download"
+                      label="Exportar"
+                      flat
+                      @click="exportarRelatorio('prestadores')"
+                      :loading="exportando"
+                    />
+                  </div>
+                  <q-table
+                    :rows="relatorioPrestadores"
+                    :columns="prestadoresColumns"
+                    row-key="total"
+                    :loading="adminStore.loading"
+                    :rows-per-page-options="[5, 10, 20]"
+                    flat
+                    bordered
+                    class="relatorio-table"
+                  >
+                    <template v-slot:body-cell-top_prestadores="props">
+                      <q-td :props="props">
+                        <div class="top-prestadores">
+                          <div v-for="prestador in props.row.top_prestadores" :key="prestador.id" class="prestador-item">
+                            <q-icon name="star" size="12px" color="warning" />
+                            <span>{{ prestador.nome }}</span>
+                            <span class="text-caption text-grey">({{ prestador.media_avaliacao }} ★)</span>
+                          </div>
+                        </div>
+                      </q-td>
+                    </template>
+                  </q-table>
+                </q-tab-panel>
+
+                <!-- Painel Financeiro -->
+                <q-tab-panel name="financeiro" class="q-pa-none">
+                  <div class="panel-header">
+                    <div class="panel-title">
+                      <q-icon name="payments" class="q-mr-sm" />
+                      Relatório Financeiro
+                    </div>
+                    <q-btn
+                      color="primary"
+                      icon="download"
+                      label="Exportar"
+                      flat
+                      @click="exportarRelatorio('financeiro')"
+                      :loading="exportando"
+                    />
+                  </div>
+                  <q-table
+                    :rows="relatorioFinanceiro"
+                    :columns="financeiroColumns"
+                    row-key="periodo"
+                    :loading="adminStore.loading"
+                    :rows-per-page-options="[5, 10, 20]"
+                    flat
+                    bordered
+                    class="relatorio-table"
+                  >
+                    <template v-slot:body-cell-entradas="props">
+                      <q-td :props="props">
+                        <span class="text-positive">{{ formatMoney(props.row.entradas) }}</span>
+                      </q-td>
+                    </template>
+                    <template v-slot:body-cell-saidas="props">
+                      <q-td :props="props">
+                        <span class="text-negative">{{ formatMoney(props.row.saidas) }}</span>
+                      </q-td>
+                    </template>
+                    <template v-slot:body-cell-saldo="props">
+                      <q-td :props="props">
+                        <span :class="props.row.saldo >= 0 ? 'text-positive' : 'text-negative'">
+                          {{ formatMoney(props.row.saldo) }}
+                        </span>
+                      </q-td>
+                    </template>
+                  </q-table>
+                </q-tab-panel>
+              </q-tab-panels>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
+    </template>
   </q-page>
 </template>
 
@@ -265,7 +327,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useQuasar, type QTableColumn } from 'quasar'
 import { useAdminStore } from 'src/stores/admin-store'
 
-// Definir tipos para os dados dos relatórios
 interface ServicosPorStatus {
   pendente: number
   aceito: number
@@ -446,7 +507,7 @@ const exportarRelatorio = (tipo: string): void => {
     } else if (tipo === 'prestadores') {
       data = relatorioPrestadores.value
       filename = 'relatorio_prestadores'
-      headers = ['Total', 'Verificados', 'Não Verificados', 'Média Avaliação']
+      headers = ['Total', 'Verificados', 'Não Verificados', 'Média Avaliação', 'Top Prestadores']
     } else {
       data = relatorioFinanceiro.value
       filename = `relatorio_financeiro_${periodo.value}`
@@ -473,18 +534,20 @@ const exportarRelatorio = (tipo: string): void => {
           String(servicosRow.total_servicos || 0),
           String(servicosRow.receita_total || 0),
           String(servicosRow.servicos_por_status?.pendente || 0),
-          String(servicosRow.servicos_por_status?.aceito || 0),
-          String(servicosRow.servicos_por_status?.em_andamento || 0),
-          String(servicosRow.servicos_por_status?.concluido || 0),
-          String(servicosRow.servicos_por_status?.cancelado || 0)
+          String(servicosRow.servicos_por_status?.aceito || '0'),
+          String(servicosRow.servicos_por_status?.em_andamento || '0'),
+          String(servicosRow.servicos_por_status?.concluido || '0'),
+          String(servicosRow.servicos_por_status?.cancelado || '0')
         ])
       } else if (tipo === 'prestadores') {
         const prestadoresRow = row as RelatorioPrestadores
+        const topPrestadores = prestadoresRow.top_prestadores?.map(p => p.nome).join('; ') || ''
         csvRows.push([
           String(prestadoresRow.total || 0),
           String(prestadoresRow.verificados || 0),
           String(prestadoresRow.nao_verificados || 0),
-          String(prestadoresRow.media_avaliacao_geral || 0)
+          String(prestadoresRow.media_avaliacao_geral || 0),
+          topPrestadores
         ])
       } else {
         const financeiroRow = row as RelatorioFinanceiro
@@ -499,7 +562,7 @@ const exportarRelatorio = (tipo: string): void => {
     })
 
     const csv = csvRows.map(row => row.join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.href = url
@@ -533,6 +596,14 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+$primary-color: #667eea;
+$gray-100: #f5f5f5;
+$gray-200: #eeeeee;
+$gray-300: #e0e0e0;
+$gray-400: #bdbdbd;
+$gray-500: #9e9e9e;
+$gray-600: #757575;
+
 .admin-relatorios {
   max-width: 1400px;
   margin: 0 auto;
@@ -565,6 +636,169 @@ onMounted(() => {
     }
   }
 }
+
+// ==========================================
+// SKELETON LOADING (Facebook/Instagram style)
+// ==========================================
+
+.skeleton-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.skeleton-title {
+  width: 150px;
+  height: 24px;
+  background: $gray-200;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.skeleton-select {
+  width: 100%;
+  height: 48px;
+  background: $gray-100;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.skeleton-input {
+  width: 100%;
+  height: 48px;
+  background: $gray-100;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.skeleton-button {
+  width: 100%;
+  height: 36px;
+  background: $gray-200;
+  border-radius: 8px;
+}
+
+.skeleton-resumo-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-icon {
+  width: 52px;
+  height: 52px;
+  background: $gray-200;
+  border-radius: 14px;
+}
+
+.skeleton-resumo-content {
+  flex: 1;
+}
+
+.skeleton-label {
+  width: 80px;
+  height: 12px;
+  background: $gray-200;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-value {
+  width: 100px;
+  height: 20px;
+  background: $gray-200;
+  border-radius: 4px;
+}
+
+.skeleton-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid $gray-200;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.skeleton-tab {
+  width: 100px;
+  height: 36px;
+  background: $gray-200;
+  border-radius: 8px;
+}
+
+.skeleton-panel-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.skeleton-table-header-row {
+  display: flex;
+  background: $gray-100;
+  padding: 12px 16px;
+
+  .skeleton-header-cell {
+    flex: 1;
+    height: 20px;
+    background: $gray-300;
+    border-radius: 4px;
+    margin: 0 4px;
+  }
+}
+
+.skeleton-table-row {
+  display: flex;
+  padding: 12px 16px;
+  border-bottom: 1px solid $gray-200;
+
+  .skeleton-cell {
+    flex: 1;
+    margin: 0 4px;
+
+    .skeleton-text {
+      width: 80%;
+      height: 14px;
+      background: $gray-200;
+      border-radius: 4px;
+    }
+  }
+}
+
+.skeleton-shimmer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// ==========================================
+// ESTILOS PRINCIPAIS
+// ==========================================
 
 .periodo-card,
 .resumo-card,

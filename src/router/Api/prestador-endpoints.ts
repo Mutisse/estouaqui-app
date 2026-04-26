@@ -30,7 +30,7 @@ export const PRESTADOR_ENDPOINTS = {
   // ==========================================
   // 4. NOTIFICAÇÕES (CORRIGIDO - alinhado com backend)
   // ==========================================
-  NOTIFICATIONS: '/notifications/notifications',           // ✅ Corrigido
+  NOTIFICATIONS: '/notifications',        // ✅ Corrigido
   NOTIFICATIONS_RECENT: '/notifications/notifications/recent',  // ✅ Adicionado
   UNREAD_COUNT: '/notifications/notifications/unread-count',    // ✅ Adicionado
   MARK_NOTIFICATION_READ: (id: string) => `/notifications/notifications/${id}/read`,  // ✅ Corrigido

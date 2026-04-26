@@ -26,7 +26,6 @@
           @click="carregarDados"
           :loading="adminStore.loading"
         />
-        <!-- Botão de exportar APENAS para Root -->
         <q-btn
           v-if="isRoot"
           label="Exportar Relatório"
@@ -38,282 +37,379 @@
       </div>
     </div>
 
-    <!-- Cards de Resumo (ambos veem) -->
-    <div class="row q-col-gutter-lg q-mb-lg">
-      <div class="col-12 col-sm-6 col-md-3">
-        <div class="finance-card saldo-card">
-          <div class="card-icon">
-            <q-icon name="account_balance_wallet" size="40px" />
-          </div>
-          <div class="card-content">
-            <div class="card-label">Saldo Atual</div>
-            <div class="card-value">{{ formatMoney(resumoFinanceiro.saldo_atual) }}</div>
-            <div class="card-trend trend-up">
-              <q-icon name="trending_up" size="14px" />
-              Disponível para saque
+    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
+    <div v-if="adminStore.loading" class="skeleton-container">
+      <!-- Cards skeleton -->
+      <div class="row q-col-gutter-lg q-mb-lg">
+        <div v-for="i in 4" :key="i" class="col-12 col-sm-6 col-md-3">
+          <div class="skeleton-card">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-content">
+              <div class="skeleton-label"></div>
+              <div class="skeleton-value"></div>
+              <div class="skeleton-trend"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="col-12 col-sm-6 col-md-3">
-        <div class="finance-card pendente-card">
-          <div class="card-icon">
-            <q-icon name="schedule" size="40px" />
-          </div>
-          <div class="card-content">
-            <div class="card-label">Pendente</div>
-            <div class="card-value">{{ formatMoney(resumoFinanceiro.pendente) }}</div>
-            <div class="card-trend trend-waiting">
-              <q-icon name="pending" size="14px" />
-              Aguardando processamento
+      <!-- Gráfico e Distribuição skeleton -->
+      <div class="row q-col-gutter-lg q-mb-lg">
+        <div class="col-12 col-md-8">
+          <div class="skeleton-chart-card">
+            <div class="skeleton-header">
+              <div class="skeleton-title"></div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-sm-6 col-md-3">
-        <div class="finance-card processado-card">
-          <div class="card-icon">
-            <q-icon name="check_circle" size="40px" />
-          </div>
-          <div class="card-content">
-            <div class="card-label">Processado (Mês)</div>
-            <div class="card-value">{{ formatMoney(resumoFinanceiro.processado_mes) }}</div>
-            <div class="card-trend">
-              <q-icon name="calendar_today" size="14px" />
-              {{ mesAtual }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-sm-6 col-md-3">
-        <div class="finance-card comissao-card">
-          <div class="card-icon">
-            <q-icon name="percent" size="40px" />
-          </div>
-          <div class="card-content">
-            <div class="card-label">Comissões</div>
-            <div class="card-value">{{ formatMoney(resumoFinanceiro.comissoes) }}</div>
-            <div class="card-trend">
-              <q-icon name="info" size="14px" />
-              Comissões do mês
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Gráfico de Resumo -->
-    <div class="row q-col-gutter-lg q-mb-lg">
-      <div class="col-12 col-md-8">
-        <q-card class="chart-card">
-          <q-card-section>
-            <div class="row justify-between items-center">
-              <div class="text-h6">
-                <q-icon name="show_chart" class="q-mr-sm" />
-                Evolução Mensal
+            <div class="skeleton-chart-bars">
+              <div v-for="i in 6" :key="i" class="skeleton-bar-item">
+                <div class="skeleton-bar"></div>
+                <div class="skeleton-bar-label"></div>
               </div>
             </div>
-          </q-card-section>
-          <q-card-section>
-            <div class="chart-container" v-if="dadosGrafico.length > 0">
-              <div class="chart-bars">
-                <div v-for="(item, index) in dadosGrafico" :key="index" class="chart-bar-item">
-                  <div class="bar-wrapper">
-                    <div
-                      class="bar"
-                      :style="{ height: `${item.altura}px`, backgroundColor: item.cor }"
-                    >
-                      <span class="bar-value">{{ formatMoney(item.valor) }}</span>
-                    </div>
-                  </div>
-                  <div class="bar-label">{{ item.mes }}</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="skeleton-distribuicao-card">
+            <div class="skeleton-header">
+              <div class="skeleton-title"></div>
+            </div>
+            <div class="skeleton-distribuicao-items">
+              <div v-for="i in 3" :key="i" class="skeleton-distribuicao-item">
+                <div class="skeleton-distribuicao-header">
+                  <div class="skeleton-distribuicao-label"></div>
+                  <div class="skeleton-distribuicao-value"></div>
+                </div>
+                <div class="skeleton-progress"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela skeleton -->
+      <div class="skeleton-table-card">
+        <div class="skeleton-table-header">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-filters">
+            <div class="skeleton-select"></div>
+            <div class="skeleton-select"></div>
+            <div class="skeleton-input"></div>
+          </div>
+        </div>
+        <div class="skeleton-table">
+          <div class="skeleton-table-header-row">
+            <div v-for="i in 6" :key="i" class="skeleton-header-cell"></div>
+          </div>
+          <div v-for="row in 5" :key="row" class="skeleton-table-row">
+            <div class="skeleton-cell">
+              <div class="skeleton-text"></div>
+            </div>
+            <div class="skeleton-cell">
+              <div class="skeleton-text"></div>
+            </div>
+            <div class="skeleton-cell">
+              <div class="skeleton-badge"></div>
+            </div>
+            <div class="skeleton-cell">
+              <div class="skeleton-text"></div>
+            </div>
+            <div class="skeleton-cell">
+              <div class="skeleton-chip"></div>
+            </div>
+            <div class="skeleton-cell">
+              <div class="skeleton-badge-small"></div>
+            </div>
+          </div>
+        </div>
+        <div class="skeleton-table-footer">
+          <div class="skeleton-info"></div>
+          <div class="skeleton-total"></div>
+        </div>
+      </div>
+
+      <!-- Shimmer animation -->
+      <div class="skeleton-shimmer"></div>
+    </div>
+
+    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <template v-else>
+      <!-- Cards de Resumo -->
+      <div class="row q-col-gutter-lg q-mb-lg">
+        <div class="col-12 col-sm-6 col-md-3">
+          <div class="finance-card saldo-card">
+            <div class="card-icon">
+              <q-icon name="account_balance_wallet" size="40px" />
+            </div>
+            <div class="card-content">
+              <div class="card-label">Saldo Atual</div>
+              <div class="card-value">{{ formatMoney(resumoFinanceiro.saldo_atual) }}</div>
+              <div class="card-trend trend-up">
+                <q-icon name="trending_up" size="14px" />
+                Disponível para saque
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <div class="finance-card pendente-card">
+            <div class="card-icon">
+              <q-icon name="schedule" size="40px" />
+            </div>
+            <div class="card-content">
+              <div class="card-label">Pendente</div>
+              <div class="card-value">{{ formatMoney(resumoFinanceiro.pendente) }}</div>
+              <div class="card-trend trend-waiting">
+                <q-icon name="pending" size="14px" />
+                Aguardando processamento
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <div class="finance-card processado-card">
+            <div class="card-icon">
+              <q-icon name="check_circle" size="40px" />
+            </div>
+            <div class="card-content">
+              <div class="card-label">Processado (Mês)</div>
+              <div class="card-value">{{ formatMoney(resumoFinanceiro.processado_mes) }}</div>
+              <div class="card-trend">
+                <q-icon name="calendar_today" size="14px" />
+                {{ mesAtual }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <div class="finance-card comissao-card">
+            <div class="card-icon">
+              <q-icon name="percent" size="40px" />
+            </div>
+            <div class="card-content">
+              <div class="card-label">Comissões</div>
+              <div class="card-value">{{ formatMoney(resumoFinanceiro.comissoes) }}</div>
+              <div class="card-trend">
+                <q-icon name="info" size="14px" />
+                Comissões do mês
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico de Resumo -->
+      <div class="row q-col-gutter-lg q-mb-lg">
+        <div class="col-12 col-md-8">
+          <q-card class="chart-card">
+            <q-card-section>
+              <div class="row justify-between items-center">
+                <div class="text-h6">
+                  <q-icon name="show_chart" class="q-mr-sm" />
+                  Evolução Mensal
                 </div>
               </div>
-            </div>
-            <div v-else class="text-center q-pa-xl">
-              <q-icon name="show_chart" size="48px" color="grey-4" />
-              <div class="text-subtitle1 q-mt-sm text-grey">Carregando dados do gráfico...</div>
-            </div>
-          </q-card-section>
-        </q-card>
+            </q-card-section>
+            <q-card-section>
+              <div class="chart-container" v-if="dadosGrafico.length > 0">
+                <div class="chart-bars">
+                  <div v-for="(item, index) in dadosGrafico" :key="index" class="chart-bar-item">
+                    <div class="bar-wrapper">
+                      <div
+                        class="bar"
+                        :style="{ height: `${item.altura}px`, backgroundColor: item.cor }"
+                      >
+                        <span class="bar-value">{{ formatMoney(item.valor) }}</span>
+                      </div>
+                    </div>
+                    <div class="bar-label">{{ item.mes }}</div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-center q-pa-xl">
+                <q-icon name="show_chart" size="48px" color="grey-4" />
+                <div class="text-subtitle1 q-mt-sm text-grey">Carregando dados do gráfico...</div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <q-card class="resumo-card">
+            <q-card-section>
+              <div class="text-h6">
+                <q-icon name="pie_chart" class="q-mr-sm" />
+                Distribuição
+              </div>
+            </q-card-section>
+            <q-card-section>
+              <div class="distribuicao-item">
+                <div class="distribuicao-header">
+                  <span class="distribuicao-label">
+                    <q-icon name="arrow_upward" color="positive" size="14px" />
+                    Entradas
+                  </span>
+                  <span class="distribuicao-value text-positive">{{ formatMoney(totalEntradas) }}</span>
+                </div>
+                <q-linear-progress :value="percentualEntradas" color="positive" class="q-mt-sm" />
+              </div>
+              <div class="distribuicao-item q-mt-md">
+                <div class="distribuicao-header">
+                  <span class="distribuicao-label">
+                    <q-icon name="arrow_downward" color="negative" size="14px" />
+                    Saídas
+                  </span>
+                  <span class="distribuicao-value text-negative">{{ formatMoney(totalSaidas) }}</span>
+                </div>
+                <q-linear-progress :value="percentualSaidas" color="negative" class="q-mt-sm" />
+              </div>
+              <div class="distribuicao-item q-mt-md">
+                <div class="distribuicao-header">
+                  <span class="distribuicao-label">
+                    <q-icon name="percent" color="secondary" size="14px" />
+                    Comissões
+                  </span>
+                  <span class="distribuicao-value text-secondary">{{ formatMoney(resumoFinanceiro.comissoes) }}</span>
+                </div>
+                <q-linear-progress :value="percentualComissoes" color="secondary" class="q-mt-sm" />
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
       </div>
 
-      <div class="col-12 col-md-4">
-        <q-card class="resumo-card">
-          <q-card-section>
+      <!-- Tabela de Transações -->
+      <q-card class="transacoes-card">
+        <q-card-section>
+          <div class="row justify-between items-center q-mb-md">
             <div class="text-h6">
-              <q-icon name="pie_chart" class="q-mr-sm" />
-              Distribuição
+              <q-icon name="receipt" class="q-mr-sm" />
+              Histórico de Transações
             </div>
-          </q-card-section>
-          <q-card-section>
-            <div class="distribuicao-item">
-              <div class="distribuicao-header">
-                <span class="distribuicao-label">
-                  <q-icon name="arrow_upward" color="positive" size="14px" />
-                  Entradas
+            <div class="row q-gutter-sm">
+              <q-select
+                v-model="filtroTipo"
+                :options="tipoOptions"
+                label="Tipo"
+                dense
+                outlined
+                clearable
+                class="filter-select"
+                @update:model-value="carregarTransacoes"
+              />
+              <q-select
+                v-model="filtroStatus"
+                :options="statusOptions"
+                label="Status"
+                dense
+                outlined
+                clearable
+                class="filter-select"
+                @update:model-value="carregarTransacoes"
+              />
+              <q-input
+                v-model="busca"
+                placeholder="Buscar..."
+                dense
+                outlined
+                clearable
+                class="search-input"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
+            </div>
+          </div>
+
+          <q-table
+            :rows="transacoesFiltradas"
+            :columns="colunas"
+            row-key="id"
+            :loading="adminStore.loading"
+            :rows-per-page-options="[10, 20, 50]"
+            class="transacoes-table"
+            flat
+            bordered
+          >
+            <template v-slot:body-cell-created_at="props">
+              <q-td :props="props">
+                <div class="data-cell">
+                  <q-icon name="schedule" size="14px" class="q-mr-xs text-grey" />
+                  {{ formatarData(props.row.created_at) }}
+                </div>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-tipo="props">
+              <q-td :props="props">
+                <div class="tipo-badge" :class="props.row.tipo">
+                  <q-icon :name="props.row.tipo === 'entrada' ? 'arrow_upward' : 'arrow_downward'" size="14px" />
+                  {{ props.row.tipo === 'entrada' ? 'Entrada' : 'Saída' }}
+                </div>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-valor="props">
+              <q-td :props="props">
+                <span :class="props.row.tipo === 'entrada' ? 'text-positive' : 'text-negative'" class="valor-cell">
+                  {{ props.row.tipo === 'entrada' ? '+' : '-' }} {{ formatMoney(props.row.valor) }}
                 </span>
-                <span class="distribuicao-value text-positive">{{ formatMoney(totalEntradas) }}</span>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-status="props">
+              <q-td :props="props">
+                <q-badge :color="getStatusCor(props.row.status)" class="status-badge" outline>
+                  <q-icon :name="getStatusIcon(props.row.status)" size="12px" class="q-mr-xs" />
+                  {{ getStatusTexto(props.row.status) }}
+                </q-badge>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-descricao="props">
+              <q-td :props="props">
+                <div class="descricao-cell">
+                  <q-icon name="description" size="14px" class="q-mr-xs text-grey" />
+                  {{ props.row.descricao }}
+                </div>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-metodo="props">
+              <q-td :props="props">
+                <q-chip size="sm" dense :color="getMetodoCor(props.row.metodo)" text-color="white" class="metodo-chip">
+                  <q-icon :name="getMetodoIcon(props.row.metodo)" size="12px" class="q-mr-xs" />
+                  {{ getMetodoLabel(props.row.metodo) }}
+                </q-chip>
+              </q-td>
+            </template>
+
+            <template v-slot:no-data>
+              <div class="text-center q-pa-xl">
+                <q-icon name="receipt" size="64px" color="grey-4" />
+                <div class="text-subtitle1 q-mt-md text-grey">Nenhuma transação encontrada</div>
+                <div class="text-caption text-grey">As transações aparecerão aqui quando houver movimentações</div>
               </div>
-              <q-linear-progress :value="percentualEntradas" color="positive" class="q-mt-sm" />
+            </template>
+          </q-table>
+
+          <div class="row justify-between items-center q-mt-md q-pt-md" v-if="adminStore.transacoes.length > 0">
+            <div class="text-caption text-grey">
+              <q-icon name="info" size="14px" />
+              Mostrando {{ transacoesFiltradas.length }} de {{ adminStore.transacoes.length }} transações
             </div>
-            <div class="distribuicao-item q-mt-md">
-              <div class="distribuicao-header">
-                <span class="distribuicao-label">
-                  <q-icon name="arrow_downward" color="negative" size="14px" />
-                  Saídas
-                </span>
-                <span class="distribuicao-value text-negative">{{ formatMoney(totalSaidas) }}</span>
-              </div>
-              <q-linear-progress :value="percentualSaidas" color="negative" class="q-mt-sm" />
+            <div class="text-subtitle2 text-primary">
+              Total: {{ formatMoney(calcularTotalTransacoes) }}
             </div>
-            <div class="distribuicao-item q-mt-md">
-              <div class="distribuicao-header">
-                <span class="distribuicao-label">
-                  <q-icon name="percent" color="secondary" size="14px" />
-                  Comissões
-                </span>
-                <span class="distribuicao-value text-secondary">{{ formatMoney(resumoFinanceiro.comissoes) }}</span>
-              </div>
-              <q-linear-progress :value="percentualComissoes" color="secondary" class="q-mt-sm" />
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-    </div>
-
-    <!-- Tabela de Transações -->
-    <q-card class="transacoes-card">
-      <q-card-section>
-        <div class="row justify-between items-center q-mb-md">
-          <div class="text-h6">
-            <q-icon name="receipt" class="q-mr-sm" />
-            Histórico de Transações
           </div>
-          <div class="row q-gutter-sm">
-            <q-select
-              v-model="filtroTipo"
-              :options="tipoOptions"
-              label="Tipo"
-              dense
-              outlined
-              clearable
-              class="filter-select"
-              @update:model-value="carregarTransacoes"
-            />
-            <q-select
-              v-model="filtroStatus"
-              :options="statusOptions"
-              label="Status"
-              dense
-              outlined
-              clearable
-              class="filter-select"
-              @update:model-value="carregarTransacoes"
-            />
-            <q-input
-              v-model="busca"
-              placeholder="Buscar..."
-              dense
-              outlined
-              clearable
-              class="search-input"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-          </div>
-        </div>
+        </q-card-section>
+      </q-card>
+    </template>
 
-        <q-table
-          :rows="transacoesFiltradas"
-          :columns="colunas"
-          row-key="id"
-          :loading="adminStore.loading"
-          :rows-per-page-options="[10, 20, 50]"
-          class="transacoes-table"
-          flat
-          bordered
-        >
-          <template v-slot:body-cell-created_at="props">
-            <q-td :props="props">
-              <div class="data-cell">
-                <q-icon name="schedule" size="14px" class="q-mr-xs text-grey" />
-                {{ formatarData(props.row.created_at) }}
-              </div>
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-tipo="props">
-            <q-td :props="props">
-              <div class="tipo-badge" :class="props.row.tipo">
-                <q-icon :name="props.row.tipo === 'entrada' ? 'arrow_upward' : 'arrow_downward'" size="14px" />
-                {{ props.row.tipo === 'entrada' ? 'Entrada' : 'Saída' }}
-              </div>
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-valor="props">
-            <q-td :props="props">
-              <span :class="props.row.tipo === 'entrada' ? 'text-positive' : 'text-negative'" class="valor-cell">
-                {{ props.row.tipo === 'entrada' ? '+' : '-' }} {{ formatMoney(props.row.valor) }}
-              </span>
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-status="props">
-            <q-td :props="props">
-              <q-badge :color="getStatusCor(props.row.status)" class="status-badge" outline>
-                <q-icon :name="getStatusIcon(props.row.status)" size="12px" class="q-mr-xs" />
-                {{ getStatusTexto(props.row.status) }}
-              </q-badge>
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-descricao="props">
-            <q-td :props="props">
-              <div class="descricao-cell">
-                <q-icon name="description" size="14px" class="q-mr-xs text-grey" />
-                {{ props.row.descricao }}
-              </div>
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-metodo="props">
-            <q-td :props="props">
-              <q-chip size="sm" dense :color="getMetodoCor(props.row.metodo)" text-color="white" class="metodo-chip">
-                <q-icon :name="getMetodoIcon(props.row.metodo)" size="12px" class="q-mr-xs" />
-                {{ getMetodoLabel(props.row.metodo) }}
-              </q-chip>
-            </q-td>
-          </template>
-
-          <template v-slot:no-data>
-            <div class="text-center q-pa-xl">
-              <q-icon name="receipt" size="64px" color="grey-4" />
-              <div class="text-subtitle1 q-mt-md text-grey">Nenhuma transação encontrada</div>
-              <div class="text-caption text-grey">As transações aparecerão aqui quando houver movimentações</div>
-            </div>
-          </template>
-        </q-table>
-
-        <div class="row justify-between items-center q-mt-md q-pt-md" v-if="adminStore.transacoes.length > 0">
-          <div class="text-caption text-grey">
-            <q-icon name="info" size="14px" />
-            Mostrando {{ transacoesFiltradas.length }} de {{ adminStore.transacoes.length }} transações
-          </div>
-          <div class="text-subtitle2 text-primary">
-            Total: {{ formatMoney(calcularTotalTransacoes) }}
-          </div>
-        </div>
-      </q-card-section>
-    </q-card>
-
-    <!-- Modal de Exportação (APENAS Root vê) -->
+    <!-- Modal de Exportação -->
     <q-dialog v-if="isRoot" v-model="mostrarModalExportacao">
       <q-card style="min-width: 400px">
         <q-card-section class="bg-primary text-white">
@@ -371,7 +467,7 @@ const $q = useQuasar()
 const adminStore = useAdminStore()
 const authStore = useAuthStore()
 
-// ✅ DETECTAR SE É ROOT (super admin)
+// Detectar se é ROOT
 const isRoot = computed(() => {
   return authStore.user?.email === 'root@estouaqui.com'
 })
@@ -382,7 +478,7 @@ const filtroStatus = ref<string | null>(null)
 const busca = ref('')
 const mostrarModalExportacao = ref(false)
 
-// Configuração de exportação (apenas Root)
+// Configuração de exportação
 const exportConfig = ref({
   formato: 'csv',
   periodo: 'mes',
@@ -439,7 +535,7 @@ const percentualEntradas = computed(() => totalGeral.value > 0 ? totalEntradas.v
 const percentualSaidas = computed(() => totalGeral.value > 0 ? totalSaidas.value / totalGeral.value : 0)
 const percentualComissoes = computed(() => totalGeral.value > 0 ? resumoFinanceiro.value.comissoes / totalGeral.value : 0)
 
-// Dados do gráfico a partir das transações
+// Dados do gráfico
 const dadosGrafico = computed(() => {
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
   const entradasPorMes = new Array(12).fill(0)
@@ -456,7 +552,6 @@ const dadosGrafico = computed(() => {
     }
   })
 
-  // Pegar últimos 6 meses
   const mesAtualIndex = new Date().getMonth()
   const ultimosMeses = []
   for (let i = 5; i >= 0; i--) {
@@ -464,7 +559,7 @@ const dadosGrafico = computed(() => {
     if (mesIndex < 0) mesIndex += 12
     const valor = entradasPorMes[mesIndex] - saidasPorMes[mesIndex]
     const maxValor = Math.max(...entradasPorMes, ...saidasPorMes, 1)
-    const altura = (valor / maxValor) * 140 + 20
+    const altura = (Math.abs(valor) / maxValor) * 140 + 20
     ultimosMeses.push({
       mes: meses[mesIndex],
       valor: valor,
@@ -689,6 +784,281 @@ onMounted(() => {
     gap: 12px;
   }
 }
+
+// ==========================================
+// SKELETON LOADING (Facebook/Instagram style)
+// ==========================================
+
+.skeleton-container {
+  position: relative;
+  overflow: hidden;
+}
+
+// Skeleton Cards
+.skeleton-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.skeleton-icon {
+  width: 64px;
+  height: 64px;
+  background: #e0e0e0;
+  border-radius: 16px;
+}
+
+.skeleton-content {
+  flex: 1;
+}
+
+.skeleton-label {
+  width: 80px;
+  height: 12px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-value {
+  width: 100px;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-trend {
+  width: 120px;
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+// Skeleton Gráfico
+.skeleton-chart-card,
+.skeleton-distribuicao-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.skeleton-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.skeleton-title {
+  width: 150px;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-chart-bars {
+  display: flex;
+  justify-content: space-around;
+  padding: 40px 20px;
+}
+
+.skeleton-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.skeleton-bar {
+  width: 40px;
+  height: 80px;
+  background: #e0e0e0;
+  border-radius: 8px 8px 0 0;
+}
+
+.skeleton-bar-label {
+  width: 30px;
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+// Skeleton Distribuição
+.skeleton-distribuicao-items {
+  padding: 20px;
+}
+
+.skeleton-distribuicao-item {
+  margin-bottom: 20px;
+}
+
+.skeleton-distribuicao-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.skeleton-distribuicao-label {
+  width: 60px;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-distribuicao-value {
+  width: 80px;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-progress {
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+}
+
+// Skeleton Tabela
+.skeleton-table-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.skeleton-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eeeeee;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.skeleton-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.skeleton-select {
+  width: 140px;
+  height: 40px;
+  background: #e0e0e0;
+  border-radius: 8px;
+}
+
+.skeleton-input {
+  width: 200px;
+  height: 40px;
+  background: #e0e0e0;
+  border-radius: 8px;
+}
+
+.skeleton-table {
+  padding: 0 20px;
+}
+
+.skeleton-table-header-row {
+  display: flex;
+  background: #f8f9fa;
+  padding: 12px 0;
+  border-bottom: 2px solid #eeeeee;
+}
+
+.skeleton-header-cell {
+  flex: 1;
+  height: 16px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin: 0 8px;
+}
+
+.skeleton-table-row {
+  display: flex;
+  padding: 16px 0;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.skeleton-cell {
+  flex: 1;
+  margin: 0 8px;
+}
+
+.skeleton-text {
+  width: 80%;
+  height: 12px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-badge {
+  width: 80px;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 20px;
+  margin: 0 auto;
+}
+
+.skeleton-badge-small {
+  width: 60px;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 20px;
+  margin: 0 auto;
+}
+
+.skeleton-chip {
+  width: 80px;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 16px;
+  margin: 0 auto;
+}
+
+.skeleton-table-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-top: 1px solid #eeeeee;
+}
+
+.skeleton-info {
+  width: 200px;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-total {
+  width: 120px;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+// Shimmer Animation
+.skeleton-shimmer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// ==========================================
+// ESTILOS PRINCIPAIS
+// ==========================================
 
 // Cards Financeiros
 .finance-card {
@@ -964,6 +1334,16 @@ onMounted(() => {
     .card-value {
       font-size: 1.2rem;
     }
+  }
+
+  .skeleton-filters {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .skeleton-select,
+  .skeleton-input {
+    width: 100%;
   }
 }
 </style>

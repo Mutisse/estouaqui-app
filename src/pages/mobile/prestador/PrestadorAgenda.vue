@@ -1,19 +1,58 @@
 <template>
   <q-page class="prestador-agenda bg-grey-1">
-    <!-- Cabeçalho -->
-    <div class="page-header q-pa-md">
-      <q-btn flat round icon="arrow_back" @click="router.back()" />
-      <div class="text-h5 text-bold">Minha Agenda</div>
-      <q-btn flat round icon="add" @click="adicionarDisponibilidade" />
+    <!-- Skeleton Loading (enquanto carrega) -->
+    <div v-if="carregamentoInicial" class="skeleton-loading">
+      <div class="skeleton-header">
+        <div class="skeleton-back-btn"></div>
+        <div class="skeleton-title"></div>
+        <div class="skeleton-add-btn"></div>
+      </div>
+      <div class="skeleton-week-selector">
+        <div class="skeleton-nav-btn"></div>
+        <div class="skeleton-week-text"></div>
+        <div class="skeleton-nav-btn"></div>
+      </div>
+      <div class="skeleton-days-grid">
+        <div v-for="i in 7" :key="i" class="skeleton-day-card"></div>
+      </div>
+      <div class="skeleton-section-header">
+        <div class="skeleton-line w-40"></div>
+        <div class="skeleton-btn-small"></div>
+      </div>
+      <div class="skeleton-horarios-grid">
+        <div v-for="i in 6" :key="i" class="skeleton-horario-card"></div>
+      </div>
+      <div class="skeleton-section-header">
+        <div class="skeleton-line w-40"></div>
+        <div class="skeleton-btn-small"></div>
+      </div>
+      <div class="skeleton-intervalos-list">
+        <div v-for="i in 2" :key="i" class="skeleton-intervalo-item">
+          <div class="skeleton-intervalo-info">
+            <div class="skeleton-line w-50"></div>
+            <div class="skeleton-line w-30"></div>
+          </div>
+          <div class="skeleton-intervalo-actions">
+            <div class="skeleton-icon-btn"></div>
+            <div class="skeleton-icon-btn"></div>
+          </div>
+        </div>
+      </div>
+      <div class="skeleton-save-btn"></div>
+      <div class="skeleton-spinner">
+        <q-spinner color="primary" size="40px" />
+      </div>
     </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="loading-state">
-      <q-spinner color="primary" size="48px" />
-      <div class="text-grey-6 q-mt-md">Carregando agenda...</div>
-    </div>
-
+    <!-- Conteúdo original -->
     <template v-else>
+      <!-- Cabeçalho -->
+      <div class="page-header q-pa-md">
+        <q-btn flat round icon="arrow_back" @click="router.back()" />
+        <div class="text-h5 text-bold">Minha Agenda</div>
+        <q-btn flat round icon="add" @click="adicionarDisponibilidade" />
+      </div>
+
       <!-- Seletor de semana -->
       <div class="week-selector q-px-md q-mb-md">
         <div class="row items-center justify-between">
@@ -273,6 +312,7 @@ const $q = useQuasar();
 const prestadorStore = usePrestadorStore();
 
 // Estados
+const carregamentoInicial = ref(true);
 const loading = ref(true);
 const salvando = ref(false);
 const carregandoHorarios = ref(false);
@@ -322,7 +362,6 @@ const semanaAtual = computed(() => {
   return `${inicio.numero} ${inicio.mes} - ${fim.numero} ${fim.mes} ${fim.data.getFullYear()}`;
 });
 
-// Função auxiliar para obter texto dos dias (memorizada)
 const diasTextoCache = new Map<string, string>();
 const getDiasTexto = (dias: string[]): string => {
   const key = dias.sort().join(',');
@@ -340,7 +379,6 @@ const getDiasTexto = (dias: string[]): string => {
   return result;
 };
 
-// Funções auxiliares
 const formatarDataParaAPI = (date: Date): string => {
   if (!date) return '';
   return date.toISOString().split('T')[0] || '';
@@ -370,14 +408,11 @@ const gerarDiasSemana = async () => {
 
   const dias: DiaSemana[] = [];
 
-  // Buscar meses e dias do store em paralelo
   const [mesesMap, diasInfo] = await Promise.all([
     prestadorStore.fetchMeses(),
     prestadorStore.fetchDiasSemana(),
   ]);
   const meses = mesesMap.map((m) => m.nome_curto);
-
-  // Ordenar dias por ordem
   const diasOrdenados = [...diasInfo].sort((a, b) => a.ordem - b.ordem);
 
   for (let i = 0; i < 7; i++) {
@@ -428,7 +463,6 @@ const carregarHorariosDoDia = (data: Date) => {
   }
 };
 
-// Ações da semana
 const semanaAnterior = () => {
   semanaOffset.value--;
   void carregarAgenda();
@@ -446,7 +480,6 @@ const selecionarDia = (dia: DiaSemana) => {
   carregarHorariosDoDia(dia.data);
 };
 
-// Ações de horários
 const adicionarHorario = () => {
   editandoHorario.value = false;
   horarioEditandoId.value = null;
@@ -524,7 +557,6 @@ const toggleHorario = (horario: HorarioLocal) => {
   editarHorario(horario);
 };
 
-// Ações de intervalos
 const adicionarDisponibilidade = () => {
   editandoIntervalo.value = false;
   intervaloEditandoId.value = null;
@@ -622,7 +654,6 @@ const salvarAlteracoes = async () => {
   }
 };
 
-// Polling para atualizar agenda em segundo plano (otimizado)
 const iniciarPolling = () => {
   if (pollingInterval) clearInterval(pollingInterval);
 
@@ -630,7 +661,7 @@ const iniciarPolling = () => {
     if (document.hasFocus()) {
       void prestadorStore.fetchAgenda({ semana: semanaOffset.value });
     }
-  }, 60000); // 1 minuto em vez de 30s
+  }, 60000);
 };
 
 const pararPolling = () => {
@@ -640,7 +671,6 @@ const pararPolling = () => {
   }
 };
 
-// Carregar dados auxiliares (uma única vez)
 let dadosAuxiliaresCarregados = false;
 const carregarDadosAuxiliares = async () => {
   if (dadosAuxiliaresCarregados) return;
@@ -655,9 +685,16 @@ const carregarDadosAuxiliares = async () => {
 
 // Inicialização
 onMounted(async () => {
-  await carregarDadosAuxiliares();
-  await carregarAgenda();
-  iniciarPolling();
+  carregamentoInicial.value = true;
+  try {
+    await carregarDadosAuxiliares();
+    await carregarAgenda();
+    iniciarPolling();
+  } finally {
+    setTimeout(() => {
+      carregamentoInicial.value = false;
+    }, 500);
+  }
 });
 
 onUnmounted(() => {
@@ -677,6 +714,199 @@ $gray-600: #757575;
 $gray-700: #616161;
 $gray-800: #424242;
 $gray-900: #212121;
+
+/* ========================================== */
+/* SKELETON LOADING STYLES */
+/* ========================================== */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-loading {
+  background: $gray-100;
+  min-height: 100vh;
+}
+
+.skeleton-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 16px;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-title {
+  width: 120px;
+  height: 24px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-add-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-week-selector {
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.skeleton-nav-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-week-text {
+  width: 150px;
+  height: 20px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-days-grid {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.skeleton-day-card {
+  flex: 1;
+  height: 70px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  margin-bottom: 12px;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-btn-small {
+  width: 80px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-horarios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  padding: 0 16px;
+  margin-bottom: 24px;
+}
+
+.skeleton-horario-card {
+  height: 70px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-intervalos-list {
+  padding: 0 16px;
+}
+
+.skeleton-intervalo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-intervalo-info {
+  flex: 1;
+}
+
+.skeleton-intervalo-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.skeleton-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-save-btn {
+  margin: 16px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+}
+
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+
+/* ========================================== */
+/* ESTILOS ORIGINAIS (mantidos sem alterações) */
+/* ========================================== */
 
 .prestador-agenda {
   min-height: 100vh;

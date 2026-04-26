@@ -37,7 +37,9 @@
     <div v-else class="status-bar q-px-md q-py-xs bg-warning">
       <div class="flex items-center">
         <q-icon name="warning" color="warning" size="16px" class="q-mr-xs" />
-        <span class="text-caption">Localização não disponível. Clique no ícone de localização.</span>
+        <span class="text-caption"
+          >Localização não disponível. Clique no ícone de localização.</span
+        >
       </div>
     </div>
 
@@ -64,14 +66,15 @@
         </div>
       </div>
       <div class="text-caption text-grey-6 q-mt-sm">
-        Mostrando <strong>{{ prestadoresFiltrados.length }}</strong> prestadores num raio de <strong>{{ filtroDistancia }} km</strong>
+        Mostrando <strong>{{ prestadoresFiltrados.length }}</strong> prestadores num raio de
+        <strong>{{ filtroDistancia }} km</strong>
       </div>
     </div>
 
-    <!-- Loading -->
+    <!-- Loading do Mapa -->
     <div v-if="carregando" class="loading-container">
-      <q-spinner color="primary" size="40px" />
-      <p class="q-mt-sm">A carregar mapa...</p>
+      <q-spinner color="primary" size="50px" />
+      <p class="q-mt-sm text-grey-7">A carregar mapa...</p>
     </div>
 
     <!-- Mapa -->
@@ -79,22 +82,33 @@
       <div id="map"></div>
     </div>
 
-    <!-- Lista de prestadores -->
+    <!-- Lista de prestadores com SKELETON LOADING -->
     <div class="prestadores-list q-pa-md">
-      <div class="text-subtitle1 q-mb-md">Prestadores encontrados ({{ prestadoresFiltrados.length }})</div>
+      <div class="text-subtitle1 q-mb-md">
+        Prestadores encontrados ({{ prestadoresFiltrados.length }})
+      </div>
 
-      <div v-if="prestadoresFiltrados.length === 0 && !carregandoPrestadores" class="text-center q-pa-xl">
+      <!-- SKELETON LOADING (Facebook style) -->
+      <div v-if="carregandoPrestadores" class="skeleton-container">
+        <div v-for="i in 5" :key="i" class="skeleton-item">
+          <q-skeleton type="circle" size="50px" />
+          <div class="skeleton-content">
+            <q-skeleton type="text" width="120px" height="18px" />
+            <q-skeleton type="text" width="200px" height="14px" class="q-mt-sm" />
+            <q-skeleton type="text" width="150px" height="12px" class="q-mt-xs" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista vazia -->
+      <div v-else-if="prestadoresFiltrados.length === 0" class="text-center q-pa-xl">
         <q-icon name="search_off" size="48px" color="grey" />
         <div class="text-subtitle1 q-mt-sm">Nenhum prestador encontrado</div>
         <div class="text-caption q-mt-xs">Tente aumentar o raio de busca</div>
       </div>
 
-      <div v-if="carregandoPrestadores" class="text-center q-pa-xl">
-        <q-spinner color="primary" size="30px" />
-        <div class="text-caption q-mt-sm">A buscar prestadores...</div>
-      </div>
-
-      <q-list separator v-else-if="prestadoresFiltrados.length > 0">
+      <!-- Lista de prestadores -->
+      <q-list separator v-else>
         <q-item
           v-for="prestador in prestadoresFiltrados"
           :key="prestador.id"
@@ -104,12 +118,17 @@
         >
           <q-item-section avatar>
             <q-avatar>
-              <img :src="prestador.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(prestador.nome)}&background=667eea&color=fff`" />
+              <img
+                :src="
+                  prestador.foto ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(prestador.nome)}&background=667eea&color=fff`
+                "
+              />
             </q-avatar>
           </q-item-section>
 
           <q-item-section>
-            <q-item-label>{{ prestador.nome }}</q-item-label>
+            <q-item-label class="text-weight-medium">{{ prestador.nome }}</q-item-label>
             <q-item-label caption>
               <div class="flex items-center gap-2">
                 <div class="flex items-center">
@@ -125,8 +144,10 @@
                 </q-badge>
               </div>
             </q-item-label>
-            <q-item-label caption class="text-grey-6">
-              {{ prestador.categorias?.map((c) => c.nome).join(', ') || 'Sem categorias' }}
+            <!-- ✅ MOSTRAR PROFISSÃO em vez de categorias vazias -->
+            <q-item-label caption class="text-grey-7">
+              <q-icon name="work" size="12px" class="q-mr-xs" />
+              {{ prestador.profissao || 'Profissional' }}
             </q-item-label>
           </q-item-section>
 
@@ -150,7 +171,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import L from 'leaflet';
@@ -161,7 +182,7 @@ import type { PrestadorData } from 'src/stores/cliente-store';
 
 defineOptions({ name: 'MapaPage' });
 
-// Configurar ícones do Leaflet - CORRIGIDO (sem any)
+// Configurar ícones do Leaflet
 const iconDefault = L.icon({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -169,7 +190,7 @@ const iconDefault = L.icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 });
 
 L.Marker.prototype.options.icon = iconDefault;
@@ -181,7 +202,7 @@ const locationStore = useLocationStore();
 
 // Estados
 const carregando = ref(true);
-const carregandoPrestadores = ref(false);
+const carregandoPrestadores = ref(true);
 const carregandoRota = ref(false);
 const prestadorRotaId = ref<number | null>(null);
 const filtroDistancia = ref(10);
@@ -194,12 +215,14 @@ const opcoesRaio = [
   { label: '15km', value: 15 },
   { label: '20km', value: 20 },
   { label: '30km', value: 30 },
-  { label: '50km', value: 50 }
+  { label: '50km', value: 50 },
 ];
 
-// Computed - Apenas prestadores DENTRO do raio selecionado
+// Computed
 const prestadoresFiltrados = computed(() => {
-  return clienteStore.prestadoresProximos.filter(p => (p.distancia || 0) <= filtroDistancia.value);
+  return clienteStore.prestadoresProximos.filter(
+    (p) => (p.distancia || 0) <= filtroDistancia.value,
+  );
 });
 
 // Variáveis do mapa
@@ -210,7 +233,7 @@ let markersLayer: L.LayerGroup | null = null;
 
 // Funções
 const formatarDistancia = (distancia?: number): string => {
-  if (!distancia) return '? km';
+  if (!distancia && distancia !== 0) return '? km';
   if (distancia < 1) return `${Math.round(distancia * 1000)}m`;
   return `${distancia.toFixed(1)}km`;
 };
@@ -220,20 +243,20 @@ const verPerfil = (prestadorId: number): void => {
 };
 
 const tracejarRota = (prestador: PrestadorData): void => {
-  if (!localizacaoAtual.value || !prestador.lat || !prestador.lng) return;
+  if (!localizacaoAtual.value || !prestador.latitude || !prestador.longitude) return;
 
   carregandoRota.value = true;
   prestadorRotaId.value = prestador.id;
 
   try {
-    const url = `https://www.google.com/maps/dir/${localizacaoAtual.value.lat},${localizacaoAtual.value.lng}/${prestador.lat},${prestador.lng}`;
+    const url = `https://www.google.com/maps/dir/${localizacaoAtual.value.lat},${localizacaoAtual.value.lng}/${prestador.latitude},${prestador.longitude}`;
     window.open(url, '_blank');
 
     $q.notify({
       message: 'Abrindo rota no Google Maps',
       color: 'positive',
       icon: 'directions',
-      timeout: 2000
+      timeout: 2000,
     });
   } catch {
     $q.notify({ type: 'negative', message: 'Erro ao abrir rota', position: 'top' });
@@ -246,53 +269,18 @@ const tracejarRota = (prestador: PrestadorData): void => {
 const centralizarNaLocalizacao = (): void => {
   if (!localizacaoAtual.value || !map) return;
   map.setView([localizacaoAtual.value.lat, localizacaoAtual.value.lng], 15);
-  if (userMarker) userMarker?.openPopup();
+  if (userMarker) userMarker.openPopup();
 };
 
-// FUNÇÃO PRINCIPAL: Alterar raio e buscar prestadores
-const alterarRaio = async (novoRaio: number): Promise<void> => {
-  if (novoRaio === filtroDistancia.value) return;
-  if (!localizacaoAtual.value) {
-    $q.notify({ type: 'warning', message: 'Localização não disponível', position: 'top' });
-    return;
-  }
-
-  filtroDistancia.value = novoRaio;
-  carregandoPrestadores.value = true;
-
-  try {
-    await clienteStore.fetchPrestadoresProximos(
-      localizacaoAtual.value.lat,
-      localizacaoAtual.value.lng,
-      novoRaio,
-      true
-    );
-
-    atualizarMarcadores();
-
-    $q.notify({
-      type: 'positive',
-      message: `${prestadoresFiltrados.value.length} prestadores encontrados num raio de ${novoRaio} km`,
-      position: 'top',
-      timeout: 2000,
-      icon: 'radar'
-    });
-  } catch {
-    $q.notify({ type: 'negative', message: 'Erro ao buscar prestadores', position: 'top' });
-  } finally {
-    carregandoPrestadores.value = false;
-  }
-};
-
-// Criar marcador do prestador
 const criarMarcadorPrestador = (prestador: PrestadorData): L.Marker => {
-  const marker = L.marker([prestador.lat!, prestador.lng!]);
+  const marker = L.marker([prestador.latitude!, prestador.longitude!]);
 
   marker.bindPopup(`
     <div style="min-width: 180px; padding: 5px;">
       <strong>${prestador.nome}</strong><br/>
       ⭐ ${(prestador.media_avaliacao || 0).toFixed(1)}<br/>
       📍 ${formatarDistancia(prestador.distancia)}<br/>
+      💼 ${prestador.profissao || 'Profissional'}<br/>
       <button onclick="window.location.href='#/mobile/perfil-prestador/${prestador.id}'"
               style="background: #667eea; color: white; border: none; padding: 5px 10px; border-radius: 5px; margin-top: 8px; width: 100%; cursor: pointer;">
         Ver perfil
@@ -303,20 +291,12 @@ const criarMarcadorPrestador = (prestador: PrestadorData): L.Marker => {
   return marker;
 };
 
-// Criar marcador do usuário
 const criarMarcadorUsuario = (): L.Marker => {
   const marker = L.marker([0, 0]);
-
-  marker.bindPopup(`
-    <div style="text-align: center;">
-      <strong>📍 Você está aqui</strong>
-    </div>
-  `);
-
+  marker.bindPopup(`<div style="text-align: center;"><strong>📍 Você está aqui</strong></div>`);
   return marker;
 };
 
-// Atualizar marcadores dos prestadores
 const atualizarMarcadores = (): void => {
   if (!map) return;
 
@@ -324,14 +304,13 @@ const atualizarMarcadores = (): void => {
   else markersLayer = L.layerGroup().addTo(map);
 
   for (const prestador of prestadoresFiltrados.value) {
-    if (prestador.lat && prestador.lng) {
+    if (prestador.latitude && prestador.longitude) {
       const marker = criarMarcadorPrestador(prestador);
       marker.addTo(markersLayer);
     }
   }
 };
 
-// Atualizar localização do usuário
 const atualizarLocalizacaoUsuario = (lat: number, lng: number, accuracy: number = 50): void => {
   if (!map) return;
 
@@ -347,13 +326,12 @@ const atualizarLocalizacaoUsuario = (lat: number, lng: number, accuracy: number 
     color: '#1976d2',
     fillColor: '#1976d2',
     fillOpacity: 0.15,
-    weight: 2
+    weight: 2,
   }).addTo(map);
 
   localizacaoAtual.value = { lat, lng };
 };
 
-// Inicializar o mapa e obter localização REAL
 const iniciar = async (): Promise<void> => {
   carregando.value = true;
 
@@ -361,7 +339,7 @@ const iniciar = async (): Promise<void> => {
     map = L.map('map').setView([-25.9692, 32.5732], 13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap, CARTO',
-      maxZoom: 19
+      maxZoom: 19,
     }).addTo(map);
 
     const posicao = await locationStore.getCurrentLocation(true);
@@ -374,7 +352,7 @@ const iniciar = async (): Promise<void> => {
         posicao.lat,
         posicao.lng,
         filtroDistancia.value,
-        true
+        true,
       );
 
       atualizarMarcadores();
@@ -383,33 +361,79 @@ const iniciar = async (): Promise<void> => {
         type: 'positive',
         message: `${prestadoresFiltrados.value.length} prestadores encontrados`,
         position: 'top',
-        timeout: 2000
+        timeout: 2000,
       });
     } else {
       $q.notify({
         type: 'warning',
         message: 'Clique no ícone de localização para obter sua posição',
         position: 'top',
-        timeout: 3000
+        timeout: 3000,
       });
     }
-  } catch {
-    // Erro silencioso
+  } catch (error) {
+    console.error('Erro ao iniciar mapa:', error);
   } finally {
     carregando.value = false;
-    setTimeout(() => map?.invalidateSize(), 200);
+    carregandoPrestadores.value = false;
+
+    // ✅ CORRETO
+    await nextTick();
+    if (map && map.getContainer()) {
+      setTimeout(() => {
+        if (map) map.invalidateSize();
+      }, 200);
+    }
   }
 };
 
-// Watch para quando o filtro muda
+const alterarRaio = async (novoRaio: number): Promise<void> => {
+  if (novoRaio === filtroDistancia.value) return;
+  if (!localizacaoAtual.value) {
+    $q.notify({ type: 'warning', message: 'Localização não disponível', position: 'top' });
+    return;
+  }
+
+  filtroDistancia.value = novoRaio;
+  carregandoPrestadores.value = true;
+
+  try {
+    await clienteStore.fetchPrestadoresProximos(
+      localizacaoAtual.value.lat,
+      localizacaoAtual.value.lng,
+      novoRaio,
+      true,
+    );
+
+    atualizarMarcadores();
+
+    $q.notify({
+      type: 'positive',
+      message: `${prestadoresFiltrados.value.length} prestadores num raio de ${novoRaio} km`,
+      position: 'top',
+      timeout: 2000,
+      icon: 'radar',
+    });
+  } catch {
+    $q.notify({ type: 'negative', message: 'Erro ao buscar prestadores', position: 'top' });
+  } finally {
+    carregandoPrestadores.value = false;
+  }
+};
+
 watch(filtroDistancia, () => {
   atualizarMarcadores();
 });
 
-// Lifecycle
 onMounted(() => {
   setTimeout(() => void iniciar(), 100);
-  window.addEventListener('resize', () => setTimeout(() => map?.invalidateSize(), 200));
+  window.addEventListener('resize', () => {
+    if (map && map.getContainer()) {
+      setTimeout(() => {
+        if (map) map.invalidateSize();
+      }, 200);
+    }
+  });
 });
 
 onUnmounted(() => {
@@ -463,7 +487,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.95);
   z-index: 100;
   display: flex;
   justify-content: center;
@@ -491,6 +515,23 @@ onUnmounted(() => {
   background: white;
 }
 
+/* ========================================== */
+/* SKELETON LOADING - ESTILO FACEBOOK */
+/* ========================================== */
+.skeleton-container {
+  .skeleton-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .skeleton-content {
+    flex: 1;
+  }
+}
+
+/* Scrollbar */
 .prestadores-list::-webkit-scrollbar {
   width: 6px;
 }

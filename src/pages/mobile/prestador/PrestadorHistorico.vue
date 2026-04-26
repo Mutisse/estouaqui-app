@@ -1,101 +1,141 @@
 <template>
   <q-page class="prestador-historico bg-grey-1">
-    <!-- Cabeçalho -->
-    <div class="page-header q-pa-md">
-      <q-btn flat round icon="arrow_back" @click="router.back()" />
-      <div class="text-h5 text-bold">Histórico de Serviços</div>
-      <q-btn flat round icon="filter_list" @click="abrirFiltros" />
-    </div>
-
-    <!-- Loading -->
-    <div v-if="loading" class="loading-state">
-      <q-spinner color="primary" size="48px" />
-      <div class="text-grey-6 q-mt-md">Carregando histórico...</div>
-    </div>
-
-    <template v-else>
-      <!-- Filtros rápidos -->
-      <div class="quick-filters q-px-md q-mb-md">
-        <q-btn-toggle
-          v-model="periodo"
-          toggle-color="primary"
-          :options="[
-            { label: 'Hoje', value: 'hoje' },
-            { label: 'Semana', value: 'semana' },
-            { label: 'Mês', value: 'mes' },
-            { label: 'Todos', value: 'todos' }
-          ]"
-          @update:model-value="carregarHistorico"
-        />
+    <!-- Skeleton Loading (enquanto carrega) -->
+    <div v-if="carregamentoInicial" class="skeleton-loading">
+      <div class="skeleton-header">
+        <div class="skeleton-back-btn"></div>
+        <div class="skeleton-title"></div>
+        <div class="skeleton-filter-btn"></div>
       </div>
-
-      <!-- Estatísticas -->
-      <div class="stats-cards q-px-md q-mb-md">
+      <div class="skeleton-filtros">
+        <div class="skeleton-filter-btn"></div>
+        <div class="skeleton-filter-btn"></div>
+        <div class="skeleton-filter-btn"></div>
+        <div class="skeleton-filter-btn"></div>
+      </div>
+      <div class="skeleton-stats q-px-md q-mb-md">
         <div class="row q-col-gutter-sm">
-          <div class="col-4">
-            <q-card class="stat-card" flat bordered>
-              <q-card-section class="text-center">
-                <div class="stat-value">{{ stats.total }}</div>
-                <div class="stat-label">Total</div>
-              </q-card-section>
-            </q-card>
-          </div>
-          <div class="col-4">
-            <q-card class="stat-card" flat bordered>
-              <q-card-section class="text-center">
-                <div class="stat-value">{{ formatarValor(stats.ganhos) }} MZN</div>
-                <div class="stat-label">Ganhos</div>
-              </q-card-section>
-            </q-card>
-          </div>
-          <div class="col-4">
-            <q-card class="stat-card" flat bordered>
-              <q-card-section class="text-center">
-                <div class="stat-value">{{ stats.media.toFixed(1) }}</div>
-                <div class="stat-label">Média</div>
-              </q-card-section>
-            </q-card>
+          <div v-for="i in 3" :key="i" class="col-4">
+            <div class="skeleton-stat-card"></div>
           </div>
         </div>
       </div>
+      <div class="skeleton-list q-pa-md">
+        <div class="skeleton-list-header"></div>
+        <div v-for="i in 3" :key="i" class="skeleton-list-item">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-list-info">
+            <div class="skeleton-line w-50"></div>
+            <div class="skeleton-line w-30"></div>
+            <div class="skeleton-line w-40"></div>
+          </div>
+          <div class="skeleton-badge">
+            <div class="skeleton-line w-20"></div>
+            <div class="skeleton-stars"></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      <!-- Lista de serviços -->
-      <div class="historico-list q-pa-md">
-        <div v-if="historico.length === 0" class="empty-state">
-          <q-icon name="history" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum serviço concluído</div>
-          <div class="text-grey-6 q-mt-sm">Seus serviços concluídos aparecerão aqui</div>
+    <!-- Conteúdo original -->
+    <template v-else>
+      <!-- Cabeçalho -->
+      <div class="page-header q-pa-md">
+        <q-btn flat round icon="arrow_back" @click="router.back()" />
+        <div class="text-h5 text-bold">Histórico de Serviços</div>
+        <q-btn flat round icon="filter_list" @click="abrirFiltros" />
+      </div>
+
+      <!-- Loading -->
+      <div v-if="loading" class="loading-state">
+        <q-spinner color="primary" size="48px" />
+        <div class="text-grey-6 q-mt-md">Carregando histórico...</div>
+      </div>
+
+      <template v-else>
+        <!-- Filtros rápidos -->
+        <div class="quick-filters q-px-md q-mb-md">
+          <q-btn-toggle
+            v-model="periodo"
+            toggle-color="primary"
+            :options="[
+              { label: 'Hoje', value: 'hoje' },
+              { label: 'Semana', value: 'semana' },
+              { label: 'Mês', value: 'mes' },
+              { label: 'Todos', value: 'todos' }
+            ]"
+            @update:model-value="carregarHistorico"
+          />
         </div>
 
-        <q-list v-else bordered separator>
-          <q-item
-            v-for="servico in historico"
-            :key="servico.id"
-            clickable
-            v-ripple
-            @click="verDetalhes(servico)"
-          >
-            <q-item-section avatar>
-              <q-avatar>
-                <img :src="servico.clienteFoto || 'https://cdn.quasar.dev/img/avatar.png'" />
-              </q-avatar>
-            </q-item-section>
+        <!-- Estatísticas -->
+        <div class="stats-cards q-px-md q-mb-md">
+          <div class="row q-col-gutter-sm">
+            <div class="col-4">
+              <q-card class="stat-card" flat bordered>
+                <q-card-section class="text-center">
+                  <div class="stat-value">{{ stats.total }}</div>
+                  <div class="stat-label">Total</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col-4">
+              <q-card class="stat-card" flat bordered>
+                <q-card-section class="text-center">
+                  <div class="stat-value">{{ formatarValor(stats.ganhos) }} MZN</div>
+                  <div class="stat-label">Ganhos</div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col-4">
+              <q-card class="stat-card" flat bordered>
+                <q-card-section class="text-center">
+                  <div class="stat-value">{{ stats.media.toFixed(1) }}</div>
+                  <div class="stat-label">Média</div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </div>
+        </div>
 
-            <q-item-section>
-              <q-item-label>{{ servico.clienteNome }}</q-item-label>
-              <q-item-label caption>{{ servico.servicoNome }}</q-item-label>
-              <q-item-label caption class="text-grey-6">
-                <q-icon name="schedule" size="14px" /> {{ formatarData(servico.data) }}
-              </q-item-label>
-            </q-item-section>
+        <!-- Lista de serviços -->
+        <div class="historico-list q-pa-md">
+          <div v-if="historico.length === 0" class="empty-state">
+            <q-icon name="history" size="64px" color="grey-4" />
+            <div class="text-h6 text-grey-7 q-mt-md">Nenhum serviço concluído</div>
+            <div class="text-grey-6 q-mt-sm">Seus serviços concluídos aparecerão aqui</div>
+          </div>
 
-            <q-item-section side>
-              <div class="text-weight-bold text-primary">{{ formatarValor(servico.valor) }} MZN</div>
-              <q-rating v-model="servico.nota" size="12px" :max="5" color="yellow" readonly />
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </div>
+          <q-list v-else bordered separator>
+            <q-item
+              v-for="servico in historico"
+              :key="servico.id"
+              clickable
+              v-ripple
+              @click="verDetalhes(servico)"
+            >
+              <q-item-section avatar>
+                <q-avatar>
+                  <img :src="servico.clienteFoto || 'https://cdn.quasar.dev/img/avatar.png'" />
+                </q-avatar>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>{{ servico.clienteNome }}</q-item-label>
+                <q-item-label caption>{{ servico.servicoNome }}</q-item-label>
+                <q-item-label caption class="text-grey-6">
+                  <q-icon name="schedule" size="14px" /> {{ formatarData(servico.data) }}
+                </q-item-label>
+              </q-item-section>
+
+              <q-item-section side>
+                <div class="text-weight-bold text-primary">{{ formatarValor(servico.valor) }} MZN</div>
+                <q-rating v-model="servico.nota" size="12px" :max="5" color="yellow" readonly />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+      </template>
     </template>
 
     <!-- Dialog de detalhes do serviço -->
@@ -172,7 +212,6 @@ defineOptions({
   name: 'PrestadorHistorico'
 });
 
-// ✅ Interface com todas as propriedades opcionais ou com valores padrão
 interface ServicoHistorico {
   id: number;
   clienteId: number;
@@ -198,6 +237,7 @@ const $q = useQuasar();
 const prestadorStore = usePrestadorStore();
 
 // Estados
+const carregamentoInicial = ref(true);
 const loading = ref(true);
 const periodo = ref('mes');
 const showDetalhesDialog = ref(false);
@@ -209,12 +249,9 @@ const avaliacoes = computed(() => prestadorStore.avaliacoesRecentes);
 
 // Histórico filtrado
 const historico = computed<ServicoHistorico[]>(() => {
-  // Pegar apenas serviços concluídos
   const concluidos = solicitacoes.value.filter(s => s.status === 'concluido');
 
-  // Mapear para o formato da interface
   const resultado: ServicoHistorico[] = concluidos.map(pedido => {
-    // Buscar avaliação do pedido
     const avaliacao = avaliacoes.value.find(a => a.id === pedido.id);
 
     return {
@@ -232,7 +269,6 @@ const historico = computed<ServicoHistorico[]>(() => {
     };
   });
 
-  // Filtrar por período
   return resultado.filter(servico => {
     const dataServico = new Date(servico.data);
     const hoje = new Date();
@@ -251,7 +287,6 @@ const historico = computed<ServicoHistorico[]>(() => {
   });
 });
 
-// Estatísticas
 const stats = computed<Stats>(() => {
   const total = historico.value.length;
   const ganhos = historico.value.reduce((sum, s) => sum + s.valor, 0);
@@ -264,7 +299,6 @@ const stats = computed<Stats>(() => {
   };
 });
 
-// Formatação
 const formatarData = (dataString: string) => {
   const date = new Date(dataString);
   return date.toLocaleDateString('pt-PT', {
@@ -292,13 +326,10 @@ const formatarValor = (valor: number) => {
   });
 };
 
-// Ações
 const carregarHistorico = async () => {
   loading.value = true;
   try {
-    // Buscar solicitações concluídas
     await prestadorStore.fetchSolicitacoes('concluido');
-    // Buscar avaliações recentes (50 para ter histórico completo)
     await prestadorStore.fetchAvaliacoesRecentes(50);
   } catch (error) {
     console.error('Erro ao carregar histórico:', error);
@@ -312,7 +343,6 @@ const carregarHistorico = async () => {
   }
 };
 
-// ✅ CORREÇÃO: Função verDetalhes com tipo explícito
 const verDetalhes = (servico: ServicoHistorico) => {
   servicoSelecionado.value = servico;
   showDetalhesDialog.value = true;
@@ -333,9 +363,15 @@ const abrirFiltros = () => {
   });
 };
 
-// Inicialização
 onMounted(async () => {
-  await carregarHistorico();
+  carregamentoInicial.value = true;
+  try {
+    await carregarHistorico();
+  } finally {
+    setTimeout(() => {
+      carregamentoInicial.value = false;
+    }, 500);
+  }
 });
 </script>
 
@@ -351,6 +387,146 @@ $gray-600: #757575;
 $gray-700: #616161;
 $gray-800: #424242;
 $gray-900: #212121;
+
+/* ========================================== */
+/* SKELETON LOADING STYLES */
+/* ========================================== */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-loading {
+  background: $gray-100;
+  min-height: 100vh;
+}
+
+.skeleton-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 16px;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-title {
+  width: 180px;
+  height: 24px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-filter-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-filtros {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: white;
+}
+
+.skeleton-stats {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.skeleton-stat-card {
+  height: 80px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-list {
+  padding: 16px;
+}
+
+.skeleton-list-header {
+  width: 150px;
+  height: 24px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-list-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  margin-right: 12px;
+}
+
+.skeleton-list-info {
+  flex: 1;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin: 4px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-badge {
+  text-align: right;
+}
+
+.skeleton-stars {
+  width: 60px;
+  height: 12px;
+  border-radius: 6px;
+  margin-top: 6px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.w-20 { width: 20%; }
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-60 { width: 60%; }
+
+/* ========================================== */
+/* ESTILOS ORIGINAIS (mantidos sem alterações) */
+/* ========================================== */
 
 .prestador-historico {
   min-height: 100vh;

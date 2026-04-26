@@ -18,186 +18,246 @@
       />
     </div>
 
-    <q-card class="perfil-card">
-      <q-card-section>
-        <div class="row items-center">
-          <q-avatar size="100px" class="avatar-container">
-            <img :src="authStore.userFoto || 'https://cdn.quasar.dev/img/avatar.png'" />
-            <div class="avatar-edit" @click="editarFoto">
-              <q-icon name="edit" size="16px" color="white" />
-            </div>
-          </q-avatar>
-          <div class="q-ml-md">
-            <div class="text-h5">{{ authStore.userNome || 'Administrador' }}</div>
-            <div class="text-grey-7">{{ authStore.user?.email }}</div>
-            <q-badge :color="getTipoColor(authStore.user?.tipo)" class="q-mt-sm">
-              <q-icon :name="getTipoIcon(authStore.user?.tipo)" size="12px" class="q-mr-xs" />
-              {{ getTipoLabel(authStore.user?.tipo) }}
-            </q-badge>
+    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
+    <div v-if="carregando" class="skeleton-container">
+      <!-- Profile header skeleton -->
+      <div class="skeleton-profile-header">
+        <div class="row items-center q-col-gutter-md">
+          <div class="col-auto">
+            <div class="skeleton-avatar-large"></div>
+          </div>
+          <div class="col">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-text"></div>
+            <div class="skeleton-badge"></div>
           </div>
         </div>
-      </q-card-section>
+      </div>
 
-      <q-card-section>
-        <div class="text-h6 q-mb-md">Informações Pessoais</div>
+      <!-- Form skeleton -->
+      <div class="skeleton-card">
+        <div class="skeleton-section-title"></div>
         <div class="row q-col-gutter-md">
           <div class="col-12 col-md-6">
-            <q-input
-              v-model="perfil.nome"
-              label="Nome completo"
-              outlined
-              dense
-              :loading="salvandoPerfil"
-            >
-              <template v-slot:prepend>
-                <q-icon name="person" color="primary" />
-              </template>
-            </q-input>
+            <div class="skeleton-input"></div>
           </div>
           <div class="col-12 col-md-6">
-            <q-input
-              v-model="perfil.email"
-              label="Email"
-              outlined
-              dense
-              type="email"
-              :loading="salvandoPerfil"
-            >
-              <template v-slot:prepend>
-                <q-icon name="email" color="primary" />
-              </template>
-            </q-input>
+            <div class="skeleton-input"></div>
           </div>
           <div class="col-12 col-md-6">
-            <q-input
-              v-model="perfil.telefone"
-              label="Telefone"
-              outlined
-              dense
-              :loading="salvandoPerfil"
-            >
-              <template v-slot:prepend>
-                <q-icon name="phone" color="primary" />
-              </template>
-            </q-input>
+            <div class="skeleton-input"></div>
           </div>
           <div class="col-12 col-md-6">
-            <q-input
-              v-model="perfil.cargo"
-              label="Cargo"
-              outlined
-              dense
-              readonly
-              disable
-            >
-              <template v-slot:prepend>
-                <q-icon name="work" color="primary" />
-              </template>
-              <template v-slot:append>
-                <q-icon name="lock" size="16px" color="grey" />
-              </template>
-            </q-input>
+            <div class="skeleton-input"></div>
           </div>
           <div class="col-12">
-            <q-input
-              v-model="perfil.bio"
-              label="Bio"
-              outlined
-              dense
-              type="textarea"
-              autogrow
-              rows="3"
-              :loading="salvandoPerfil"
-            >
-              <template v-slot:prepend>
-                <q-icon name="description" color="primary" />
-              </template>
-            </q-input>
+            <div class="skeleton-textarea"></div>
           </div>
         </div>
-      </q-card-section>
-
-      <q-card-actions align="right" class="q-pa-md">
-        <q-btn flat label="Cancelar" color="grey-7" @click="resetarFormulario" />
-        <q-btn
-          unelevated
-          label="Salvar alterações"
-          color="primary"
-          @click="salvarPerfil"
-          :loading="salvandoPerfil"
-        />
-      </q-card-actions>
-    </q-card>
-
-    <q-card class="senha-card q-mt-md">
-      <q-card-section>
-        <div class="text-h6">
-          <q-icon name="lock" size="20px" class="q-mr-sm" />
-          Alterar palavra-passe
+        <div class="row justify-end q-mt-md">
+          <div class="skeleton-button"></div>
+          <div class="skeleton-button primary q-ml-sm"></div>
         </div>
-      </q-card-section>
+      </div>
 
-      <q-card-section>
-        <q-input
-          v-model="senha.atual"
-          label="Palavra-passe atual"
-          outlined
-          dense
-          type="password"
-          :loading="alterandoSenha"
-        >
-          <template v-slot:prepend>
-            <q-icon name="lock" color="secondary" />
-          </template>
-        </q-input>
+      <!-- Password section skeleton -->
+      <div class="skeleton-card q-mt-md">
+        <div class="skeleton-section-title small"></div>
+        <div class="skeleton-input"></div>
+        <div class="skeleton-input q-mt-md"></div>
+        <div class="skeleton-input q-mt-md"></div>
+        <div class="row justify-end q-mt-md">
+          <div class="skeleton-button secondary"></div>
+        </div>
+      </div>
 
-        <q-input
-          v-model="senha.nova"
-          label="Nova palavra-passe"
-          outlined
-          dense
-          type="password"
-          class="q-mt-md"
-          :loading="alterandoSenha"
-        >
-          <template v-slot:prepend>
-            <q-icon name="vpn_key" color="secondary" />
-          </template>
-        </q-input>
+      <!-- Shimmer animation -->
+      <div class="skeleton-shimmer"></div>
+    </div>
 
-        <q-input
-          v-model="senha.confirmar"
-          label="Confirmar nova palavra-passe"
-          outlined
-          dense
-          type="password"
-          class="q-mt-md"
-          :loading="alterandoSenha"
-        >
-          <template v-slot:prepend>
-            <q-icon name="verified" color="secondary" />
-          </template>
-          <template v-slot:append>
-            <q-icon
-              v-if="senha.nova && senha.confirmar"
-              :name="senha.nova === senha.confirmar ? 'check_circle' : 'error'"
-              :color="senha.nova === senha.confirmar ? 'positive' : 'negative'"
-              size="20px"
-            />
-          </template>
-        </q-input>
-      </q-card-section>
+    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <template v-else>
+      <q-card class="perfil-card">
+        <q-card-section>
+          <div class="row items-center">
+            <q-avatar size="100px" class="avatar-container">
+              <img :src="authStore.userFoto || 'https://cdn.quasar.dev/img/avatar.png'" />
+              <div class="avatar-edit" @click="editarFoto">
+                <q-icon name="edit" size="16px" color="white" />
+              </div>
+            </q-avatar>
+            <div class="q-ml-md">
+              <div class="text-h5">{{ authStore.userNome || 'Administrador' }}</div>
+              <div class="text-grey-7">{{ authStore.user?.email }}</div>
+              <q-badge :color="getTipoColor(authStore.user?.tipo)" class="q-mt-sm">
+                <q-icon :name="getTipoIcon(authStore.user?.tipo)" size="12px" class="q-mr-xs" />
+                {{ getTipoLabel(authStore.user?.tipo) }}
+              </q-badge>
+            </div>
+          </div>
+        </q-card-section>
 
-      <q-card-actions align="right" class="q-pa-md">
-        <q-btn
-          unelevated
-          label="Alterar palavra-passe"
-          color="secondary"
-          @click="alterarSenha"
-          :loading="alterandoSenha"
-        />
-      </q-card-actions>
-    </q-card>
+        <q-card-section>
+          <div class="text-h6 q-mb-md">Informações Pessoais</div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-6">
+              <q-input
+                v-model="perfil.nome"
+                label="Nome completo"
+                outlined
+                dense
+                :loading="salvandoPerfil"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="person" color="primary" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input
+                v-model="perfil.email"
+                label="Email"
+                outlined
+                dense
+                type="email"
+                :loading="salvandoPerfil"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="email" color="primary" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input
+                v-model="perfil.telefone"
+                label="Telefone"
+                outlined
+                dense
+                :loading="salvandoPerfil"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="phone" color="primary" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input
+                v-model="perfil.cargo"
+                label="Cargo"
+                outlined
+                dense
+                readonly
+                disable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="work" color="primary" />
+                </template>
+                <template v-slot:append>
+                  <q-icon name="lock" size="16px" color="grey" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12">
+              <q-input
+                v-model="perfil.bio"
+                label="Bio"
+                outlined
+                dense
+                type="textarea"
+                autogrow
+                rows="3"
+                :loading="salvandoPerfil"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="description" color="primary" />
+                </template>
+              </q-input>
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn flat label="Cancelar" color="grey-7" @click="resetarFormulario" />
+          <q-btn
+            unelevated
+            label="Salvar alterações"
+            color="primary"
+            @click="salvarPerfil"
+            :loading="salvandoPerfil"
+          />
+        </q-card-actions>
+      </q-card>
+
+      <q-card class="senha-card q-mt-md">
+        <q-card-section>
+          <div class="text-h6">
+            <q-icon name="lock" size="20px" class="q-mr-sm" />
+            Alterar palavra-passe
+          </div>
+        </q-card-section>
+
+        <q-card-section>
+          <q-input
+            v-model="senha.atual"
+            label="Palavra-passe atual"
+            outlined
+            dense
+            type="password"
+            :loading="alterandoSenha"
+          >
+            <template v-slot:prepend>
+              <q-icon name="lock" color="secondary" />
+            </template>
+          </q-input>
+
+          <q-input
+            v-model="senha.nova"
+            label="Nova palavra-passe"
+            outlined
+            dense
+            type="password"
+            class="q-mt-md"
+            :loading="alterandoSenha"
+          >
+            <template v-slot:prepend>
+              <q-icon name="vpn_key" color="secondary" />
+            </template>
+          </q-input>
+
+          <q-input
+            v-model="senha.confirmar"
+            label="Confirmar nova palavra-passe"
+            outlined
+            dense
+            type="password"
+            class="q-mt-md"
+            :loading="alterandoSenha"
+          >
+            <template v-slot:prepend>
+              <q-icon name="verified" color="secondary" />
+            </template>
+            <template v-slot:append>
+              <q-icon
+                v-if="senha.nova && senha.confirmar"
+                :name="senha.nova === senha.confirmar ? 'check_circle' : 'error'"
+                :color="senha.nova === senha.confirmar ? 'positive' : 'negative'"
+                size="20px"
+              />
+            </template>
+          </q-input>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn
+            unelevated
+            label="Alterar palavra-passe"
+            color="secondary"
+            @click="alterarSenha"
+            :loading="alterandoSenha"
+          />
+        </q-card-actions>
+      </q-card>
+    </template>
 
     <!-- Dialog para editar foto -->
     <q-dialog v-model="mostrarDialogFoto" persistent>
@@ -240,7 +300,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/stores/auth-store'
 
@@ -252,7 +312,7 @@ const $q = useQuasar()
 const authStore = useAuthStore()
 
 // Estados
-const carregando = ref(false)
+const carregando = ref(true)
 const salvandoPerfil = ref(false)
 const alterandoSenha = ref(false)
 const salvandoFoto = ref(false)
@@ -304,11 +364,13 @@ const getTipoIcon = (tipo?: string) => {
   return icons[tipo || ''] || 'person'
 }
 
-// ✅ CORREÇÃO: Removido async pois não há operações assíncronas
-const carregarPerfil = () => {
+// Carregar perfil com skeleton
+const carregarPerfil = async () => {
   carregando.value = true
   try {
-    // verifyToken() retorna boolean, não é async
+    // Simular carregamento de dados (substituir por API real)
+    await new Promise(resolve => setTimeout(resolve, 800))
+
     const tokenValido = authStore.verifyToken()
 
     if (tokenValido && authStore.user) {
@@ -431,7 +493,7 @@ const salvarFoto = async () => {
       position: 'top'
     })
     mostrarDialogFoto.value = false
-    carregarPerfil() // ✅ Não precisa de await, é síncrono
+    await carregarPerfil()
   } catch (error) {
     console.error('Erro ao salvar foto:', error)
     $q.notify({
@@ -499,18 +561,21 @@ const alterarSenha = async () => {
   }
 }
 
-// Observar mudanças na senha para validação em tempo real
-watch([() => senha.nova, () => senha.confirmar], () => {
-  // Validação em tempo real (apenas para UI)
-})
-
 // Carregar dados ao montar
 onMounted(() => {
-  carregarPerfil() // ✅ Não precisa de void ou await, é síncrono
+  void carregarPerfil()
 })
 </script>
 
 <style scoped lang="scss">
+$primary-color: #667eea;
+$gray-100: #f5f5f5;
+$gray-200: #eeeeee;
+$gray-300: #e0e0e0;
+$gray-400: #bdbdbd;
+$gray-500: #9e9e9e;
+$gray-600: #757575;
+
 .admin-perfil {
   max-width: 900px;
   margin: 0 auto;
@@ -543,6 +608,122 @@ onMounted(() => {
     }
   }
 }
+
+// ==========================================
+// SKELETON LOADING (Facebook/Instagram style)
+// ==========================================
+
+.skeleton-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-profile-header {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.skeleton-avatar-large {
+  width: 100px;
+  height: 100px;
+  background: $gray-200;
+  border-radius: 50%;
+}
+
+.skeleton-title {
+  width: 200px;
+  height: 24px;
+  background: $gray-200;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.skeleton-text {
+  width: 250px;
+  height: 16px;
+  background: $gray-200;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.skeleton-badge {
+  width: 100px;
+  height: 24px;
+  background: $gray-200;
+  border-radius: 12px;
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-section-title {
+  width: 180px;
+  height: 24px;
+  background: $gray-200;
+  border-radius: 4px;
+  margin-bottom: 20px;
+
+  &.small {
+    width: 200px;
+    height: 20px;
+  }
+}
+
+.skeleton-input {
+  width: 100%;
+  height: 48px;
+  background: $gray-100;
+  border-radius: 8px;
+}
+
+.skeleton-textarea {
+  width: 100%;
+  height: 80px;
+  background: $gray-100;
+  border-radius: 8px;
+}
+
+.skeleton-button {
+  width: 120px;
+  height: 36px;
+  background: $gray-200;
+  border-radius: 8px;
+
+  &.primary {
+    background: $gray-200;
+  }
+
+  &.secondary {
+    background: $gray-200;
+  }
+}
+
+.skeleton-shimmer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// ==========================================
+// ESTILOS PRINCIPAIS
+// ==========================================
 
 .perfil-card,
 .senha-card {

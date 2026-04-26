@@ -1,166 +1,192 @@
 <!-- src/pages/mobile/client/Promocoes.vue -->
 <template>
   <q-page class="promocoes-page">
-    <!-- Cabeçalho com gradiente -->
-    <div class="page-header">
-      <q-btn flat round icon="arrow_back" text-color="white" @click="router.back" />
-      <div class="text-h6 text-bold text-white">Promoções</div>
-      <div style="width: 40px"></div>
-    </div>
-
-    <!-- Banner de destaque -->
-    <div class="hero-banner">
-      <div class="hero-content">
-        <q-icon name="local_offer" size="40px" />
-        <div class="hero-text">
-          <div class="hero-title">Ofertas Imperdíveis</div>
-          <div class="hero-subtitle">Aproveite os descontos exclusivos</div>
+    <!-- Skeleton Loading (enquanto carrega) -->
+    <div v-if="carregamentoInicial" class="skeleton-loading">
+      <div class="skeleton-header">
+        <div class="skeleton-back-btn"></div>
+        <div class="skeleton-title"></div>
+        <div class="skeleton-placeholder"></div>
+      </div>
+      <div class="skeleton-hero"></div>
+      <div class="skeleton-cupom"></div>
+      <div class="skeleton-section-header">
+        <div class="skeleton-line w-40"></div>
+        <div class="skeleton-line w-20"></div>
+      </div>
+      <div class="skeleton-grid">
+        <div v-for="i in 2" :key="i" class="skeleton-card">
+          <div class="skeleton-icon"></div>
+          <div class="skeleton-line w-60"></div>
+          <div class="skeleton-line w-80"></div>
+          <div class="skeleton-code"></div>
+          <div class="skeleton-details">
+            <div class="skeleton-line w-30"></div>
+            <div class="skeleton-line w-40"></div>
+          </div>
+          <div class="skeleton-btn"></div>
         </div>
       </div>
+      
     </div>
 
-    <!-- Validação de cupom -->
-    <div class="cupom-section">
-      <div class="cupom-card">
-        <div class="cupom-icon-wrapper">
-          <q-icon name="confirmation_number" size="28px" class="cupom-icon" />
-        </div>
-        <div class="cupom-info">
-          <div class="cupom-title">Tem um cupom?</div>
-          <div class="cupom-subtitle">Digite o código para ganhar desconto</div>
-        </div>
-        <q-btn
-          unelevated
-          label="Validar"
-          color="primary"
-          @click="abrirModalCupom"
-          no-caps
-          class="cupom-btn"
-        />
-      </div>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="promocaoStore.loading" class="loading-container">
-      <q-spinner color="primary" size="50px" />
-      <p class="loading-text">Carregando promoções...</p>
-    </div>
-
-    <!-- Lista de promoções -->
-    <div v-else class="promocoes-container">
-      <div class="section-header">
-        <div class="section-title">
-          <q-icon name="stars" size="20px" color="primary" />
-          <span>Promoções Ativas</span>
-        </div>
-        <div class="section-count">{{ promocoes.length }} ofertas</div>
+    <!-- Conteúdo original -->
+    <template v-else>
+      <!-- Cabeçalho com gradiente -->
+      <div class="page-header">
+        <q-btn flat round icon="arrow_back" text-color="white" @click="router.back" />
+        <div class="text-h6 text-bold text-white">Promoções</div>
+        <div style="width: 40px"></div>
       </div>
 
-      <div v-if="promocoes.length === 0" class="empty-state">
-        <div class="empty-icon">
-          <q-icon name="local_offer" size="80px" />
-        </div>
-        <div class="empty-title">Nenhuma promoção ativa</div>
-        <div class="empty-text">Volte em breve para novas ofertas exclusivas</div>
-      </div>
-
-      <div v-else class="promocoes-grid">
-        <div v-for="promo in promocoes" :key="promo.id" class="promo-card" :class="{ featured: isDestaque(promo) }">
-          <div class="promo-card-inner">
-            <!-- Badge de destaque -->
-            <div class="promo-badge" v-if="isDestaque(promo)">
-              <q-icon name="stars" size="14px" />
-              <span>Destaque</span>
-            </div>
-
-            <!-- Ícone de promoção -->
-            <div class="promo-icon" :class="{ 'icon-percent': promo.tipo_desconto === 'percentual' }">
-              <q-icon :name="promo.tipo_desconto === 'percentual' ? 'percent' : 'sell'" size="32px" />
-            </div>
-
-            <!-- Conteúdo principal -->
-            <div class="promo-info">
-              <div class="promo-title">{{ promo.titulo }}</div>
-              <div class="promo-description">{{ promo.descricao }}</div>
-
-              <!-- Código do cupom -->
-              <div class="promo-code" @click="copiarCodigo(promo.codigo)">
-                <span class="code-label">Cupom</span>
-                <span class="code-value">{{ promo.codigo }}</span>
-                <q-icon name="content_copy" size="16px" class="copy-icon" />
-              </div>
-
-              <!-- Detalhes da promoção -->
-              <div class="promo-details">
-                <div class="discount-badge" :class="{ 'discount-high': promo.valor_desconto >= 20 }">
-                  <q-icon :name="promo.tipo_desconto === 'percentual' ? 'percent' : 'attach_money'" size="14px" />
-                  {{ formatDesconto(promo) }}
-                </div>
-                <div class="min-value" v-if="promo.valor_minimo > 0">
-                  <q-icon name="shopping_cart" size="12px" />
-                  Mínimo: {{ formatMoney(promo.valor_minimo) }}
-                </div>
-                <div class="valid-until">
-                  <q-icon name="event" size="12px" />
-                  {{ formatDate(promo.validade) }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Botão de ação -->
-            <q-btn
-              class="use-btn"
-              :class="{ 'btn-featured': isDestaque(promo) }"
-              unelevated
-              label="Usar cupom"
-              @click="usarCupom(promo.codigo)"
-            />
+      <!-- Banner de destaque -->
+      <div class="hero-banner">
+        <div class="hero-content">
+          <q-icon name="local_offer" size="40px" />
+          <div class="hero-text">
+            <div class="hero-title">Ofertas Imperdíveis</div>
+            <div class="hero-subtitle">Aproveite os descontos exclusivos</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Modal para validar cupom -->
-    <q-dialog v-model="modalCupom" persistent>
-      <q-card class="cupom-modal">
-        <q-card-section class="modal-header">
-          <div class="modal-icon">
-            <q-icon name="confirmation_number" size="32px" color="primary" />
+      <!-- Validação de cupom -->
+      <div class="cupom-section">
+        <div class="cupom-card">
+          <div class="cupom-icon-wrapper">
+            <q-icon name="confirmation_number" size="28px" class="cupom-icon" />
           </div>
-          <div class="modal-title">Validar cupom</div>
-          <div class="modal-subtitle">Digite o código promocional</div>
-        </q-card-section>
-
-        <q-card-section>
-          <q-input
-            v-model="codigoCupom"
-            label="Código do cupom"
-            outlined
-            dense
-            autofocus
-            placeholder="Ex: BEMVINDO20"
-            @keyup.enter="validarCupom"
-            class="cupom-input"
-          >
-            <template v-slot:prepend>
-              <q-icon name="confirmation_number" />
-            </template>
-          </q-input>
-        </q-card-section>
-
-        <q-card-actions align="right" class="modal-actions">
-          <q-btn flat label="Cancelar" v-close-popup class="cancel-btn" />
+          <div class="cupom-info">
+            <div class="cupom-title">Tem um cupom?</div>
+            <div class="cupom-subtitle">Digite o código para ganhar desconto</div>
+          </div>
           <q-btn
             unelevated
             label="Validar"
             color="primary"
-            :loading="validando"
-            @click="validarCupom"
-            class="validate-btn"
+            @click="abrirModalCupom"
+            no-caps
+            class="cupom-btn"
           />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+        </div>
+      </div>
+
+      <!-- Lista de promoções -->
+      <div class="promocoes-container">
+        <div class="section-header">
+          <div class="section-title">
+            <q-icon name="stars" size="20px" color="primary" />
+            <span>Promoções Ativas</span>
+          </div>
+          <div class="section-count">{{ promocoes.length }} ofertas</div>
+        </div>
+
+        <div v-if="promocoes.length === 0" class="empty-state">
+          <div class="empty-icon">
+            <q-icon name="local_offer" size="80px" />
+          </div>
+          <div class="empty-title">Nenhuma promoção ativa</div>
+          <div class="empty-text">Volte em breve para novas ofertas exclusivas</div>
+        </div>
+
+        <div v-else class="promocoes-grid">
+          <div v-for="promo in promocoes" :key="promo.id" class="promo-card" :class="{ featured: isDestaque(promo) }">
+            <div class="promo-card-inner">
+              <!-- Badge de destaque -->
+              <div class="promo-badge" v-if="isDestaque(promo)">
+                <q-icon name="stars" size="14px" />
+                <span>Destaque</span>
+              </div>
+
+              <!-- Ícone de promoção -->
+              <div class="promo-icon" :class="{ 'icon-percent': promo.tipo_desconto === 'percentual' }">
+                <q-icon :name="promo.tipo_desconto === 'percentual' ? 'percent' : 'sell'" size="32px" />
+              </div>
+
+              <!-- Conteúdo principal -->
+              <div class="promo-info">
+                <div class="promo-title">{{ promo.titulo }}</div>
+                <div class="promo-description">{{ promo.descricao }}</div>
+
+                <!-- Código do cupom -->
+                <div class="promo-code" @click="copiarCodigo(promo.codigo)">
+                  <span class="code-label">Cupom</span>
+                  <span class="code-value">{{ promo.codigo }}</span>
+                  <q-icon name="content_copy" size="16px" class="copy-icon" />
+                </div>
+
+                <!-- Detalhes da promoção -->
+                <div class="promo-details">
+                  <div class="discount-badge" :class="{ 'discount-high': promo.valor_desconto >= 20 }">
+                    <q-icon :name="promo.tipo_desconto === 'percentual' ? 'percent' : 'attach_money'" size="14px" />
+                    {{ formatDesconto(promo) }}
+                  </div>
+                  <div class="min-value" v-if="promo.valor_minimo > 0">
+                    <q-icon name="shopping_cart" size="12px" />
+                    Mínimo: {{ formatMoney(promo.valor_minimo) }}
+                  </div>
+                  <div class="valid-until">
+                    <q-icon name="event" size="12px" />
+                    {{ formatDate(promo.validade) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Botão de ação -->
+              <q-btn
+                class="use-btn"
+                :class="{ 'btn-featured': isDestaque(promo) }"
+                unelevated
+                label="Usar cupom"
+                @click="usarCupom(promo.codigo)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal para validar cupom -->
+      <q-dialog v-model="modalCupom" persistent>
+        <q-card class="cupom-modal">
+          <q-card-section class="modal-header">
+            <div class="modal-icon">
+              <q-icon name="confirmation_number" size="32px" color="primary" />
+            </div>
+            <div class="modal-title">Validar cupom</div>
+            <div class="modal-subtitle">Digite o código promocional</div>
+          </q-card-section>
+
+          <q-card-section>
+            <q-input
+              v-model="codigoCupom"
+              label="Código do cupom"
+              outlined
+              dense
+              autofocus
+              placeholder="Ex: BEMVINDO20"
+              @keyup.enter="validarCupom"
+              class="cupom-input"
+            >
+              <template v-slot:prepend>
+                <q-icon name="confirmation_number" />
+              </template>
+            </q-input>
+          </q-card-section>
+
+          <q-card-actions align="right" class="modal-actions">
+            <q-btn flat label="Cancelar" v-close-popup class="cancel-btn" />
+            <q-btn
+              unelevated
+              label="Validar"
+              color="primary"
+              :loading="validando"
+              @click="validarCupom"
+              class="validate-btn"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+    </template>
   </q-page>
 </template>
 
@@ -179,6 +205,7 @@ const $q = useQuasar();
 const promocaoStore = usePromocaoStore();
 
 // Estados
+const carregamentoInicial = ref(true);
 const modalCupom = ref(false);
 const codigoCupom = ref('');
 const validando = ref(false);
@@ -267,7 +294,16 @@ const validarCupom = async () => {
 
 // Carregar dados
 const carregarDados = async () => {
-  await promocaoStore.fetchPromocoes();
+  carregamentoInicial.value = true;
+  try {
+    await promocaoStore.fetchPromocoes();
+  } catch (error) {
+    console.error('Erro ao carregar promoções:', error);
+  } finally {
+    setTimeout(() => {
+      carregamentoInicial.value = false;
+    }, 500);
+  }
 };
 
 onMounted(() => {
@@ -289,7 +325,152 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   padding-bottom: 24px;
 }
 
-/* Cabeçalho com gradiente */
+/* ========================================== */
+/* SKELETON LOADING STYLES */
+/* ========================================== */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-loading {
+  background: linear-gradient(180deg, #f8f9fc 0%, #f1f3f9 100%);
+  min-height: 100vh;
+}
+
+.skeleton-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.skeleton-back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.skeleton-title {
+  width: 100px;
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.skeleton-placeholder {
+  width: 40px;
+  height: 40px;
+}
+
+.skeleton-hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin: 20px 16px;
+  border-radius: 24px;
+  height: 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-cupom {
+  background: white;
+  margin: 0 16px 24px;
+  border-radius: 20px;
+  height: 80px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.skeleton-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 20px 20px;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin: 8px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-grid {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.skeleton-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  margin-bottom: 16px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-code {
+  width: 120px;
+  height: 40px;
+  border-radius: 40px;
+  margin: 12px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.skeleton-btn {
+  width: 100%;
+  height: 44px;
+  border-radius: 40px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+}
+
+.w-20 { width: 20%; }
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-60 { width: 60%; }
+.w-80 { width: 80%; }
+
+/* ========================================== */
+/* ESTILOS ORIGINAIS (mantidos sem alterações) */
+/* ========================================== */
+
 .page-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
@@ -303,7 +484,6 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* Hero Banner */
 .hero-banner {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   margin: 20px 16px;
@@ -354,7 +534,6 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   }
 }
 
-/* Seção de cupom */
 .cupom-section {
   padding: 0 16px;
   margin-bottom: 24px;
@@ -411,7 +590,6 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   }
 }
 
-/* Container de promoções */
 .promocoes-container {
   padding: 0 16px;
 
@@ -441,14 +619,12 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   }
 }
 
-/* Grid de promoções */
 .promocoes-grid {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-/* Card de promoção */
 .promo-card {
   border-radius: 24px;
   background: white;
@@ -617,22 +793,6 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   }
 }
 
-/* Loading */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  gap: 16px;
-
-  .loading-text {
-    color: #6c757d;
-    font-size: 0.9rem;
-  }
-}
-
-/* Empty state */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -655,7 +815,6 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   }
 }
 
-/* Modal de cupom */
 .cupom-modal {
   border-radius: 28px;
   max-width: 90vw;

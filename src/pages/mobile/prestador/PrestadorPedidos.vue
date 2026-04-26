@@ -1,296 +1,332 @@
 <template>
   <q-page class="prestador-pedidos bg-grey-1">
-    <!-- Cabeçalho -->
-    <div class="page-header q-pa-md">
-      <q-btn flat round icon="arrow_back" @click="router.back()" />
-      <div class="text-h5 text-bold">Pedidos Recebidos</div>
-      <q-btn flat round icon="more_vert" @click="opcoes" />
+    <!-- Skeleton Loading (enquanto carrega) -->
+    <div v-if="carregamentoInicial" class="skeleton-loading">
+      <div class="skeleton-header">
+        <div class="skeleton-back-btn"></div>
+        <div class="skeleton-title"></div>
+        <div class="skeleton-menu-btn"></div>
+      </div>
+      <div class="skeleton-tabs">
+        <div v-for="i in 4" :key="i" class="skeleton-tab"></div>
+      </div>
+      <div class="skeleton-cards q-pa-md">
+        <div v-for="i in 2" :key="i" class="skeleton-card">
+          <div class="skeleton-card-header">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-card-info">
+              <div class="skeleton-line w-50"></div>
+              <div class="skeleton-line w-40"></div>
+              <div class="skeleton-line w-30"></div>
+            </div>
+          </div>
+          <div class="skeleton-card-body">
+            <div class="skeleton-line w-40"></div>
+            <div class="skeleton-line w-30"></div>
+            <div class="skeleton-line w-60"></div>
+          </div>
+          <div class="skeleton-card-footer">
+            <div class="skeleton-btn"></div>
+            <div class="skeleton-btn"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="loading-state">
-      <q-spinner color="primary" size="48px" />
-      <div class="text-grey-6 q-mt-md">Carregando pedidos...</div>
-    </div>
-
+    <!-- Conteúdo original -->
     <template v-else>
-      <!-- Tabs de filtro -->
-      <q-tabs
-        v-model="tab"
-        class="filter-tabs"
-        active-color="primary"
-        indicator-color="primary"
-        align="justify"
-      >
-        <q-tab name="pendentes" label="Pendentes">
-          <q-badge v-if="contadores.pendentes > 0" color="red" floating>{{
-            contadores.pendentes
-          }}</q-badge>
-        </q-tab>
-        <q-tab name="confirmados" label="Confirmados">
-          <q-badge v-if="contadores.confirmados > 0" color="green" floating>{{
-            contadores.confirmados
-          }}</q-badge>
-        </q-tab>
-        <q-tab name="concluidos" label="Concluídos" />
-        <q-tab name="cancelados" label="Cancelados" />
-      </q-tabs>
+      <!-- Cabeçalho -->
+      <div class="page-header q-pa-md">
+        <q-btn flat round icon="arrow_back" @click="router.back()" />
+        <div class="text-h5 text-bold">Pedidos Recebidos</div>
+        <q-btn flat round icon="more_vert" @click="opcoes" />
+      </div>
 
-      <!-- Lista de pedidos -->
-      <q-tab-panels v-model="tab" animated class="bg-transparent">
-        <!-- Pendentes -->
-        <q-tab-panel name="pendentes" class="q-pa-md">
-          <div v-if="pedidosPendentes.length === 0" class="empty-state">
-            <q-icon name="inbox" size="64px" color="grey-4" />
-            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido pendente</div>
-            <div class="text-grey-6 q-mt-sm">Quando receber novos pedidos, aparecerão aqui</div>
-          </div>
+      <!-- Loading -->
+      <div v-if="loading" class="loading-state">
+        <q-spinner color="primary" size="48px" />
+        <div class="text-grey-6 q-mt-md">Carregando pedidos...</div>
+      </div>
 
-          <div v-else class="pedidos-list">
-            <q-card
-              v-for="pedido in pedidosPendentes"
-              :key="pedido.id"
-              class="pedido-card q-mb-md"
-              flat
-              bordered
-            >
-              <q-card-section>
-                <div class="row items-center">
-                  <q-avatar size="50px" class="q-mr-md">
-                    <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
-                  </q-avatar>
-                  <div class="col">
-                    <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
-                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                    <div class="pedido-info">
-                      <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                      {{ formatarData(pedido.data) }}
-                    </div>
-                  </div>
-                </div>
-              </q-card-section>
+      <template v-else>
+        <!-- Tabs de filtro -->
+        <q-tabs
+          v-model="tab"
+          class="filter-tabs"
+          active-color="primary"
+          indicator-color="primary"
+          align="justify"
+        >
+          <q-tab name="pendentes" label="Pendentes">
+            <q-badge v-if="contadores.pendentes > 0" color="red" floating>{{
+              contadores.pendentes
+            }}</q-badge>
+          </q-tab>
+          <q-tab name="confirmados" label="Confirmados">
+            <q-badge v-if="contadores.confirmados > 0" color="green" floating>{{
+              contadores.confirmados
+            }}</q-badge>
+          </q-tab>
+          <q-tab name="concluidos" label="Concluídos" />
+          <q-tab name="cancelados" label="Cancelados" />
+        </q-tabs>
 
-              <q-card-section class="q-pt-none">
-                <div class="pedido-detalhes">
-                  <div class="row q-col-gutter-sm">
-                    <div class="col-6">
-                      <div class="detalhe-label">Duração</div>
-                      <div class="detalhe-valor">{{ obterDuracaoServico(pedido) }} min</div>
-                    </div>
-                    <div class="col-6">
-                      <div class="detalhe-label">Valor</div>
-                      <div class="detalhe-valor text-primary">{{ formatarValor(pedido.valor) }} MZN</div>
-                    </div>
-                  </div>
-                  <div class="row q-mt-sm">
-                    <div class="col-12">
-                      <div class="detalhe-label">Localização</div>
-                      <div class="detalhe-valor flex items-center">
-                        <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
-                        {{ pedido.endereco || 'Endereço não informado' }}
+        <!-- Lista de pedidos -->
+        <q-tab-panels v-model="tab" animated class="bg-transparent">
+          <!-- Pendentes -->
+          <q-tab-panel name="pendentes" class="q-pa-md">
+            <div v-if="pedidosPendentes.length === 0" class="empty-state">
+              <q-icon name="inbox" size="64px" color="grey-4" />
+              <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido pendente</div>
+              <div class="text-grey-6 q-mt-sm">Quando receber novos pedidos, aparecerão aqui</div>
+            </div>
+
+            <div v-else class="pedidos-list">
+              <q-card
+                v-for="pedido in pedidosPendentes"
+                :key="pedido.id"
+                class="pedido-card q-mb-md"
+                flat
+                bordered
+              >
+                <q-card-section>
+                  <div class="row items-center">
+                    <q-avatar size="50px" class="q-mr-md">
+                      <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
+                    </q-avatar>
+                    <div class="col">
+                      <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                      <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                      <div class="pedido-info">
+                        <q-icon name="schedule" size="14px" class="q-mr-xs" />
+                        {{ formatarData(pedido.data) }}
                       </div>
                     </div>
                   </div>
-                  <div v-if="pedido.observacoes" class="row q-mt-sm">
-                    <div class="col-12">
-                      <div class="detalhe-label">Observações</div>
-                      <div class="detalhe-valor">{{ pedido.observacoes }}</div>
-                    </div>
-                  </div>
-                </div>
-              </q-card-section>
+                </q-card-section>
 
-              <q-card-actions align="right" class="q-pa-md">
-                <q-btn
-                  flat
-                  label="Recusar"
-                  color="negative"
-                  icon="close"
-                  @click="recusarPedido(pedido)"
-                  :loading="loadingAcao === pedido.id"
-                />
-                <q-btn
-                  unelevated
-                  label="Aceitar"
-                  color="positive"
-                  icon="check"
-                  @click="aceitarPedido(pedido)"
-                  :loading="loadingAcao === pedido.id"
-                />
-              </q-card-actions>
-            </q-card>
-          </div>
-        </q-tab-panel>
-
-        <!-- Confirmados -->
-        <q-tab-panel name="confirmados" class="q-pa-md">
-          <div v-if="pedidosConfirmados.length === 0" class="empty-state">
-            <q-icon name="check_circle" size="64px" color="grey-4" />
-            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido confirmado</div>
-            <div class="text-grey-6 q-mt-sm">Os pedidos que aceitar aparecerão aqui</div>
-          </div>
-
-          <div v-else class="pedidos-list">
-            <q-card
-              v-for="pedido in pedidosConfirmados"
-              :key="pedido.id"
-              class="pedido-card q-mb-md"
-              flat
-              bordered
-            >
-              <q-card-section>
-                <div class="row items-center">
-                  <q-avatar size="50px" class="q-mr-md">
-                    <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
-                  </q-avatar>
-                  <div class="col">
-                    <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
-                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                    <div class="pedido-info">
-                      <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                      {{ formatarData(pedido.data) }}
+                <q-card-section class="q-pt-none">
+                  <div class="pedido-detalhes">
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-6">
+                        <div class="detalhe-label">Duração</div>
+                        <div class="detalhe-valor">{{ obterDuracaoServico(pedido) }} min</div>
+                      </div>
+                      <div class="col-6">
+                        <div class="detalhe-label">Valor</div>
+                        <div class="detalhe-valor text-primary">{{ formatarValor(pedido.valor) }} MZN</div>
+                      </div>
                     </div>
-                  </div>
-                  <div class="pedido-status confirmado">
-                    <q-icon name="check_circle" size="16px" class="q-mr-xs" />
-                    Confirmado
-                  </div>
-                </div>
-              </q-card-section>
-
-              <q-card-section class="q-pt-none">
-                <div class="pedido-detalhes">
-                  <div class="row q-col-gutter-sm">
-                    <div class="col-6">
-                      <div class="detalhe-label">Duração</div>
-                      <div class="detalhe-valor">{{ obterDuracaoServico(pedido) }} min</div>
+                    <div class="row q-mt-sm">
+                      <div class="col-12">
+                        <div class="detalhe-label">Localização</div>
+                        <div class="detalhe-valor flex items-center">
+                          <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
+                          {{ pedido.endereco || 'Endereço não informado' }}
+                        </div>
+                      </div>
                     </div>
-                    <div class="col-6">
-                      <div class="detalhe-label">Valor</div>
-                      <div class="detalhe-valor text-primary">{{ formatarValor(pedido.valor) }} MZN</div>
-                    </div>
-                  </div>
-                  <div class="row q-mt-sm">
-                    <div class="col-12">
-                      <div class="detalhe-label">Localização</div>
-                      <div class="detalhe-valor flex items-center">
-                        <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
-                        {{ pedido.endereco || 'Endereço não informado' }}
+                    <div v-if="pedido.observacoes" class="row q-mt-sm">
+                      <div class="col-12">
+                        <div class="detalhe-label">Observações</div>
+                        <div class="detalhe-valor">{{ pedido.observacoes }}</div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </q-card-section>
+                </q-card-section>
 
-              <q-card-actions align="right" class="q-pa-md">
-                <q-btn flat label="Chat" icon="chat" color="primary" @click="abrirChat(pedido)" />
-                <q-btn
-                  flat
-                  label="Iniciar"
-                  icon="play_arrow"
-                  color="positive"
-                  @click="iniciarServico(pedido)"
-                  :loading="loadingAcao === pedido.id"
-                />
-              </q-card-actions>
-            </q-card>
-          </div>
-        </q-tab-panel>
+                <q-card-actions align="right" class="q-pa-md">
+                  <q-btn
+                    flat
+                    label="Recusar"
+                    color="negative"
+                    icon="close"
+                    @click="recusarPedido(pedido)"
+                    :loading="loadingAcao === pedido.id"
+                  />
+                  <q-btn
+                    unelevated
+                    label="Aceitar"
+                    color="positive"
+                    icon="check"
+                    @click="aceitarPedido(pedido)"
+                    :loading="loadingAcao === pedido.id"
+                  />
+                </q-card-actions>
+              </q-card>
+            </div>
+          </q-tab-panel>
 
-        <!-- Concluídos -->
-        <q-tab-panel name="concluidos" class="q-pa-md">
-          <div v-if="pedidosConcluidos.length === 0" class="empty-state">
-            <q-icon name="task_alt" size="64px" color="grey-4" />
-            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido concluído</div>
-            <div class="text-grey-6 q-mt-sm">Histórico de serviços realizados</div>
-          </div>
+          <!-- Confirmados -->
+          <q-tab-panel name="confirmados" class="q-pa-md">
+            <div v-if="pedidosConfirmados.length === 0" class="empty-state">
+              <q-icon name="check_circle" size="64px" color="grey-4" />
+              <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido confirmado</div>
+              <div class="text-grey-6 q-mt-sm">Os pedidos que aceitar aparecerão aqui</div>
+            </div>
 
-          <div v-else class="pedidos-list">
-            <q-card
-              v-for="pedido in pedidosConcluidos"
-              :key="pedido.id"
-              class="pedido-card q-mb-md"
-              flat
-              bordered
-            >
-              <q-card-section>
-                <div class="row items-center">
-                  <q-avatar size="50px" class="q-mr-md">
-                    <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
-                  </q-avatar>
-                  <div class="col">
-                    <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
-                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                    <div class="pedido-info">
-                      <q-icon name="calendar_today" size="14px" class="q-mr-xs" />
-                      {{ formatarData(pedido.data) }}
+            <div v-else class="pedidos-list">
+              <q-card
+                v-for="pedido in pedidosConfirmados"
+                :key="pedido.id"
+                class="pedido-card q-mb-md"
+                flat
+                bordered
+              >
+                <q-card-section>
+                  <div class="row items-center">
+                    <q-avatar size="50px" class="q-mr-md">
+                      <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
+                    </q-avatar>
+                    <div class="col">
+                      <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                      <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                      <div class="pedido-info">
+                        <q-icon name="schedule" size="14px" class="q-mr-xs" />
+                        {{ formatarData(pedido.data) }}
+                      </div>
+                    </div>
+                    <div class="pedido-status confirmado">
+                      <q-icon name="check_circle" size="16px" class="q-mr-xs" />
+                      Confirmado
                     </div>
                   </div>
-                  <div class="pedido-status concluido">
-                    <q-icon name="task_alt" size="16px" class="q-mr-xs" />
-                    Concluído
-                  </div>
-                </div>
-              </q-card-section>
+                </q-card-section>
 
-              <q-card-section class="q-pt-none">
-                <div class="row items-center">
-                  <q-icon name="star" color="yellow" size="16px" />
-                  <span class="text-caption text-grey-6 q-ml-sm">Aguardando avaliação do cliente</span>
-                </div>
-              </q-card-section>
-
-              <q-card-actions align="right" class="q-pa-md">
-                <q-btn
-                  flat
-                  label="Ver detalhes"
-                  icon="visibility"
-                  color="primary"
-                  @click="verDetalhes(pedido)"
-                />
-              </q-card-actions>
-            </q-card>
-          </div>
-        </q-tab-panel>
-
-        <!-- Cancelados -->
-        <q-tab-panel name="cancelados" class="q-pa-md">
-          <div v-if="pedidosCancelados.length === 0" class="empty-state">
-            <q-icon name="cancel" size="64px" color="grey-4" />
-            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido cancelado</div>
-          </div>
-
-          <div v-else class="pedidos-list">
-            <q-card
-              v-for="pedido in pedidosCancelados"
-              :key="pedido.id"
-              class="pedido-card q-mb-md"
-              flat
-              bordered
-            >
-              <q-card-section>
-                <div class="row items-center">
-                  <q-avatar size="50px" class="q-mr-md">
-                    <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
-                  </q-avatar>
-                  <div class="col">
-                    <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
-                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                    <div class="pedido-info">
-                      <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                      {{ formatarData(pedido.data) }}
+                <q-card-section class="q-pt-none">
+                  <div class="pedido-detalhes">
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-6">
+                        <div class="detalhe-label">Duração</div>
+                        <div class="detalhe-valor">{{ obterDuracaoServico(pedido) }} min</div>
+                      </div>
+                      <div class="col-6">
+                        <div class="detalhe-label">Valor</div>
+                        <div class="detalhe-valor text-primary">{{ formatarValor(pedido.valor) }} MZN</div>
+                      </div>
+                    </div>
+                    <div class="row q-mt-sm">
+                      <div class="col-12">
+                        <div class="detalhe-label">Localização</div>
+                        <div class="detalhe-valor flex items-center">
+                          <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
+                          {{ pedido.endereco || 'Endereço não informado' }}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div class="pedido-status cancelado">
-                    <q-icon name="cancel" size="16px" class="q-mr-xs" />
-                    Cancelado
+                </q-card-section>
+
+                <q-card-actions align="right" class="q-pa-md">
+                  <q-btn flat label="Chat" icon="chat" color="primary" @click="abrirChat(pedido)" />
+                  <q-btn
+                    flat
+                    label="Iniciar"
+                    icon="play_arrow"
+                    color="positive"
+                    @click="iniciarServico(pedido)"
+                    :loading="loadingAcao === pedido.id"
+                  />
+                </q-card-actions>
+              </q-card>
+            </div>
+          </q-tab-panel>
+
+          <!-- Concluídos -->
+          <q-tab-panel name="concluidos" class="q-pa-md">
+            <div v-if="pedidosConcluidos.length === 0" class="empty-state">
+              <q-icon name="task_alt" size="64px" color="grey-4" />
+              <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido concluído</div>
+              <div class="text-grey-6 q-mt-sm">Histórico de serviços realizados</div>
+            </div>
+
+            <div v-else class="pedidos-list">
+              <q-card
+                v-for="pedido in pedidosConcluidos"
+                :key="pedido.id"
+                class="pedido-card q-mb-md"
+                flat
+                bordered
+              >
+                <q-card-section>
+                  <div class="row items-center">
+                    <q-avatar size="50px" class="q-mr-md">
+                      <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
+                    </q-avatar>
+                    <div class="col">
+                      <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                      <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                      <div class="pedido-info">
+                        <q-icon name="calendar_today" size="14px" class="q-mr-xs" />
+                        {{ formatarData(pedido.data) }}
+                      </div>
+                    </div>
+                    <div class="pedido-status concluido">
+                      <q-icon name="task_alt" size="16px" class="q-mr-xs" />
+                      Concluído
+                    </div>
                   </div>
-                </div>
-              </q-card-section>
-            </q-card>
-          </div>
-        </q-tab-panel>
-      </q-tab-panels>
+                </q-card-section>
+
+                <q-card-section class="q-pt-none">
+                  <div class="row items-center">
+                    <q-icon name="star" color="yellow" size="16px" />
+                    <span class="text-caption text-grey-6 q-ml-sm">Aguardando avaliação do cliente</span>
+                  </div>
+                </q-card-section>
+
+                <q-card-actions align="right" class="q-pa-md">
+                  <q-btn
+                    flat
+                    label="Ver detalhes"
+                    icon="visibility"
+                    color="primary"
+                    @click="verDetalhes(pedido)"
+                  />
+                </q-card-actions>
+              </q-card>
+            </div>
+          </q-tab-panel>
+
+          <!-- Cancelados -->
+          <q-tab-panel name="cancelados" class="q-pa-md">
+            <div v-if="pedidosCancelados.length === 0" class="empty-state">
+              <q-icon name="cancel" size="64px" color="grey-4" />
+              <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido cancelado</div>
+            </div>
+
+            <div v-else class="pedidos-list">
+              <q-card
+                v-for="pedido in pedidosCancelados"
+                :key="pedido.id"
+                class="pedido-card q-mb-md"
+                flat
+                bordered
+              >
+                <q-card-section>
+                  <div class="row items-center">
+                    <q-avatar size="50px" class="q-mr-md">
+                      <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
+                    </q-avatar>
+                    <div class="col">
+                      <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                      <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                      <div class="pedido-info">
+                        <q-icon name="schedule" size="14px" class="q-mr-xs" />
+                        {{ formatarData(pedido.data) }}
+                      </div>
+                    </div>
+                    <div class="pedido-status cancelado">
+                      <q-icon name="cancel" size="16px" class="q-mr-xs" />
+                      Cancelado
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </q-tab-panel>
+        </q-tab-panels>
+      </template>
     </template>
 
     <!-- Botão flutuante para configurações -->
@@ -318,21 +354,18 @@ const $q = useQuasar();
 const prestadorStore = usePrestadorStore();
 
 // Estado
+const carregamentoInicial = ref(true);
 const tab = ref('pendentes');
 const loadingAcao = ref<number | null>(null);
 const loading = ref(false);
 
-// Função auxiliar para obter duração do serviço
 const obterDuracaoServico = (pedido: SolicitacaoData): number => {
-  // Se o serviço tem duração, usa ela
   if (pedido.servico && 'duracao' in pedido.servico && typeof pedido.servico.duracao === 'number') {
     return pedido.servico.duracao;
   }
-  // Caso contrário, valor padrão
   return 60;
 };
 
-// Computed para pedidos filtrados por status
 const pedidosPendentes = computed(() =>
   prestadorStore.solicitacoes.filter(p => p.status === 'pendente')
 );
@@ -349,7 +382,6 @@ const pedidosCancelados = computed(() =>
   prestadorStore.solicitacoes.filter(p => p.status === 'cancelado')
 );
 
-// Contadores
 const contadores = computed(() => ({
   pendentes: pedidosPendentes.value.length,
   confirmados: pedidosConfirmados.value.length,
@@ -357,7 +389,6 @@ const contadores = computed(() => ({
   cancelados: pedidosCancelados.value.length,
 }));
 
-// Formatação
 const formatarData = (dataString: string) => {
   const date = new Date(dataString);
   const now = new Date();
@@ -384,7 +415,6 @@ const formatarValor = (valor: number) => {
   });
 };
 
-// Ações
 const aceitarPedido = (pedido: SolicitacaoData) => {
   loadingAcao.value = pedido.id;
 
@@ -465,7 +495,6 @@ const recusarPedido = (pedido: SolicitacaoData) => {
   });
 };
 
-// ✅ CORREÇÃO: Função iniciarServico agora recebe o pedido como parâmetro
 const iniciarServico = (pedido: SolicitacaoData) => {
   $q.dialog({
     title: 'Iniciar serviço',
@@ -473,8 +502,6 @@ const iniciarServico = (pedido: SolicitacaoData) => {
     cancel: true,
     persistent: true,
   }).onOk(() => {
-    // TODO: Implementar chamada para iniciar serviço
-    // await prestadorStore.iniciarServico(pedido.id);
     $q.notify({
       type: 'positive',
       message: 'Serviço iniciado!',
@@ -489,7 +516,6 @@ const abrirChat = (pedido: SolicitacaoData) => {
 };
 
 const verDetalhes = (pedido: SolicitacaoData) => {
-  // TODO: Abrir modal com detalhes do pedido
   $q.notify({
     type: 'info',
     message: `Pedido #${pedido.numero || pedido.id}`,
@@ -529,7 +555,6 @@ const configurarNotificacoes = (): void => {
   });
 };
 
-// Carregar dados
 const carregarPedidos = async () => {
   loading.value = true;
   try {
@@ -546,13 +571,17 @@ const carregarPedidos = async () => {
   }
 };
 
-// Inicialização
-onMounted(() => {
-  void carregarPedidos();
+onMounted(async () => {
+  carregamentoInicial.value = true;
+  try {
+    await carregarPedidos();
+  } finally {
+    setTimeout(() => {
+      carregamentoInicial.value = false;
+    }, 500);
+  }
 });
 </script>
-
-
 
 <style scoped lang="scss">
 $purple-primary: #667eea;
@@ -566,6 +595,144 @@ $gray-600: #757575;
 $gray-700: #616161;
 $gray-800: #424242;
 $gray-900: #212121;
+
+/* ========================================== */
+/* SKELETON LOADING STYLES */
+/* ========================================== */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-loading {
+  background: $gray-100;
+  min-height: 100vh;
+}
+
+.skeleton-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 16px;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-title {
+  width: 180px;
+  height: 24px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-tabs {
+  display: flex;
+  background: white;
+  padding: 8px 0;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-tab {
+  flex: 1;
+  height: 40px;
+  border-radius: 8px;
+  margin: 0 4px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-cards {
+  padding: 16px;
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.skeleton-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  margin-right: 16px;
+}
+
+.skeleton-card-info {
+  flex: 1;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin: 6px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-card-body {
+  margin: 16px 0;
+}
+
+.skeleton-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid $gray-200;
+}
+
+.skeleton-btn {
+  width: 100px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-60 { width: 60%; }
+
+/* ========================================== */
+/* ESTILOS ORIGINAIS (mantidos sem alterações) */
+/* ========================================== */
 
 .prestador-pedidos {
   min-height: 100vh;
@@ -672,7 +839,6 @@ $gray-900: #212121;
   }
 }
 
-// Animações
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -688,7 +854,6 @@ $gray-900: #212121;
   animation: slideIn 0.3s ease;
 }
 
-// Responsividade
 @media (max-width: 599px) {
   .pedido-card {
     .row.q-col-gutter-sm > .col-6 {

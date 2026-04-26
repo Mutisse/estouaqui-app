@@ -1,11 +1,50 @@
 <template>
   <q-page class="prestador-dashboard bg-grey-1">
-    <!-- Loading -->
-    <div v-if="loading" class="text-center q-pa-xl">
-      <q-spinner color="primary" size="50px" />
-      <p class="q-mt-md text-grey-7">A carregar dashboard...</p>
+    <!-- Skeleton Loading (enquanto carrega) -->
+    <div v-if="carregamentoInicial" class="skeleton-loading">
+      <div class="skeleton-header">
+        <div class="skeleton-greeting">
+          <div class="skeleton-line w-40"></div>
+          <div class="skeleton-line w-60"></div>
+        </div>
+        <div class="skeleton-refresh-btn"></div>
+      </div>
+      <div class="skeleton-cards q-px-md">
+        <div class="row q-col-gutter-sm">
+          <div v-for="i in 4" :key="i" class="col-6">
+            <div class="skeleton-card"></div>
+          </div>
+        </div>
+      </div>
+      <div class="skeleton-section q-px-md q-mb-md">
+        <div class="skeleton-section-header">
+          <div class="skeleton-line w-30"></div>
+          <div class="skeleton-line w-20"></div>
+        </div>
+        <div class="skeleton-list">
+          <div v-for="i in 2" :key="i" class="skeleton-list-item">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-list-info">
+              <div class="skeleton-line w-50"></div>
+              <div class="skeleton-line w-40"></div>
+              <div class="skeleton-line w-30"></div>
+            </div>
+            <div class="skeleton-badge"></div>
+          </div>
+        </div>
+      </div>
+      <div class="skeleton-section q-px-md q-mb-md">
+        <div class="skeleton-section-header">
+          <div class="skeleton-line w-30"></div>
+        </div>
+        <div class="skeleton-actions">
+          <div v-for="i in 4" :key="i" class="skeleton-action-card"></div>
+        </div>
+      </div>
+     
     </div>
 
+    <!-- Conteúdo original -->
     <template v-else>
       <!-- Cabeçalho com saudação -->
       <div class="header-greeting q-pa-md">
@@ -213,8 +252,8 @@ const authStore = useAuthStore();
 const prestadorStore = usePrestadorStore();
 const $q = useQuasar();
 
+const carregamentoInicial = ref(true);
 const recarregando = ref(false);
-const loading = ref(true);
 
 // Computed com dados do store
 const prestadorNome = computed(() => authStore.user?.nome || 'Prestador');
@@ -310,7 +349,7 @@ const recarregarDados = async () => {
 
 // Carregar dados
 const carregarDados = async () => {
-  loading.value = true;
+  carregamentoInicial.value = true;
   try {
     await Promise.all([
       prestadorStore.fetchStats(),
@@ -326,7 +365,9 @@ const carregarDados = async () => {
       position: 'top',
     });
   } finally {
-    loading.value = false;
+    setTimeout(() => {
+      carregamentoInicial.value = false;
+    }, 500);
   }
 };
 
@@ -347,6 +388,148 @@ $gray-600: #757575;
 $gray-700: #616161;
 $gray-800: #424242;
 $gray-900: #212121;
+
+/* ========================================== */
+/* SKELETON LOADING STYLES */
+/* ========================================== */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-loading {
+  background: $gray-100;
+  min-height: 100vh;
+}
+
+.skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 16px;
+  background: white;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-greeting {
+  flex: 1;
+}
+
+.skeleton-refresh-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-cards {
+  padding: 16px;
+}
+
+.skeleton-card {
+  height: 100px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.skeleton-section {
+  margin-bottom: 24px;
+}
+
+.skeleton-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.skeleton-list {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-list-info {
+  flex: 1;
+}
+
+.skeleton-badge {
+  width: 60px;
+  height: 24px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.skeleton-action-card {
+  height: 90px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin: 6px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+}
+
+.w-20 { width: 20%; }
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-60 { width: 60%; }
+
+/* ========================================== */
+/* ESTILOS ORIGINAIS (mantidos sem alterações) */
+/* ========================================== */
 
 .prestador-dashboard {
   min-height: 100vh;

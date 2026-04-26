@@ -10,10 +10,10 @@ declare module 'vue' {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // ==========================================
-// CONTROLE DE INATIVIDADE (OTIMIZADO)
+// CONTROLE DE INATIVIDADE
 // ==========================================
 
 let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
@@ -57,14 +57,15 @@ const monitorUserActivity = () => {
 monitorUserActivity();
 
 // ==========================================
-// CONFIGURAÇÃO DO AXIOS (OTIMIZADA)
+// CONFIGURAÇÃO DO AXIOS (TIMEOUT AUMENTADO)
 // ==========================================
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // Reduzido de 120s para 30s
+  timeout: 120000, // ← ALTERADO: 30s -> 120s (2 minutos)
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 });
 
@@ -81,16 +82,14 @@ api.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error)
 );
 
-// Interceptor de resposta (OTIMIZADO)
+// Interceptor de resposta
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Tratamento de timeout
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-      // Silencioso - sem log
+      console.warn('Requisição timeout:', error.config?.url);
     }
 
-    // Tratamento de 401 (não autorizado)
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');
       delete api.defaults.headers.common['Authorization'];

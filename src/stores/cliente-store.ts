@@ -33,13 +33,32 @@ export interface PrestadorData {
   media_avaliacao: number;
   total_avaliacoes: number;
   verificado: boolean;
-  categorias?: { id: number; nome: string }[];
-  distancia?: number;
   disponivel?: boolean;
+  categorias?: { id: number; nome: string; icone?: string; cor?: string }[];
+  servicos?: {
+    id: number;
+    nome: string;
+    preco: number;
+    duracao: number;
+    descricao?: string;
+    icone?: string;
+  }[];
+  avaliacoes?: {
+    id: number;
+    nota: number;
+    comentario?: string;
+    created_at: string;
+    cliente?: { id: number; nome: string; foto: string | null };
+  }[];
+  portfolio?: string[];
+  distancia?: number;
+  latitude?: number;
+  longitude?: number;
+  created_at?: string;
+  // ✅ ADICIONAR ESTAS DUAS LINHAS
   lat?: number;
   lng?: number;
 }
-
 export interface CategoriaData {
   id: number;
   nome: string;
@@ -101,7 +120,7 @@ export interface NotificacaoData {
     cliente_nome?: string;
     valor?: string;
     pedido_numero?: string;
-    [key: string]: unknown;  // Para outros campos
+    [key: string]: unknown; // Para outros campos
   };
 }
 
@@ -493,8 +512,6 @@ export const useClienteStore = defineStore('cliente', () => {
   }): Promise<PedidoData | null> {
     loading.value = true;
 
-
-
     try {
       const formData = new FormData();
 
@@ -506,8 +523,6 @@ export const useClienteStore = defineStore('cliente', () => {
       if (data.foto) {
         formData.append('foto', data.foto);
       }
-
-
 
       const response = await api.post(CLIENTE_ENDPOINTS.CRIAR_PEDIDO, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -906,15 +921,44 @@ export const useClienteStore = defineStore('cliente', () => {
           cacheKey,
           async () => {
             const response = await api.get(CLIENTE_ENDPOINTS.PRESTADOR_DETALHES(id.toString()));
-            const prestador = extractDataFromResponse<RawPrestadorData>(response.data);
 
-            return {
-              ...prestador,
-              lat: prestador.latitude ?? 0,
-              lng: prestador.longitude ?? 0,
-              disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
-              categorias: prestador.categorias || [],
-            } as PrestadorData;
+            // ✅ EXTRAIR OS DADOS CORRETAMENTE DA RESPOSTA
+            let prestadorRaw = response.data.data;
+
+            // Se os dados vierem dentro de um objeto data.data (caso paginado)
+            if (prestadorRaw && prestadorRaw.data && Array.isArray(prestadorRaw.data)) {
+              prestadorRaw = prestadorRaw.data[0];
+            }
+
+            if (!prestadorRaw) {
+              console.error('❌ Dados do prestador não encontrados na resposta:', response.data);
+              return null;
+            }
+
+            // ✅ Mapear os dados completos do prestador
+            const prestadorMapeado: PrestadorData = {
+              id: prestadorRaw.id,
+              nome: prestadorRaw.nome,
+              email: prestadorRaw.email,
+              telefone: prestadorRaw.telefone,
+              foto: prestadorRaw.foto || null,
+              profissao: prestadorRaw.profissao,
+              sobre: prestadorRaw.sobre,
+              media_avaliacao: prestadorRaw.media_avaliacao || 0,
+              total_avaliacoes: prestadorRaw.total_avaliacoes || 0,
+              verificado: prestadorRaw.verificado || false,
+              disponivel: prestadorRaw.disponivel !== undefined ? prestadorRaw.disponivel : true,
+              latitude: prestadorRaw.latitude,
+              longitude: prestadorRaw.longitude,
+              created_at: prestadorRaw.created_at,
+              // ✅ CAMPOS ADICIONAIS QUE O BACKEND RETORNA
+              categorias: prestadorRaw.categorias || [],
+              servicos: prestadorRaw.servicos || [],
+              avaliacoes: prestadorRaw.avaliacoes || [],
+              portfolio: prestadorRaw.portfolio || [],
+            };
+
+            return prestadorMapeado;
           },
           CACHE_TTL.LONG,
         );

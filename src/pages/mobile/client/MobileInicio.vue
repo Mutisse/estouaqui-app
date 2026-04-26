@@ -1,11 +1,66 @@
 <template>
   <q-page class="inicio-page bg-grey-1">
-    <!-- Loading inicial -->
-    <div v-if="carregandoInicial" class="text-center q-pa-xl">
-      <q-spinner color="primary" size="50px" />
-      <p class="q-mt-md text-grey-7">A carregar a sua página inicial...</p>
+    <!-- Skeleton Loading (mostra enquanto carrega) -->
+    <div v-if="carregandoInicial" class="skeleton-loading">
+      <!-- Skeleton Header -->
+      <div class="skeleton-header">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-header-text">
+          <div class="skeleton-line w-60"></div>
+          <div class="skeleton-line w-40"></div>
+        </div>
+        <div class="skeleton-date"></div>
+      </div>
+
+      <!-- Skeleton Stats Cards -->
+      <div class="skeleton-stats">
+        <div v-for="i in 3" :key="i" class="skeleton-stat-card">
+          <div class="skeleton-icon"></div>
+          <div class="skeleton-line w-50"></div>
+          <div class="skeleton-line w-30"></div>
+        </div>
+      </div>
+
+      <!-- Skeleton Banner -->
+      <div class="skeleton-banner"></div>
+
+      <!-- Skeleton Categories -->
+      <div class="skeleton-section">
+        <div class="skeleton-section-header">
+          <div class="skeleton-line w-40"></div>
+          <div class="skeleton-line w-20"></div>
+        </div>
+        <div class="skeleton-categorias">
+          <div v-for="i in 4" :key="i" class="skeleton-categoria-item">
+            <div class="skeleton-category-icon"></div>
+            <div class="skeleton-line w-60"></div>
+            <div class="skeleton-line w-40"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skeleton Prestadores -->
+      <div class="skeleton-section">
+        <div class="skeleton-section-header">
+          <div class="skeleton-line w-40"></div>
+          <div class="skeleton-line w-20"></div>
+        </div>
+        <div class="skeleton-prestadores">
+          <div v-for="i in 2" :key="i" class="skeleton-prestador-card">
+            <div class="skeleton-card-img"></div>
+            <div class="skeleton-card-info">
+              <div class="skeleton-line w-80"></div>
+              <div class="skeleton-line w-60"></div>
+              <div class="skeleton-line w-40"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
     </div>
 
+    <!-- Conteúdo real -->
     <template v-else>
       <!-- Saudação do usuário com foto -->
       <div class="greeting-section q-pa-md">
@@ -420,6 +475,7 @@
     </q-dialog>
   </q-page>
 </template>
+
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -561,7 +617,6 @@ const getStatusTexto = (status: string): string => {
   return statusMap[status] || status;
 };
 
-// getPromoGradient
 const getPromoGradient = (promo: PromocaoData): { background: string } => {
   const gradients: string[] = [
     'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -655,32 +710,18 @@ const removerFoto = () => {
   }
 };
 
-// ✅ MÉTODO CORRIGIDO - COM LOGS PARA VERIFICAR OS DADOS
 const criarPedido = async () => {
-  // 🔍 LOGS DE VERIFICAÇÃO
-  console.log('========== VERIFICANDO DADOS ANTES DE ENVIAR ==========');
-  console.log('📌 categoria_id:', novoPedido.value.categoria_id);
-  console.log('📌 tipo da categoria_id:', typeof novoPedido.value.categoria_id);
-  console.log('📌 descricao:', novoPedido.value.descricao);
-  console.log('📌 endereco:', novoPedido.value.endereco);
-  console.log('📌 fotoFile:', fotoFile.value ? fotoFile.value.name : 'Nenhuma foto');
-  console.log('=======================================================');
-
-  // ✅ VALIDAÇÃO EXPLÍCITA
   if (!novoPedido.value.categoria_id) {
-    console.error('❌ categoria_id é NULL ou undefined!');
     $q.notify({ type: 'warning', message: 'Selecione o tipo de serviço', position: 'top' });
     return;
   }
 
   if (!novoPedido.value.descricao || novoPedido.value.descricao.trim() === '') {
-    console.error('❌ descricao está vazia!');
     $q.notify({ type: 'warning', message: 'Descreva o serviço que precisa', position: 'top' });
     return;
   }
 
   if (!novoPedido.value.endereco || novoPedido.value.endereco.trim() === '') {
-    console.error('❌ endereco está vazio!');
     $q.notify({ type: 'warning', message: 'Informe o endereço', position: 'top' });
     return;
   }
@@ -688,18 +729,14 @@ const criarPedido = async () => {
   carregandoCriarPedido.value = true;
 
   try {
-    console.log('🚀 Enviando para o store...');
     const resultado = await clienteStore.criarPedidoServico({
-      categoria_id: Number(novoPedido.value.categoria_id), // ✅ GARANTIR QUE É NÚMERO
+      categoria_id: Number(novoPedido.value.categoria_id),
       descricao: novoPedido.value.descricao.trim(),
       endereco: novoPedido.value.endereco.trim(),
       foto: fotoFile.value,
     });
 
-    console.log('📦 Resposta do store:', resultado);
-
     if (resultado) {
-      console.log('✅ Pedido criado com sucesso! ID:', resultado.id);
       $q.notify({
         type: 'positive',
         message: 'Pedido publicado com sucesso! Prestadores vão analisar.',
@@ -709,7 +746,6 @@ const criarPedido = async () => {
       await clienteStore.fetchDashboard(true);
       await clienteStore.fetchMeusPedidos(true);
     } else {
-      console.error('❌ Store retornou null');
       $q.notify({
         type: 'negative',
         message: 'Erro ao criar pedido. Tente novamente.',
@@ -718,8 +754,6 @@ const criarPedido = async () => {
     }
   } catch (error) {
     const err = error as AxiosError<{ message?: string }>;
-    console.error('❌ Erro detalhado:', err);
-    console.error('❌ Resposta do erro:', err.response?.data);
     $q.notify({
       type: 'negative',
       message: err.response?.data?.message || 'Erro ao criar pedido. Tente novamente.',
@@ -739,24 +773,22 @@ const carregarCategoriasSelect = async () => {
         label: cat.nome,
         value: cat.id,
       }));
-
     }
   } catch (error) {
     console.error('Erro ao carregar categorias:', error);
   }
 };
 
-// Carregamento faseado
+// Carregamento faseado COM SKELETON
 const carregarDados = async (): Promise<void> => {
   carregandoInicial.value = true;
 
   try {
-    // ✅ CARREGAR CATEGORIAS PRIMEIRO
+    // Carregar categorias primeiro
     try {
       const categorias = await clienteStore.fetchCategorias();
       if (categorias && Array.isArray(categorias)) {
         categoriasCarregadas.value = categorias;
-        
       } else {
         categoriasCarregadas.value = [];
       }
@@ -789,14 +821,11 @@ const carregarDados = async (): Promise<void> => {
     console.error('Erro ao carregar dados:', error);
     carregandoDestaque.value = false;
     carregandoTop.value = false;
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar alguns dados. Tente novamente.',
-      position: 'top',
-      timeout: 3000,
-    });
   } finally {
-    carregandoInicial.value = false;
+    // Delay mínimo para o skeleton ser visível (evita flicker)
+    setTimeout(() => {
+      carregandoInicial.value = false;
+    }, 500);
   }
 };
 
@@ -827,7 +856,181 @@ $gray-900: #212121;
   min-height: 100vh;
 }
 
-/* Saudação */
+/* ========================================== */
+/* SKELETON LOADING STYLES (SEM TEXTO) */
+/* ========================================== */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-loading {
+  background: $gray-100;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.skeleton-header {
+  background: white;
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-header-text {
+  flex: 1;
+}
+
+.skeleton-date {
+  width: 80px;
+  height: 20px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin: 6px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-stats {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+}
+
+.skeleton-stat-card {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin: 0 auto 8px auto;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-banner {
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  height: 100px;
+  border-radius: 16px;
+  margin: 0 16px 24px 16px;
+}
+
+.skeleton-section {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 0 16px 16px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.skeleton-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.skeleton-categorias {
+  display: flex;
+  gap: 12px;
+}
+
+.skeleton-categoria-item {
+  flex: 1;
+  text-align: center;
+}
+
+.skeleton-category-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin: 0 auto 8px auto;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-prestadores {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-prestador-card {
+  display: flex;
+  gap: 12px;
+  padding: 8px;
+}
+
+.skeleton-card-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-card-info {
+  flex: 1;
+}
+
+.skeleton-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+}
+
+.w-20 { width: 20%; }
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-60 { width: 60%; }
+.w-80 { width: 80%; }
+
+/* ========================================== */
+/* ESTILOS NORMAIS (mantidos) */
+/* ========================================== */
+
 .greeting-section {
   display: flex;
   justify-content: space-between;
@@ -867,7 +1070,6 @@ $gray-900: #212121;
   }
 }
 
-/* Cards de resumo */
 .summary-card {
   background: white;
   border-radius: 12px;
@@ -895,7 +1097,6 @@ $gray-900: #212121;
   }
 }
 
-/* Categorias */
 .category-card {
   background: white;
   border-radius: 12px;
@@ -924,7 +1125,6 @@ $gray-900: #212121;
   }
 }
 
-/* Banner promocional */
 .promo-banner {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   border-radius: 16px;
@@ -949,7 +1149,6 @@ $gray-900: #212121;
   }
 }
 
-/* Seções */
 .section {
   margin-bottom: 24px;
 }
@@ -973,7 +1172,6 @@ $gray-900: #212121;
   }
 }
 
-/* Cards de prestadores */
 .service-card {
   border-radius: 12px;
   overflow: hidden;
@@ -1013,7 +1211,6 @@ $gray-900: #212121;
   }
 }
 
-/* Slider de promoções */
 .promo-slider {
   .promo-card-slide {
     height: 100%;
@@ -1065,7 +1262,6 @@ $gray-900: #212121;
   }
 }
 
-/* Cards de prestadores mais avaliados */
 .provider-card {
   background: white;
   border-radius: 12px;
@@ -1112,7 +1308,6 @@ $gray-900: #212121;
   }
 }
 
-/* Pedidos recentes */
 .recent-order-card {
   background: white;
   border-radius: 12px;
@@ -1178,7 +1373,6 @@ $gray-900: #212121;
   margin: 20px;
 }
 
-/* Botão flutuante */
 .fab-button {
   box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
   transition: all 0.3s ease;
@@ -1189,7 +1383,6 @@ $gray-900: #212121;
   }
 }
 
-/* Input label */
 .input-label {
   font-size: 0.85rem;
   font-weight: 600;
@@ -1197,7 +1390,6 @@ $gray-900: #212121;
   margin-bottom: 5px;
 }
 
-/* Upload de foto */
 .photo-upload-area {
   border: 2px dashed $gray-300;
   border-radius: 15px;

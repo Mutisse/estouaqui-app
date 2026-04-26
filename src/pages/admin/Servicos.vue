@@ -20,145 +20,190 @@
       </div>
     </div>
 
-    <q-card class="servicos-card">
-      <q-card-section>
-        <div class="row justify-between items-center">
-          <div class="text-h6">Lista de Serviços</div>
-          <div class="row q-gutter-sm">
-            <q-select
-              v-model="filtroCategoria"
-              :options="categoriasOptions"
-              label="Filtrar por categoria"
-              dense
-              outlined
-              clearable
-              class="filter-select"
-              style="min-width: 150px"
-              @update:model-value="carregarServicos"
-            />
-            <q-select
-              v-model="filtroAtivo"
-              :options="statusOptions"
-              label="Status"
-              dense
-              outlined
-              clearable
-              class="filter-select"
-              style="min-width: 120px"
-              @update:model-value="carregarServicos"
-            />
+    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
+    <div v-if="adminStore.loading" class="skeleton-container">
+      <div class="skeleton-card">
+        <div class="skeleton-header">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-filters">
+            <div class="skeleton-select"></div>
+            <div class="skeleton-select"></div>
           </div>
         </div>
-      </q-card-section>
-
-      <q-table
-        :rows="adminStore.servicos"
-        :columns="colunas"
-        row-key="id"
-        :loading="adminStore.loading"
-        :rows-per-page-options="[10, 20, 50]"
-        class="servicos-table"
-      >
-        <!-- Nome do serviço -->
-        <template v-slot:body-cell-nome="props">
-          <q-td :props="props">
-            <div class="servico-nome">
-              <q-icon
-                :name="getIconeCategoria(props.row.categoria?.nome)"
-                size="20px"
-                class="q-mr-sm"
-                :color="getCorCategoria(props.row.categoria?.nome)"
-              />
-              <span class="text-weight-medium">{{ props.row.nome }}</span>
-            </div>
-          </q-td>
-        </template>
-
-        <!-- Categoria com cor -->
-        <template v-slot:body-cell-categoria="props">
-          <q-td :props="props">
-            <q-chip
-              size="sm"
-              :color="getCorCategoria(props.row.categoria?.nome)"
-              text-color="white"
-              dense
-            >
-              {{ props.row.categoria?.nome || 'Sem categoria' }}
-            </q-chip>
-          </q-td>
-        </template>
-
-        <!-- Preço -->
-        <template v-slot:body-cell-preco="props">
-          <q-td :props="props">
-            <div class="preco-value">
-              <strong>{{ formatMoney(props.row.preco) }}</strong>
-            </div>
-          </q-td>
-        </template>
-
-        <!-- Duração -->
-        <template v-slot:body-cell-duracao="props">
-          <q-td :props="props">
-            <div class="duracao-value">
-              <q-icon name="schedule" size="14px" class="q-mr-xs" />
-              {{ props.row.duracao }} min
-            </div>
-          </q-td>
-        </template>
-
-        <!-- Status -->
-        <template v-slot:body-cell-ativo="props">
-          <q-td :props="props">
-            <q-badge :color="props.row.ativo ? 'positive' : 'grey'" class="status-badge">
-              <q-icon
-                :name="props.row.ativo ? 'check_circle' : 'cancel'"
-                size="12px"
-                class="q-mr-xs"
-              />
-              {{ props.row.ativo ? 'Ativo' : 'Inativo' }}
-            </q-badge>
-          </q-td>
-        </template>
-
-        <!-- Ações -->
-        <template v-slot:body-cell-acoes="props">
-          <q-td :props="props">
-            <div class="action-buttons">
-              <q-btn
-                flat
-                round
-                icon="edit"
-                size="sm"
-                color="secondary"
-                @click="editarServico(props.row)"
-              >
-                <q-tooltip>Editar serviço</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                round
-                icon="delete"
-                size="sm"
-                color="negative"
-                @click="removerServico(props.row)"
-              >
-                <q-tooltip>Remover serviço</q-tooltip>
-              </q-btn>
-            </div>
-          </q-td>
-        </template>
-
-        <template v-slot:no-data>
-          <div class="text-center q-pa-md">
-            <q-icon name="construction" size="48px" color="grey" />
-            <div class="text-subtitle1 q-mt-sm">Nenhum serviço encontrado</div>
+        <div class="skeleton-table">
+          <div class="skeleton-table-header">
+            <div v-for="i in 6" :key="i" class="skeleton-header-cell"></div>
           </div>
-        </template>
-      </q-table>
-    </q-card>
+          <div v-for="row in 5" :key="row" class="skeleton-table-row">
+            <div class="skeleton-cell">
+              <div class="skeleton-text"></div>
+            </div>
+            <div class="skeleton-cell">
+              <div class="skeleton-chip"></div>
+            </div>
+            <div class="skeleton-cell">
+              <div class="skeleton-text"></div>
+            </div>
+            <div class="skeleton-cell">
+              <div class="skeleton-text"></div>
+            </div>
+            <div class="skeleton-cell">
+              <div class="skeleton-badge"></div>
+            </div>
+            <div class="skeleton-cell">
+              <div class="skeleton-actions">
+                <div class="skeleton-action-icon"></div>
+                <div class="skeleton-action-icon"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="skeleton-shimmer"></div>
+    </div>
 
-    <!-- Dialog para editar serviço (apenas edição, sem criação) -->
+    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <template v-else>
+      <q-card class="servicos-card">
+        <q-card-section>
+          <div class="row justify-between items-center">
+            <div class="text-h6">Lista de Serviços</div>
+            <div class="row q-gutter-sm">
+              <q-select
+                v-model="filtroCategoria"
+                :options="categoriasOptions"
+                label="Filtrar por categoria"
+                dense
+                outlined
+                clearable
+                class="filter-select"
+                style="min-width: 150px"
+                @update:model-value="carregarServicos"
+              />
+              <q-select
+                v-model="filtroAtivo"
+                :options="statusOptions"
+                label="Status"
+                dense
+                outlined
+                clearable
+                class="filter-select"
+                style="min-width: 120px"
+                @update:model-value="carregarServicos"
+              />
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-table
+          :rows="adminStore.servicos"
+          :columns="colunas"
+          row-key="id"
+          :loading="adminStore.loading"
+          :rows-per-page-options="[10, 20, 50]"
+          class="servicos-table"
+        >
+          <!-- Nome do serviço -->
+          <template v-slot:body-cell-nome="props">
+            <q-td :props="props">
+              <div class="servico-nome">
+                <q-icon
+                  :name="getIconeCategoria(props.row.categoria?.nome)"
+                  size="20px"
+                  class="q-mr-sm"
+                  :color="getCorCategoria(props.row.categoria?.nome)"
+                />
+                <span class="text-weight-medium">{{ props.row.nome }}</span>
+              </div>
+            </q-td>
+          </template>
+
+          <!-- Categoria com cor -->
+          <template v-slot:body-cell-categoria="props">
+            <q-td :props="props">
+              <q-chip
+                size="sm"
+                :color="getCorCategoria(props.row.categoria?.nome)"
+                text-color="white"
+                dense
+              >
+                {{ props.row.categoria?.nome || 'Sem categoria' }}
+              </q-chip>
+            </q-td>
+          </template>
+
+          <!-- Preço -->
+          <template v-slot:body-cell-preco="props">
+            <q-td :props="props">
+              <div class="preco-value">
+                <strong>{{ formatMoney(props.row.preco) }}</strong>
+              </div>
+            </q-td>
+          </template>
+
+          <!-- Duração -->
+          <template v-slot:body-cell-duracao="props">
+            <q-td :props="props">
+              <div class="duracao-value">
+                <q-icon name="schedule" size="14px" class="q-mr-xs" />
+                {{ props.row.duracao }} min
+              </div>
+            </q-td>
+          </template>
+
+          <!-- Status -->
+          <template v-slot:body-cell-ativo="props">
+            <q-td :props="props">
+              <q-badge :color="props.row.ativo ? 'positive' : 'grey'" class="status-badge">
+                <q-icon
+                  :name="props.row.ativo ? 'check_circle' : 'cancel'"
+                  size="12px"
+                  class="q-mr-xs"
+                />
+                {{ props.row.ativo ? 'Ativo' : 'Inativo' }}
+              </q-badge>
+            </q-td>
+          </template>
+
+          <!-- Ações -->
+          <template v-slot:body-cell-acoes="props">
+            <q-td :props="props">
+              <div class="action-buttons">
+                <q-btn
+                  flat
+                  round
+                  icon="edit"
+                  size="sm"
+                  color="secondary"
+                  @click="editarServico(props.row)"
+                >
+                  <q-tooltip>Editar serviço</q-tooltip>
+                </q-btn>
+                <q-btn
+                  flat
+                  round
+                  icon="delete"
+                  size="sm"
+                  color="negative"
+                  @click="removerServico(props.row)"
+                >
+                  <q-tooltip>Remover serviço</q-tooltip>
+                </q-btn>
+              </div>
+            </q-td>
+          </template>
+
+          <template v-slot:no-data>
+            <div class="text-center q-pa-md">
+              <q-icon name="construction" size="48px" color="grey" />
+              <div class="text-subtitle1 q-mt-sm">Nenhum serviço encontrado</div>
+            </div>
+          </template>
+        </q-table>
+      </q-card>
+    </template>
+
+    <!-- Dialog para editar serviço -->
     <q-dialog v-model="mostrarDialog" persistent transition="scale">
       <q-card style="min-width: 500px" class="servico-dialog">
         <q-card-section class="dialog-header bg-secondary text-white">
@@ -402,54 +447,81 @@ const editarServico = (servico: ServicoData) => {
 };
 
 // Salvar serviço (apenas edição)
-// Salvar serviço (apenas edição)
 const salvarServico = async () => {
   if (!form.nome || !form.categoria_id || !form.preco) {
     $q.notify({
       type: 'warning',
       message: 'Preencha todos os campos obrigatórios',
-      position: 'top'
-    })
-    return
+      position: 'top',
+    });
+    return;
   }
 
-  salvando.value = true
+  salvando.value = true;
   try {
-    // TODO: Implementar update de serviço quando disponível
-    await new Promise(resolve => setTimeout(resolve, 100)) // Simula operação assíncrona
+    const response = await adminStore.updateServico(servicoEditandoId.value!, {
+      categoria_id: form.categoria_id,
+      descricao: form.descricao,
+      preco: form.preco,
+      duracao: form.duracao,
+      ativo: form.ativo,
+    });
 
-    $q.notify({
-      type: 'info',
-      message: 'Edição de serviço em desenvolvimento',
-      position: 'top'
-    })
-    mostrarDialog.value = false
+    if (response?.success) {
+      $q.notify({
+        type: 'positive',
+        message: 'Serviço atualizado com sucesso!',
+        position: 'top',
+      });
+      mostrarDialog.value = false;
+      await carregarServicos();
+    } else {
+      throw new Error('Erro ao salvar');
+    }
   } catch (err) {
-    console.error('Erro ao salvar serviço:', err)
+    console.error('Erro ao salvar serviço:', err);
     $q.notify({
       type: 'negative',
       message: 'Erro ao salvar serviço',
-      position: 'top'
-    })
+      position: 'top',
+    });
   } finally {
-    salvando.value = false
+    salvando.value = false;
   }
-}
+};
 
-
+// Remover serviço
 // Remover serviço
 const removerServico = (servico: ServicoData) => {
   $q.dialog({
     title: 'Confirmar remoção',
-    message: `Remover o serviço "${servico.nome}"?`,
-    cancel: true,
+    message: `Tem certeza que deseja remover o serviço "${servico.nome}"?`,
+    cancel: { label: 'Cancelar', color: 'grey' },
+    ok: { label: 'Remover', color: 'negative' },
     persistent: true,
   }).onOk(() => {
-    $q.notify({
-      type: 'info',
-      message: 'Remoção de serviço em desenvolvimento',
-      position: 'top',
-    });
+    void (async () => {
+      try {
+        const response = await adminStore.deleteServico(servico.id);
+        if (response?.success) {
+          $q.notify({
+            type: 'positive',
+            message: 'Serviço removido com sucesso!',
+            position: 'top',
+          });
+          await carregarServicos();
+        } else {
+          throw new Error('Erro ao remover');
+        }
+      } catch (err) {
+        console.error('Erro ao remover serviço:', err);
+        $q.notify({
+          type: 'negative',
+          message: 'Erro ao remover serviço',
+          position: 'top',
+        });
+      }
+    })();
   });
 };
 
@@ -498,6 +570,137 @@ onMounted(() => {
     gap: 12px;
   }
 }
+
+// ==========================================
+// SKELETON LOADING (Facebook/Instagram style)
+// ==========================================
+
+.skeleton-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.skeleton-title {
+  width: 150px;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.skeleton-select {
+  width: 150px;
+  height: 40px;
+  background: #e0e0e0;
+  border-radius: 8px;
+}
+
+.skeleton-table {
+  padding: 0 20px 20px 20px;
+}
+
+.skeleton-table-header {
+  display: flex;
+  background: #f8f9fa;
+  padding: 12px 0;
+  border-bottom: 2px solid #eeeeee;
+}
+
+.skeleton-header-cell {
+  flex: 1;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin: 0 8px;
+}
+
+.skeleton-table-row {
+  display: flex;
+  padding: 16px 0;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.skeleton-cell {
+  flex: 1;
+  margin: 0 8px;
+}
+
+.skeleton-text {
+  width: 80%;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-chip {
+  width: 80px;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 16px;
+}
+
+.skeleton-badge {
+  width: 60px;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 16px;
+  margin: 0 auto;
+}
+
+.skeleton-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.skeleton-action-icon {
+  width: 32px;
+  height: 32px;
+  background: #e0e0e0;
+  border-radius: 50%;
+}
+
+.skeleton-shimmer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+// ==========================================
+// ESTILOS PRINCIPAIS
+// ==========================================
 
 .servicos-card {
   border-radius: 16px;

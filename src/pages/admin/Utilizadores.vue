@@ -85,8 +85,42 @@
       </q-card-section>
     </q-card>
 
-    <!-- Tabela de Utilizadores -->
-    <q-card class="users-table-card">
+    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
+    <div v-if="adminStore.loading" class="skeleton-container">
+      <!-- Header skeleton -->
+      <div class="skeleton-table-header">
+        <div class="row justify-between items-center">
+          <div class="skeleton-total"></div>
+          <div class="skeleton-pagination"></div>
+        </div>
+      </div>
+
+      <!-- Table skeleton rows -->
+      <div class="skeleton-table">
+        <!-- Table header skeleton -->
+        <div class="skeleton-table-header-row">
+          <div v-for="i in 7" :key="`header-${i}`" class="skeleton-header-cell"></div>
+        </div>
+
+        <!-- Table body skeleton rows -->
+        <div v-for="row in 5" :key="row" class="skeleton-table-row">
+          <div class="skeleton-cell"><div class="skeleton-text-short"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-text"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-text"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-text-short"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-badge"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-badge"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-badge"></div></div>
+          <div class="skeleton-cell"><div class="skeleton-actions"></div></div>
+        </div>
+      </div>
+
+      <!-- Shimmer animation -->
+      <div class="skeleton-shimmer"></div>
+    </div>
+
+    <!-- Tabela de Utilizadores (apenas quando não está carregando) -->
+    <q-card v-else class="users-table-card">
       <q-card-section class="table-header">
         <div class="row justify-between items-center">
           <div class="total-info">
@@ -112,15 +146,10 @@
         :rows="adminStore.utilizadores"
         :columns="columns"
         row-key="id"
-        :loading="adminStore.loading"
         hide-bottom
         class="users-table"
         :rows-per-page-options="[0]"
       >
-        <template v-slot:loading>
-          <q-inner-loading showing color="primary" />
-        </template>
-
         <template v-slot:body-cell-status="props">
           <q-td :props="props">
             <q-badge
@@ -390,7 +419,6 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { useQuasar, type QTableColumn } from 'quasar'
 import { useAdminStore } from 'src/stores/admin-store'
 
-// Interface local para UserData
 interface UserData {
   id: number
   nome: string
@@ -685,6 +713,14 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+$primary-color: #667eea;
+$gray-100: #f5f5f5;
+$gray-200: #eeeeee;
+$gray-300: #e0e0e0;
+$gray-400: #bdbdbd;
+$gray-500: #9e9e9e;
+$gray-600: #757575;
+
 .admin-users-page {
   max-width: 1400px;
   margin: 0 auto;
@@ -736,6 +772,139 @@ onMounted(() => {
 .filter-select {
   :deep(.q-field__control) {
     border-radius: 8px;
+  }
+}
+
+// ==========================================
+// SKELETON LOADING (Facebook/Instagram style)
+// ==========================================
+
+.skeleton-container {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.skeleton-table-header {
+  padding: 20px;
+  border-bottom: 1px solid $gray-200;
+
+  .skeleton-total {
+    width: 180px;
+    height: 20px;
+    background: $gray-200;
+    border-radius: 4px;
+  }
+
+  .skeleton-pagination {
+    width: 200px;
+    height: 32px;
+    background: $gray-200;
+    border-radius: 4px;
+  }
+}
+
+.skeleton-table {
+  .skeleton-table-header-row {
+    display: flex;
+    background: $gray-100;
+    padding: 12px 16px;
+    border-bottom: 1px solid $gray-200;
+
+    .skeleton-header-cell {
+      flex: 1;
+      height: 20px;
+      background: $gray-300;
+      border-radius: 4px;
+      margin: 0 8px;
+
+      &:first-child { margin-left: 0; width: 60px; flex: none; }
+      &:last-child { margin-right: 0; width: 120px; flex: none; }
+    }
+  }
+
+  .skeleton-table-row {
+    display: flex;
+    padding: 16px;
+    border-bottom: 1px solid $gray-200;
+
+    .skeleton-cell {
+      flex: 1;
+      margin: 0 8px;
+
+      &:first-child { margin-left: 0; width: 60px; flex: none; }
+      &:last-child { margin-right: 0; width: 120px; flex: none; }
+
+      .skeleton-text {
+        width: 100%;
+        height: 16px;
+        background: $gray-200;
+        border-radius: 4px;
+      }
+
+      .skeleton-text-short {
+        width: 60%;
+        height: 16px;
+        background: $gray-200;
+        border-radius: 4px;
+      }
+
+      .skeleton-badge {
+        width: 80px;
+        height: 24px;
+        background: $gray-200;
+        border-radius: 12px;
+        margin: 0 auto;
+      }
+
+      .skeleton-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+
+        &::before {
+          content: '';
+          width: 32px;
+          height: 32px;
+          background: $gray-200;
+          border-radius: 50%;
+        }
+        &::after {
+          content: '';
+          width: 32px;
+          height: 32px;
+          background: $gray-200;
+          border-radius: 50%;
+        }
+      }
+    }
+  }
+}
+
+.skeleton-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
   }
 }
 
@@ -922,6 +1091,10 @@ onMounted(() => {
     .detail-value {
       text-align: left;
     }
+  }
+
+  .skeleton-table {
+    overflow-x: auto;
   }
 }
 </style>

@@ -5,150 +5,170 @@
       <div class="text-h5 text-bold">Meus Pedidos</div>
     </div>
 
-    <!-- Tabs de filtro -->
-    <q-tabs
-      v-model="tab"
-      class="filter-tabs"
-      active-color="primary"
-      indicator-color="primary"
-      align="justify"
-      @update:model-value="carregarPedidosPorTab"
-    >
-      <q-tab name="ativos" label="Ativos" />
-      <q-tab name="concluidos" label="Concluídos" />
-      <q-tab name="cancelados" label="Cancelados" />
-    </q-tabs>
+    <!-- Skeleton Loading (mostra enquanto carrega) -->
+    <div v-if="carregando" class="skeleton-loading">
+      <!-- Skeleton Tabs -->
+      <div class="skeleton-tabs">
+        <div v-for="i in 3" :key="i" class="skeleton-tab"></div>
+      </div>
 
-    <!-- Loading -->
-    <div v-if="carregando" class="text-center q-pa-xl">
-      <q-spinner color="primary" size="50px" />
-      <p class="q-mt-md text-grey-7">A carregar seus pedidos...</p>
+      <!-- Skeleton Cards -->
+      <div class="skeleton-cards q-pa-md">
+        <div v-for="i in 3" :key="i" class="skeleton-card">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-card-info">
+            <div class="skeleton-line w-60"></div>
+            <div class="skeleton-line w-40"></div>
+            <div class="skeleton-line w-30"></div>
+          </div>
+          <div class="skeleton-badge"></div>
+        </div>
+      </div>
+
+      
     </div>
 
-    <!-- Lista de pedidos -->
-    <q-tab-panels v-model="tab" animated class="bg-transparent" v-else>
-      <!-- Pedidos Ativos -->
-      <q-tab-panel name="ativos" class="q-pa-md">
-        <div v-if="pedidosAtivos.length === 0" class="empty-state">
-          <q-icon name="assignment" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido ativo</div>
-          <div class="text-grey-6">Seus pedidos em andamento aparecerão aqui</div>
-        </div>
+    <!-- Conteúdo real -->
+    <template v-else>
+      <!-- Tabs de filtro -->
+      <q-tabs
+        v-model="tab"
+        class="filter-tabs"
+        active-color="primary"
+        indicator-color="primary"
+        align="justify"
+        @update:model-value="carregarPedidosPorTab"
+      >
+        <q-tab name="ativos" label="Ativos" />
+        <q-tab name="concluidos" label="Concluídos" />
+        <q-tab name="cancelados" label="Cancelados" />
+      </q-tabs>
 
-        <div v-else class="row q-col-gutter-md">
-          <div v-for="pedido in pedidosAtivos" :key="pedido.id" class="col-12">
-            <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
-              <q-card-section class="row items-center">
-                <q-avatar size="50px" class="q-mr-sm">
-                  <img
-                    :src="
-                      pedido.prestador?.foto ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`
-                    "
-                  />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                  <div class="pedido-prestador">{{ pedido.prestador?.nome || 'Prestador' }}</div>
-                  <div class="pedido-data">{{ formatarData(pedido.data) }}</div>
-                </div>
-                <div class="pedido-status" :class="getStatusClass(pedido.status)">
-                  {{ getStatusTexto(pedido.status) }}
-                </div>
-              </q-card-section>
-              <q-card-actions align="right">
-                <q-btn flat dense icon="chat" label="Chat" @click.stop="abrirChat(pedido)" />
-                <q-btn
-                  v-if="pedido.status === 'pendente' || pedido.status === 'aceito'"
-                  flat
-                  dense
-                  icon="cancel"
-                  label="Cancelar"
-                  color="negative"
-                  @click.stop="cancelarPedido(pedido.id)"
-                />
-              </q-card-actions>
-            </q-card>
+      <!-- Lista de pedidos -->
+      <q-tab-panels v-model="tab" animated class="bg-transparent">
+        <!-- Pedidos Ativos -->
+        <q-tab-panel name="ativos" class="q-pa-md">
+          <div v-if="pedidosAtivos.length === 0" class="empty-state">
+            <q-icon name="assignment" size="64px" color="grey-4" />
+            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido ativo</div>
+            <div class="text-grey-6">Seus pedidos em andamento aparecerão aqui</div>
           </div>
-        </div>
-      </q-tab-panel>
 
-      <!-- Pedidos Concluídos -->
-      <q-tab-panel name="concluidos" class="q-pa-md">
-        <div v-if="pedidosConcluidos.length === 0" class="empty-state">
-          <q-icon name="check_circle" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido concluído</div>
-        </div>
-
-        <div v-else class="row q-col-gutter-md">
-          <div v-for="pedido in pedidosConcluidos" :key="pedido.id" class="col-12">
-            <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
-              <q-card-section class="row items-center">
-                <q-avatar size="50px" class="q-mr-sm">
-                  <img
-                    :src="
-                      pedido.prestador?.foto ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`
-                    "
+          <div v-else class="row q-col-gutter-md">
+            <div v-for="pedido in pedidosAtivos" :key="pedido.id" class="col-12">
+              <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
+                <q-card-section class="row items-center">
+                  <q-avatar size="50px" class="q-mr-sm">
+                    <img
+                      :src="
+                        pedido.prestador?.foto ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`
+                      "
+                    />
+                  </q-avatar>
+                  <div class="col">
+                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                    <div class="pedido-prestador">{{ pedido.prestador?.nome || 'Prestador' }}</div>
+                    <div class="pedido-data">{{ formatarData(pedido.data) }}</div>
+                  </div>
+                  <div class="pedido-status" :class="getStatusClass(pedido.status)">
+                    {{ getStatusTexto(pedido.status) }}
+                  </div>
+                </q-card-section>
+                <q-card-actions align="right">
+                  <q-btn flat dense icon="chat" label="Chat" @click.stop="abrirChat(pedido)" />
+                  <q-btn
+                    v-if="pedido.status === 'pendente' || pedido.status === 'aceito'"
+                    flat
+                    dense
+                    icon="cancel"
+                    label="Cancelar"
+                    color="negative"
+                    @click.stop="cancelarPedido(pedido.id)"
                   />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                  <div class="pedido-prestador">{{ pedido.prestador?.nome || 'Prestador' }}</div>
-                  <div class="pedido-data">{{ formatarData(pedido.data) }}</div>
-                </div>
-                <div class="pedido-valor">
-                  {{ pedido.valor ? formatMoney(pedido.valor) : 'A definir' }}
-                </div>
-              </q-card-section>
-              <q-card-actions align="right">
-                <q-btn
-                  v-if="!pedidoAvaliado(pedido.id)"
-                  flat
-                  dense
-                  icon="star"
-                  label="Avaliar"
-                  color="yellow"
-                  @click.stop="avaliarPedido(pedido.id)"
-                />
-                <q-btn flat dense icon="repeat" label="Repetir" @click.stop="repetirPedido" />
-              </q-card-actions>
-            </q-card>
+                </q-card-actions>
+              </q-card>
+            </div>
           </div>
-        </div>
-      </q-tab-panel>
+        </q-tab-panel>
 
-      <!-- Pedidos Cancelados -->
-      <q-tab-panel name="cancelados" class="q-pa-md">
-        <div v-if="pedidosCancelados.length === 0" class="empty-state">
-          <q-icon name="cancel" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido cancelado</div>
-        </div>
+        <!-- Pedidos Concluídos -->
+        <q-tab-panel name="concluidos" class="q-pa-md">
+          <div v-if="pedidosConcluidos.length === 0" class="empty-state">
+            <q-icon name="check_circle" size="64px" color="grey-4" />
+            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido concluído</div>
+          </div>
 
-        <div v-else class="row q-col-gutter-md">
-          <div v-for="pedido in pedidosCancelados" :key="pedido.id" class="col-12">
-            <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
-              <q-card-section class="row items-center">
-                <q-avatar size="50px" class="q-mr-sm">
-                  <img
-                    :src="
-                      pedido.prestador?.foto ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`
-                    "
+          <div v-else class="row q-col-gutter-md">
+            <div v-for="pedido in pedidosConcluidos" :key="pedido.id" class="col-12">
+              <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
+                <q-card-section class="row items-center">
+                  <q-avatar size="50px" class="q-mr-sm">
+                    <img
+                      :src="
+                        pedido.prestador?.foto ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`
+                      "
+                    />
+                  </q-avatar>
+                  <div class="col">
+                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                    <div class="pedido-prestador">{{ pedido.prestador?.nome || 'Prestador' }}</div>
+                    <div class="pedido-data">{{ formatarData(pedido.data) }}</div>
+                  </div>
+                  <div class="pedido-valor">
+                    {{ pedido.valor ? formatMoney(pedido.valor) : 'A definir' }}
+                  </div>
+                </q-card-section>
+                <q-card-actions align="right">
+                  <q-btn
+                    v-if="!pedidoAvaliado(pedido.id)"
+                    flat
+                    dense
+                    icon="star"
+                    label="Avaliar"
+                    color="yellow"
+                    @click.stop="avaliarPedido(pedido.id)"
                   />
-                </q-avatar>
-                <div class="col">
-                  <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                  <div class="pedido-prestador">{{ pedido.prestador?.nome || 'Prestador' }}</div>
-                  <div class="pedido-data">{{ formatarData(pedido.data) }}</div>
-                </div>
-                <div class="pedido-status cancelado">Cancelado</div>
-              </q-card-section>
-            </q-card>
+                  <q-btn flat dense icon="repeat" label="Repetir" @click.stop="repetirPedido" />
+                </q-card-actions>
+              </q-card>
+            </div>
           </div>
-        </div>
-      </q-tab-panel>
-    </q-tab-panels>
+        </q-tab-panel>
+
+        <!-- Pedidos Cancelados -->
+        <q-tab-panel name="cancelados" class="q-pa-md">
+          <div v-if="pedidosCancelados.length === 0" class="empty-state">
+            <q-icon name="cancel" size="64px" color="grey-4" />
+            <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido cancelado</div>
+          </div>
+
+          <div v-else class="row q-col-gutter-md">
+            <div v-for="pedido in pedidosCancelados" :key="pedido.id" class="col-12">
+              <q-card class="pedido-card" flat bordered @click="verPedido(pedido.id)">
+                <q-card-section class="row items-center">
+                  <q-avatar size="50px" class="q-mr-sm">
+                    <img
+                      :src="
+                        pedido.prestador?.foto ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || '')}&background=667eea&color=fff`
+                      "
+                    />
+                  </q-avatar>
+                  <div class="col">
+                    <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                    <div class="pedido-prestador">{{ pedido.prestador?.nome || 'Prestador' }}</div>
+                    <div class="pedido-data">{{ formatarData(pedido.data) }}</div>
+                  </div>
+                  <div class="pedido-status cancelado">Cancelado</div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </div>
+        </q-tab-panel>
+      </q-tab-panels>
+    </template>
   </q-page>
 </template>
 
@@ -168,7 +188,7 @@ const $q = useQuasar();
 const clienteStore = useClienteStore();
 
 const tab = ref('ativos');
-const carregando = ref(false);
+const carregando = ref(true);
 const pedidosAvaliados = ref<Set<number>>(new Set());
 
 // Computed para separar pedidos por status
@@ -236,11 +256,10 @@ const getStatusClass = (status: string) => {
   return classMap[status] || '';
 };
 
-// Carregar pedidos
+// Carregar pedidos COM SKELETON
 const carregarPedidos = async () => {
   carregando.value = true;
   try {
-    // ✅ CORRIGIDO: usar fetchMeusPedidos
     await clienteStore.fetchMeusPedidos();
   } catch (err) {
     console.error('Erro ao carregar pedidos:', err);
@@ -250,7 +269,9 @@ const carregarPedidos = async () => {
       position: 'top',
     });
   } finally {
-    carregando.value = false;
+    setTimeout(() => {
+      carregando.value = false;
+    }, 500);
   }
 };
 
@@ -285,7 +306,6 @@ const cancelarPedido = (id: number) => {
   }).onOk(() => {
     void (async () => {
       try {
-        // ✅ CORRIGIDO: usar cancelarPedidoCliente
         const success = await clienteStore.cancelarPedidoCliente(id);
         if (success) {
           $q.notify({
@@ -354,6 +374,110 @@ $gray-900: #212121;
 .filter-tabs {
   background: white;
 }
+
+/* ========================================== */
+/* SKELETON LOADING STYLES (SEM TEXTO) */
+/* ========================================== */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-loading {
+  background: $gray-100;
+  min-height: 100vh;
+}
+
+.skeleton-tabs {
+  display: flex;
+  background: white;
+  padding: 8px 16px;
+  gap: 16px;
+  border-bottom: 1px solid $gray-200;
+}
+
+.skeleton-tab {
+  flex: 1;
+  height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid $gray-200;
+}
+
+.skeleton-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-card-info {
+  flex: 1;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin: 6px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-badge {
+  width: 70px;
+  height: 28px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+}
+
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-60 { width: 60%; }
+.w-70 { width: 70%; }
+
+/* ========================================== */
+/* ESTILOS NORMAIS (mantidos) */
+/* ========================================== */
 
 .empty-state {
   display: flex;

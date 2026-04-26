@@ -18,245 +18,270 @@
       />
     </div>
 
-    <q-card class="config-card">
-      <q-tabs v-model="tab" class="config-tabs" dense>
-        <q-tab name="geral" label="Geral" icon="info" />
-        <q-tab name="comissoes" label="Comissões" icon="percent" />
-        <q-tab name="notificacoes" label="Notificações" icon="notifications" />
-        <q-tab name="integracao" label="Integração" icon="api" />
-      </q-tabs>
-
-      <q-separator />
-
-      <q-tab-panels v-model="tab" animated>
-        <!-- Geral -->
-        <q-tab-panel name="geral" class="q-pa-lg">
-          <div class="q-gutter-md">
-            <q-input
-              v-model="configForm.nome"
-              label="Nome da plataforma"
-              outlined
-              dense
-              :loading="salvando"
-            >
-              <template v-slot:prepend>
-                <q-icon name="business" color="primary" />
-              </template>
-            </q-input>
-
-            <q-input
-              v-model="configForm.email"
-              label="Email de contato"
-              outlined
-              dense
-              type="email"
-              :loading="salvando"
-            >
-              <template v-slot:prepend>
-                <q-icon name="email" color="primary" />
-              </template>
-            </q-input>
-
-            <q-input
-              v-model="configForm.telefone"
-              label="Telefone"
-              outlined
-              dense
-              :loading="salvando"
-            >
-              <template v-slot:prepend>
-                <q-icon name="phone" color="primary" />
-              </template>
-            </q-input>
-
-            <q-input
-              v-model="configForm.endereco"
-              label="Endereço"
-              outlined
-              dense
-              type="textarea"
-              autogrow
-              rows="2"
-              :loading="salvando"
-            >
-              <template v-slot:prepend>
-                <q-icon name="location_on" color="primary" />
-              </template>
-            </q-input>
-          </div>
-        </q-tab-panel>
-
-        <!-- Comissões -->
-        <q-tab-panel name="comissoes" class="q-pa-lg">
-          <div class="q-gutter-md">
-            <q-input
-              v-model.number="configForm.comissao_padrao"
-              label="Comissão padrão"
-              type="number"
-              outlined
-              dense
-              suffix="%"
-              :loading="salvando"
-            >
-              <template v-slot:prepend>
-                <q-icon name="percent" color="primary" />
-              </template>
-              <template v-slot:append>
-                <q-icon name="info" size="16px" color="grey">
-                  <q-tooltip>Valor percentual cobrado sobre cada serviço</q-tooltip>
-                </q-icon>
-              </template>
-            </q-input>
-
-            <q-select
-              v-model="configForm.tipo_comissao"
-              :options="tipoComissaoOptions"
-              label="Tipo de comissão"
-              outlined
-              dense
-              :loading="salvando"
-            >
-              <template v-slot:prepend>
-                <q-icon name="category" color="primary" />
-              </template>
-            </q-select>
-
-            <q-checkbox
-              v-model="configForm.comissao_prestador"
-              label="Aplicar comissão para prestadores"
-              :loading="salvando"
-            />
-
-            <q-checkbox
-              v-model="configForm.comissao_cliente"
-              label="Aplicar taxa para clientes"
-              :loading="salvando"
-            />
-          </div>
-        </q-tab-panel>
-
-        <!-- Notificações -->
-        <q-tab-panel name="notificacoes" class="q-pa-lg">
-          <div class="q-gutter-md">
-            <div class="text-subtitle1 q-mb-sm">
-              <q-icon name="notifications_active" size="18px" class="q-mr-sm" />
-              Canais de Notificação
+    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
+    <div v-if="adminStore.loading" class="skeleton-container">
+      <div class="skeleton-card">
+        <div class="skeleton-tabs">
+          <div v-for="i in 4" :key="i" class="skeleton-tab"></div>
+        </div>
+        <div class="skeleton-separator"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-form">
+            <div v-for="i in 5" :key="i" class="skeleton-field">
+              <div class="skeleton-input"></div>
             </div>
-
-            <q-checkbox
-              v-model="configForm.notif_email"
-              label="Notificações por email"
-              :loading="salvando"
-            />
-            <q-checkbox
-              v-model="configForm.notif_sms"
-              label="Notificações por SMS"
-              :loading="salvando"
-            />
-            <q-checkbox
-              v-model="configForm.notif_push"
-              label="Notificações push"
-              :loading="salvando"
-            />
-
-            <q-input
-              v-model="configForm.email_notificacao"
-              label="Email para notificações"
-              outlined
-              dense
-              type="email"
-              class="q-mt-md"
-              :loading="salvando"
-            >
-              <template v-slot:prepend>
-                <q-icon name="mail" color="primary" />
-              </template>
-            </q-input>
           </div>
-        </q-tab-panel>
+        </div>
+        <div class="skeleton-actions">
+          <div class="skeleton-button-cancel"></div>
+          <div class="skeleton-button-save"></div>
+        </div>
+      </div>
+      <div class="skeleton-shimmer"></div>
+    </div>
 
-        <!-- Integração -->
-        <q-tab-panel name="integracao" class="q-pa-lg">
-          <div class="q-gutter-md">
-            <div class="text-subtitle1 q-mb-sm">
-              <q-icon name="security" size="18px" class="q-mr-sm" />
-              Chaves de API
+    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <template v-else>
+      <q-card class="config-card">
+        <q-tabs v-model="tab" class="config-tabs" dense>
+          <q-tab name="geral" label="Geral" icon="info" />
+          <q-tab name="comissoes" label="Comissões" icon="percent" />
+          <q-tab name="notificacoes" label="Notificações" icon="notifications" />
+          <q-tab name="integracao" label="Integração" icon="api" />
+        </q-tabs>
+
+        <q-separator />
+
+        <q-tab-panels v-model="tab" animated>
+          <!-- Geral -->
+          <q-tab-panel name="geral" class="q-pa-lg">
+            <div class="q-gutter-md">
+              <q-input
+                v-model="configForm.nome"
+                label="Nome da plataforma"
+                outlined
+                dense
+                :loading="salvando"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="business" color="primary" />
+                </template>
+              </q-input>
+
+              <q-input
+                v-model="configForm.email"
+                label="Email de contato"
+                outlined
+                dense
+                type="email"
+                :loading="salvando"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="email" color="primary" />
+                </template>
+              </q-input>
+
+              <q-input
+                v-model="configForm.telefone"
+                label="Telefone"
+                outlined
+                dense
+                :loading="salvando"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="phone" color="primary" />
+                </template>
+              </q-input>
+
+              <q-input
+                v-model="configForm.endereco"
+                label="Endereço"
+                outlined
+                dense
+                type="textarea"
+                autogrow
+                rows="2"
+                :loading="salvando"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="location_on" color="primary" />
+                </template>
+              </q-input>
             </div>
+          </q-tab-panel>
 
-            <q-input
-              v-model="configForm.api_mpesa"
-              label="API Key M-Pesa"
-              outlined
-              dense
-              type="password"
-              :loading="salvando"
-            >
-              <template v-slot:prepend>
-                <q-icon name="smartphone" color="primary" />
-              </template>
-              <template v-slot:append>
-                <q-icon
-                  name="visibility"
-                  class="cursor-pointer"
-                  @click="toggleVisibility('mpesa')"
-                />
-              </template>
-            </q-input>
+          <!-- Comissões -->
+          <q-tab-panel name="comissoes" class="q-pa-lg">
+            <div class="q-gutter-md">
+              <q-input
+                v-model.number="configForm.comissao_padrao"
+                label="Comissão padrão"
+                type="number"
+                outlined
+                dense
+                suffix="%"
+                :loading="salvando"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="percent" color="primary" />
+                </template>
+                <template v-slot:append>
+                  <q-icon name="info" size="16px" color="grey">
+                    <q-tooltip>Valor percentual cobrado sobre cada serviço</q-tooltip>
+                  </q-icon>
+                </template>
+              </q-input>
 
-            <q-input
-              v-model="configForm.api_maps"
-              label="API Key Google Maps"
-              outlined
-              dense
-              type="password"
-              :loading="salvando"
-            >
-              <template v-slot:prepend>
-                <q-icon name="map" color="primary" />
-              </template>
-              <template v-slot:append>
-                <q-icon
-                  name="visibility"
-                  class="cursor-pointer"
-                  @click="toggleVisibility('maps')"
-                />
-              </template>
-            </q-input>
+              <q-select
+                v-model="configForm.tipo_comissao"
+                :options="tipoComissaoOptions"
+                label="Tipo de comissão"
+                outlined
+                dense
+                :loading="salvando"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="category" color="primary" />
+                </template>
+              </q-select>
 
-            <q-input
-              v-model="configForm.api_sms"
-              label="API Key SMS"
-              outlined
-              dense
-              type="password"
-              :loading="salvando"
-            >
-              <template v-slot:prepend>
-                <q-icon name="sms" color="primary" />
-              </template>
-              <template v-slot:append>
-                <q-icon
-                  name="visibility"
-                  class="cursor-pointer"
-                  @click="toggleVisibility('sms')"
-                />
-              </template>
-            </q-input>
-          </div>
-        </q-tab-panel>
-      </q-tab-panels>
+              <q-checkbox
+                v-model="configForm.comissao_prestador"
+                label="Aplicar comissão para prestadores"
+                :loading="salvando"
+              />
 
-      <q-card-actions align="right" class="q-pa-md">
-        <q-btn flat label="Cancelar" color="grey-7" @click="resetarFormulario" />
-        <q-btn
-          unelevated
-          label="Salvar configurações"
-          color="primary"
-          @click="salvarConfiguracoes"
-          :loading="salvando"
-        />
-      </q-card-actions>
-    </q-card>
+              <q-checkbox
+                v-model="configForm.comissao_cliente"
+                label="Aplicar taxa para clientes"
+                :loading="salvando"
+              />
+            </div>
+          </q-tab-panel>
+
+          <!-- Notificações -->
+          <q-tab-panel name="notificacoes" class="q-pa-lg">
+            <div class="q-gutter-md">
+              <div class="text-subtitle1 q-mb-sm">
+                <q-icon name="notifications_active" size="18px" class="q-mr-sm" />
+                Canais de Notificação
+              </div>
+
+              <q-checkbox
+                v-model="configForm.notif_email"
+                label="Notificações por email"
+                :loading="salvando"
+              />
+              <q-checkbox
+                v-model="configForm.notif_sms"
+                label="Notificações por SMS"
+                :loading="salvando"
+              />
+              <q-checkbox
+                v-model="configForm.notif_push"
+                label="Notificações push"
+                :loading="salvando"
+              />
+
+              <q-input
+                v-model="configForm.email_notificacao"
+                label="Email para notificações"
+                outlined
+                dense
+                type="email"
+                class="q-mt-md"
+                :loading="salvando"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="mail" color="primary" />
+                </template>
+              </q-input>
+            </div>
+          </q-tab-panel>
+
+          <!-- Integração -->
+          <q-tab-panel name="integracao" class="q-pa-lg">
+            <div class="q-gutter-md">
+              <div class="text-subtitle1 q-mb-sm">
+                <q-icon name="security" size="18px" class="q-mr-sm" />
+                Chaves de API
+              </div>
+
+              <q-input
+                v-model="configForm.api_mpesa"
+                label="API Key M-Pesa"
+                outlined
+                dense
+                :type="showMpesa ? 'text' : 'password'"
+                :loading="salvando"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="smartphone" color="primary" />
+                </template>
+                <template v-slot:append>
+                  <q-icon
+                    :name="showMpesa ? 'visibility_off' : 'visibility'"
+                    class="cursor-pointer"
+                    @click="showMpesa = !showMpesa"
+                  />
+                </template>
+              </q-input>
+
+              <q-input
+                v-model="configForm.api_maps"
+                label="API Key Google Maps"
+                outlined
+                dense
+                :type="showMaps ? 'text' : 'password'"
+                :loading="salvando"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="map" color="primary" />
+                </template>
+                <template v-slot:append>
+                  <q-icon
+                    :name="showMaps ? 'visibility_off' : 'visibility'"
+                    class="cursor-pointer"
+                    @click="showMaps = !showMaps"
+                  />
+                </template>
+              </q-input>
+
+              <q-input
+                v-model="configForm.api_sms"
+                label="API Key SMS"
+                outlined
+                dense
+                :type="showSms ? 'text' : 'password'"
+                :loading="salvando"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="sms" color="primary" />
+                </template>
+                <template v-slot:append>
+                  <q-icon
+                    :name="showSms ? 'visibility_off' : 'visibility'"
+                    class="cursor-pointer"
+                    @click="showSms = !showSms"
+                  />
+                </template>
+              </q-input>
+            </div>
+          </q-tab-panel>
+        </q-tab-panels>
+
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn flat label="Cancelar" color="grey-7" @click="resetarFormulario" />
+          <q-btn
+            unelevated
+            label="Salvar configurações"
+            color="primary"
+            @click="salvarConfiguracoes"
+            :loading="salvando"
+          />
+        </q-card-actions>
+      </q-card>
+    </template>
   </q-page>
 </template>
 
@@ -305,15 +330,8 @@ const configForm = reactive({
   api_sms: ''
 })
 
-// Funções auxiliares
-const toggleVisibility = (key: string) => {
-  if (key === 'mpesa') showMpesa.value = !showMpesa.value
-  if (key === 'maps') showMaps.value = !showMaps.value
-  if (key === 'sms') showSms.value = !showSms.value
-}
-
 // Carregar configurações
-const carregarConfiguracoes = async () => {
+const carregarConfiguracoes = async (): Promise<void> => {
   try {
     const data = await adminStore.fetchConfiguracoes()
     if (data) {
@@ -338,7 +356,7 @@ const carregarConfiguracoes = async () => {
 }
 
 // Carregar configurações extras (mock - substituir por API real)
-const carregarConfiguracoesExtras = () => {
+const carregarConfiguracoesExtras = (): void => {
   // Valores padrão
   configForm.comissao_prestador = true
   configForm.comissao_cliente = false
@@ -352,7 +370,7 @@ const carregarConfiguracoesExtras = () => {
 }
 
 // Resetar formulário
-const resetarFormulario = () => {
+const resetarFormulario = (): void => {
   void carregarConfiguracoes()
   $q.notify({
     type: 'info',
@@ -362,7 +380,7 @@ const resetarFormulario = () => {
 }
 
 // Salvar configurações
-const salvarConfiguracoes = async () => {
+const salvarConfiguracoes = async (): Promise<void> => {
   salvando.value = true
 
   try {
@@ -378,7 +396,7 @@ const salvarConfiguracoes = async () => {
 
     const result = await adminStore.updateConfiguracoes(dadosPrincipais)
 
-    if (result) {
+    if (result && result.success) {
       // Salvar dados extras (mock - substituir por chamada API real)
       salvarConfiguracoesExtras()
 
@@ -387,6 +405,8 @@ const salvarConfiguracoes = async () => {
         message: 'Configurações salvas com sucesso!',
         position: 'top'
       })
+    } else {
+      throw new Error('Erro ao salvar')
     }
   } catch (error) {
     console.error('Erro ao salvar configurações:', error)
@@ -401,7 +421,7 @@ const salvarConfiguracoes = async () => {
 }
 
 // Salvar configurações extras (mock - substituir por API real)
-const salvarConfiguracoesExtras = () => {
+const salvarConfiguracoesExtras = (): void => {
   console.log('Configurações extras salvas:', {
     comissao_prestador: configForm.comissao_prestador,
     comissao_cliente: configForm.comissao_cliente,
@@ -451,6 +471,100 @@ onMounted(() => {
     }
   }
 }
+
+// ==========================================
+// SKELETON LOADING (Facebook/Instagram style)
+// ==========================================
+
+.skeleton-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.skeleton-tabs {
+  display: flex;
+  background: #f8f9fa;
+  padding: 8px 16px;
+  gap: 8px;
+}
+
+.skeleton-tab {
+  width: 100px;
+  height: 36px;
+  background: #e0e0e0;
+  border-radius: 8px;
+}
+
+.skeleton-separator {
+  height: 1px;
+  background: #eeeeee;
+}
+
+.skeleton-content {
+  padding: 24px;
+}
+
+.skeleton-form {
+  .skeleton-field {
+    margin-bottom: 20px;
+  }
+
+  .skeleton-input {
+    height: 48px;
+    background: #e0e0e0;
+    border-radius: 8px;
+    width: 100%;
+  }
+}
+
+.skeleton-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #eeeeee;
+}
+
+.skeleton-button-cancel {
+  width: 100px;
+  height: 36px;
+  background: #e0e0e0;
+  border-radius: 8px;
+}
+
+.skeleton-button-save {
+  width: 160px;
+  height: 36px;
+  background: #e0e0e0;
+  border-radius: 8px;
+}
+
+.skeleton-shimmer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// ==========================================
+// ESTILOS PRINCIPAIS
+// ==========================================
 
 .config-card {
   border-radius: 20px;
@@ -511,6 +625,16 @@ onMounted(() => {
     :deep(.q-tab-panel) {
       padding: 16px;
     }
+  }
+
+  .skeleton-tab {
+    width: 80px;
+    height: 32px;
+  }
+
+  .skeleton-button-cancel,
+  .skeleton-button-save {
+    width: 80px;
   }
 }
 </style>

@@ -18,195 +18,307 @@
       </q-btn>
     </div>
 
-    <!-- Cards de estatísticas principais -->
-    <div class="stats-grid">
-      <!-- ✅ CORRETO: sem parênteses -->
-      <div class="stat-card" v-for="card in adminStore.cardsPrincipais" :key="card.title">
-        <div class="stat-card-content">
-          <div class="stat-icon" :style="{ background: card.bgColor }">
-            <q-icon :name="card.icon" size="28px" :color="card.iconColor" />
+    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
+    <div v-if="adminStore.loading" class="skeleton-container">
+      <!-- Cards principais skeleton -->
+      <div class="stats-grid">
+        <div v-for="i in 4" :key="i" class="skeleton-stat-card">
+          <div class="skeleton-icon"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-value"></div>
+            <div class="skeleton-label"></div>
+            <div class="skeleton-trend"></div>
           </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ formatNumberValue(card.value) }}</div>
-            <div class="stat-label">{{ card.title }}</div>
-            <div class="stat-trend" :class="card.trend > 0 ? 'trend-up' : 'trend-down'">
-              <q-icon :name="card.trend > 0 ? 'trending_up' : 'trending_down'" size="12px" />
-              {{ Math.abs(card.trend) }}% este mês
+        </div>
+      </div>
+
+      <!-- Cards secundários skeleton -->
+      <div class="stats-grid-secondary">
+        <div v-for="i in 4" :key="i" class="skeleton-stat-card-secondary">
+          <div class="skeleton-icon-small"></div>
+          <div class="skeleton-info-secondary">
+            <div class="skeleton-value-small"></div>
+            <div class="skeleton-label-small"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos skeleton -->
+      <div class="charts-row">
+        <div class="skeleton-chart-card">
+          <div class="skeleton-card-header"></div>
+          <div class="skeleton-bars-container">
+            <div v-for="i in 7" :key="i" class="skeleton-bar-item">
+              <div class="skeleton-bar"></div>
+              <div class="skeleton-bar-label"></div>
+            </div>
+          </div>
+        </div>
+        <div class="skeleton-distribuicao-card">
+          <div class="skeleton-card-header"></div>
+          <div class="skeleton-distribuicao-content">
+            <div v-for="i in 3" :key="i" class="skeleton-distribuicao-item">
+              <div class="skeleton-distribuicao-header">
+                <div class="skeleton-distribuicao-label"></div>
+                <div class="skeleton-distribuicao-value"></div>
+              </div>
+              <div class="skeleton-progress-bar"></div>
+            </div>
+            <div class="skeleton-distribuicao-total">
+              <div class="skeleton-total-label"></div>
+              <div class="skeleton-total-value"></div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Listas recentes skeleton -->
+      <div class="recent-lists">
+        <div class="skeleton-recent-card">
+          <div class="skeleton-card-header">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-view-all"></div>
+          </div>
+          <div class="skeleton-users-list">
+            <div v-for="i in 4" :key="i" class="skeleton-user-item">
+              <div class="skeleton-avatar"></div>
+              <div class="skeleton-user-info">
+                <div class="skeleton-user-name"></div>
+                <div class="skeleton-user-email"></div>
+              </div>
+              <div class="skeleton-user-badge">
+                <div class="skeleton-badge"></div>
+                <div class="skeleton-date"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="skeleton-recent-card">
+          <div class="skeleton-card-header">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-view-all"></div>
+          </div>
+          <div class="skeleton-services-list">
+            <div v-for="i in 4" :key="i" class="skeleton-service-item">
+              <div class="skeleton-avatar-service"></div>
+              <div class="skeleton-service-info">
+                <div class="skeleton-service-name"></div>
+                <div class="skeleton-service-cliente"></div>
+              </div>
+              <div class="skeleton-service-value">
+                <div class="skeleton-price"></div>
+                <div class="skeleton-status"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ações rápidas skeleton -->
+      <div class="skeleton-quick-actions">
+        <div class="skeleton-card-header">
+          <div class="skeleton-title"></div>
+        </div>
+        <div class="actions-grid">
+          <div v-for="i in 6" :key="i" class="skeleton-action-item">
+            <div class="skeleton-action-icon"></div>
+            <div class="skeleton-action-label"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shimmer animation -->
+      <div class="skeleton-shimmer"></div>
     </div>
 
-    <!-- Cards secundários -->
-    <div class="stats-grid-secondary">
-      <!-- ✅ CORRETO: sem parênteses -->
-      <div
-        class="stat-card-secondary"
-        v-for="card in adminStore.cardsSecundarios"
-        :key="card.title"
-      >
-        <div class="stat-card-secondary-content">
-          <div class="stat-secondary-icon" :style="{ background: card.bgColor }">
-            <q-icon :name="card.icon" size="24px" :color="card.iconColor" />
-          </div>
-          <div class="stat-secondary-info">
-            <div class="stat-secondary-value">{{ formatNumberValue(card.value) }}</div>
-            <div class="stat-secondary-label">{{ card.title }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Gráficos e distribuição -->
-    <div class="charts-row">
-      <div class="chart-card">
-        <div class="card-header">
-          <span class="card-title">Atividade dos Últimos 7 Dias</span>
-        </div>
-        <div class="chart-content">
-          <div class="bars-container">
-            <!-- ✅ CORRETO: sem parênteses -->
-            <div
-              v-for="(item, index) in adminStore.atividadeFormatada"
-              :key="index"
-              class="bar-item"
-            >
-              <div
-                class="bar"
-                :style="{ height: item.altura + 'px', backgroundColor: item.cor }"
-              ></div>
-              <div class="bar-label">{{ item.dia }}</div>
-              <div class="bar-value">{{ item.valor }}</div>
+    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <template v-else>
+      <!-- Cards de estatísticas principais -->
+      <div class="stats-grid">
+        <div class="stat-card" v-for="card in adminStore.cardsPrincipais" :key="card.title">
+          <div class="stat-card-content">
+            <div class="stat-icon" :style="{ background: card.bgColor }">
+              <q-icon :name="card.icon" size="28px" :color="card.iconColor" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ formatNumberValue(card.value) }}</div>
+              <div class="stat-label">{{ card.title }}</div>
+              <div class="stat-trend" :class="card.trend > 0 ? 'trend-up' : 'trend-down'">
+                <q-icon :name="card.trend > 0 ? 'trending_up' : 'trending_down'" size="12px" />
+                {{ Math.abs(card.trend) }}% este mês
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="distribuicao-card">
-        <div class="card-header">
-          <span class="card-title">Distribuição por Tipo</span>
-        </div>
-        <div class="distribuicao-content">
-          <!-- ✅ CORRETO: sem parênteses -->
-          <div
-            v-for="tipo in adminStore.distribuicaoPorTipo"
-            :key="tipo.label"
-            class="distribuicao-item"
-          >
-            <div class="distribuicao-header">
-              <span class="distribuicao-label">{{ tipo.label }}</span>
-              <span class="distribuicao-value">{{ formatNumber(tipo.value) }}</span>
-            </div>
-            <q-linear-progress :value="tipo.percent / 100" :color="tipo.color" class="progress-bar" />
-          </div>
-          <div class="distribuicao-total">
-            <span class="total-label">Total de Utilizadores</span>
-            <span class="total-value">{{ formatNumber(adminStore.dashboard.total_users) }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Listas de atividades recentes -->
-    <div class="recent-lists">
-      <div class="recent-card">
-        <div class="card-header">
-          <span class="card-title">Últimos Utilizadores</span>
-          <q-btn
-            flat
-            dense
-            icon="chevron_right"
-            label="Ver todos"
-            to="/admin/utilizadores"
-            no-caps
-            class="view-all-btn"
-          />
-        </div>
-        <div class="users-list">
-          <div
-            v-for="user in adminStore.ultimosUtilizadores"
-            :key="user.id"
-            class="user-item"
-            @click="verUtilizador(user.id)"
-          >
-            <q-avatar size="40px">
-              <img
-                :src="
-                  user.avatar ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=667eea&color=fff`
-                "
-              />
-            </q-avatar>
-            <div class="user-info">
-              <div class="user-name">{{ user.nome }}</div>
-              <div class="user-email">{{ user.email }}</div>
-            </div>
-            <div class="user-badge">
-              <q-badge :color="user.tipo === 'prestador' ? 'secondary' : 'primary'" rounded>
-                {{ user.tipo === 'prestador' ? 'Prestador' : 'Cliente' }}
-              </q-badge>
-              <div class="user-date">{{ user.data || 'Hoje' }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="recent-card">
-        <div class="card-header">
-          <span class="card-title">Serviços Recentes</span>
-          <q-btn
-            flat
-            dense
-            icon="chevron_right"
-            label="Ver todos"
-            to="/admin/servicos"
-            no-caps
-            class="view-all-btn"
-          />
-        </div>
-        <div class="services-list">
-          <div
-            v-for="servico in adminStore.servicosRecentes"
-            :key="servico.id"
-            class="service-item"
-            @click="verServico(servico.id)"
-          >
-            <q-avatar :color="servico.statusCor" text-color="white" size="40px">
-              <q-icon :name="servico.icone" size="20px" />
-            </q-avatar>
-            <div class="service-info">
-              <div class="service-name">{{ servico.servico }}</div>
-              <div class="service-cliente">{{ servico.cliente }} • {{ servico.prestador }}</div>
-            </div>
-            <div class="service-value">
-              <div class="service-price">{{ formatMoney(servico.valor) }}</div>
-              <q-badge :color="servico.statusCor">{{ servico.status }}</q-badge>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Ações rápidas -->
-    <div class="quick-actions">
-      <div class="card-header">
-        <span class="card-title">Ações Rápidas</span>
-      </div>
-      <div class="actions-grid">
+      <!-- Cards secundários -->
+      <div class="stats-grid-secondary">
         <div
-          v-for="action in acoesRapidas"
-          :key="action.label"
-          class="action-item"
-          @click="novaAcao(action.tipo)"
+          class="stat-card-secondary"
+          v-for="card in adminStore.cardsSecundarios"
+          :key="card.title"
         >
-          <div class="action-icon" :style="{ background: action.bgColor }">
-            <q-icon :name="action.icon" size="24px" :color="action.iconColor" />
+          <div class="stat-card-secondary-content">
+            <div class="stat-secondary-icon" :style="{ background: card.bgColor }">
+              <q-icon :name="card.icon" size="24px" :color="card.iconColor" />
+            </div>
+            <div class="stat-secondary-info">
+              <div class="stat-secondary-value">{{ formatNumberValue(card.value) }}</div>
+              <div class="stat-secondary-label">{{ card.title }}</div>
+            </div>
           </div>
-          <div class="action-label">{{ action.label }}</div>
         </div>
       </div>
-    </div>
+
+      <!-- Gráficos e distribuição -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="card-header">
+            <span class="card-title">Atividade dos Últimos 7 Dias</span>
+          </div>
+          <div class="chart-content">
+            <div class="bars-container">
+              <div
+                v-for="(item, index) in adminStore.atividadeFormatada"
+                :key="index"
+                class="bar-item"
+              >
+                <div
+                  class="bar"
+                  :style="{ height: item.altura + 'px', backgroundColor: item.cor }"
+                ></div>
+                <div class="bar-label">{{ item.dia }}</div>
+                <div class="bar-value">{{ item.valor }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="distribuicao-card">
+          <div class="card-header">
+            <span class="card-title">Distribuição por Tipo</span>
+          </div>
+          <div class="distribuicao-content">
+            <div
+              v-for="tipo in adminStore.distribuicaoPorTipo"
+              :key="tipo.label"
+              class="distribuicao-item"
+            >
+              <div class="distribuicao-header">
+                <span class="distribuicao-label">{{ tipo.label }}</span>
+                <span class="distribuicao-value">{{ formatNumber(tipo.value) }}</span>
+              </div>
+              <q-linear-progress :value="tipo.percent / 100" :color="tipo.color" class="progress-bar" />
+            </div>
+            <div class="distribuicao-total">
+              <span class="total-label">Total de Utilizadores</span>
+              <span class="total-value">{{ formatNumber(adminStore.dashboard.total_users) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Listas de atividades recentes -->
+      <div class="recent-lists">
+        <div class="recent-card">
+          <div class="card-header">
+            <span class="card-title">Últimos Utilizadores</span>
+            <q-btn
+              flat
+              dense
+              icon="chevron_right"
+              label="Ver todos"
+              to="/admin/utilizadores"
+              no-caps
+              class="view-all-btn"
+            />
+          </div>
+          <div class="users-list">
+            <div
+              v-for="user in adminStore.ultimosUtilizadores"
+              :key="user.id"
+              class="user-item"
+              @click="verUtilizador(user.id)"
+            >
+              <q-avatar size="40px">
+                <img
+                  :src="
+                    user.avatar ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=667eea&color=fff`
+                  "
+                />
+              </q-avatar>
+              <div class="user-info">
+                <div class="user-name">{{ user.nome }}</div>
+                <div class="user-email">{{ user.email }}</div>
+              </div>
+              <div class="user-badge">
+                <q-badge :color="user.tipo === 'prestador' ? 'secondary' : 'primary'" rounded>
+                  {{ user.tipo === 'prestador' ? 'Prestador' : 'Cliente' }}
+                </q-badge>
+                <div class="user-date">{{ user.data || 'Hoje' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="recent-card">
+          <div class="card-header">
+            <span class="card-title">Serviços Recentes</span>
+            <q-btn
+              flat
+              dense
+              icon="chevron_right"
+              label="Ver todos"
+              to="/admin/servicos"
+              no-caps
+              class="view-all-btn"
+            />
+          </div>
+          <div class="services-list">
+            <div
+              v-for="servico in adminStore.servicosRecentes"
+              :key="servico.id"
+              class="service-item"
+              @click="verServico(servico.id)"
+            >
+              <q-avatar :color="servico.statusCor" text-color="white" size="40px">
+                <q-icon :name="servico.icone" size="20px" />
+              </q-avatar>
+              <div class="service-info">
+                <div class="service-name">{{ servico.servico }}</div>
+                <div class="service-cliente">{{ servico.cliente }} • {{ servico.prestador }}</div>
+              </div>
+              <div class="service-value">
+                <div class="service-price">{{ formatMoney(servico.valor) }}</div>
+                <q-badge :color="servico.statusCor">{{ servico.status }}</q-badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ações rápidas -->
+      <div class="quick-actions">
+        <div class="card-header">
+          <span class="card-title">Ações Rápidas</span>
+        </div>
+        <div class="actions-grid">
+          <div
+            v-for="action in acoesRapidas"
+            :key="action.label"
+            class="action-item"
+            @click="novaAcao(action.tipo)"
+          >
+            <div class="action-icon" :style="{ background: action.bgColor }">
+              <q-icon :name="action.icon" size="24px" :color="action.iconColor" />
+            </div>
+            <div class="action-label">{{ action.label }}</div>
+          </div>
+        </div>
+      </div>
+    </template>
   </q-page>
 </template>
 
@@ -284,7 +396,7 @@ const formatMoney = (num: number) =>
 
 // Ações
 const atualizarDados = async () => {
-  await adminStore.carregarTodosDados();
+  await adminStore.carregarTodosDados(true);
   $q.notify({
     type: 'positive',
     message: 'Dados atualizados!',
@@ -348,6 +460,348 @@ onMounted(() => {
     }
   }
 }
+
+// ==========================================
+// SKELETON LOADING (Facebook/Instagram style)
+// ==========================================
+
+.skeleton-container {
+  position: relative;
+  overflow: hidden;
+}
+
+// Skeleton Cards Principais
+.skeleton-stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.skeleton-icon {
+  width: 56px;
+  height: 56px;
+  background: #e0e0e0;
+  border-radius: 16px;
+}
+
+.skeleton-info {
+  flex: 1;
+}
+
+.skeleton-value {
+  width: 80px;
+  height: 28px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-label {
+  width: 100px;
+  height: 12px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-trend {
+  width: 70px;
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+// Skeleton Cards Secundários
+.skeleton-stat-card-secondary {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-icon-small {
+  width: 48px;
+  height: 48px;
+  background: #e0e0e0;
+  border-radius: 12px;
+}
+
+.skeleton-info-secondary {
+  flex: 1;
+}
+
+.skeleton-value-small {
+  width: 60px;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.skeleton-label-small {
+  width: 80px;
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+// Skeleton Gráficos
+.skeleton-chart-card,
+.skeleton-distribuicao-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.skeleton-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.skeleton-title {
+  width: 150px;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-view-all {
+  width: 60px;
+  height: 16px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-bars-container {
+  display: flex;
+  justify-content: space-around;
+  padding: 20px;
+}
+
+.skeleton-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.skeleton-bar {
+  width: 30px;
+  height: 60px;
+  background: #e0e0e0;
+  border-radius: 6px 6px 0 0;
+}
+
+.skeleton-bar-label {
+  width: 30px;
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.skeleton-distribuicao-content {
+  padding: 20px;
+}
+
+.skeleton-distribuicao-item {
+  margin-bottom: 16px;
+}
+
+.skeleton-distribuicao-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.skeleton-distribuicao-label {
+  width: 60px;
+  height: 12px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-distribuicao-value {
+  width: 40px;
+  height: 12px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-progress-bar {
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+}
+
+.skeleton-distribuicao-total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid #eeeeee;
+}
+
+.skeleton-total-label {
+  width: 100px;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-total-value {
+  width: 60px;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+// Skeleton Listas Recentes
+.skeleton-recent-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.skeleton-users-list,
+.skeleton-services-list {
+  padding: 8px 0;
+}
+
+.skeleton-user-item,
+.skeleton-service-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  background: #e0e0e0;
+  border-radius: 50%;
+}
+
+.skeleton-avatar-service {
+  width: 40px;
+  height: 40px;
+  background: #e0e0e0;
+  border-radius: 50%;
+}
+
+.skeleton-user-info,
+.skeleton-service-info {
+  flex: 1;
+}
+
+.skeleton-user-name,
+.skeleton-service-name {
+  width: 120px;
+  height: 14px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.skeleton-user-email,
+.skeleton-service-cliente {
+  width: 160px;
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-user-badge,
+.skeleton-service-value {
+  text-align: right;
+}
+
+.skeleton-badge {
+  width: 70px;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 16px;
+  margin-bottom: 4px;
+}
+
+.skeleton-date {
+  width: 50px;
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.skeleton-price {
+  width: 60px;
+  height: 12px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.skeleton-status {
+  width: 50px;
+  height: 16px;
+  background: #e0e0e0;
+  border-radius: 16px;
+}
+
+// Skeleton Ações Rápidas
+.skeleton-quick-actions {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.skeleton-action-item {
+  text-align: center;
+}
+
+.skeleton-action-icon {
+  width: 48px;
+  height: 48px;
+  background: #e0e0e0;
+  border-radius: 12px;
+  margin: 0 auto 8px;
+}
+
+.skeleton-action-label {
+  width: 50px;
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin: 0 auto;
+}
+
+// Shimmer Animation
+.skeleton-shimmer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// ==========================================
+// ESTILOS PRINCIPAIS
+// ==========================================
 
 .stats-grid {
   display: grid;

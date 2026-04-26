@@ -1,5 +1,49 @@
 <template>
-  <q-layout view="hHh lpR fFf" class="bg-grey-1 mobile-prestador-layout">
+  <!-- Skeleton Loading (mostra enquanto carrega) -->
+  <div v-if="isLoading" class="skeleton-layout">
+    <!-- Skeleton Header -->
+    <div class="skeleton-header">
+      <div class="skeleton-menu-btn"></div>
+      <div class="skeleton-logo"></div>
+      <div class="skeleton-notification-btn"></div>
+    </div>
+
+    <!-- Skeleton Content -->
+    <div class="skeleton-content">
+      <!-- Skeleton Stats Cards -->
+      <div class="skeleton-stats">
+        <div v-for="i in 3" :key="i" class="skeleton-stat-card">
+          <div class="skeleton-stat-icon"></div>
+          <div class="skeleton-stat-info">
+            <div class="skeleton-line w-60"></div>
+            <div class="skeleton-line w-40"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skeleton List -->
+      <div class="skeleton-list">
+        <div v-for="i in 4" :key="i" class="skeleton-list-item">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-list-info">
+            <div class="skeleton-line w-70"></div>
+            <div class="skeleton-line w-50"></div>
+            <div class="skeleton-line w-30"></div>
+          </div>
+        </div>
+      </div>
+
+     
+    </div>
+
+    <!-- Skeleton Footer -->
+    <div class="skeleton-footer">
+      <div v-for="i in 5" :key="i" class="skeleton-tab"></div>
+    </div>
+  </div>
+
+  <!-- Layout real -->
+  <q-layout v-else view="hHh lpR fFf" class="bg-grey-1 mobile-prestador-layout">
     <!-- Header compacto para mobile -->
     <q-header elevated class="header-custom">
       <q-toolbar class="toolbar-compact">
@@ -388,6 +432,9 @@ const authStore = useAuthStore();
 const prestadorStore = usePrestadorStore();
 const $q = useQuasar();
 
+// Estado de loading do skeleton
+const isLoading = ref(true);
+
 const leftDrawerOpen = ref(false);
 const notificationsDialog = ref(false);
 const loadingNotificacoes = ref(false);
@@ -408,7 +455,6 @@ const solicitacoesPendentesCount = computed(() => {
 });
 
 const notificacoesList = computed(() => prestadorStore.notificacoes || []);
-
 const unreadCount = computed(() => prestadorStore.unreadCount || 0);
 
 const getNotificacaoIcone = (notif: NotificacaoData) => {
@@ -459,7 +505,6 @@ const formatarData = (dataString: string) => {
 
 const carregarNotificacoes = async () => {
   if (!authStore.isPrestador) {
-    console.log('Usuário não é prestador, ignorando notificações');
     return;
   }
 
@@ -558,13 +603,16 @@ const confirmLogout = () => {
   });
 };
 
-onMounted(async () => {
-  if (!authStore.isAuthenticated) {
-    authStore.initialize();
-  }
+// Carregar dados iniciais com skeleton
+const carregarDadosIniciais = async () => {
+  isLoading.value = true;
 
-  if (authStore.isAuthenticated && authStore.isPrestador) {
-    try {
+  try {
+    if (!authStore.isAuthenticated) {
+      authStore.initialize();
+    }
+
+    if (authStore.isAuthenticated && authStore.isPrestador) {
       await Promise.all([
         prestadorStore.fetchNotificacoes(),
         carregarSolicitacoesPendentes(),
@@ -573,10 +621,19 @@ onMounted(async () => {
         prestadorStore.fetchProximosServicos(5),
         prestadorStore.fetchAvaliacoesRecentes(5),
       ]);
-    } catch (error) {
-      console.error('Erro ao carregar dados iniciais:', error);
     }
+  } catch (error) {
+    console.error('Erro ao carregar dados iniciais:', error);
+  } finally {
+    // Tempo mínimo de skeleton para não piscar muito rápido
+    setTimeout(() => {
+      isLoading.value = false;
+    }, 800);
   }
+};
+
+onMounted(async () => {
+  await carregarDadosIniciais();
 
   if (authStore.isAuthenticated && authStore.isPrestador) {
     iniciarPolling();
@@ -602,6 +659,174 @@ $gray-600: #757575;
 $gray-700: #616161;
 $gray-800: #424242;
 $gray-900: #212121;
+
+// ==========================================
+// SKELETON LOADING STYLES
+// ==========================================
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-layout {
+  background: #f0f2f5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-header {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+
+.skeleton-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.skeleton-logo {
+  width: 100px;
+  height: 20px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.skeleton-notification-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.skeleton-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.skeleton-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.skeleton-stat-card {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-stat-info {
+  flex: 1;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin: 6px 0;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-60 { width: 60%; }
+.w-70 { width: 70%; }
+.w-80 { width: 80%; }
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-list-item {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+}
+
+.skeleton-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-list-info {
+  flex: 1;
+}
+
+.skeleton-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+}
+
+.skeleton-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px;
+  border-top: 1px solid $gray-200;
+}
+
+.skeleton-tab {
+  width: 50px;
+  height: 40px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+// ==========================================
+// LAYOUT REAL STYLES
+// ==========================================
 
 .mobile-prestador-layout {
   max-width: 100%;
