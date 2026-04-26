@@ -6,7 +6,7 @@ import { api } from 'src/boot/axios';
 import { MONITORING_ENDPOINTS } from 'src/router/Api/monitoring-endpoints';
 
 // ==========================================
-// INTERFACES (mantidas)
+// INTERFACES
 // ==========================================
 
 export interface HealthCheck {
@@ -17,7 +17,13 @@ export interface HealthCheck {
     app: { name: string; environment: string; debug: boolean; url: string; timezone: string };
     database: { status: string; connection?: string; response_time_ms?: number; error?: string };
     cache: { status: string; driver?: string; response_time_ms?: number; error?: string };
-    storage: { status: string; disk?: string; free_space_gb?: number; total_space_gb?: number; error?: string };
+    storage: {
+      status: string;
+      disk?: string;
+      free_space_gb?: number;
+      total_space_gb?: number;
+      error?: string;
+    };
   };
   response_time_ms: number;
 }
@@ -346,7 +352,9 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     const cacheKey = 'monitoring_infrastructure_metrics';
 
     const data = await requestWithDedupe<InfrastructureMetrics>(cacheKey, async () => {
-      const response = await api.get(MONITORING_ENDPOINTS.INFRASTRUCTURE_METRICS, { timeout: 10000 });
+      const response = await api.get(MONITORING_ENDPOINTS.INFRASTRUCTURE_METRICS, {
+        timeout: 10000,
+      });
       if (response.data.success) {
         infrastructureMetrics.value = response.data.data;
         return infrastructureMetrics.value as InfrastructureMetrics;
@@ -396,77 +404,46 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     return data;
   };
 
- // src/stores/monitoring-store.ts
+  const exportMetrics = async (format: string = 'csv'): Promise<void> => {
+    const url = MONITORING_ENDPOINTS.EXPORT(format);
 
-const exportMetrics = async (format: string = 'csv'): Promise<void> => {
-  // CORRIGIDO: Chamar a função com o parâmetro
-  const url = MONITORING_ENDPOINTS.EXPORT(format);
+    const response = await api.get(url, {
+      timeout: 20000,
+      responseType: 'blob',
+    });
 
-  const response = await api.get(url, {
-    timeout: 20000,
-    responseType: 'blob',
-  });
-
-  const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-  const link = document.createElement('a');
-  link.href = blobUrl;
-  link.setAttribute('download', `metrics_${new Date().toISOString()}.${format}`);
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(blobUrl);
-};
+    const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.setAttribute('download', `metrics_${new Date().toISOString()}.${format}`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  };
 
   const clearCache = (): void => {
     pendingRequests.clear();
   };
 
   // ==========================================
-  // CARREGAMENTO SEQUENCIAL (NÃO PARALELO)
+  // CARREGAMENTO SEQUENCIAL
   // ==========================================
 
   const carregarTodosDados = async (): Promise<void> => {
     loading.value = true;
 
     try {
-      // 🔄 CARREGAMENTO SEQUENCIAL - UMA REQUISIÇÃO POR VEZ
-
-      // 1. Primeiro, health check (mais rápido)
-      console.log('📡 1/8 - Carregando health check...');
       await fetchHealth();
-
-      // 2. Performance
-      console.log('📡 2/8 - Carregando performance...');
       await fetchPerformance();
-
-      // 3. Business Metrics
-      console.log('📡 3/8 - Carregando métricas de negócio...');
       await fetchBusinessMetrics();
-
-      // 4. Alertas
-      console.log('📡 4/8 - Carregando alertas...');
       await fetchAlerts(false);
-
-      // 5. Segurança em tempo real
-      console.log('📡 5/8 - Carregando segurança...');
       await fetchSecurityRealtime();
-
-      // 6. Serviços externos
-      console.log('📡 6/8 - Carregando serviços externos...');
       await fetchExternalServices();
-
-      // 7. Relatório executivo
-      console.log('📡 7/8 - Carregando relatório executivo...');
       await fetchExecutiveReport();
-
-      // 8. Métricas de infraestrutura
-      console.log('📡 8/8 - Carregando infraestrutura...');
       await fetchInfrastructureMetrics();
-
-      console.log('✅ Todos os dados carregados com sucesso!');
-
     } catch (error) {
-      console.error('❌ Erro ao carregar dados:', error);
+      console.error('Erro ao carregar dados:', error);
     } finally {
       loading.value = false;
     }
@@ -481,11 +458,11 @@ const exportMetrics = async (format: string = 'csv'): Promise<void> => {
   });
 
   const criticalAlertsCount = computed((): number => {
-    return alerts.value.filter(alert => alert.level === 'critical' && !alert.resolved).length;
+    return alerts.value.filter((alert) => alert.level === 'critical' && !alert.resolved).length;
   });
 
   const warningAlertsCount = computed((): number => {
-    return alerts.value.filter(alert => alert.level === 'warning' && !alert.resolved).length;
+    return alerts.value.filter((alert) => alert.level === 'warning' && !alert.resolved).length;
   });
 
   const overallHealthScore = computed((): number => {
@@ -531,7 +508,7 @@ const exportMetrics = async (format: string = 'csv'): Promise<void> => {
     return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
       currency: 'MZN',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 0,
     }).format(revenue);
   });
 

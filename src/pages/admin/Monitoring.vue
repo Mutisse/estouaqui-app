@@ -694,6 +694,7 @@ const monitoringStore = useMonitoringStore();
 // Estados
 const tab = ref('dashboard');
 const showResolved = ref(false);
+const isInitialLoadComplete = ref(false); // ← NOVO: controla se o carregamento inicial terminou
 
 // Computed do store
 const loading = computed(() => monitoringStore.loading);
@@ -863,6 +864,7 @@ const getHealthScoreColor = (score: number): string => {
 // Ações
 const carregarTodosDados = async (): Promise<void> => {
   await monitoringStore.carregarTodosDados();
+  isInitialLoadComplete.value = true; // ← MARCA QUE O CARREGAMENTO INICIAL TERMINOU
 };
 
 const carregarAlertas = async (): Promise<void> => {
@@ -878,19 +880,26 @@ const exportarCSV = async (): Promise<void> => {
   await monitoringStore.exportMetrics('csv');
 };
 
-// Auto-refresh a cada 30 segundos
+// Auto-refresh - AGORA SÓ COMEÇA DEPOIS DO CARREGAMENTO INICIAL
 let refreshInterval: ReturnType<typeof setInterval>;
 
 onMounted(async (): Promise<void> => {
-  await monitoringStore.carregarTodosDados();
+  // Primeiro carrega todos os dados
+  await carregarTodosDados();
+
+  // Só depois inicia o intervalo de atualização (60 segundos em vez de 30)
   refreshInterval = setInterval(() => {
-    if (document.hasFocus()) {
+    // Só atualiza se:
+    // 1. O documento estiver focado
+    // 2. O carregamento inicial já tiver terminado
+    // 3. Não estiver carregando no momento
+    if (document.hasFocus() && isInitialLoadComplete.value && !monitoringStore.loading) {
       void monitoringStore.fetchPerformance();
       void monitoringStore.fetchHealth();
       void monitoringStore.fetchAlerts(false);
       void monitoringStore.fetchSecurityRealtime();
     }
-  }, 30000);
+  }, 60000); // ← MUDADO: 30s -> 60s (menos requisições)
 });
 
 onUnmounted((): void => {
