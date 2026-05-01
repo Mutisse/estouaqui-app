@@ -117,7 +117,7 @@
         </q-list>
       </div>
 
-      <!-- Categorias que atende - CORRIGIDO com loading -->
+      <!-- Categorias que atende -->
       <div class="categorias-section q-pa-md">
         <div class="section-title">Áreas de Atuação</div>
         <div v-if="carregandoCategorias" class="text-center q-py-md">
@@ -125,9 +125,18 @@
           <span class="q-ml-sm">A carregar categorias...</span>
         </div>
         <div v-else>
-          <div class="row q-col-gutter-sm q-mt-sm">
-            <div v-for="cat in minhasCategorias" :key="cat.id" class="col-auto">
-              <q-chip :color="cat.cor || 'primary'" text-color="white" icon="check_circle">
+          <div class="categorias-container">
+            <div
+              v-for="cat in minhasCategorias"
+              :key="cat.id"
+              class="categoria-chip-wrapper"
+            >
+              <q-chip
+                :color="cat.cor || 'primary'"
+                text-color="white"
+                icon="check_circle"
+                class="categoria-chip"
+              >
                 {{ cat.nome }}
               </q-chip>
             </div>
@@ -183,8 +192,8 @@
             @click="adicionarServico"
           />
         </div>
-        <div v-else class="row q-col-gutter-md q-mt-sm">
-          <div v-for="servico in servicos" :key="servico.id" class="col-12">
+        <div v-else class="servicos-container">
+          <div v-for="servico in servicos" :key="servico.id" class="servico-card">
             <q-card flat bordered>
               <q-card-section>
                 <div class="row items-center">
@@ -223,9 +232,14 @@
             @click="adicionarPortfolio"
           />
         </div>
-        <div v-else class="row q-col-gutter-sm q-mt-sm">
-          <div v-for="(foto, index) in portfolio" :key="index" class="col-4">
-            <q-img :src="foto" :ratio="1" class="portfolio-img" @click="verPortfolio(index)" />
+        <div v-else class="portfolio-grid">
+          <div
+            v-for="(foto, index) in portfolio"
+            :key="index"
+            class="portfolio-item"
+            @click="verPortfolio(index)"
+          >
+            <q-img :src="foto" :ratio="1" class="portfolio-img" />
           </div>
         </div>
       </div>
@@ -235,16 +249,30 @@
         <div class="section-title">Disponibilidade</div>
         <div
           v-if="disponibilidadeHorarios.length === 0"
-          class="text-grey-6 q-mt-sm text-center q-py-md"
+          class="disponibilidade-empty"
         >
-          <q-icon name="schedule" size="24px" class="q-mr-sm" />
-          Nenhum horário definido
+          <q-icon name="schedule" size="32px" color="grey-5" />
+          <div class="text-grey-6 q-mt-sm">Nenhum horário definido</div>
+          <q-btn
+            flat
+            color="primary"
+            label="Configurar horários"
+            icon="settings"
+            class="q-mt-md"
+            @click="configurarDisponibilidade"
+          />
         </div>
-        <div v-else class="row q-col-gutter-sm q-mt-sm">
-          <div v-for="h in disponibilidadeHorarios" :key="h.dia" class="col-6 col-md-4">
-            <q-chip outline class="full-width">
-              <strong>{{ h.dia }}:</strong> {{ h.horario }}
-            </q-chip>
+        <div v-else class="disponibilidade-grid">
+          <div
+            v-for="h in disponibilidadeHorarios"
+            :key="h.dia"
+            class="disponibilidade-card"
+          >
+            <div class="disponibilidade-dia">{{ h.dia }}</div>
+            <div class="disponibilidade-horario">
+              <q-icon name="schedule" size="16px" class="q-mr-xs" />
+              {{ h.horario }}
+            </div>
           </div>
         </div>
       </div>
@@ -349,6 +377,7 @@
     </q-dialog>
   </q-page>
 </template>
+
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -362,7 +391,7 @@ defineOptions({
   name: 'PrestadorPerfil',
 });
 
-// Interfaces definidas localmente para evitar 'any'
+// Interfaces
 interface DisponibilidadeHorario {
   dia: string;
   horario: string;
@@ -397,7 +426,6 @@ interface UserData {
   preferences?: Preferences;
 }
 
-// Interface para categoria disponível (evita 'any')
 interface CategoriaDisponivel {
   id: number;
   nome: string;
@@ -431,12 +459,8 @@ const categoriasSelecionadas = ref<number[]>([]);
 
 // Função para gerar iniciais do nome
 const gerarIniciais = (nome: string): string => {
-  if (!nome || nome.trim() === '') {
-    return 'US';
-  }
-
+  if (!nome || nome.trim() === '') return 'US';
   const partes = nome.trim().split(' ');
-
   if (partes.length === 1) {
     const primeiraParte = partes[0];
     if (primeiraParte && primeiraParte.length >= 2) {
@@ -446,11 +470,9 @@ const gerarIniciais = (nome: string): string => {
     }
     return 'US';
   }
-
   const primeiraLetra = partes[0]?.[0] || '';
   const ultimaParte = partes[partes.length - 1];
   const ultimaLetra = ultimaParte?.[0] || '';
-
   return (primeiraLetra + ultimaLetra).toUpperCase();
 };
 
@@ -464,29 +486,22 @@ const userEndereco = computed(() => userData.value?.endereco || '');
 const userRating = computed(() => userData.value?.media_avaliacao || 0);
 const userTotalAvaliacoes = computed(() => userData.value?.total_avaliacoes || 0);
 
-// Avatar com fallback inteligente
+// Avatar com fallback
 const userAvatar = computed(() => {
   if (avatarErro.value) {
     const iniciais = gerarIniciais(userNome.value);
     return `https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=120&name=${encodeURIComponent(iniciais)}`;
   }
-
   const foto = userData.value?.foto || authStore.user?.foto;
-
-  if (foto && foto.startsWith('http')) {
-    return foto;
-  }
-
+  if (foto && foto.startsWith('http')) return foto;
   if (foto && !foto.startsWith('http') && foto !== 'null' && foto !== '') {
     const path = foto.startsWith('/') ? foto : `/storage/${foto}`;
     return path;
   }
-
   const iniciais = gerarIniciais(userNome.value);
   return `https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=120&name=${encodeURIComponent(iniciais)}`;
 });
 
-// Tratamento de erro da imagem
 const handleAvatarError = (event: Event) => {
   const img = event.target as HTMLImageElement;
   avatarErro.value = true;
@@ -494,37 +509,27 @@ const handleAvatarError = (event: Event) => {
   img.src = `https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=120&name=${encodeURIComponent(iniciais)}`;
 };
 
-// Dados do prestador-store
+// Dados da store
 const servicos = ref<ServicoData[]>([]);
 const minhasCategorias = ref<CategoriaPrestadorData[]>([]);
-const stats = ref({
-  servicos: 0,
-  pedidos_pendentes: 0,
-  avaliacao_media: 0,
-});
+const stats = ref({ servicos: 0, pedidos_pendentes: 0, avaliacao_media: 0 });
 const disponibilidadeHorarios = ref<DisponibilidadeHorario[]>([]);
-
-// Portfólio
 const portfolio = ref<string[]>([]);
 const documentoIdentidade = ref(false);
 
 // Formulário de edição
 const editForm = ref<EditForm>({
-  nome: '',
-  profissao: '',
-  telefone: '',
-  email: '',
-  endereco: '',
-  sobre: '',
+  nome: '', profissao: '', telefone: '', email: '', endereco: '', sobre: '',
 });
 
 const formatarPreco = (preco: number): string => {
   return new Intl.NumberFormat('pt-MZ', {
-    style: 'currency',
-    currency: 'MZN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    style: 'currency', currency: 'MZN', minimumFractionDigits: 0, maximumFractionDigits: 0,
   }).format(preco);
+};
+
+const configurarDisponibilidade = () => {
+  $q.notify({ type: 'info', message: 'Configuração de horários em breve', position: 'top' });
 };
 
 // Buscar dados do usuário
@@ -533,221 +538,142 @@ const buscarDadosUsuario = async () => {
     const response = await api.get('/me');
     if (response.data && response.data.data) {
       userData.value = response.data.data as UserData;
-
       if (userData.value?.preferences?.portfolio) {
         portfolio.value = userData.value.preferences.portfolio.map((path: string) =>
-          path.startsWith('http') ? path : `/storage/${path}`,
+          path.startsWith('http') ? path : `/storage/${path}`
         );
       }
-
       avatarErro.value = false;
     }
-  } catch (error) {
-    console.error('Erro ao buscar dados do usuário:', error);
+  } catch {
+    // Silencioso
   }
 };
 
-// Buscar todas as categorias disponíveis
+// Buscar todas as categorias
 const buscarTodasCategorias = async () => {
   try {
     const response = await api.get('/categorias');
     if (response.data && response.data.data) {
       todasCategorias.value = response.data.data as CategoriaDisponivel[];
     }
-  } catch (error) {
-    console.error('Erro ao buscar categorias:', error);
+  } catch {
+    // Silencioso
   }
 };
 
-// Verificar se categoria está selecionada
-const categoriaSelecionada = (id: number) => {
-  return categoriasSelecionadas.value.includes(id);
-};
+const categoriaSelecionada = (id: number) => categoriasSelecionadas.value.includes(id);
 
-// Alternar seleção de categoria
 const toggleCategoria = (id: number) => {
   const index = categoriasSelecionadas.value.indexOf(id);
-  if (index === -1) {
-    categoriasSelecionadas.value.push(id);
-  } else {
-    categoriasSelecionadas.value.splice(index, 1);
-  }
+  if (index === -1) categoriasSelecionadas.value.push(id);
+  else categoriasSelecionadas.value.splice(index, 1);
 };
 
-// Abrir diálogo de seleção de categorias
 const abrirSelecaoCategorias = async () => {
   await buscarTodasCategorias();
   categoriasSelecionadas.value = minhasCategorias.value.map((c) => c.id);
   showCategoriasDialog.value = true;
 };
 
-// Salvar categorias selecionadas
 const salvarCategorias = async () => {
   salvandoCategorias.value = true;
   try {
     const categoriasAtuais = minhasCategorias.value.map((c) => c.id);
-
-    // Adicionar novas categorias
     for (const catId of categoriasSelecionadas.value) {
-      if (!categoriasAtuais.includes(catId)) {
-        await prestadorStore.addCategoria(catId);
-      }
+      if (!categoriasAtuais.includes(catId)) await prestadorStore.addCategoria(catId);
     }
-
-    // Remover categorias que não estão mais selecionadas
     for (const catId of categoriasAtuais) {
-      if (!categoriasSelecionadas.value.includes(catId)) {
-        await prestadorStore.removeCategoria(catId);
-      }
+      if (!categoriasSelecionadas.value.includes(catId)) await prestadorStore.removeCategoria(catId);
     }
-
-    // Recarregar categorias
     await prestadorStore.fetchMinhasCategorias(true);
     minhasCategorias.value = prestadorStore.minhasCategorias;
-
-    $q.notify({
-      type: 'positive',
-      message: 'Categorias atualizadas!',
-      position: 'top',
-    });
-
+    $q.notify({ type: 'positive', message: 'Categorias atualizadas!', position: 'top' });
     showCategoriasDialog.value = false;
-  } catch (error) {
-    console.error('Erro ao salvar categorias:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao atualizar categorias',
-      position: 'top',
-    });
+  } catch {
+    $q.notify({ type: 'negative', message: 'Erro ao atualizar categorias', position: 'top' });
   } finally {
     salvandoCategorias.value = false;
   }
 };
 
-// Carregar dados usando a store - CORRIGIDO
+// Carregar dados principais
 const carregarDados = async () => {
   loading.value = true;
-
   const loadingNotify = $q.notify({
-    type: 'info',
-    message: 'A carregar perfil...',
-    position: 'top',
-    timeout: 0,
-    spinner: true,
+    type: 'info', message: 'A carregar perfil...', position: 'top', timeout: 0, spinner: true,
   });
-
   try {
-    console.log('🚀 Iniciando carregamento do perfil...');
-
-    // 1. Buscar dados básicos do usuário
     await buscarDadosUsuario();
-    console.log('✅ Dados do usuário carregados');
-
-    // 2. Inicializar store
     await prestadorStore.initialize();
-    console.log('✅ Store inicializada');
 
-    // 3. Buscar serviços (com loading individual)
+    // Carregar serviços
     carregandoServicos.value = true;
     try {
       await prestadorStore.fetchServicos(true);
       servicos.value = prestadorStore.servicos;
       stats.value.servicos = prestadorStore.servicos.length;
-      console.log(`✅ Serviços carregados: ${servicos.value.length}`);
-    } catch (err) {
-      console.error('Erro ao carregar serviços:', err);
+    } catch {
       servicos.value = [];
     } finally {
       carregandoServicos.value = false;
     }
 
-    // 4. Buscar categorias (CRÍTICO - com loading individual)
+    // Carregar categorias
     carregandoCategorias.value = true;
     try {
       await prestadorStore.fetchMinhasCategorias(true);
       minhasCategorias.value = prestadorStore.minhasCategorias;
-      console.log(`✅ Categorias carregadas: ${minhasCategorias.value.length}`);
-
-      // Fallback: tentar recuperar do userData se vier vazio
       if (minhasCategorias.value.length === 0 && userData.value?.preferences?.categorias) {
-        console.log('⚠️ Categorias vazias, tentando fallback do preferences...');
         const categoriasIds = userData.value.preferences.categorias as number[];
         if (Array.isArray(categoriasIds) && categoriasIds.length > 0) {
           const categoriasResponse = await api.get('/categorias');
           if (categoriasResponse.data?.data) {
             const todas = categoriasResponse.data.data as CategoriaDisponivel[];
             minhasCategorias.value = todas
-              .filter((cat: CategoriaDisponivel) => categoriasIds.includes(cat.id))
-              .map((cat: CategoriaDisponivel) => ({
-                id: cat.id,
-                nome: cat.nome,
-                icone: cat.icone || 'category',
-                cor: cat.cor || 'primary',
-              }));
-            console.log(
-              `🔄 Recuperadas ${minhasCategorias.value.length} categorias do preferences`,
-            );
+              .filter((cat) => categoriasIds.includes(cat.id))
+              .map((cat) => ({ id: cat.id, nome: cat.nome, icone: cat.icone || 'category', cor: cat.cor || 'primary' }));
           }
         }
       }
-    } catch (err) {
-      console.error('❌ Erro ao carregar categorias:', err);
+    } catch {
       minhasCategorias.value = [];
     } finally {
       carregandoCategorias.value = false;
     }
 
-    // 5. Buscar estatísticas
+    // Carregar estatísticas
     try {
       await prestadorStore.fetchStats(true);
       if (prestadorStore.stats) {
         stats.value.pedidos_pendentes = prestadorStore.stats.pedidos_pendentes || 0;
         stats.value.avaliacao_media = prestadorStore.stats.avaliacao_media || 0;
       }
-      console.log('✅ Stats carregados');
-    } catch (err) {
-      console.error('Erro ao carregar stats:', err);
+    } catch {
+      // Silencioso
     }
 
-    // 6. Buscar disponibilidade (com fallback) - CORRIGIDO
+    // Carregar disponibilidade
     try {
       await prestadorStore.fetchDisponibilidade(true);
       if (prestadorStore.disponibilidade?.horarios_padrao) {
         const horariosMap = prestadorStore.disponibilidade.horarios_padrao;
         disponibilidadeHorarios.value = Object.entries(horariosMap)
-          .filter((entry): entry is [string, string[]] => {
-            const [, horarios] = entry;
-            return Array.isArray(horarios) && horarios.length > 0;
-          })
-          .map(([dia, horarios]) => ({
-            dia: dia.charAt(0).toUpperCase() + dia.slice(1),
-            horario: horarios.join(', '),
-          }));
+          .filter((entry): entry is [string, string[]] => Array.isArray(entry[1]) && entry[1].length > 0)
+          .map(([dia, horarios]) => ({ dia: dia.charAt(0).toUpperCase() + dia.slice(1), horario: horarios.join(', ') }));
       } else {
         disponibilidadeHorarios.value = [];
       }
-      console.log(`✅ Disponibilidade carregada: ${disponibilidadeHorarios.value.length} dias`);
-    } catch (err) {
-      console.error('Erro ao carregar disponibilidade:', err);
+    } catch {
       disponibilidadeHorarios.value = [];
     }
 
     documentoIdentidade.value = true;
-
+    $q.notify({ type: 'positive', message: 'Perfil carregado com sucesso!', position: 'top', timeout: 2000 });
+  } catch {
     $q.notify({
-      type: 'positive',
-      message: 'Perfil carregado com sucesso!',
-      position: 'top',
-      timeout: 2000,
-    });
-  } catch (error) {
-    console.error('❌ Erro FATAL ao carregar dados do perfil:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar dados do perfil. Recarregue a página.',
-      position: 'top',
-      timeout: 5000,
-      actions: [{ label: 'Recarregar', color: 'white', handler: () => window.location.reload() }],
+      type: 'negative', message: 'Erro ao carregar dados do perfil. Recarregue a página.',
+      position: 'top', timeout: 5000, actions: [{ label: 'Recarregar', color: 'white', handler: () => window.location.reload() }],
     });
   } finally {
     loading.value = false;
@@ -755,21 +681,7 @@ const carregarDados = async () => {
   }
 };
 
-// Função de debug
-const debugDados = () => {
-  console.group('🔍 DEBUG - Dados do Perfil');
-  console.log('User Data:', userData.value);
-  console.log('Categorias (minhasCategorias):', minhasCategorias.value);
-  console.log('Serviços:', servicos.value);
-  console.log('Disponibilidade:', disponibilidadeHorarios.value);
-  console.log('Stats:', stats.value);
-  console.log('Portfolio:', portfolio.value);
-  console.log('Store initialized:', prestadorStore.initialized);
-  console.log('Store loading:', prestadorStore.loading);
-  console.groupEnd();
-};
-
-// Trocar foto de perfil
+// Trocar foto
 const trocarFotoPerfil = () => {
   const input = document.createElement('input');
   input.type = 'file';
@@ -777,42 +689,31 @@ const trocarFotoPerfil = () => {
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement;
     const file = target.files?.[0];
-    if (file) {
-      await uploadFotoPerfil(file);
-    }
+    if (file) await uploadFotoPerfil(file);
   };
   input.click();
 };
 
-// Upload da foto
 const uploadFotoPerfil = async (file: File) => {
   const formData = new FormData();
   formData.append('foto', file);
-
   $q.loading.show({ message: 'Enviando foto...' });
-
   try {
-    const response = await api.post('/me/foto', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-
+    const response = await api.post('/me/foto', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
     if (response.data.success && response.data.data?.foto) {
       userData.value!.foto = response.data.data.foto;
-      if (authStore.user) {
-        authStore.user.foto = response.data.data.foto;
-      }
+      if (authStore.user) authStore.user.foto = response.data.data.foto;
       avatarErro.value = false;
       $q.notify({ type: 'positive', message: 'Foto atualizada!', position: 'top' });
     }
-  } catch (error) {
-    console.error('Erro ao fazer upload:', error);
+  } catch {
     $q.notify({ type: 'negative', message: 'Erro ao atualizar foto', position: 'top' });
   } finally {
     $q.loading.hide();
   }
 };
 
-// Upload de documento
+// Upload documento
 const uploadDocumento = () => {
   const input = document.createElement('input');
   input.type = 'file';
@@ -823,17 +724,14 @@ const uploadDocumento = () => {
     if (file) {
       const formData = new FormData();
       formData.append('documento', file);
-
       $q.loading.show({ message: 'Enviando documento...' });
-
       try {
         const response = await api.post('/me/documento', formData);
         if (response.data.success) {
           documentoIdentidade.value = true;
           $q.notify({ type: 'positive', message: 'Documento enviado!', position: 'top' });
         }
-      } catch (error) {
-        console.error('Erro ao enviar documento:', error);
+      } catch {
         $q.notify({ type: 'negative', message: 'Erro ao enviar documento', position: 'top' });
       } finally {
         $q.loading.hide();
@@ -843,23 +741,14 @@ const uploadDocumento = () => {
   input.click();
 };
 
-// Função para adicionar serviço
 const adicionarServico = () => {
-  $q.notify({
-    type: 'info',
-    message: 'Adicionar serviço em breve',
-    position: 'top',
-  });
+  $q.notify({ type: 'info', message: 'Adicionar serviço em breve', position: 'top' });
 };
 
 const editarPerfil = () => {
   editForm.value = {
-    nome: userNome.value,
-    profissao: userProfissao.value,
-    telefone: userTelefone.value,
-    email: userEmail.value,
-    endereco: userEndereco.value,
-    sobre: userSobre.value,
+    nome: userNome.value, profissao: userProfissao.value, telefone: userTelefone.value,
+    email: userEmail.value, endereco: userEndereco.value, sobre: userSobre.value,
   };
   showEditDialog.value = true;
 };
@@ -868,14 +757,9 @@ const salvarPerfil = async () => {
   loadingSalvar.value = true;
   try {
     const response = await api.put('/me', {
-      nome: editForm.value.nome,
-      profissao: editForm.value.profissao,
-      telefone: editForm.value.telefone,
-      email: editForm.value.email,
-      endereco: editForm.value.endereco,
-      sobre: editForm.value.sobre,
+      nome: editForm.value.nome, profissao: editForm.value.profissao, telefone: editForm.value.telefone,
+      email: editForm.value.email, endereco: editForm.value.endereco, sobre: editForm.value.sobre,
     });
-
     if (response.data.success) {
       if (userData.value) {
         userData.value.nome = editForm.value.nome;
@@ -885,18 +769,15 @@ const salvarPerfil = async () => {
         userData.value.sobre = editForm.value.sobre;
         userData.value.endereco = editForm.value.endereco;
       }
-
       if (authStore.user) {
         authStore.user.nome = editForm.value.nome;
         authStore.user.email = editForm.value.email;
         authStore.user.telefone = editForm.value.telefone;
       }
-
       $q.notify({ type: 'positive', message: 'Perfil atualizado!', position: 'top' });
       showEditDialog.value = false;
     }
-  } catch (error) {
-    console.error(error);
+  } catch {
     $q.notify({ type: 'negative', message: 'Erro ao atualizar', position: 'top' });
   } finally {
     loadingSalvar.value = false;
@@ -908,12 +789,8 @@ const editarEmail = () => editarPerfil();
 const editarLocalizacao = () => editarPerfil();
 const editarSobre = () => {
   editForm.value = {
-    nome: userNome.value,
-    profissao: userProfissao.value,
-    telefone: userTelefone.value,
-    email: userEmail.value,
-    endereco: userEndereco.value,
-    sobre: userSobre.value,
+    nome: userNome.value, profissao: userProfissao.value, telefone: userTelefone.value,
+    email: userEmail.value, endereco: userEndereco.value, sobre: userSobre.value,
   };
   showEditDialog.value = true;
 };
@@ -932,8 +809,7 @@ const adicionarPortfolio = () => {
   input.multiple = true;
   input.onchange = (e: Event) => {
     const target = e.target as HTMLInputElement;
-    const files = target.files;
-    if (files && files.length > 0) {
+    if (target.files && target.files.length > 0) {
       $q.notify({ type: 'info', message: 'Upload de múltiplas fotos em breve', position: 'top' });
     }
   };
@@ -941,9 +817,7 @@ const adicionarPortfolio = () => {
 };
 
 onMounted(() => {
-  void carregarDados().then(() => {
-    debugDados();
-  });
+  void carregarDados();
 });
 </script>
 
@@ -968,7 +842,6 @@ onMounted(() => {
   .inline-block {
     display: inline-block;
   }
-
   .q-skeleton {
     background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
     background-size: 200% 100%;
@@ -977,47 +850,27 @@ onMounted(() => {
 }
 
 @keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .profile-header {
   background: white;
-
-  .profile-avatar {
-    border: 3px solid #667eea;
-  }
-
-  .profile-name {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #212121;
-  }
-
-  .profile-profession {
-    font-size: 1rem;
-    color: #757575;
-  }
+  .profile-avatar { border: 3px solid #667eea; }
+  .profile-name { font-size: 1.5rem; font-weight: 700; color: #212121; }
+  .profile-profession { font-size: 1rem; color: #757575; }
 }
 
 .avatar-container {
   position: relative;
   display: inline-block;
-
   .change-photo-btn {
     position: absolute;
     bottom: 0;
     right: 0;
     background: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-
-    &:hover {
-      background: #f5f5f5;
-    }
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    &:hover { background: #f5f5f5; }
   }
 }
 
@@ -1027,17 +880,8 @@ onMounted(() => {
     border-radius: 12px;
     padding: 12px;
     border: 1px solid #eeeeee;
-
-    .stat-value {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #667eea;
-    }
-
-    .stat-label {
-      font-size: 0.8rem;
-      color: #757575;
-    }
+    .stat-value { font-size: 1.2rem; font-weight: 700; color: #667eea; }
+    .stat-label { font-size: 0.8rem; color: #757575; }
   }
 }
 
@@ -1045,11 +889,12 @@ onMounted(() => {
   font-size: 1rem;
   font-weight: 600;
   color: #424242;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  padding-left: 4px;
+  border-left: 3px solid #667eea;
 }
 
-.info-list,
-.docs-list {
+.info-list, .docs-list {
   border-radius: 12px;
   overflow: hidden;
 }
@@ -1058,20 +903,156 @@ onMounted(() => {
   border-radius: 12px;
 }
 
-.portfolio-img {
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.3s ease;
+// Categorias
+.categorias-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
 
+.categoria-chip {
+  cursor: default;
+  transition: transform 0.2s ease;
   &:hover {
-    transform: scale(1.05);
+    transform: translateY(-2px);
   }
 }
 
-.empty-portfolio {
-  padding: 24px;
-  background: white;
+// Serviços
+.servicos-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.servico-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  &:hover {
+    transform: translateY(-2px);
+    .q-card {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+  }
+}
+
+// Portfólio
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.portfolio-item {
+  cursor: pointer;
   border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+}
+
+.portfolio-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+// Disponibilidade
+.disponibilidade-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.disponibilidade-card {
+  background: white;
+  border-radius: 16px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.2s ease;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+
+  &:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102,126,234,0.1);
+    transform: translateY(-2px);
+  }
+}
+
+.disponibilidade-dia {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #667eea;
+  display: inline-block;
+}
+
+.disponibilidade-horario {
+  font-size: 0.85rem;
+  color: #4a5568;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #f7f9fc;
+  padding: 6px 12px;
+  border-radius: 20px;
+  width: 100%;
+}
+
+.disponibilidade-empty {
+  text-align: center;
+  padding: 40px 20px;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #eef2f6;
+  margin-top: 8px;
+}
+
+.empty-portfolio {
+  padding: 32px;
+  background: white;
+  border-radius: 16px;
   border: 1px solid #eeeeee;
+  text-align: center;
+}
+
+// Responsividade
+@media (max-width: 480px) {
+  .disponibilidade-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .portfolio-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+  }
+  .categorias-container {
+    gap: 8px;
+  }
+  .stats-section .stat-value {
+    font-size: 1rem;
+  }
+  .section-title {
+    font-size: 0.95rem;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .disponibilidade-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>

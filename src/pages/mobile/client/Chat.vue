@@ -25,9 +25,6 @@
         <div class="skeleton-input"></div>
         <div class="skeleton-send-btn"></div>
       </div>
-      <div class="skeleton-spinner">
-        <q-spinner color="primary" size="40px" />
-      </div>
     </div>
 
     <!-- Conteúdo original (sem alterações) -->
@@ -458,18 +455,6 @@ onUnmounted(() => {
   background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-}
-
-.skeleton-spinner {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 10000;
 }
 
 .w-20 {

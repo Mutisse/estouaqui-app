@@ -4,6 +4,8 @@ import { useQuasar, type QNotifyCreateOptions } from 'quasar';
 import { api } from 'src/boot/axios';
 import type { AxiosError } from 'axios';
 import { PRESTADOR_ENDPOINTS } from 'src/router/Api/prestador-endpoints';
+import { useCacheStore } from './cache-store';
+import { useAuthStore } from './auth-store';
 
 // ==========================================
 // INTERFACES
@@ -104,6 +106,7 @@ export interface StatsData {
   servicos_hoje: number;
   avaliacao_media: number;
   ganhos_mes: number;
+  ticket_medio?: number;
 }
 
 export interface ProximoServicoData {
@@ -243,89 +246,25 @@ export interface NotificacaoData {
 }
 
 // ==========================================
-// CONSTANTES DE CACHE
+// CONSTANTES DE CACHE - OTIMIZADAS
 // ==========================================
-
-const CACHE_KEYS = {
-  SERVICOS: 'prestador_servicos',
-  SOLICITACOES: 'prestador_solicitacoes',
-  CATEGORIAS: 'prestador_categorias',
-  GANHOS: 'prestador_ganhos',
-  STATS: 'prestador_stats',
-  PROXIMOS_SERVICOS: 'prestador_proximos_servicos',
-  AVALIACOES_RECENTES: 'prestador_avaliacoes_recentes',
-  NOTIFICACOES: 'prestador_notificacoes',
-  DASHBOARD: 'prestador_dashboard',
-  PEDIDOS_DISPONIVEIS: 'prestador_pedidos_disponiveis',
-  MINHAS_PROPOSTAS: 'prestador_minhas_propostas',
-  INTERVALOS: 'prestador_intervalos',
-  DISPONIBILIDADE: 'prestador_disponibilidade',
-  SAQUES: 'prestador_saques',
-  HISTORICO_SAQUES: 'prestador_historico_saques',
-};
 
 const CACHE_TTL = {
-  SHORT: 5 * 60 * 1000, // 5 minutos
-  MEDIUM: 15 * 60 * 1000, // 15 minutos
-  LONG: 60 * 60 * 1000, // 1 hora
-  VERY_LONG: 24 * 60 * 60 * 1000, // 24 horas
+  SHORT: 5 * 60 * 1000,
+  MEDIUM: 15 * 60 * 1000,
+  LONG: 60 * 60 * 1000,
+  VERY_LONG: 24 * 60 * 60 * 1000,
 };
 
-const REQUEST_TIMEOUT = 15000; // 15 segundos timeout para requisições
+const REQUEST_TIMEOUT = 15000;
 
 // ==========================================
-// FUNÇÕES DE CACHE COM LOCALSTORAGE
-// ==========================================
-
-function saveToCache<T>(key: string, data: T, ttl: number = CACHE_TTL.MEDIUM): void {
-  try {
-    const item = {
-      data: data,
-      timestamp: Date.now(),
-      ttl: ttl,
-    };
-    localStorage.setItem(`prestador_cache_${key}`, JSON.stringify(item));
-  } catch (error) {
-    console.warn(`Erro ao salvar cache para ${key}:`, error);
-  }
-}
-
-function loadFromCache<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem(`prestador_cache_${key}`);
-    if (!raw) return null;
-
-    const item = JSON.parse(raw);
-    const isExpired = Date.now() - item.timestamp > item.ttl;
-
-    if (isExpired) {
-      localStorage.removeItem(`prestador_cache_${key}`);
-      return null;
-    }
-
-    return item.data as T;
-  } catch (error) {
-    console.warn(`Erro ao carregar cache para ${key}:`, error);
-    return null;
-  }
-}
-
-function clearCache(key?: string): void {
-  if (key) {
-    localStorage.removeItem(`prestador_cache_${key}`);
-  } else {
-    Object.values(CACHE_KEYS).forEach((cacheKey) => {
-      localStorage.removeItem(`prestador_cache_${cacheKey}`);
-    });
-  }
-}
-
-// ==========================================
-// STORE DO PRESTADOR - CORRIGIDA
+// STORE DO PRESTADOR
 // ==========================================
 
 export const usePrestadorStore = defineStore('prestador', () => {
   const $q = useQuasar();
+  const cacheStore = useCacheStore();
 
   // ==========================================
   // STATE
@@ -347,6 +286,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     servicos_hoje: 0,
     avaliacao_media: 0,
     ganhos_mes: 0,
+    ticket_medio: 0,
   });
   const proximosServicos = ref<ProximoServicoData[]>([]);
   const avaliacoesRecentes = ref<AvaliacaoRecenteData[]>([]);
@@ -370,26 +310,11 @@ export const usePrestadorStore = defineStore('prestador', () => {
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   // ==========================================
-  // MÉTODOS AUXILIARES - CORRIGIDOS
+  // MÉTODOS AUXILIARES
   // ==========================================
-
-  async function dedupeRequest<T>(key: string, request: () => Promise<T>): Promise<T> {
-    if (pendingRequests.has(key)) {
-      console.log(`🔄 Reutilizando requisição em andamento: ${key}`);
-      return pendingRequests.get(key) as Promise<T>;
-    }
-
-    const promise = request().finally(() => {
-      pendingRequests.delete(key);
-    });
-
-    pendingRequests.set(key, promise);
-    return promise;
-  }
 
   function extractDataFromResponse<T>(response: unknown): T {
     if (!response) {
-      console.warn('⚠️ Resposta vazia, retornando array vazio');
       return [] as T;
     }
 
@@ -400,7 +325,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
     if (typeof response === 'object' && response !== null) {
       const obj = response as Record<string, unknown>;
 
-      // Formato: { success: true, data: [...] }
       if (obj.success === true && obj.data !== undefined) {
         if (Array.isArray(obj.data)) {
           return obj.data as T;
@@ -413,14 +337,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
         ) {
           return (obj.data as Record<string, unknown>).data as T;
         }
-        // Se data for objeto mas tiver os campos esperados
         if (obj.data && typeof obj.data === 'object') {
           return obj.data as T;
         }
         return obj.data as T;
       }
 
-      // Formato: { data: [...] }
       if (obj.data !== undefined) {
         if (Array.isArray(obj.data)) {
           return obj.data as T;
@@ -437,7 +359,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
       }
     }
 
-    console.warn('⚠️ Formato de resposta inesperado:', response);
     return [] as T;
   }
 
@@ -459,84 +380,61 @@ export const usePrestadorStore = defineStore('prestador', () => {
       err.message ||
       'Erro ao carregar dados';
     showNotification('negative', message);
-    console.error('❌ Erro detalhado:', error);
+  }
+
+  // Função auxiliar para obter o ID do usuário atual (SYNC)
+  function getCurrentUserId(): number {
+    const authStore = useAuthStore();
+    return authStore.user?.id || 0;
   }
 
   // ==========================================
-  // CATEGORIAS DO PRESTADOR - CORRIGIDO (CRÍTICO)
+  // CATEGORIAS DO PRESTADOR
   // ==========================================
 
   async function fetchMinhasCategorias(
     forceRefresh: boolean = false,
   ): Promise<CategoriaPrestadorData[]> {
-    const cacheKey = CACHE_KEYS.CATEGORIAS;
+    const cacheKey = `prestador_categorias_${getCurrentUserId()}`;
 
-    console.log('🔍 Buscando categorias do prestador... forceRefresh:', forceRefresh);
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<CategoriaPrestadorData[]>(cacheKey);
-      if (cached && cached.length > 0) {
-        console.log('📦 Categorias carregadas do cache:', cached.length);
-        minhasCategorias.value = cached;
-        return cached;
-      }
-    }
+          const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_CATEGORIAS, {
+            signal: controller.signal,
+          });
 
-    return dedupeRequest('minhas_categorias', async () => {
-      loading.value = true;
-      try {
-        // Adicionar timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+          clearTimeout(timeoutId);
 
-        console.log('🌐 Buscando categorias da API...');
-        const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_CATEGORIAS, {
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        console.log('📥 Resposta da API de categorias:', response.data);
-
-        const data = extractDataFromResponse<CategoriaPrestadorData[]>(response.data);
-        minhasCategorias.value = Array.isArray(data) ? data : [];
-
-        console.log(`✅ Categorias carregadas: ${minhasCategorias.value.length}`);
-
-        if (minhasCategorias.value.length === 0) {
-          console.warn('⚠️ Nenhuma categoria encontrada para o prestador');
-        } else {
-          console.log(
-            '📋 Categorias:',
-            minhasCategorias.value.map((c) => c.nome),
-          );
+          const data = extractDataFromResponse<CategoriaPrestadorData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          minhasCategorias.value = result;
+          return result;
+        } finally {
+          loading.value = false;
         }
-
-        saveToCache(cacheKey, minhasCategorias.value, CACHE_TTL.LONG);
-        return minhasCategorias.value;
-      } catch (error) {
-        console.error('❌ Erro ao carregar categorias:', error);
-        minhasCategorias.value = [];
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+      },
+      CACHE_TTL.LONG,
+      forceRefresh,
+    );
   }
 
   async function addCategoria(categoriaId: number): Promise<boolean> {
     loading.value = true;
     try {
-      console.log(`➕ Adicionando categoria ${categoriaId}...`);
       const response = await api.post(
         PRESTADOR_ENDPOINTS.ADICIONAR_CATEGORIA(categoriaId.toString()),
       );
 
       if (response.data.success) {
-        clearCache(CACHE_KEYS.CATEGORIAS);
+        cacheStore.invalidatePattern('prestador_categorias_');
         await fetchMinhasCategorias(true);
         showNotification('positive', 'Categoria adicionada!', 'add');
-        console.log('✅ Categoria adicionada com sucesso');
         return true;
       }
       return false;
@@ -551,16 +449,14 @@ export const usePrestadorStore = defineStore('prestador', () => {
   async function removeCategoria(categoriaId: number): Promise<boolean> {
     loading.value = true;
     try {
-      console.log(`❌ Removendo categoria ${categoriaId}...`);
       const response = await api.delete(
         PRESTADOR_ENDPOINTS.REMOVER_CATEGORIA(categoriaId.toString()),
       );
 
       if (response.data.success) {
         minhasCategorias.value = minhasCategorias.value.filter((c) => c.id !== categoriaId);
-        clearCache(CACHE_KEYS.CATEGORIAS);
+        cacheStore.invalidatePattern('prestador_categorias_');
         showNotification('positive', 'Categoria removida!', 'delete');
-        console.log('✅ Categoria removida com sucesso');
         return true;
       }
       return false;
@@ -573,68 +469,71 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // SERVIÇOS DO PRESTADOR - CORRIGIDO
+  // SERVIÇOS DO PRESTADOR
   // ==========================================
 
   async function fetchServicos(forceRefresh: boolean = false): Promise<ServicoData[]> {
-    const cacheKey = CACHE_KEYS.SERVICOS;
+    const cacheKey = `prestador_servicos_${getCurrentUserId()}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<ServicoData[]>(cacheKey);
-      if (cached) {
-        servicos.value = cached;
-        return cached;
-      }
-    }
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-    return dedupeRequest('servicos', async () => {
-      loading.value = true;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+          const response = await api.get(PRESTADOR_ENDPOINTS.SERVICOS, {
+            signal: controller.signal,
+          });
 
-        const response = await api.get(PRESTADOR_ENDPOINTS.SERVICOS, {
-          signal: controller.signal,
-        });
+          clearTimeout(timeoutId);
 
-        clearTimeout(timeoutId);
-
-        const data = extractDataFromResponse<ServicoData[]>(response.data);
-        servicos.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, servicos.value, CACHE_TTL.LONG);
-        return servicos.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+          const data = extractDataFromResponse<ServicoData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          servicos.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.LONG,
+      forceRefresh,
+    );
   }
 
   async function fetchServicoDetalhes(id: number): Promise<ServicoData | null> {
-    return dedupeRequest(`servico_${id}`, async () => {
-      loading.value = true;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+    const cacheKey = `prestador_servico_detalhes_${id}`;
 
-        const response = await api.get(PRESTADOR_ENDPOINTS.ATUALIZAR_SERVICO(id.toString()), {
-          signal: controller.signal,
-        });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-        clearTimeout(timeoutId);
+          const response = await api.get(PRESTADOR_ENDPOINTS.ATUALIZAR_SERVICO(id.toString()), {
+            signal: controller.signal,
+          });
 
-        const data = extractDataFromResponse<ServicoData>(response.data);
-        servicoDetalhes.value = data;
-        return servicoDetalhes.value;
-      } catch (error) {
-        showError(error);
-        return null;
-      } finally {
-        loading.value = false;
-      }
-    });
+          clearTimeout(timeoutId);
+
+          const data = extractDataFromResponse<ServicoData>(response.data);
+          servicoDetalhes.value = data;
+          return data;
+        } catch (error) {
+          showError(error);
+          return null;
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.MEDIUM,
+    );
   }
 
   async function createServico(data: {
@@ -651,7 +550,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       if (response.data.success) {
         const newServico = extractDataFromResponse<ServicoData>(response.data);
         servicos.value.push(newServico);
-        clearCache(CACHE_KEYS.SERVICOS);
+        cacheStore.invalidatePattern('prestador_servicos_');
         showNotification('positive', 'Serviço criado com sucesso!', 'check_circle');
         return newServico;
       }
@@ -677,7 +576,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
         if (index !== -1) {
           servicos.value[index] = updatedServico;
         }
-        clearCache(CACHE_KEYS.SERVICOS);
+        cacheStore.invalidatePattern('prestador_servicos_');
+        cacheStore.invalidate(`prestador_servico_detalhes_${id}`);
         showNotification('positive', 'Serviço atualizado com sucesso!', 'edit');
         return updatedServico;
       }
@@ -696,7 +596,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       const response = await api.delete(PRESTADOR_ENDPOINTS.DELETAR_SERVICO(id.toString()));
       if (response.data.success) {
         servicos.value = servicos.value.filter((s) => s.id !== id);
-        clearCache(CACHE_KEYS.SERVICOS);
+        cacheStore.invalidatePattern('prestador_servicos_');
         showNotification('positive', 'Serviço removido com sucesso!', 'delete');
         return true;
       }
@@ -720,7 +620,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
           const message = servicos.value[index].ativo ? 'Serviço ativado!' : 'Serviço desativado!';
           showNotification('info', message, 'toggle_on');
         }
-        clearCache(CACHE_KEYS.SERVICOS);
+        cacheStore.invalidatePattern('prestador_servicos_');
         return true;
       }
       return false;
@@ -733,69 +633,62 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // DISPONIBILIDADE DO PRESTADOR - CORRIGIDO
+  // DISPONIBILIDADE DO PRESTADOR
   // ==========================================
 
   async function fetchDisponibilidade(
     forceRefresh: boolean = false,
   ): Promise<DisponibilidadeData | null> {
-    const cacheKey = CACHE_KEYS.DISPONIBILIDADE;
+    const cacheKey = `prestador_disponibilidade_${getCurrentUserId()}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<DisponibilidadeData>(cacheKey);
-      if (cached) {
-        disponibilidade.value = cached;
-        return cached;
-      }
-    }
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-    return dedupeRequest('disponibilidade', async () => {
-      loading.value = true;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+          const response = await api.get(PRESTADOR_ENDPOINTS.DISPONIBILIDADE, {
+            signal: controller.signal,
+          });
 
-        const response = await api.get(PRESTADOR_ENDPOINTS.DISPONIBILIDADE, {
-          signal: controller.signal,
-        });
+          clearTimeout(timeoutId);
 
-        clearTimeout(timeoutId);
+          const data = extractDataFromResponse<DisponibilidadeData>(response.data);
 
-        const data = extractDataFromResponse<DisponibilidadeData>(response.data);
-        disponibilidade.value = data;
+          if (data && !data.horarios_padrao) {
+            data.horarios_padrao = {};
+          }
 
-        // Se não tiver horários padrão, criar objeto vazio mas válido
-        if (disponibilidade.value && !disponibilidade.value.horarios_padrao) {
-          disponibilidade.value.horarios_padrao = {};
+          disponibilidade.value = data;
+          return data;
+        } catch {
+          const defaultDisponibilidade = {
+            id: 0,
+            prestador_id: 0,
+            configuracoes: {
+              tempo_minimo_agendamento: 60,
+              tempo_entre_servicos: 15,
+              notificar_antes: 30,
+              aceitar_agendamento_automatico: true,
+              dias_antecedencia: 30,
+            },
+            horarios_padrao: {},
+            intervalos_padrao: [],
+            ativo: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          disponibilidade.value = defaultDisponibilidade;
+          return defaultDisponibilidade;
+        } finally {
+          loading.value = false;
         }
-
-        saveToCache(cacheKey, disponibilidade.value, CACHE_TTL.MEDIUM);
-        return disponibilidade.value;
-      } catch (error) {
-        console.error('Erro ao carregar disponibilidade:', error);
-        // Retornar um objeto padrão em vez de null para evitar quebras
-        const defaultDisponibilidade = {
-          id: 0,
-          prestador_id: 0,
-          configuracoes: {
-            tempo_minimo_agendamento: 60,
-            tempo_entre_servicos: 15,
-            notificar_antes: 30,
-            aceitar_agendamento_automatico: true,
-            dias_antecedencia: 30,
-          },
-          horarios_padrao: {},
-          intervalos_padrao: [],
-          ativo: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        disponibilidade.value = defaultDisponibilidade;
-        return defaultDisponibilidade;
-      } finally {
-        loading.value = false;
-      }
-    });
+      },
+      CACHE_TTL.MEDIUM,
+      forceRefresh,
+    );
   }
 
   async function updateDisponibilidade(
@@ -806,7 +699,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       const response = await api.put(PRESTADOR_ENDPOINTS.ATUALIZAR_DISPONIBILIDADE, data);
       if (response.data.success) {
         disponibilidade.value = extractDataFromResponse<DisponibilidadeData>(response.data);
-        clearCache(CACHE_KEYS.DISPONIBILIDADE);
+        cacheStore.invalidatePattern('prestador_disponibilidade_');
         showNotification('positive', 'Configurações atualizadas!', 'settings');
         return disponibilidade.value;
       }
@@ -820,51 +713,46 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // ESTATÍSTICAS DO PRESTADOR - CORRIGIDO
+  // ESTATÍSTICAS DO PRESTADOR
   // ==========================================
 
   async function fetchStats(forceRefresh: boolean = false): Promise<StatsData | null> {
-    const cacheKey = CACHE_KEYS.STATS;
+    const cacheKey = `prestador_stats_${getCurrentUserId()}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<StatsData>(cacheKey);
-      if (cached) {
-        stats.value = cached;
-        return cached;
-      }
-    }
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-    return dedupeRequest('stats', async () => {
-      loading.value = true;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+          const response = await api.get(PRESTADOR_ENDPOINTS.PRESTADOR_STATS, {
+            signal: controller.signal,
+          });
 
-        const response = await api.get(PRESTADOR_ENDPOINTS.PRESTADOR_STATS, {
-          signal: controller.signal,
-        });
+          clearTimeout(timeoutId);
 
-        clearTimeout(timeoutId);
-
-        const data = extractDataFromResponse<StatsData>(response.data);
-        stats.value = data;
-        saveToCache(cacheKey, stats.value, CACHE_TTL.SHORT);
-        return stats.value;
-      } catch (error) {
-        console.error('Erro ao carregar stats:', error);
-        // Retornar stats padrão
-        const defaultStats = {
-          pedidos_pendentes: 0,
-          servicos_hoje: 0,
-          avaliacao_media: 0,
-          ganhos_mes: 0,
-        };
-        stats.value = defaultStats;
-        return defaultStats;
-      } finally {
-        loading.value = false;
-      }
-    });
+          const data = extractDataFromResponse<StatsData>(response.data);
+          stats.value = data;
+          return data;
+        } catch {
+          const defaultStats = {
+            pedidos_pendentes: 0,
+            servicos_hoje: 0,
+            avaliacao_media: 0,
+            ganhos_mes: 0,
+            ticket_medio: 0,
+          };
+          stats.value = defaultStats;
+          return defaultStats;
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.SHORT,
+      forceRefresh,
+    );
   }
 
   // ==========================================
@@ -872,39 +760,35 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
 
   async function fetchGanhos(forceRefresh: boolean = false): Promise<GanhosData | null> {
-    const cacheKey = CACHE_KEYS.GANHOS;
+    const cacheKey = `prestador_ganhos_${getCurrentUserId()}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<GanhosData>(cacheKey);
-      if (cached) {
-        ganhos.value = cached;
-        return cached;
-      }
-    }
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-    return dedupeRequest('ganhos', async () => {
-      loading.value = true;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+          const response = await api.get(PRESTADOR_ENDPOINTS.GANHOS, {
+            signal: controller.signal,
+          });
 
-        const response = await api.get(PRESTADOR_ENDPOINTS.GANHOS, {
-          signal: controller.signal,
-        });
+          clearTimeout(timeoutId);
 
-        clearTimeout(timeoutId);
-
-        const data = extractDataFromResponse<GanhosData>(response.data);
-        ganhos.value = data;
-        saveToCache(cacheKey, ganhos.value, CACHE_TTL.MEDIUM);
-        return ganhos.value;
-      } catch (error) {
-        showError(error);
-        return null;
-      } finally {
-        loading.value = false;
-      }
-    });
+          const data = extractDataFromResponse<GanhosData>(response.data);
+          ganhos.value = data;
+          return data;
+        } catch (error) {
+          showError(error);
+          return null;
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.MEDIUM,
+      forceRefresh,
+    );
   }
 
   // ==========================================
@@ -915,34 +799,31 @@ export const usePrestadorStore = defineStore('prestador', () => {
     status?: string,
     forceRefresh: boolean = false,
   ): Promise<SolicitacaoData[]> {
-    const cacheKey = `${CACHE_KEYS.SOLICITACOES}_${status || 'all'}`;
+    const cacheKey = `prestador_solicitacoes_${getCurrentUserId()}_${status || 'all'}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<SolicitacaoData[]>(cacheKey);
-      if (cached) {
-        solicitacoes.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest(`solicitacoes_${status || 'all'}`, async () => {
-      loading.value = true;
-      try {
-        const url = status
-          ? PRESTADOR_ENDPOINTS.SOLICITACOES_BY_STATUS(status)
-          : PRESTADOR_ENDPOINTS.SOLICITACOES;
-        const response = await api.get(url);
-        const data = extractDataFromResponse<SolicitacaoData[]>(response.data);
-        solicitacoes.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, solicitacoes.value, CACHE_TTL.SHORT);
-        return solicitacoes.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const url = status
+            ? PRESTADOR_ENDPOINTS.SOLICITACOES_BY_STATUS(status)
+            : PRESTADOR_ENDPOINTS.SOLICITACOES;
+          const response = await api.get(url);
+          const data = extractDataFromResponse<SolicitacaoData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          solicitacoes.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.SHORT,
+      forceRefresh,
+    );
   }
 
   async function aceitarSolicitacao(id: number): Promise<boolean> {
@@ -954,7 +835,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
         if (index !== -1 && solicitacoes.value[index]) {
           solicitacoes.value[index].status = 'aceito';
         }
-        clearCache(CACHE_KEYS.SOLICITACOES);
+        cacheStore.invalidatePattern('prestador_solicitacoes_');
         showNotification('positive', 'Solicitação aceita!', 'check_circle');
         return true;
       }
@@ -976,7 +857,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
         if (index !== -1 && solicitacoes.value[index]) {
           solicitacoes.value[index].status = 'cancelado';
         }
-        clearCache(CACHE_KEYS.SOLICITACOES);
+        cacheStore.invalidatePattern('prestador_solicitacoes_');
         showNotification('warning', 'Solicitação recusada', 'cancel');
         return true;
       }
@@ -994,35 +875,30 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
 
   async function fetchNotificacoes(forceRefresh: boolean = false): Promise<NotificacaoData[]> {
-    const cacheKey = CACHE_KEYS.NOTIFICACOES;
+    const cacheKey = `prestador_notificacoes_${getCurrentUserId()}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<NotificacaoData[]>(cacheKey);
-      if (cached) {
-        notificacoes.value = cached;
-        unreadCount.value = cached.filter((n) => !n.lida).length;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('notificacoes', async () => {
-      loading.value = true;
-      try {
-        const response = await api.get('/notifications');
-        const data = extractDataFromResponse<NotificacaoData[]>(response.data);
-        notificacoes.value = Array.isArray(data) ? data : [];
-        unreadCount.value = notificacoes.value.filter((n) => !n.lida).length;
-        saveToCache(cacheKey, notificacoes.value, CACHE_TTL.SHORT);
-        return notificacoes.value;
-      } catch (error) {
-        console.error('Erro ao carregar notificações:', error);
-        notificacoes.value = [];
-        unreadCount.value = 0;
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const response = await api.get('/notifications');
+          const data = extractDataFromResponse<NotificacaoData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          notificacoes.value = result;
+          unreadCount.value = result.filter((n) => !n.lida).length;
+          return result;
+        } catch {
+          notificacoes.value = [];
+          unreadCount.value = 0;
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.SHORT,
+      forceRefresh,
+    );
   }
 
   async function fetchUnreadCount(): Promise<number> {
@@ -1034,8 +910,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       }
       unreadCount.value = 0;
       return 0;
-    } catch (error) {
-      console.error('Erro ao contar notificações não lidas:', error);
+    } catch {
       unreadCount.value = 0;
       return 0;
     }
@@ -1050,12 +925,11 @@ export const usePrestadorStore = defineStore('prestador', () => {
           notif.lida = true;
           unreadCount.value = Math.max(0, unreadCount.value - 1);
         }
-        clearCache(CACHE_KEYS.NOTIFICACOES);
+        cacheStore.invalidatePattern('prestador_notificacoes_');
         return true;
       }
       return false;
-    } catch (error) {
-      console.error('Erro ao marcar notificação como lida:', error);
+    } catch {
       return false;
     }
   }
@@ -1068,12 +942,11 @@ export const usePrestadorStore = defineStore('prestador', () => {
           n.lida = true;
         });
         unreadCount.value = 0;
-        clearCache(CACHE_KEYS.NOTIFICACOES);
+        cacheStore.invalidatePattern('prestador_notificacoes_');
         return true;
       }
       return false;
-    } catch (error) {
-      console.error('Erro ao marcar todas notificações como lidas:', error);
+    } catch {
       return false;
     }
   }
@@ -1086,66 +959,60 @@ export const usePrestadorStore = defineStore('prestador', () => {
     limit: number = 5,
     forceRefresh: boolean = false,
   ): Promise<ProximoServicoData[]> {
-    const cacheKey = `${CACHE_KEYS.PROXIMOS_SERVICOS}_${limit}`;
+    const cacheKey = `prestador_proximos_servicos_${getCurrentUserId()}_${limit}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<ProximoServicoData[]>(cacheKey);
-      if (cached) {
-        proximosServicos.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest(`proximos_servicos_${limit}`, async () => {
-      loading.value = true;
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.PROXIMOS_SERVICOS, {
-          params: { limit },
-        });
-        const data = extractDataFromResponse<ProximoServicoData[]>(response.data);
-        proximosServicos.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, proximosServicos.value, CACHE_TTL.SHORT);
-        return proximosServicos.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.PROXIMOS_SERVICOS, {
+            params: { limit },
+          });
+          const data = extractDataFromResponse<ProximoServicoData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          proximosServicos.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.SHORT,
+      forceRefresh,
+    );
   }
 
   async function fetchAvaliacoesRecentes(
     limit: number = 5,
     forceRefresh: boolean = false,
   ): Promise<AvaliacaoRecenteData[]> {
-    const cacheKey = `${CACHE_KEYS.AVALIACOES_RECENTES}_${limit}`;
+    const cacheKey = `prestador_avaliacoes_recentes_${getCurrentUserId()}_${limit}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<AvaliacaoRecenteData[]>(cacheKey);
-      if (cached) {
-        avaliacoesRecentes.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest(`avaliacoes_recentes_${limit}`, async () => {
-      loading.value = true;
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.AVALIACOES_RECENTES, {
-          params: { limit },
-        });
-        const data = extractDataFromResponse<AvaliacaoRecenteData[]>(response.data);
-        avaliacoesRecentes.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, avaliacoesRecentes.value, CACHE_TTL.SHORT);
-        return avaliacoesRecentes.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.AVALIACOES_RECENTES, {
+            params: { limit },
+          });
+          const data = extractDataFromResponse<AvaliacaoRecenteData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          avaliacoesRecentes.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.SHORT,
+      forceRefresh,
+    );
   }
 
   // ==========================================
@@ -1153,31 +1020,28 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
 
   async function fetchIntervalos(forceRefresh: boolean = false): Promise<IntervaloData[]> {
-    const cacheKey = CACHE_KEYS.INTERVALOS;
+    const cacheKey = `prestador_intervalos_${getCurrentUserId()}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<IntervaloData[]>(cacheKey);
-      if (cached) {
-        intervalos.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('intervalos', async () => {
-      loading.value = true;
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.INTERVALOS);
-        const data = extractDataFromResponse<IntervaloData[]>(response.data);
-        intervalos.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, intervalos.value, CACHE_TTL.MEDIUM);
-        return intervalos.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.INTERVALOS);
+          const data = extractDataFromResponse<IntervaloData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          intervalos.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.MEDIUM,
+      forceRefresh,
+    );
   }
 
   async function criarIntervalo(data: {
@@ -1192,7 +1056,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       if (response.data.success) {
         const newIntervalo = extractDataFromResponse<IntervaloData>(response.data);
         intervalos.value.push(newIntervalo);
-        clearCache(CACHE_KEYS.INTERVALOS);
+        cacheStore.invalidatePattern('prestador_intervalos_');
         showNotification('positive', 'Intervalo criado com sucesso!', 'schedule');
         return newIntervalo;
       }
@@ -1218,7 +1082,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
         if (index !== -1) {
           intervalos.value[index] = updatedIntervalo;
         }
-        clearCache(CACHE_KEYS.INTERVALOS);
+        cacheStore.invalidatePattern('prestador_intervalos_');
         showNotification('positive', 'Intervalo atualizado!', 'edit');
         return updatedIntervalo;
       }
@@ -1237,7 +1101,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       const response = await api.delete(PRESTADOR_ENDPOINTS.DELETAR_INTERVALO(id.toString()));
       if (response.data.success) {
         intervalos.value = intervalos.value.filter((i) => i.id !== id);
-        clearCache(CACHE_KEYS.INTERVALOS);
+        cacheStore.invalidatePattern('prestador_intervalos_');
         showNotification('positive', 'Intervalo removido!', 'delete');
         return true;
       }
@@ -1257,32 +1121,28 @@ export const usePrestadorStore = defineStore('prestador', () => {
   async function fetchPedidosDisponiveis(
     forceRefresh: boolean = false,
   ): Promise<PedidoDisponivelData[]> {
-    const cacheKey = CACHE_KEYS.PEDIDOS_DISPONIVEIS;
+    const cacheKey = `prestador_pedidos_disponiveis_${getCurrentUserId()}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<PedidoDisponivelData[]>(cacheKey);
-      if (cached) {
-        pedidosDisponiveis.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('pedidos_disponiveis', async () => {
-      loading.value = true;
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.PEDIDOS_DISPONIVEIS);
-        const data = extractDataFromResponse<PedidoDisponivelData[]>(response.data);
-        pedidosDisponiveis.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, pedidosDisponiveis.value, CACHE_TTL.SHORT);
-        return pedidosDisponiveis.value;
-      } catch (error) {
-        console.error('Erro ao carregar pedidos disponíveis:', error);
-        pedidosDisponiveis.value = [];
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.PEDIDOS_DISPONIVEIS);
+          const data = extractDataFromResponse<PedidoDisponivelData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          pedidosDisponiveis.value = result;
+          return result;
+        } catch {
+          pedidosDisponiveis.value = [];
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.SHORT,
+      forceRefresh,
+    );
   }
 
   async function enviarProposta(data: {
@@ -1295,7 +1155,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       const response = await api.post(PRESTADOR_ENDPOINTS.ENVIAR_PROPOSTA, data);
       if (response.data.success) {
         showNotification('positive', 'Proposta enviada com sucesso!', 'send');
-        clearCache(CACHE_KEYS.MINHAS_PROPOSTAS);
+        cacheStore.invalidatePattern('prestador_minhas_propostas_');
+        cacheStore.invalidatePattern('prestador_pedidos_disponiveis_');
         await fetchMinhasPropostas(true);
         return response.data.data;
       }
@@ -1309,32 +1170,28 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   async function fetchMinhasPropostas(forceRefresh: boolean = false): Promise<PropostaData[]> {
-    const cacheKey = CACHE_KEYS.MINHAS_PROPOSTAS;
+    const cacheKey = `prestador_minhas_propostas_${getCurrentUserId()}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<PropostaData[]>(cacheKey);
-      if (cached) {
-        minhasPropostas.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('minhas_propostas', async () => {
-      loading.value = true;
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_PROPOSTAS);
-        const data = extractDataFromResponse<PropostaData[]>(response.data);
-        minhasPropostas.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, minhasPropostas.value, CACHE_TTL.SHORT);
-        return minhasPropostas.value;
-      } catch (error) {
-        console.error('Erro ao carregar propostas:', error);
-        minhasPropostas.value = [];
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_PROPOSTAS);
+          const data = extractDataFromResponse<PropostaData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          minhasPropostas.value = result;
+          return result;
+        } catch {
+          minhasPropostas.value = [];
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.SHORT,
+      forceRefresh,
+    );
   }
 
   // ==========================================
@@ -1342,130 +1199,113 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
 
   async function fetchDiasSemana(forceRefresh: boolean = false): Promise<DiaSemanaData[]> {
-    const cacheKey = 'dias_semana';
+    const cacheKey = 'aux_dias_semana';
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<DiaSemanaData[]>(cacheKey);
-      if (cached) {
-        diasSemana.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('dias_semana', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.AUX_DIAS_SEMANA);
-        const data = extractDataFromResponse<DiaSemanaData[]>(response.data);
-        diasSemana.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, diasSemana.value, CACHE_TTL.VERY_LONG);
-        return diasSemana.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.AUX_DIAS_SEMANA);
+          const data = extractDataFromResponse<DiaSemanaData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          diasSemana.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
   }
 
   async function fetchMeses(forceRefresh: boolean = false): Promise<MesData[]> {
-    const cacheKey = 'meses';
+    const cacheKey = 'aux_meses';
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<MesData[]>(cacheKey);
-      if (cached) {
-        meses.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('meses', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.AUX_MESES);
-        const data = extractDataFromResponse<MesData[]>(response.data);
-        meses.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, meses.value, CACHE_TTL.VERY_LONG);
-        return meses.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.AUX_MESES);
+          const data = extractDataFromResponse<MesData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          meses.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
   }
 
   async function fetchHorariosPadrao(forceRefresh: boolean = false): Promise<HorarioPadraoData[]> {
-    const cacheKey = 'horarios_padrao';
+    const cacheKey = 'aux_horarios_padrao';
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<HorarioPadraoData[]>(cacheKey);
-      if (cached) {
-        horariosPadrao.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('horarios_padrao', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.AUX_HORARIOS_PADRAO);
-        const data = extractDataFromResponse<HorarioPadraoData[]>(response.data);
-        horariosPadrao.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, horariosPadrao.value, CACHE_TTL.VERY_LONG);
-        return horariosPadrao.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.AUX_HORARIOS_PADRAO);
+          const data = extractDataFromResponse<HorarioPadraoData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          horariosPadrao.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
   }
 
   async function fetchDiasOptions(forceRefresh: boolean = false): Promise<DiaOptionData[]> {
-    const cacheKey = 'dias_options';
+    const cacheKey = 'aux_dias_options';
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<DiaOptionData[]>(cacheKey);
-      if (cached) {
-        diasOptions.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('dias_options', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.AUX_DIAS_OPTIONS);
-        const data = extractDataFromResponse<DiaOptionData[]>(response.data);
-        diasOptions.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, diasOptions.value, CACHE_TTL.VERY_LONG);
-        return diasOptions.value;
-      } catch (error) {
-        console.error('Erro ao carregar dias options:', error);
-        diasOptions.value = [];
-        return [];
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.AUX_DIAS_OPTIONS);
+          const data = extractDataFromResponse<DiaOptionData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          diasOptions.value = result;
+          return result;
+        } catch {
+          diasOptions.value = [];
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
   }
 
   async function fetchHorariosOptions(forceRefresh: boolean = false): Promise<HorarioOptionData[]> {
-    const cacheKey = 'horarios_options';
+    const cacheKey = 'aux_horarios_options';
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<HorarioOptionData[]>(cacheKey);
-      if (cached) {
-        horariosOptions.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('horarios_options', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.AUX_HORARIOS_OPTIONS);
-        const data = extractDataFromResponse<HorarioOptionData[]>(response.data);
-        horariosOptions.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, horariosOptions.value, CACHE_TTL.VERY_LONG);
-        return horariosOptions.value;
-      } catch (error) {
-        console.error('Erro ao carregar horarios options:', error);
-        horariosOptions.value = [];
-        return [];
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.AUX_HORARIOS_OPTIONS);
+          const data = extractDataFromResponse<HorarioOptionData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          horariosOptions.value = result;
+          return result;
+        } catch {
+          horariosOptions.value = [];
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
   }
 
   // ==========================================
@@ -1473,31 +1313,28 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
 
   async function fetchSaques(forceRefresh: boolean = false): Promise<SaqueData[]> {
-    const cacheKey = CACHE_KEYS.SAQUES;
+    const cacheKey = `prestador_saques_${getCurrentUserId()}`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<SaqueData[]>(cacheKey);
-      if (cached) {
-        saques.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('saques', async () => {
-      loading.value = true;
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.SAQUES);
-        const data = extractDataFromResponse<SaqueData[]>(response.data);
-        saques.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, saques.value, CACHE_TTL.MEDIUM);
-        return saques.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.SAQUES);
+          const data = extractDataFromResponse<SaqueData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          saques.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.MEDIUM,
+      forceRefresh,
+    );
   }
 
   async function solicitarSaque(data: {
@@ -1510,8 +1347,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       const response = await api.post(PRESTADOR_ENDPOINTS.SOLICITAR_SAQUE, data);
       if (response.data.success) {
         showNotification('positive', 'Saque solicitado com sucesso!', 'payments');
-        clearCache(CACHE_KEYS.SAQUES);
-        clearCache(CACHE_KEYS.HISTORICO_SAQUES);
+        cacheStore.invalidatePattern('prestador_saques_');
+        cacheStore.invalidatePattern('prestador_historico_saques_');
         await fetchSaques(true);
         return extractDataFromResponse<SaqueData>(response.data);
       }
@@ -1525,31 +1362,28 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   async function fetchHistoricoSaques(forceRefresh: boolean = false): Promise<SaqueData[]> {
-    const cacheKey = CACHE_KEYS.HISTORICO_SAQUES;
+    const cacheKey = `prestador_historico_saques_${getCurrentUserId()}_page_1`;
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<SaqueData[]>(cacheKey);
-      if (cached) {
-        historicoSaques.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('historico_saques', async () => {
-      loading.value = true;
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.HISTORICO_SAQUES);
-        const data = extractDataFromResponse<SaqueData[]>(response.data);
-        historicoSaques.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, historicoSaques.value, CACHE_TTL.MEDIUM);
-        return historicoSaques.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.HISTORICO_SAQUES);
+          const data = extractDataFromResponse<SaqueData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          historicoSaques.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.MEDIUM,
+      forceRefresh,
+    );
   }
 
   // ==========================================
@@ -1557,20 +1391,27 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
 
   async function fetchAgenda(params?: { semana?: number }): Promise<AgendaData[]> {
-    return dedupeRequest(`agenda_${params?.semana || 0}`, async () => {
-      loading.value = true;
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.AGENDA, { params });
-        const data = extractDataFromResponse<AgendaData[]>(response.data);
-        agenda.value = Array.isArray(data) ? data : [];
-        return agenda.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      } finally {
-        loading.value = false;
-      }
-    });
+    const cacheKey = `prestador_agenda_${getCurrentUserId()}_${params?.semana || 0}`;
+
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.AGENDA, { params });
+          const data = extractDataFromResponse<AgendaData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          agenda.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.SHORT,
+    );
   }
 
   async function bloquearHorario(data: {
@@ -1584,6 +1425,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       const response = await api.post(PRESTADOR_ENDPOINTS.BLOQUEAR_HORARIO, data);
       if (response.data.success) {
         showNotification('positive', 'Horário bloqueado com sucesso!', 'lock');
+        cacheStore.invalidatePattern('prestador_agenda_');
         return true;
       }
       return false;
@@ -1601,6 +1443,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       const response = await api.delete(PRESTADOR_ENDPOINTS.DESBLOQUEAR_HORARIO(id.toString()));
       if (response.data.success) {
         showNotification('positive', 'Horário desbloqueado com sucesso!', 'lock_open');
+        cacheStore.invalidatePattern('prestador_agenda_');
         return true;
       }
       return false;
@@ -1617,113 +1460,99 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
 
   async function fetchServicoTipos(forceRefresh: boolean = false): Promise<ServicoTipoData[]> {
-    const cacheKey = 'servico_tipos';
+    const cacheKey = 'public_servico_tipos';
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<ServicoTipoData[]>(cacheKey);
-      if (cached) {
-        servicoTipos.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('servico_tipos', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS);
-        const data = extractDataFromResponse<ServicoTipoData[]>(response.data);
-        servicoTipos.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, servicoTipos.value, CACHE_TTL.VERY_LONG);
-        return servicoTipos.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS);
+          const data = extractDataFromResponse<ServicoTipoData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          servicoTipos.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
   }
 
   async function fetchServicoTiposOptions(
     forceRefresh: boolean = false,
   ): Promise<ServicoTipoOptionData[]> {
-    const cacheKey = 'servico_tipos_options';
+    const cacheKey = 'public_servico_tipos_options';
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<ServicoTipoOptionData[]>(cacheKey);
-      if (cached) {
-        servicoTiposOptions.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('servico_tipos_options', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS_OPTIONS);
-        const data = extractDataFromResponse<ServicoTipoOptionData[]>(response.data);
-        servicoTiposOptions.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, servicoTiposOptions.value, CACHE_TTL.VERY_LONG);
-        return servicoTiposOptions.value;
-      } catch (error) {
-        console.error('Erro ao carregar servico tipos options:', error);
-        servicoTiposOptions.value = [];
-        return [];
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS_OPTIONS);
+          const data = extractDataFromResponse<ServicoTipoOptionData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          servicoTiposOptions.value = result;
+          return result;
+        } catch {
+          servicoTiposOptions.value = [];
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
   }
 
   async function fetchRaioOpcoes(forceRefresh: boolean = false): Promise<RaioOpcaoData[]> {
-    const cacheKey = 'raio_opcoes';
+    const cacheKey = 'public_raio_opcoes';
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<RaioOpcaoData[]>(cacheKey);
-      if (cached) {
-        raioOpcoes.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('raio_opcoes', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES);
-        const data = extractDataFromResponse<RaioOpcaoData[]>(response.data);
-        raioOpcoes.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, raioOpcoes.value, CACHE_TTL.VERY_LONG);
-        return raioOpcoes.value;
-      } catch (error) {
-        showError(error);
-        return [];
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES);
+          const data = extractDataFromResponse<RaioOpcaoData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          raioOpcoes.value = result;
+          return result;
+        } catch (error) {
+          showError(error);
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
   }
 
   async function fetchRaioOpcoesOptions(
     forceRefresh: boolean = false,
   ): Promise<RaioOpcaoOptionData[]> {
-    const cacheKey = 'raio_opcoes_options';
+    const cacheKey = 'public_raio_opcoes_options';
 
-    if (!forceRefresh) {
-      const cached = loadFromCache<RaioOpcaoOptionData[]>(cacheKey);
-      if (cached) {
-        raioOpcoesOptions.value = cached;
-        return cached;
-      }
-    }
-
-    return dedupeRequest('raio_opcoes_options', async () => {
-      try {
-        const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES_OPTIONS);
-        const data = extractDataFromResponse<RaioOpcaoOptionData[]>(response.data);
-        raioOpcoesOptions.value = Array.isArray(data) ? data : [];
-        saveToCache(cacheKey, raioOpcoesOptions.value, CACHE_TTL.VERY_LONG);
-        return raioOpcoesOptions.value;
-      } catch (error) {
-        console.error('Erro ao carregar raio opcoes options:', error);
-        raioOpcoesOptions.value = [];
-        return [];
-      }
-    });
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES_OPTIONS);
+          const data = extractDataFromResponse<RaioOpcaoOptionData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          raioOpcoesOptions.value = result;
+          return result;
+        } catch {
+          raioOpcoesOptions.value = [];
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
   }
 
   // ==========================================
-  // MÉTODOS DE CARREGAMENTO ORGANIZADOS - CORRIGIDOS
+  // MÉTODOS DE CARREGAMENTO ORGANIZADOS
   // ==========================================
 
   async function carregarDashboard(forceRefresh: boolean = false): Promise<void> {
@@ -1735,8 +1564,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
         fetchProximosServicos(5, forceRefresh),
         fetchAvaliacoesRecentes(5, forceRefresh),
       ]);
-    } catch (error) {
-      console.error('Erro ao carregar dashboard:', error);
+    } catch {
+      // Silencioso
     } finally {
       loading.value = false;
     }
@@ -1757,59 +1586,38 @@ export const usePrestadorStore = defineStore('prestador', () => {
       await fetchServicoTiposOptions(forceRefresh);
       await delay(300);
       await fetchRaioOpcoesOptions(forceRefresh);
-    } catch (error) {
-      console.error('Erro ao carregar dados auxiliares:', error);
+    } catch {
+      // Silencioso
     }
   }
 
   async function carregarTodosDados(forceRefresh: boolean = false): Promise<void> {
     loading.value = true;
     try {
-      console.log('🚀 Iniciando carregamento de todos os dados...');
-
-      // ETAPA 1: Dados essenciais (com timeout individual)
       await fetchStats(forceRefresh);
-      console.log('✅ Stats carregados');
-
       await delay(300);
       await fetchServicos(forceRefresh);
-      console.log('✅ Serviços carregados');
-
       await delay(300);
       await fetchMinhasCategorias(forceRefresh);
-      console.log('✅ Categorias carregadas');
-
       await delay(300);
       await fetchDisponibilidade(forceRefresh);
-      console.log('✅ Disponibilidade carregada');
-
       await delay(300);
       await fetchSolicitacoes(undefined, forceRefresh);
-      console.log('✅ Solicitações carregadas');
 
-      // ETAPA 2: Dados auxiliares (não críticos)
       await carregarDadosAuxiliares(forceRefresh);
-      console.log('✅ Dados auxiliares carregados');
 
-      // ETAPA 3: Dados complementares
       await fetchProximosServicos(5, forceRefresh);
       await delay(300);
       await fetchAvaliacoesRecentes(5, forceRefresh);
       await delay(300);
       await fetchGanhos(forceRefresh);
-      console.log('✅ Ganhos carregados');
 
-      // ETAPA 4: Dados opcionais (não forçam refresh por padrão)
-      await fetchPedidosDisponiveis(forceRefresh).catch((e) =>
-        console.warn('Pedidos disponíveis:', e),
-      );
-      await fetchMinhasPropostas(forceRefresh).catch((e) => console.warn('Minhas propostas:', e));
-      await fetchNotificacoes(forceRefresh).catch((e) => console.warn('Notificações:', e));
+      await fetchPedidosDisponiveis(forceRefresh).catch(() => {});
+      await fetchMinhasPropostas(forceRefresh).catch(() => {});
+      await fetchNotificacoes(forceRefresh).catch(() => {});
 
       initialized.value = true;
-      console.log('🎉 Todos os dados carregados com sucesso!');
-    } catch (error) {
-      console.error('❌ Erro ao carregar dados:', error);
+    } catch {
       showNotification(
         'warning',
         'Alguns dados não puderam ser carregados. Recarregue a página.',
@@ -1822,15 +1630,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
 
   async function initialize(forceRefresh: boolean = false): Promise<void> {
     if (initialized.value && !forceRefresh) {
-      console.log('📦 Store já inicializada, usando cache');
       return;
     }
-    console.log('🔄 Inicializando store...');
     await carregarTodosDados(forceRefresh);
   }
 
   function reset(): void {
-    console.log('🔄 Resetando store...');
     servicos.value = [];
     minhasCategorias.value = [];
     solicitacoes.value = [];
@@ -1842,7 +1647,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     unreadCount.value = 0;
     initialized.value = false;
     pendingRequests.clear();
-    clearCache();
+    cacheStore.invalidatePattern('prestador_');
   }
 
   // ==========================================
@@ -1850,7 +1655,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
 
   return {
-    // State
     loading,
     initialized,
     servicos,
@@ -1881,7 +1685,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
     notificacoes,
     unreadCount,
 
-    // Serviços
     fetchServicos,
     fetchServicoDetalhes,
     createServico,
@@ -1889,71 +1692,57 @@ export const usePrestadorStore = defineStore('prestador', () => {
     deleteServico,
     toggleServico,
 
-    // Agenda
     fetchAgenda,
     bloquearHorario,
     desbloquearHorario,
 
-    // Solicitações
     fetchSolicitacoes,
     aceitarSolicitacao,
     recusarSolicitacao,
 
-    // Categorias - CORRIGIDAS
     fetchMinhasCategorias,
     addCategoria,
     removeCategoria,
 
-    // Financeiro
     fetchGanhos,
     fetchSaques,
     solicitarSaque,
     fetchHistoricoSaques,
 
-    // Estatísticas
     fetchStats,
 
-    // Próximos serviços e avaliações
     fetchProximosServicos,
     fetchAvaliacoesRecentes,
 
-    // Dados Auxiliares
     fetchDiasSemana,
     fetchMeses,
     fetchHorariosPadrao,
     fetchDiasOptions,
     fetchHorariosOptions,
 
-    // Tipos de Serviço
     fetchServicoTipos,
     fetchServicoTiposOptions,
 
-    // Opções de Raio
     fetchRaioOpcoes,
     fetchRaioOpcoesOptions,
 
-    // Intervalos
     fetchIntervalos,
     criarIntervalo,
     atualizarIntervalo,
     deletarIntervalo,
 
-    // Disponibilidade - CORRIGIDA
     fetchDisponibilidade,
     updateDisponibilidade,
 
-    // Propostas
     fetchPedidosDisponiveis,
     enviarProposta,
     fetchMinhasPropostas,
 
-    // Notificações
     fetchNotificacoes,
     marcarNotificacaoLida,
     marcarTodasNotificacoesLidas,
     fetchUnreadCount,
 
-    // Utilitários
     carregarDashboard,
     carregarDadosAuxiliares,
     carregarTodosDados,
@@ -1961,6 +1750,5 @@ export const usePrestadorStore = defineStore('prestador', () => {
     reset,
     showNotification,
     showError,
-    clearCache,
   };
 });
