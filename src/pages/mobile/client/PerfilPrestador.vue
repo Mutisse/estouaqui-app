@@ -34,9 +34,6 @@
           </div>
         </div>
       </div>
-      <div class="skeleton-spinner">
-        <q-spinner color="primary" size="40px" />
-      </div>
     </div>
 
     <!-- Conteúdo original (sem loading com texto) -->
@@ -574,18 +571,6 @@ $gray-900: #212121;
 
 .skeleton-servico-info {
   flex: 1;
-}
-
-.skeleton-spinner {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 10000;
 }
 
 .w-40 { width: 40%; }
