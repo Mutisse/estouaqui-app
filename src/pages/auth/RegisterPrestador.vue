@@ -264,7 +264,24 @@
                     class="custom-input"
                     :rules="[(val) => (val && val.length > 0) || 'Selecione pelo menos uma']"
                     bg-color="white"
-                  />
+                    :loading="carregandoCategorias"
+                  >
+                    <template v-slot:no-option>
+                      <q-item>
+                        <q-item-section class="text-grey">
+                          Nenhuma categoria disponível
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+                  <div v-if="carregandoCategorias" class="loading-categorias q-mt-sm">
+                    <q-spinner size="20px" color="primary" />
+                    <span class="q-ml-sm">Carregando categorias...</span>
+                  </div>
+                  <div v-else-if="categoriasOptions.length === 0 && !carregandoCategorias" class="error-categorias q-mt-sm text-negative">
+                    <q-icon name="error" size="16px" />
+                    <span class="q-ml-sm">Erro ao carregar categorias. Recarregue a página.</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -314,13 +331,12 @@
             </div>
           </div>
 
-          <!-- Step 4: Área e Disponibilidade (MODIFICADO) -->
+          <!-- Step 4: Área e Disponibilidade -->
           <div v-show="currentStep === 4">
             <div class="step-content">
               <div class="step-title">Área e Disponibilidade</div>
 
               <div class="row q-col-gutter-md">
-                <!-- ✅ RAIO DE ATUAÇÃO - Ao selecionar, obtém localização automaticamente -->
                 <div class="col-12">
                   <div class="input-label">
                     Raio de atuação (km) <span class="required">*</span>
@@ -346,7 +362,6 @@
                     >
                   </div>
 
-                  <!-- ✅ STATUS DA LOCALIZAÇÃO -->
                   <div v-if="carregandoLocalizacao" class="location-status loading q-mt-sm">
                     <q-spinner size="14px" color="primary" />
                     <span class="text-primary">Obtendo sua localização...</span>
@@ -367,7 +382,6 @@
                   </div>
                 </div>
 
-                <!-- ✅ DISPONIBILIDADE EM 2 COLUNAS -->
                 <div class="col-12">
                   <div class="input-label">Disponibilidade</div>
                   <div class="availability-grid two-columns">
@@ -469,7 +483,7 @@
                         <div class="review-label">Categorias</div>
                         <div class="review-value">
                           <q-chip v-for="cat in formData.categorias" :key="cat" size="sm" dense>
-                            {{ cat }}
+                            {{ getCategoriaNome(cat) }}
                           </q-chip>
                           <span v-if="!formData.categorias.length">—</span>
                         </div>
@@ -574,8 +588,8 @@ const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const loading = ref(false);
 const acceptTerms = ref(false);
+const carregandoCategorias = ref(false);
 
-// ✅ VARIÁVEIS DE LOCALIZAÇÃO (sem expor coordenadas ao usuário)
 const carregandoLocalizacao = ref(false);
 const latitude = ref('');
 const longitude = ref('');
@@ -643,7 +657,7 @@ interface FormData {
   confirmPassword: string;
   foto: File | null;
   descricao: string;
-  categorias: string[];
+  categorias: number[];
   portfolio: (File | null)[];
   raio: number | null;
   disponibilidade: Disponibilidade;
@@ -667,11 +681,15 @@ const formData = ref<FormData>({
   tipo: 'prestador',
 });
 
-// ✅ FUNÇÃO DE LOCALIZAÇÃO AUTOMÁTICA (sem mostrar coordenadas)
-// ✅ FUNÇÃO DE LOCALIZAÇÃO AUTOMÁTICA (sem mostrar coordenadas) - CORRIGIDA
+// Mapeamento de categorias por ID
+const categoriasMap = ref<Map<number, string>>(new Map());
+
+const getCategoriaNome = (id: number | string) => {
+  const numId = typeof id === 'string' ? parseInt(id, 10) : id;
+  return categoriasMap.value.get(numId) || `Categoria ${id}`;
+};
+
 const obterLocalizacaoAutomatica = () => {
-  // Removido o 'async' pois não tem await
-  // Só obtém localização se o raio foi selecionado e ainda não temos coordenadas
   if (!formData.value.raio) return;
   if (localizacaoObtida.value) return;
   if (carregandoLocalizacao.value) return;
@@ -679,7 +697,7 @@ const obterLocalizacaoAutomatica = () => {
   if (!navigator.geolocation) {
     $q.notify({
       type: 'warning',
-      message: 'Seu navegador não suporta geolocalização. Por favor, insira manualmente.',
+      message: 'Seu navegador não suporta geolocalização.',
       position: 'top',
       timeout: 5000,
     });
@@ -690,16 +708,14 @@ const obterLocalizacaoAutomatica = () => {
 
   navigator.geolocation.getCurrentPosition(
     (position) => {
-      // Sucesso - captura as coordenadas
       latitude.value = position.coords.latitude.toFixed(6);
       longitude.value = position.coords.longitude.toFixed(6);
       localizacaoObtida.value = true;
       carregandoLocalizacao.value = false;
 
-      // ✅ NOTIFICAÇÃO DE SUCESSO
       $q.notify({
         type: 'positive',
-        message: '📍 Posição definida com sucesso! Sua área de atuação foi configurada.',
+        message: '📍 Posição definida com sucesso!',
         position: 'top',
         timeout: 3000,
         icon: 'my_location',
@@ -710,28 +726,11 @@ const obterLocalizacaoAutomatica = () => {
       carregandoLocalizacao.value = false;
       localizacaoObtida.value = false;
 
-      let mensagem = 'Não foi possível obter sua localização. ';
-      switch (error.code) {
-        case error.PERMISSION_DENIED:
-          mensagem +=
-            'Permissão negada. Por favor, permita o acesso à localização nas configurações do navegador.';
-          break;
-        case error.POSITION_UNAVAILABLE:
-          mensagem += 'Localização indisponível. Tente novamente.';
-          break;
-        case error.TIMEOUT:
-          mensagem += 'Tempo limite excedido. Tente novamente.';
-          break;
-        default:
-          mensagem += 'Erro desconhecido. Tente novamente.';
-      }
-
-      // ✅ NOTIFICAÇÃO DE ERRO
       $q.notify({
         type: 'negative',
-        message: mensagem,
+        message: 'Não foi possível obter sua localização.',
         position: 'top',
-        timeout: 8000,
+        timeout: 5000,
         icon: 'error',
       });
     },
@@ -872,11 +871,10 @@ const validateStep = () => {
       if (!localizacaoObtida.value && !carregandoLocalizacao.value) {
         $q.notify({
           type: 'warning',
-          message: 'Aguarde enquanto obtemos sua localização automaticamente...',
+          message: 'Aguarde enquanto obtemos sua localização...',
           position: 'top',
           timeout: 3000,
         });
-        // Tenta obter localização novamente
         obterLocalizacaoAutomatica();
         return false;
       }
@@ -993,19 +991,32 @@ const getDocumentIcon = (filename: string) => {
 
 const carregarDadosAuxiliares = async () => {
   try {
-    await prestadorStore.fetchServicoTiposOptions();
+
+    carregandoCategorias.value = true;
+
+    // ✅ FORÇAR REFRESH para ignorar cache
+    await prestadorStore.fetchServicoTiposOptions(true);
+
+
     categoriasOptions.value = prestadorStore.servicoTiposOptions.map((opt) => ({
       label: opt.label,
-       value: Number(opt.value),
+      value: Number(opt.value),
     }));
 
-    await prestadorStore.fetchRaioOpcoesOptions();
+
+    // Criar mapa de categorias para exibir nomes
+    categoriasOptions.value.forEach((opt) => {
+      categoriasMap.value.set(opt.value, opt.label);
+    });
+
+
+    await prestadorStore.fetchRaioOpcoesOptions(true);
     raioOptions.value = prestadorStore.raioOpcoesOptions.map((opt) => ({
       label: opt.label,
       value: opt.value,
     }));
 
-    await prestadorStore.fetchDiasOptions();
+    await prestadorStore.fetchDiasOptions(true);
     diasSemana.value = prestadorStore.diasOptions.map((opt) => ({
       label: opt.label,
       value: opt.value,
@@ -1016,12 +1027,29 @@ const carregarDadosAuxiliares = async () => {
       disponibilidadeInicial[dia.value] = { ativo: false, horario: '' };
     });
     formData.value.disponibilidade = disponibilidadeInicial;
+
+    if (categoriasOptions.value.length === 0) {
+      $q.notify({
+        type: 'warning',
+        message: 'Nenhuma categoria carregada. Tente recarregar a página.',
+        position: 'top',
+        timeout: 5000,
+      });
+    }
   } catch (error) {
-    console.error('Erro ao carregar dados auxiliares:', error);
+    console.error('❌ Erro ao carregar dados auxiliares:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar categorias. Recarregue a página.',
+      position: 'top',
+      timeout: 5000,
+    });
+  } finally {
+    carregandoCategorias.value = false;
   }
 };
 
-// ✅ HANDLE REGISTER MODIFICADO COM LOCALIZAÇÃO
+// ✅ HANDLE REGISTER CORRIGIDO - Envia categorias no formato correto
 const handleRegister = async () => {
   if (!acceptTerms.value) {
     $q.notify({ type: 'warning', message: 'Aceite os termos para continuar', position: 'top' });
@@ -1037,18 +1065,18 @@ const handleRegister = async () => {
     formDataToSend.append('password', formData.value.password);
     formDataToSend.append('tipo', 'prestador');
     formDataToSend.append('descricao', formData.value.descricao);
-    formDataToSend.append('categorias', JSON.stringify(formData.value.categorias));
+
+    // ✅ Envia categorias como array de objetos com {value: id}
+    const categoriasFormatadas = formData.value.categorias.map((id) => ({ value: id }));
+    formDataToSend.append('categorias', JSON.stringify(categoriasFormatadas));
+
     formDataToSend.append('raio', String(formData.value.raio));
     formDataToSend.append('disponibilidade', JSON.stringify(formData.value.disponibilidade));
 
-    // ✅ ENVIAR LATITUDE E LONGITUDE (se obtidas)
     if (latitude.value && longitude.value) {
       formDataToSend.append('latitude', latitude.value);
       formDataToSend.append('longitude', longitude.value);
-      console.log('📍 Localização enviada:', {
-        latitude: latitude.value,
-        longitude: longitude.value,
-      });
+     
     }
 
     if (formData.value.foto) {
@@ -1296,7 +1324,6 @@ $gray-900: #212121;
   }
 }
 
-// ✅ ESTILOS PARA STATUS DA LOCALIZAÇÃO
 .location-status {
   display: flex;
   align-items: center;
@@ -1319,6 +1346,19 @@ $gray-900: #212121;
     background: rgba(245, 101, 101, 0.1);
     color: #f56565;
   }
+}
+
+.loading-categorias {
+  display: flex;
+  align-items: center;
+  color: $purple-primary;
+  font-size: 0.8rem;
+}
+
+.error-categorias {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
 }
 
 .raio-hint {
@@ -1455,7 +1495,6 @@ $gray-900: #212121;
   }
 }
 
-// ✅ DISPONIBILIDADE EM 2 COLUNAS
 .availability-grid {
   display: flex;
   flex-direction: column;

@@ -213,10 +213,24 @@ export interface ServicoTipoData {
 }
 
 export interface ServicoTipoOptionData {
+  value: number;
   label: string;
-  value: string;
+  slug?: string;
   icone: string;
   cor: string;
+}
+
+interface ServicoTipoRawData {
+  value: number;
+  label: string;
+  slug?: string;
+  icone: string;
+  cor: string;
+}
+
+interface RaioOpcaoRawData {
+  label: string;
+  value: number;
 }
 
 export interface RaioOpcaoData {
@@ -245,8 +259,34 @@ export interface NotificacaoData {
   data?: string;
 }
 
+// ✅ Interface para o perfil completo do prestador
+export interface PrestadorPerfilData {
+  id: number;
+  nome: string;
+  email: string;
+  telefone: string;
+  endereco: string | null;
+  foto: string | null;
+  tipo: string;
+  sobre: string | null;
+  profissao: string | null;
+  media_avaliacao: number;
+  total_avaliacoes: number;
+  verificado: boolean;
+  ativo: boolean;
+  preferences: {
+    portfolio?: string[];
+    descricao?: string;
+    categorias?: number[];
+    raio?: string;
+    disponibilidade?: Record<string, unknown>;
+  } | null;
+  portfolio: string[];
+  created_at: string;
+}
+
 // ==========================================
-// CONSTANTES DE CACHE - OTIMIZADAS
+// CONSTANTES DE CACHE
 // ==========================================
 
 const CACHE_TTL = {
@@ -255,8 +295,6 @@ const CACHE_TTL = {
   LONG: 60 * 60 * 1000,
   VERY_LONG: 24 * 60 * 60 * 1000,
 };
-
-const REQUEST_TIMEOUT = 15000;
 
 // ==========================================
 // STORE DO PRESTADOR
@@ -305,6 +343,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   const minhasPropostas = ref<PropostaData[]>([]);
   const notificacoes = ref<NotificacaoData[]>([]);
   const unreadCount = ref(0);
+  const perfilCompleto = ref<PrestadorPerfilData | null>(null);
 
   const pendingRequests = new Map<string, Promise<unknown>>();
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -382,10 +421,74 @@ export const usePrestadorStore = defineStore('prestador', () => {
     showNotification('negative', message);
   }
 
-  // Função auxiliar para obter o ID do usuário atual (SYNC)
   function getCurrentUserId(): number {
     const authStore = useAuthStore();
     return authStore.user?.id || 0;
+  }
+
+  // ==========================================
+  // PERFIL COMPLETO DO PRESTADOR
+  // ==========================================
+
+  async function fetchPerfilCompleto(forceRefresh: boolean = false): Promise<PrestadorPerfilData | null> {
+    const cacheKey = `prestador_perfil_completo_${getCurrentUserId()}`;
+
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        loading.value = true;
+        try {
+          const response = await api.get('/me');
+          const responseData = response.data;
+
+          if (responseData && responseData.success === true && responseData.data) {
+            const userData = responseData.data;
+
+            // Processar portfolio
+            let portfolioUrls: string[] = [];
+            if (userData.portfolio && Array.isArray(userData.portfolio)) {
+              portfolioUrls = userData.portfolio;
+            } else if (userData.preferences?.portfolio && Array.isArray(userData.preferences.portfolio)) {
+              portfolioUrls = userData.preferences.portfolio.map((path: string) => {
+                if (path.startsWith('http')) return path;
+                return `/storage/${path}`;
+              });
+            }
+
+            const perfil: PrestadorPerfilData = {
+              id: userData.id,
+              nome: userData.nome,
+              email: userData.email,
+              telefone: userData.telefone,
+              endereco: userData.endereco || null,
+              foto: userData.foto || null,
+              tipo: userData.tipo,
+              sobre: userData.sobre || null,
+              profissao: userData.profissao || null,
+              media_avaliacao: userData.media_avaliacao || 0,
+              total_avaliacoes: userData.total_avaliacoes || 0,
+              verificado: userData.verificado || false,
+              ativo: userData.ativo || true,
+              preferences: userData.preferences || null,
+              portfolio: portfolioUrls,
+              created_at: userData.created_at,
+            };
+
+            perfilCompleto.value = perfil;
+            return perfil;
+          }
+
+          return null;
+        } catch (error) {
+          console.error('Erro ao carregar perfil completo:', error);
+          return null;
+        } finally {
+          loading.value = false;
+        }
+      },
+      CACHE_TTL.MEDIUM,
+      forceRefresh,
+    );
   }
 
   // ==========================================
@@ -402,15 +505,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       async () => {
         loading.value = true;
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-          const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_CATEGORIAS, {
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
+          const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_CATEGORIAS);
           const data = extractDataFromResponse<CategoriaPrestadorData[]>(response.data);
           const result = Array.isArray(data) ? data : [];
           minhasCategorias.value = result;
@@ -427,10 +522,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   async function addCategoria(categoriaId: number): Promise<boolean> {
     loading.value = true;
     try {
-      const response = await api.post(
-        PRESTADOR_ENDPOINTS.ADICIONAR_CATEGORIA(categoriaId.toString()),
-      );
-
+      const response = await api.post(PRESTADOR_ENDPOINTS.ADICIONAR_CATEGORIA(categoriaId.toString()));
       if (response.data.success) {
         cacheStore.invalidatePattern('prestador_categorias_');
         await fetchMinhasCategorias(true);
@@ -449,10 +541,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   async function removeCategoria(categoriaId: number): Promise<boolean> {
     loading.value = true;
     try {
-      const response = await api.delete(
-        PRESTADOR_ENDPOINTS.REMOVER_CATEGORIA(categoriaId.toString()),
-      );
-
+      const response = await api.delete(PRESTADOR_ENDPOINTS.REMOVER_CATEGORIA(categoriaId.toString()));
       if (response.data.success) {
         minhasCategorias.value = minhasCategorias.value.filter((c) => c.id !== categoriaId);
         cacheStore.invalidatePattern('prestador_categorias_');
@@ -480,15 +569,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       async () => {
         loading.value = true;
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-          const response = await api.get(PRESTADOR_ENDPOINTS.SERVICOS, {
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
+          const response = await api.get(PRESTADOR_ENDPOINTS.SERVICOS);
           const data = extractDataFromResponse<ServicoData[]>(response.data);
           const result = Array.isArray(data) ? data : [];
           servicos.value = result;
@@ -513,15 +594,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       async () => {
         loading.value = true;
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-          const response = await api.get(PRESTADOR_ENDPOINTS.ATUALIZAR_SERVICO(id.toString()), {
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
+          const response = await api.get(PRESTADOR_ENDPOINTS.ATUALIZAR_SERVICO(id.toString()));
           const data = extractDataFromResponse<ServicoData>(response.data);
           servicoDetalhes.value = data;
           return data;
@@ -577,8 +650,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
           servicos.value[index] = updatedServico;
         }
         cacheStore.invalidatePattern('prestador_servicos_');
-        cacheStore.invalidate(`prestador_servico_detalhes_${id}`);
-        showNotification('positive', 'Serviço atualizado com sucesso!', 'edit');
+        showNotification('positive', 'Serviço atualizado!', 'edit');
         return updatedServico;
       }
       return null;
@@ -597,7 +669,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       if (response.data.success) {
         servicos.value = servicos.value.filter((s) => s.id !== id);
         cacheStore.invalidatePattern('prestador_servicos_');
-        showNotification('positive', 'Serviço removido com sucesso!', 'delete');
+        showNotification('positive', 'Serviço removido!', 'delete');
         return true;
       }
       return false;
@@ -617,8 +689,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
         const index = servicos.value.findIndex((s) => s.id === id);
         if (index !== -1 && servicos.value[index]) {
           servicos.value[index].ativo = !servicos.value[index].ativo;
-          const message = servicos.value[index].ativo ? 'Serviço ativado!' : 'Serviço desativado!';
-          showNotification('info', message, 'toggle_on');
         }
         cacheStore.invalidatePattern('prestador_servicos_');
         return true;
@@ -633,12 +703,10 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // DISPONIBILIDADE DO PRESTADOR
+  // DISPONIBILIDADE
   // ==========================================
 
-  async function fetchDisponibilidade(
-    forceRefresh: boolean = false,
-  ): Promise<DisponibilidadeData | null> {
+  async function fetchDisponibilidade(forceRefresh: boolean = false): Promise<DisponibilidadeData | null> {
     const cacheKey = `prestador_disponibilidade_${getCurrentUserId()}`;
 
     return cacheStore.fetchWithCache(
@@ -646,21 +714,8 @@ export const usePrestadorStore = defineStore('prestador', () => {
       async () => {
         loading.value = true;
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-          const response = await api.get(PRESTADOR_ENDPOINTS.DISPONIBILIDADE, {
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
+          const response = await api.get(PRESTADOR_ENDPOINTS.DISPONIBILIDADE);
           const data = extractDataFromResponse<DisponibilidadeData>(response.data);
-
-          if (data && !data.horarios_padrao) {
-            data.horarios_padrao = {};
-          }
-
           disponibilidade.value = data;
           return data;
         } catch {
@@ -691,9 +746,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     );
   }
 
-  async function updateDisponibilidade(
-    data: Partial<DisponibilidadeData>,
-  ): Promise<DisponibilidadeData | null> {
+  async function updateDisponibilidade(data: Partial<DisponibilidadeData>): Promise<DisponibilidadeData | null> {
     loading.value = true;
     try {
       const response = await api.put(PRESTADOR_ENDPOINTS.ATUALIZAR_DISPONIBILIDADE, data);
@@ -713,7 +766,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // ESTATÍSTICAS DO PRESTADOR
+  // ESTATÍSTICAS
   // ==========================================
 
   async function fetchStats(forceRefresh: boolean = false): Promise<StatsData | null> {
@@ -724,15 +777,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       async () => {
         loading.value = true;
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-          const response = await api.get(PRESTADOR_ENDPOINTS.PRESTADOR_STATS, {
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
+          const response = await api.get(PRESTADOR_ENDPOINTS.PRESTADOR_STATS);
           const data = extractDataFromResponse<StatsData>(response.data);
           stats.value = data;
           return data;
@@ -756,7 +801,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // GANHOS DO PRESTADOR
+  // GANHOS
   // ==========================================
 
   async function fetchGanhos(forceRefresh: boolean = false): Promise<GanhosData | null> {
@@ -767,15 +812,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       async () => {
         loading.value = true;
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-          const response = await api.get(PRESTADOR_ENDPOINTS.GANHOS, {
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
+          const response = await api.get(PRESTADOR_ENDPOINTS.GANHOS);
           const data = extractDataFromResponse<GanhosData>(response.data);
           ganhos.value = data;
           return data;
@@ -792,13 +829,10 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // SOLICITAÇÕES/PEDIDOS
+  // SOLICITAÇÕES
   // ==========================================
 
-  async function fetchSolicitacoes(
-    status?: string,
-    forceRefresh: boolean = false,
-  ): Promise<SolicitacaoData[]> {
+  async function fetchSolicitacoes(status?: string, forceRefresh: boolean = false): Promise<SolicitacaoData[]> {
     const cacheKey = `prestador_solicitacoes_${getCurrentUserId()}_${status || 'all'}`;
 
     return cacheStore.fetchWithCache(
@@ -806,9 +840,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       async () => {
         loading.value = true;
         try {
-          const url = status
-            ? PRESTADOR_ENDPOINTS.SOLICITACOES_BY_STATUS(status)
-            : PRESTADOR_ENDPOINTS.SOLICITACOES;
+          const url = status ? PRESTADOR_ENDPOINTS.SOLICITACOES_BY_STATUS(status) : PRESTADOR_ENDPOINTS.SOLICITACOES;
           const response = await api.get(url);
           const data = extractDataFromResponse<SolicitacaoData[]>(response.data);
           const result = Array.isArray(data) ? data : [];
@@ -831,10 +863,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
     try {
       const response = await api.put(PRESTADOR_ENDPOINTS.ACEITAR_SOLICITACAO(id.toString()));
       if (response.data.success) {
-        const index = solicitacoes.value.findIndex((s) => s.id === id);
-        if (index !== -1 && solicitacoes.value[index]) {
-          solicitacoes.value[index].status = 'aceito';
-        }
         cacheStore.invalidatePattern('prestador_solicitacoes_');
         showNotification('positive', 'Solicitação aceita!', 'check_circle');
         return true;
@@ -853,10 +881,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
     try {
       const response = await api.put(PRESTADOR_ENDPOINTS.RECUSAR_SOLICITACAO(id.toString()));
       if (response.data.success) {
-        const index = solicitacoes.value.findIndex((s) => s.id === id);
-        if (index !== -1 && solicitacoes.value[index]) {
-          solicitacoes.value[index].status = 'cancelado';
-        }
         cacheStore.invalidatePattern('prestador_solicitacoes_');
         showNotification('warning', 'Solicitação recusada', 'cancel');
         return true;
@@ -938,9 +962,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     try {
       const response = await api.put('/notifications/read-all');
       if (response.data.success) {
-        notificacoes.value.forEach((n) => {
-          n.lida = true;
-        });
+        notificacoes.value.forEach((n) => { n.lida = true; });
         unreadCount.value = 0;
         cacheStore.invalidatePattern('prestador_notificacoes_');
         return true;
@@ -955,10 +977,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // PRÓXIMOS SERVIÇOS E AVALIAÇÕES RECENTES
   // ==========================================
 
-  async function fetchProximosServicos(
-    limit: number = 5,
-    forceRefresh: boolean = false,
-  ): Promise<ProximoServicoData[]> {
+  async function fetchProximosServicos(limit: number = 5, forceRefresh: boolean = false): Promise<ProximoServicoData[]> {
     const cacheKey = `prestador_proximos_servicos_${getCurrentUserId()}_${limit}`;
 
     return cacheStore.fetchWithCache(
@@ -966,9 +985,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       async () => {
         loading.value = true;
         try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.PROXIMOS_SERVICOS, {
-            params: { limit },
-          });
+          const response = await api.get(PRESTADOR_ENDPOINTS.PROXIMOS_SERVICOS, { params: { limit } });
           const data = extractDataFromResponse<ProximoServicoData[]>(response.data);
           const result = Array.isArray(data) ? data : [];
           proximosServicos.value = result;
@@ -985,10 +1002,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     );
   }
 
-  async function fetchAvaliacoesRecentes(
-    limit: number = 5,
-    forceRefresh: boolean = false,
-  ): Promise<AvaliacaoRecenteData[]> {
+  async function fetchAvaliacoesRecentes(limit: number = 5, forceRefresh: boolean = false): Promise<AvaliacaoRecenteData[]> {
     const cacheKey = `prestador_avaliacoes_recentes_${getCurrentUserId()}_${limit}`;
 
     return cacheStore.fetchWithCache(
@@ -996,9 +1010,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
       async () => {
         loading.value = true;
         try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.AVALIACOES_RECENTES, {
-            params: { limit },
-          });
+          const response = await api.get(PRESTADOR_ENDPOINTS.AVALIACOES_RECENTES, { params: { limit } });
           const data = extractDataFromResponse<AvaliacaoRecenteData[]>(response.data);
           const result = Array.isArray(data) ? data : [];
           avaliacoesRecentes.value = result;
@@ -1016,7 +1028,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // INTERVALOS DO PRESTADOR
+  // INTERVALOS
   // ==========================================
 
   async function fetchIntervalos(forceRefresh: boolean = false): Promise<IntervaloData[]> {
@@ -1044,12 +1056,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     );
   }
 
-  async function criarIntervalo(data: {
-    dias: string[];
-    inicio: string;
-    fim: string;
-    descricao?: string;
-  }): Promise<IntervaloData | null> {
+  async function criarIntervalo(data: { dias: string[]; inicio: string; fim: string; descricao?: string }): Promise<IntervaloData | null> {
     loading.value = true;
     try {
       const response = await api.post(PRESTADOR_ENDPOINTS.CRIAR_INTERVALO, data);
@@ -1057,7 +1064,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
         const newIntervalo = extractDataFromResponse<IntervaloData>(response.data);
         intervalos.value.push(newIntervalo);
         cacheStore.invalidatePattern('prestador_intervalos_');
-        showNotification('positive', 'Intervalo criado com sucesso!', 'schedule');
+        showNotification('positive', 'Intervalo criado!', 'schedule');
         return newIntervalo;
       }
       return null;
@@ -1069,19 +1076,14 @@ export const usePrestadorStore = defineStore('prestador', () => {
     }
   }
 
-  async function atualizarIntervalo(
-    id: number,
-    data: Partial<IntervaloData>,
-  ): Promise<IntervaloData | null> {
+  async function atualizarIntervalo(id: number, data: Partial<IntervaloData>): Promise<IntervaloData | null> {
     loading.value = true;
     try {
       const response = await api.put(PRESTADOR_ENDPOINTS.ATUALIZAR_INTERVALO(id.toString()), data);
       if (response.data.success) {
         const updatedIntervalo = extractDataFromResponse<IntervaloData>(response.data);
         const index = intervalos.value.findIndex((i) => i.id === id);
-        if (index !== -1) {
-          intervalos.value[index] = updatedIntervalo;
-        }
+        if (index !== -1) intervalos.value[index] = updatedIntervalo;
         cacheStore.invalidatePattern('prestador_intervalos_');
         showNotification('positive', 'Intervalo atualizado!', 'edit');
         return updatedIntervalo;
@@ -1118,9 +1120,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // PEDIDOS DISPONÍVEIS E PROPOSTAS
   // ==========================================
 
-  async function fetchPedidosDisponiveis(
-    forceRefresh: boolean = false,
-  ): Promise<PedidoDisponivelData[]> {
+  async function fetchPedidosDisponiveis(forceRefresh: boolean = false): Promise<PedidoDisponivelData[]> {
     const cacheKey = `prestador_pedidos_disponiveis_${getCurrentUserId()}`;
 
     return cacheStore.fetchWithCache(
@@ -1145,16 +1145,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
     );
   }
 
-  async function enviarProposta(data: {
-    pedido_id: number;
-    valor: number;
-    mensagem?: string;
-  }): Promise<PropostaData | null> {
+  async function enviarProposta(data: { pedido_id: number; valor: number; mensagem?: string }): Promise<PropostaData | null> {
     loading.value = true;
     try {
       const response = await api.post(PRESTADOR_ENDPOINTS.ENVIAR_PROPOSTA, data);
       if (response.data.success) {
-        showNotification('positive', 'Proposta enviada com sucesso!', 'send');
+        showNotification('positive', 'Proposta enviada!', 'send');
         cacheStore.invalidatePattern('prestador_minhas_propostas_');
         cacheStore.invalidatePattern('prestador_pedidos_disponiveis_');
         await fetchMinhasPropostas(true);
@@ -1197,6 +1193,117 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
   // DADOS AUXILIARES (PÚBLICOS)
   // ==========================================
+
+  async function fetchServicoTiposOptions(forceRefresh: boolean = false): Promise<ServicoTipoOptionData[]> {
+    const cacheKey = 'public_servico_tipos_options';
+
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS_OPTIONS);
+          const responseData = response.data;
+
+          if (responseData && responseData.success === true && Array.isArray(responseData.data)) {
+            const result: ServicoTipoOptionData[] = responseData.data.map((item: ServicoTipoRawData) => ({
+              value: item.value,
+              label: item.label,
+              icone: item.icone || 'category',
+              cor: item.cor || 'primary'
+            }));
+
+            servicoTiposOptions.value = result;
+            console.log('✅ Categorias carregadas:', result.length);
+            return result;
+          }
+
+          servicoTiposOptions.value = [];
+          return [];
+        } catch (error) {
+          console.error('❌ Erro ao carregar categorias:', error);
+          servicoTiposOptions.value = [];
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
+  }
+
+  async function fetchRaioOpcoesOptions(forceRefresh: boolean = false): Promise<RaioOpcaoOptionData[]> {
+    const cacheKey = 'public_raio_opcoes_options';
+
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES_OPTIONS);
+          const responseData = response.data;
+          if (responseData && responseData.success === true && Array.isArray(responseData.data)) {
+            const result: RaioOpcaoOptionData[] = responseData.data.map((item: RaioOpcaoRawData) => ({
+              label: item.label,
+              value: item.value
+            }));
+            raioOpcoesOptions.value = result;
+            return result;
+          }
+
+          raioOpcoesOptions.value = [];
+          return [];
+        } catch (error) {
+          console.error('Erro ao carregar raio opções:', error);
+          raioOpcoesOptions.value = [];
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
+  }
+
+  async function fetchDiasOptions(forceRefresh: boolean = false): Promise<DiaOptionData[]> {
+    const cacheKey = 'aux_dias_options';
+
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.AUX_DIAS_OPTIONS);
+          const data = extractDataFromResponse<DiaOptionData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          diasOptions.value = result;
+          return result;
+        } catch {
+          diasOptions.value = [];
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
+  }
+
+  async function fetchHorariosOptions(forceRefresh: boolean = false): Promise<HorarioOptionData[]> {
+    const cacheKey = 'aux_horarios_options';
+
+    return cacheStore.fetchWithCache(
+      cacheKey,
+      async () => {
+        try {
+          const response = await api.get(PRESTADOR_ENDPOINTS.AUX_HORARIOS_OPTIONS);
+          const data = extractDataFromResponse<HorarioOptionData[]>(response.data);
+          const result = Array.isArray(data) ? data : [];
+          horariosOptions.value = result;
+          return result;
+        } catch {
+          horariosOptions.value = [];
+          return [];
+        }
+      },
+      CACHE_TTL.VERY_LONG,
+      forceRefresh,
+    );
+  }
 
   async function fetchDiasSemana(forceRefresh: boolean = false): Promise<DiaSemanaData[]> {
     const cacheKey = 'aux_dias_semana';
@@ -1264,20 +1371,20 @@ export const usePrestadorStore = defineStore('prestador', () => {
     );
   }
 
-  async function fetchDiasOptions(forceRefresh: boolean = false): Promise<DiaOptionData[]> {
-    const cacheKey = 'aux_dias_options';
+  async function fetchServicoTipos(forceRefresh: boolean = false): Promise<ServicoTipoData[]> {
+    const cacheKey = 'public_servico_tipos';
 
     return cacheStore.fetchWithCache(
       cacheKey,
       async () => {
         try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.AUX_DIAS_OPTIONS);
-          const data = extractDataFromResponse<DiaOptionData[]>(response.data);
+          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS);
+          const data = extractDataFromResponse<ServicoTipoData[]>(response.data);
           const result = Array.isArray(data) ? data : [];
-          diasOptions.value = result;
+          servicoTipos.value = result;
           return result;
-        } catch {
-          diasOptions.value = [];
+        } catch (error) {
+          showError(error);
           return [];
         }
       },
@@ -1286,20 +1393,20 @@ export const usePrestadorStore = defineStore('prestador', () => {
     );
   }
 
-  async function fetchHorariosOptions(forceRefresh: boolean = false): Promise<HorarioOptionData[]> {
-    const cacheKey = 'aux_horarios_options';
+  async function fetchRaioOpcoes(forceRefresh: boolean = false): Promise<RaioOpcaoData[]> {
+    const cacheKey = 'public_raio_opcoes';
 
     return cacheStore.fetchWithCache(
       cacheKey,
       async () => {
         try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.AUX_HORARIOS_OPTIONS);
-          const data = extractDataFromResponse<HorarioOptionData[]>(response.data);
+          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES);
+          const data = extractDataFromResponse<RaioOpcaoData[]>(response.data);
           const result = Array.isArray(data) ? data : [];
-          horariosOptions.value = result;
+          raioOpcoes.value = result;
           return result;
-        } catch {
-          horariosOptions.value = [];
+        } catch (error) {
+          showError(error);
           return [];
         }
       },
@@ -1337,16 +1444,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
     );
   }
 
-  async function solicitarSaque(data: {
-    valor: number;
-    metodo: 'mpesa' | 'bancario';
-    conta: string;
-  }): Promise<SaqueData | null> {
+  async function solicitarSaque(data: { valor: number; metodo: 'mpesa' | 'bancario'; conta: string }): Promise<SaqueData | null> {
     loading.value = true;
     try {
       const response = await api.post(PRESTADOR_ENDPOINTS.SOLICITAR_SAQUE, data);
       if (response.data.success) {
-        showNotification('positive', 'Saque solicitado com sucesso!', 'payments');
+        showNotification('positive', 'Saque solicitado!', 'payments');
         cacheStore.invalidatePattern('prestador_saques_');
         cacheStore.invalidatePattern('prestador_historico_saques_');
         await fetchSaques(true);
@@ -1414,17 +1517,12 @@ export const usePrestadorStore = defineStore('prestador', () => {
     );
   }
 
-  async function bloquearHorario(data: {
-    data: string;
-    horario_inicio: string;
-    horario_fim: string;
-    motivo?: string;
-  }): Promise<boolean> {
+  async function bloquearHorario(data: { data: string; horario_inicio: string; horario_fim: string; motivo?: string }): Promise<boolean> {
     loading.value = true;
     try {
       const response = await api.post(PRESTADOR_ENDPOINTS.BLOQUEAR_HORARIO, data);
       if (response.data.success) {
-        showNotification('positive', 'Horário bloqueado com sucesso!', 'lock');
+        showNotification('positive', 'Horário bloqueado!', 'lock');
         cacheStore.invalidatePattern('prestador_agenda_');
         return true;
       }
@@ -1442,7 +1540,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     try {
       const response = await api.delete(PRESTADOR_ENDPOINTS.DESBLOQUEAR_HORARIO(id.toString()));
       if (response.data.success) {
-        showNotification('positive', 'Horário desbloqueado com sucesso!', 'lock_open');
+        showNotification('positive', 'Horário desbloqueado!', 'lock_open');
         cacheStore.invalidatePattern('prestador_agenda_');
         return true;
       }
@@ -1456,103 +1554,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   }
 
   // ==========================================
-  // TIPOS DE SERVIÇO E OPÇÕES DE RAIO
-  // ==========================================
-
-  async function fetchServicoTipos(forceRefresh: boolean = false): Promise<ServicoTipoData[]> {
-    const cacheKey = 'public_servico_tipos';
-
-    return cacheStore.fetchWithCache(
-      cacheKey,
-      async () => {
-        try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS);
-          const data = extractDataFromResponse<ServicoTipoData[]>(response.data);
-          const result = Array.isArray(data) ? data : [];
-          servicoTipos.value = result;
-          return result;
-        } catch (error) {
-          showError(error);
-          return [];
-        }
-      },
-      CACHE_TTL.VERY_LONG,
-      forceRefresh,
-    );
-  }
-
-  async function fetchServicoTiposOptions(
-    forceRefresh: boolean = false,
-  ): Promise<ServicoTipoOptionData[]> {
-    const cacheKey = 'public_servico_tipos_options';
-
-    return cacheStore.fetchWithCache(
-      cacheKey,
-      async () => {
-        try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_SERVICO_TIPOS_OPTIONS);
-          const data = extractDataFromResponse<ServicoTipoOptionData[]>(response.data);
-          const result = Array.isArray(data) ? data : [];
-          servicoTiposOptions.value = result;
-          return result;
-        } catch {
-          servicoTiposOptions.value = [];
-          return [];
-        }
-      },
-      CACHE_TTL.VERY_LONG,
-      forceRefresh,
-    );
-  }
-
-  async function fetchRaioOpcoes(forceRefresh: boolean = false): Promise<RaioOpcaoData[]> {
-    const cacheKey = 'public_raio_opcoes';
-
-    return cacheStore.fetchWithCache(
-      cacheKey,
-      async () => {
-        try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES);
-          const data = extractDataFromResponse<RaioOpcaoData[]>(response.data);
-          const result = Array.isArray(data) ? data : [];
-          raioOpcoes.value = result;
-          return result;
-        } catch (error) {
-          showError(error);
-          return [];
-        }
-      },
-      CACHE_TTL.VERY_LONG,
-      forceRefresh,
-    );
-  }
-
-  async function fetchRaioOpcoesOptions(
-    forceRefresh: boolean = false,
-  ): Promise<RaioOpcaoOptionData[]> {
-    const cacheKey = 'public_raio_opcoes_options';
-
-    return cacheStore.fetchWithCache(
-      cacheKey,
-      async () => {
-        try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.PUBLIC_RAIO_OPCOES_OPTIONS);
-          const data = extractDataFromResponse<RaioOpcaoOptionData[]>(response.data);
-          const result = Array.isArray(data) ? data : [];
-          raioOpcoesOptions.value = result;
-          return result;
-        } catch {
-          raioOpcoesOptions.value = [];
-          return [];
-        }
-      },
-      CACHE_TTL.VERY_LONG,
-      forceRefresh,
-    );
-  }
-
-  // ==========================================
-  // MÉTODOS DE CARREGAMENTO ORGANIZADOS
+  // MÉTODOS DE CARREGAMENTO
   // ==========================================
 
   async function carregarDashboard(forceRefresh: boolean = false): Promise<void> {
@@ -1564,8 +1566,6 @@ export const usePrestadorStore = defineStore('prestador', () => {
         fetchProximosServicos(5, forceRefresh),
         fetchAvaliacoesRecentes(5, forceRefresh),
       ]);
-    } catch {
-      // Silencioso
     } finally {
       loading.value = false;
     }
@@ -1573,21 +1573,15 @@ export const usePrestadorStore = defineStore('prestador', () => {
 
   async function carregarDadosAuxiliares(forceRefresh: boolean = false): Promise<void> {
     try {
-      await fetchDiasSemana(forceRefresh);
+      await fetchServicoTiposOptions(forceRefresh);
       await delay(300);
-      await fetchMeses(forceRefresh);
-      await delay(300);
-      await fetchHorariosPadrao(forceRefresh);
+      await fetchRaioOpcoesOptions(forceRefresh);
       await delay(300);
       await fetchDiasOptions(forceRefresh);
       await delay(300);
       await fetchHorariosOptions(forceRefresh);
-      await delay(300);
-      await fetchServicoTiposOptions(forceRefresh);
-      await delay(300);
-      await fetchRaioOpcoesOptions(forceRefresh);
-    } catch {
-      // Silencioso
+    } catch (error) {
+      console.error('Erro ao carregar dados auxiliares:', error);
     }
   }
 
@@ -1603,35 +1597,25 @@ export const usePrestadorStore = defineStore('prestador', () => {
       await fetchDisponibilidade(forceRefresh);
       await delay(300);
       await fetchSolicitacoes(undefined, forceRefresh);
-
       await carregarDadosAuxiliares(forceRefresh);
-
       await fetchProximosServicos(5, forceRefresh);
       await delay(300);
       await fetchAvaliacoesRecentes(5, forceRefresh);
       await delay(300);
       await fetchGanhos(forceRefresh);
-
       await fetchPedidosDisponiveis(forceRefresh).catch(() => {});
       await fetchMinhasPropostas(forceRefresh).catch(() => {});
       await fetchNotificacoes(forceRefresh).catch(() => {});
-
       initialized.value = true;
     } catch {
-      showNotification(
-        'warning',
-        'Alguns dados não puderam ser carregados. Recarregue a página.',
-        'refresh',
-      );
+      showNotification('warning', 'Alguns dados não puderam ser carregados.', 'refresh');
     } finally {
       loading.value = false;
     }
   }
 
   async function initialize(forceRefresh: boolean = false): Promise<void> {
-    if (initialized.value && !forceRefresh) {
-      return;
-    }
+    if (initialized.value && !forceRefresh) return;
     await carregarTodosDados(forceRefresh);
   }
 
@@ -1645,6 +1629,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
     minhasPropostas.value = [];
     notificacoes.value = [];
     unreadCount.value = 0;
+    perfilCompleto.value = null;
     initialized.value = false;
     pendingRequests.clear();
     cacheStore.invalidatePattern('prestador_');
@@ -1655,6 +1640,7 @@ export const usePrestadorStore = defineStore('prestador', () => {
   // ==========================================
 
   return {
+    // State
     loading,
     initialized,
     servicos,
@@ -1684,65 +1670,54 @@ export const usePrestadorStore = defineStore('prestador', () => {
     minhasPropostas,
     notificacoes,
     unreadCount,
+    perfilCompleto,
 
+    // Actions
     fetchServicos,
     fetchServicoDetalhes,
     createServico,
     updateServico,
     deleteServico,
     toggleServico,
-
     fetchAgenda,
     bloquearHorario,
     desbloquearHorario,
-
     fetchSolicitacoes,
     aceitarSolicitacao,
     recusarSolicitacao,
-
     fetchMinhasCategorias,
     addCategoria,
     removeCategoria,
-
     fetchGanhos,
     fetchSaques,
     solicitarSaque,
     fetchHistoricoSaques,
-
     fetchStats,
-
     fetchProximosServicos,
     fetchAvaliacoesRecentes,
-
     fetchDiasSemana,
     fetchMeses,
     fetchHorariosPadrao,
     fetchDiasOptions,
     fetchHorariosOptions,
-
     fetchServicoTipos,
     fetchServicoTiposOptions,
-
     fetchRaioOpcoes,
     fetchRaioOpcoesOptions,
-
     fetchIntervalos,
     criarIntervalo,
     atualizarIntervalo,
     deletarIntervalo,
-
     fetchDisponibilidade,
     updateDisponibilidade,
-
     fetchPedidosDisponiveis,
     enviarProposta,
     fetchMinhasPropostas,
-
     fetchNotificacoes,
     marcarNotificacaoLida,
     marcarTodasNotificacoesLidas,
     fetchUnreadCount,
-
+    fetchPerfilCompleto,
     carregarDashboard,
     carregarDadosAuxiliares,
     carregarTodosDados,

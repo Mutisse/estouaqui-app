@@ -126,11 +126,7 @@
         </div>
         <div v-else>
           <div class="categorias-container">
-            <div
-              v-for="cat in minhasCategorias"
-              :key="cat.id"
-              class="categoria-chip-wrapper"
-            >
+            <div v-for="cat in minhasCategorias" :key="cat.id" class="categoria-chip-wrapper">
               <q-chip
                 :color="cat.cor || 'primary'"
                 text-color="white"
@@ -183,14 +179,6 @@
         <div v-else-if="servicos.length === 0" class="empty-servicos q-mt-sm text-center">
           <q-icon name="work_off" size="48px" color="grey-4" />
           <div class="text-grey-6 q-mt-sm">Nenhum serviço cadastrado</div>
-          <q-btn
-            flat
-            color="primary"
-            label="Adicionar serviço"
-            icon="add"
-            class="q-mt-sm"
-            @click="adicionarServico"
-          />
         </div>
         <div v-else class="servicos-container">
           <div v-for="servico in servicos" :key="servico.id" class="servico-card">
@@ -223,14 +211,6 @@
         <div v-if="portfolio.length === 0" class="empty-portfolio q-mt-sm text-center">
           <q-icon name="photo_library" size="48px" color="grey-4" />
           <div class="text-grey-6 q-mt-sm">Nenhuma foto no portfólio</div>
-          <q-btn
-            flat
-            color="primary"
-            label="Adicionar fotos"
-            icon="add"
-            class="q-mt-sm"
-            @click="adicionarPortfolio"
-          />
         </div>
         <div v-else class="portfolio-grid">
           <div
@@ -247,27 +227,12 @@
       <!-- Disponibilidade -->
       <div class="disponibilidade-section q-pa-md">
         <div class="section-title">Disponibilidade</div>
-        <div
-          v-if="disponibilidadeHorarios.length === 0"
-          class="disponibilidade-empty"
-        >
+        <div v-if="disponibilidadeHorarios.length === 0" class="disponibilidade-empty">
           <q-icon name="schedule" size="32px" color="grey-5" />
           <div class="text-grey-6 q-mt-sm">Nenhum horário definido</div>
-          <q-btn
-            flat
-            color="primary"
-            label="Configurar horários"
-            icon="settings"
-            class="q-mt-md"
-            @click="configurarDisponibilidade"
-          />
         </div>
         <div v-else class="disponibilidade-grid">
-          <div
-            v-for="h in disponibilidadeHorarios"
-            :key="h.dia"
-            class="disponibilidade-card"
-          >
+          <div v-for="h in disponibilidadeHorarios" :key="h.dia" class="disponibilidade-card">
             <div class="disponibilidade-dia">{{ h.dia }}</div>
             <div class="disponibilidade-horario">
               <q-icon name="schedule" size="16px" class="q-mr-xs" />
@@ -281,7 +246,7 @@
       <div class="docs-section q-pa-md">
         <div class="section-title">Documentos</div>
         <q-list bordered separator class="docs-list q-mt-sm">
-          <q-item clickable v-ripple @click="uploadDocumento">
+          <q-item clickable v-ripple>
             <q-item-section avatar>
               <q-icon name="description" color="primary" />
             </q-item-section>
@@ -383,8 +348,12 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/auth-store';
-import { usePrestadorStore } from 'src/stores/prestador-store';
-import type { ServicoData, CategoriaPrestadorData } from 'src/stores/prestador-store';
+import {
+  usePrestadorStore,
+  type ServicoData,
+  type CategoriaPrestadorData,
+  type PrestadorPerfilData,
+} from 'src/stores/prestador-store';
 import { api } from 'src/boot/axios';
 
 defineOptions({
@@ -404,26 +373,6 @@ interface EditForm {
   email: string;
   endereco: string;
   sobre: string;
-}
-
-interface Preferences {
-  portfolio?: string[];
-  [key: string]: unknown;
-}
-
-interface UserData {
-  id: number;
-  nome: string;
-  email: string;
-  telefone: string;
-  foto: string | null;
-  tipo: string;
-  profissao?: string;
-  sobre?: string;
-  endereco?: string;
-  media_avaliacao?: number;
-  total_avaliacoes?: number;
-  preferences?: Preferences;
 }
 
 interface CategoriaDisponivel {
@@ -453,11 +402,24 @@ const portfolioSelecionado = ref<string | null>(null);
 const avatarErro = ref(false);
 
 // Dados do usuário
-const userData = ref<UserData | null>(null);
+const userData = ref<PrestadorPerfilData | null>(null);
 const todasCategorias = ref<CategoriaDisponivel[]>([]);
 const categoriasSelecionadas = ref<number[]>([]);
 
-// Função para gerar iniciais do nome
+// Dados da store
+const servicos = ref<ServicoData[]>([]);
+const minhasCategorias = ref<CategoriaPrestadorData[]>([]);
+const stats = ref({ servicos: 0, pedidos_pendentes: 0, avaliacao_media: 0 });
+const disponibilidadeHorarios = ref<DisponibilidadeHorario[]>([]);
+const portfolio = ref<string[]>([]);
+const documentoIdentidade = ref(false);
+
+// Formulário de edição
+const editForm = ref<EditForm>({
+  nome: '', profissao: '', telefone: '', email: '', endereco: '', sobre: '',
+});
+
+// Funções auxiliares
 const gerarIniciais = (nome: string): string => {
   if (!nome || nome.trim() === '') return 'US';
   const partes = nome.trim().split(' ');
@@ -474,6 +436,12 @@ const gerarIniciais = (nome: string): string => {
   const ultimaParte = partes[partes.length - 1];
   const ultimaLetra = ultimaParte?.[0] || '';
   return (primeiraLetra + ultimaLetra).toUpperCase();
+};
+
+const formatarPreco = (preco: number): string => {
+  return new Intl.NumberFormat('pt-MZ', {
+    style: 'currency', currency: 'MZN', minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(preco);
 };
 
 // Computed properties
@@ -495,58 +463,31 @@ const userAvatar = computed(() => {
   const foto = userData.value?.foto || authStore.user?.foto;
   if (foto && foto.startsWith('http')) return foto;
   if (foto && !foto.startsWith('http') && foto !== 'null' && foto !== '') {
-    const path = foto.startsWith('/') ? foto : `/storage/${foto}`;
-    return path;
+    return foto.startsWith('/') ? foto : `/storage/${foto}`;
   }
   const iniciais = gerarIniciais(userNome.value);
   return `https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=120&name=${encodeURIComponent(iniciais)}`;
 });
 
-const handleAvatarError = (event: Event) => {
-  const img = event.target as HTMLImageElement;
+const handleAvatarError = () => {
   avatarErro.value = true;
-  const iniciais = gerarIniciais(userNome.value);
-  img.src = `https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=120&name=${encodeURIComponent(iniciais)}`;
 };
 
-// Dados da store
-const servicos = ref<ServicoData[]>([]);
-const minhasCategorias = ref<CategoriaPrestadorData[]>([]);
-const stats = ref({ servicos: 0, pedidos_pendentes: 0, avaliacao_media: 0 });
-const disponibilidadeHorarios = ref<DisponibilidadeHorario[]>([]);
-const portfolio = ref<string[]>([]);
-const documentoIdentidade = ref(false);
-
-// Formulário de edição
-const editForm = ref<EditForm>({
-  nome: '', profissao: '', telefone: '', email: '', endereco: '', sobre: '',
-});
-
-const formatarPreco = (preco: number): string => {
-  return new Intl.NumberFormat('pt-MZ', {
-    style: 'currency', currency: 'MZN', minimumFractionDigits: 0, maximumFractionDigits: 0,
-  }).format(preco);
-};
-
-const configurarDisponibilidade = () => {
-  $q.notify({ type: 'info', message: 'Configuração de horários em breve', position: 'top' });
-};
-
-// Buscar dados do usuário
+// ✅ BUSCAR PERFIL COMPLETO
 const buscarDadosUsuario = async () => {
   try {
-    const response = await api.get('/me');
-    if (response.data && response.data.data) {
-      userData.value = response.data.data as UserData;
-      if (userData.value?.preferences?.portfolio) {
-        portfolio.value = userData.value.preferences.portfolio.map((path: string) =>
-          path.startsWith('http') ? path : `/storage/${path}`
-        );
+    const perfil = await prestadorStore.fetchPerfilCompleto(true);
+    if (perfil) {
+      userData.value = perfil;
+      // Portfolio já vem processado pela store
+      if (perfil.portfolio && perfil.portfolio.length > 0) {
+        portfolio.value = perfil.portfolio;
       }
       avatarErro.value = false;
+      console.log('✅ Perfil carregado:', { sobre: perfil.sobre, portfolio: perfil.portfolio.length, foto: perfil.foto });
     }
-  } catch {
-    // Silencioso
+  } catch (error) {
+    console.error('Erro ao buscar perfil:', error);
   }
 };
 
@@ -597,14 +538,14 @@ const salvarCategorias = async () => {
   }
 };
 
-// Carregar dados principais
+// ✅ CARREGAR DADOS PRINCIPAIS
 const carregarDados = async () => {
   loading.value = true;
-  const loadingNotify = $q.notify({
-    type: 'info', message: 'A carregar perfil...', position: 'top', timeout: 0, spinner: true,
-  });
   try {
+    // 1. Buscar perfil completo primeiro (mais importante)
     await buscarDadosUsuario();
+
+    // 2. Inicializar store
     await prestadorStore.initialize();
 
     // Carregar serviços
@@ -624,18 +565,6 @@ const carregarDados = async () => {
     try {
       await prestadorStore.fetchMinhasCategorias(true);
       minhasCategorias.value = prestadorStore.minhasCategorias;
-      if (minhasCategorias.value.length === 0 && userData.value?.preferences?.categorias) {
-        const categoriasIds = userData.value.preferences.categorias as number[];
-        if (Array.isArray(categoriasIds) && categoriasIds.length > 0) {
-          const categoriasResponse = await api.get('/categorias');
-          if (categoriasResponse.data?.data) {
-            const todas = categoriasResponse.data.data as CategoriaDisponivel[];
-            minhasCategorias.value = todas
-              .filter((cat) => categoriasIds.includes(cat.id))
-              .map((cat) => ({ id: cat.id, nome: cat.nome, icone: cat.icone || 'category', cor: cat.cor || 'primary' }));
-          }
-        }
-      }
     } catch {
       minhasCategorias.value = [];
     } finally {
@@ -660,7 +589,10 @@ const carregarDados = async () => {
         const horariosMap = prestadorStore.disponibilidade.horarios_padrao;
         disponibilidadeHorarios.value = Object.entries(horariosMap)
           .filter((entry): entry is [string, string[]] => Array.isArray(entry[1]) && entry[1].length > 0)
-          .map(([dia, horarios]) => ({ dia: dia.charAt(0).toUpperCase() + dia.slice(1), horario: horarios.join(', ') }));
+          .map(([dia, horarios]) => ({
+            dia: dia.charAt(0).toUpperCase() + dia.slice(1),
+            horario: horarios.join(', '),
+          }));
       } else {
         disponibilidadeHorarios.value = [];
       }
@@ -669,15 +601,10 @@ const carregarDados = async () => {
     }
 
     documentoIdentidade.value = true;
-    $q.notify({ type: 'positive', message: 'Perfil carregado com sucesso!', position: 'top', timeout: 2000 });
-  } catch {
-    $q.notify({
-      type: 'negative', message: 'Erro ao carregar dados do perfil. Recarregue a página.',
-      position: 'top', timeout: 5000, actions: [{ label: 'Recarregar', color: 'white', handler: () => window.location.reload() }],
-    });
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
   } finally {
     loading.value = false;
-    loadingNotify();
   }
 };
 
@@ -699,9 +626,11 @@ const uploadFotoPerfil = async (file: File) => {
   formData.append('foto', file);
   $q.loading.show({ message: 'Enviando foto...' });
   try {
-    const response = await api.post('/me/foto', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    const response = await api.post('/me/foto', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     if (response.data.success && response.data.data?.foto) {
-      userData.value!.foto = response.data.data.foto;
+      if (userData.value) userData.value.foto = response.data.data.foto;
       if (authStore.user) authStore.user.foto = response.data.data.foto;
       avatarErro.value = false;
       $q.notify({ type: 'positive', message: 'Foto atualizada!', position: 'top' });
@@ -713,52 +642,34 @@ const uploadFotoPerfil = async (file: File) => {
   }
 };
 
-// Upload documento
-const uploadDocumento = () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*,application/pdf';
-  input.onchange = async (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    const file = target.files?.[0];
-    if (file) {
-      const formData = new FormData();
-      formData.append('documento', file);
-      $q.loading.show({ message: 'Enviando documento...' });
-      try {
-        const response = await api.post('/me/documento', formData);
-        if (response.data.success) {
-          documentoIdentidade.value = true;
-          $q.notify({ type: 'positive', message: 'Documento enviado!', position: 'top' });
-        }
-      } catch {
-        $q.notify({ type: 'negative', message: 'Erro ao enviar documento', position: 'top' });
-      } finally {
-        $q.loading.hide();
-      }
-    }
-  };
-  input.click();
-};
-
-const adicionarServico = () => {
-  $q.notify({ type: 'info', message: 'Adicionar serviço em breve', position: 'top' });
-};
-
+// Editar perfil
 const editarPerfil = () => {
   editForm.value = {
-    nome: userNome.value, profissao: userProfissao.value, telefone: userTelefone.value,
-    email: userEmail.value, endereco: userEndereco.value, sobre: userSobre.value,
+    nome: userNome.value,
+    profissao: userProfissao.value,
+    telefone: userTelefone.value,
+    email: userEmail.value,
+    endereco: userEndereco.value,
+    sobre: userSobre.value,
   };
   showEditDialog.value = true;
 };
+
+const editarTelefone = () => editarPerfil();
+const editarEmail = () => editarPerfil();
+const editarLocalizacao = () => editarPerfil();
+const editarSobre = () => editarPerfil();
 
 const salvarPerfil = async () => {
   loadingSalvar.value = true;
   try {
     const response = await api.put('/me', {
-      nome: editForm.value.nome, profissao: editForm.value.profissao, telefone: editForm.value.telefone,
-      email: editForm.value.email, endereco: editForm.value.endereco, sobre: editForm.value.sobre,
+      nome: editForm.value.nome,
+      profissao: editForm.value.profissao,
+      telefone: editForm.value.telefone,
+      email: editForm.value.email,
+      endereco: editForm.value.endereco,
+      sobre: editForm.value.sobre,
     });
     if (response.data.success) {
       if (userData.value) {
@@ -774,6 +685,7 @@ const salvarPerfil = async () => {
         authStore.user.email = editForm.value.email;
         authStore.user.telefone = editForm.value.telefone;
       }
+      await prestadorStore.fetchPerfilCompleto(true);
       $q.notify({ type: 'positive', message: 'Perfil atualizado!', position: 'top' });
       showEditDialog.value = false;
     }
@@ -784,36 +696,11 @@ const salvarPerfil = async () => {
   }
 };
 
-const editarTelefone = () => editarPerfil();
-const editarEmail = () => editarPerfil();
-const editarLocalizacao = () => editarPerfil();
-const editarSobre = () => {
-  editForm.value = {
-    nome: userNome.value, profissao: userProfissao.value, telefone: userTelefone.value,
-    email: userEmail.value, endereco: userEndereco.value, sobre: userSobre.value,
-  };
-  showEditDialog.value = true;
-};
-
 const verPortfolio = (index: number) => {
   if (portfolio.value[index]) {
     portfolioSelecionado.value = portfolio.value[index];
     showPortfolioDialog.value = true;
   }
-};
-
-const adicionarPortfolio = () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.multiple = true;
-  input.onchange = (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    if (target.files && target.files.length > 0) {
-      $q.notify({ type: 'info', message: 'Upload de múltiplas fotos em breve', position: 'top' });
-    }
-  };
-  input.click();
 };
 
 onMounted(() => {
@@ -903,7 +790,6 @@ onMounted(() => {
   border-radius: 12px;
 }
 
-// Categorias
 .categorias-container {
   display: flex;
   flex-wrap: wrap;
@@ -914,12 +800,9 @@ onMounted(() => {
 .categoria-chip {
   cursor: default;
   transition: transform 0.2s ease;
-  &:hover {
-    transform: translateY(-2px);
-  }
+  &:hover { transform: translateY(-2px); }
 }
 
-// Serviços
 .servicos-container {
   display: flex;
   flex-direction: column;
@@ -931,13 +814,10 @@ onMounted(() => {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   &:hover {
     transform: translateY(-2px);
-    .q-card {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
+    .q-card { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
   }
 }
 
-// Portfólio
 .portfolio-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -962,7 +842,6 @@ onMounted(() => {
   object-fit: cover;
 }
 
-// Disponibilidade
 .disponibilidade-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -981,7 +860,6 @@ onMounted(() => {
   transition: all 0.2s ease;
   border: 1px solid #eef2f6;
   box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-
   &:hover {
     border-color: #667eea;
     box-shadow: 0 4px 12px rgba(102,126,234,0.1);
@@ -1012,47 +890,19 @@ onMounted(() => {
   width: 100%;
 }
 
-.disponibilidade-empty {
+.disponibilidade-empty, .empty-portfolio {
   text-align: center;
-  padding: 40px 20px;
-  background: white;
-  border-radius: 16px;
-  border: 1px solid #eef2f6;
-  margin-top: 8px;
-}
-
-.empty-portfolio {
   padding: 32px;
   background: white;
   border-radius: 16px;
   border: 1px solid #eeeeee;
-  text-align: center;
 }
 
-// Responsividade
 @media (max-width: 480px) {
-  .disponibilidade-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  .portfolio-grid {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 8px;
-  }
-  .categorias-container {
-    gap: 8px;
-  }
-  .stats-section .stat-value {
-    font-size: 1rem;
-  }
-  .section-title {
-    font-size: 0.95rem;
-  }
-}
-
-@media (min-width: 481px) and (max-width: 768px) {
-  .disponibilidade-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .disponibilidade-grid { grid-template-columns: 1fr; gap: 10px; }
+  .portfolio-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+  .categorias-container { gap: 8px; }
+  .stats-section .stat-value { font-size: 1rem; }
+  .section-title { font-size: 0.95rem; }
 }
 </style>
