@@ -11,7 +11,7 @@
       </div>
       <div class="skeleton-favorite-btn"></div>
       <div class="skeleton-info-cards">
-        <div v-for="i in 3" :key="i" class="skeleton-info-card"></div>
+        <div v-for="i in 4" :key="i" class="skeleton-info-card"></div>
       </div>
       <div class="skeleton-section">
         <div class="skeleton-line w-40"></div>
@@ -36,7 +36,7 @@
       </div>
     </div>
 
-    <!-- Conteúdo original (sem loading com texto) -->
+    <!-- Conteúdo principal -->
     <template v-else>
       <template v-if="prestador">
         <!-- Header com imagem de capa -->
@@ -48,7 +48,11 @@
 
           <div class="profile-info">
             <q-avatar size="100px" class="profile-avatar">
-              <img :src="prestador.foto || defaultAvatar" :alt="prestador.nome" />
+              <img
+                :src="prestador.foto || obterAvatarFallback(prestador.nome)"
+                :alt="prestador.nome"
+                @error="handleAvatarError"
+              />
             </q-avatar>
             <div class="profile-name-wrapper">
               <h2 class="profile-name">{{ prestador.nome }}</h2>
@@ -85,14 +89,14 @@
         <!-- Informações rápidas -->
         <div class="info-cards q-px-md">
           <div class="row q-col-gutter-sm">
-            <div class="col-4">
+            <div class="col-3">
               <div class="info-card">
                 <q-icon name="work" color="primary" size="20px" />
                 <div class="info-value">{{ prestador.profissao || 'Profissional' }}</div>
                 <div class="info-label">profissão</div>
               </div>
             </div>
-            <div class="col-4">
+            <div class="col-3">
               <div class="info-card">
                 <q-icon name="check_circle" color="primary" size="20px" />
                 <div class="info-value">
@@ -101,13 +105,20 @@
                 <div class="info-label">status</div>
               </div>
             </div>
-            <div class="col-4">
+            <div class="col-3">
               <div class="info-card">
                 <q-icon name="verified_user" color="primary" size="20px" />
                 <div class="info-value">
                   {{ prestador.verificado ? 'Verificado' : 'Não verificado' }}
                 </div>
                 <div class="info-label">verificação</div>
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="info-card">
+                <q-icon name="radar" color="primary" size="20px" />
+                <div class="info-value">{{ prestador.raio || 10 }} km</div>
+                <div class="info-label">raio de ação</div>
               </div>
             </div>
           </div>
@@ -119,17 +130,18 @@
           <p class="section-text">{{ prestador.sobre }}</p>
         </div>
 
-        <!-- Categorias -->
+        <!-- Categorias / Especialidades -->
         <div class="section q-pa-md">
           <h3 class="section-title">Especialidades</h3>
           <div class="categorias-list">
             <q-chip
               v-for="categoria in prestador.categorias"
               :key="categoria.id"
-              color="primary"
+              :color="categoria.cor || 'primary'"
               text-color="white"
               dense
             >
+              <q-icon :name="categoria.icone || 'check_circle'" size="16px" class="q-mr-xs" />
               {{ categoria.nome }}
             </q-chip>
             <q-chip v-if="!prestador.categorias?.length" color="grey-3" text-color="grey-7" dense>
@@ -194,7 +206,9 @@
               <div class="avaliacao-header">
                 <q-avatar size="32px">
                   <img
-                    :src="avaliacao.cliente?.foto || defaultAvatar"
+                    :src="
+                      avaliacao.cliente?.foto || obterAvatarFallback(avaliacao.cliente?.nome || '')
+                    "
                     :alt="avaliacao.cliente?.nome"
                   />
                 </q-avatar>
@@ -240,14 +254,8 @@
     </template>
   </q-page>
 
-  <!-- ✅ BOTÃO FLUTUANTE (FAB) - CANTO INFERIOR DIREITO -->
-  <q-btn
-    fab
-    color="primary"
-    icon="chat"
-    class="chat-fab"
-    @click="abrirChat"
-  >
+  <!-- Botão flutuante do chat -->
+  <q-btn fab color="primary" icon="chat" class="chat-fab" @click="abrirChat">
     <q-tooltip anchor="top middle" self="bottom middle" :offset="[0, 10]">
       💬 Conversar com {{ prestador?.nome?.split(' ')[0] || 'prestador' }}
     </q-tooltip>
@@ -273,13 +281,59 @@ const carregamentoInicial = ref(true);
 const prestador = ref<PrestadorData | null>(null);
 const isFavorito = ref(false);
 const favoritoLoading = ref(false);
+const avatarError = ref(false);
 
 const prestadorId = computed(() => Number(route.params.id));
 
-const defaultAvatar = 'https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=100';
-
 const coverImage =
   'https://images.unsplash.com/photo-1577412647305-991150c7d163?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+
+const obterIniciais = (nome: string): string => {
+  if (!nome || nome.trim() === '') return '??';
+
+  const partes = nome.trim().split(' ');
+  const primeiraParte = partes[0];
+
+  if (!primeiraParte) return '??';
+
+  if (partes.length === 1) {
+    if (primeiraParte.length >= 2) {
+      return primeiraParte.substring(0, 2).toUpperCase();
+    }
+    return (primeiraParte[0] || '?') + '?';
+  }
+
+  const ultimaParte = partes[partes.length - 1];
+  if (!ultimaParte) {
+    if (primeiraParte.length >= 2) {
+      return primeiraParte.substring(0, 2).toUpperCase();
+    }
+    return (primeiraParte[0] || '?') + '?';
+  }
+
+  const primeiraLetra = primeiraParte[0] || '';
+  const ultimaLetra = ultimaParte[0] || '';
+
+  if (!primeiraLetra && !ultimaLetra) return '??';
+  if (!primeiraLetra) return (ultimaLetra + '?').toUpperCase();
+  if (!ultimaLetra) return (primeiraLetra + '?').toUpperCase();
+
+  return (primeiraLetra + ultimaLetra).toUpperCase();
+};
+
+const obterAvatarFallback = (nome: string): string => {
+  const iniciais = obterIniciais(nome);
+  return `https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=100&name=${encodeURIComponent(iniciais)}`;
+};
+
+const handleAvatarError = (event: Event) => {
+  const img = event.target as HTMLImageElement;
+  if (!avatarError.value && prestador.value) {
+    avatarError.value = true;
+    const iniciais = obterIniciais(prestador.value.nome);
+    img.src = `https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=100&name=${encodeURIComponent(iniciais)}`;
+  }
+};
 
 const mediaFormatada = computed(() => {
   const media = prestador.value?.media_avaliacao;
@@ -373,6 +427,7 @@ const verificarFavorito = async () => {
 
 const carregarPrestador = async () => {
   carregamentoInicial.value = true;
+  avatarError.value = false;
   try {
     const data = await clienteStore.fetchPrestadorDetalhes(prestadorId.value);
     if (data) {
@@ -396,15 +451,11 @@ const carregarPrestador = async () => {
 };
 
 onMounted(() => {
-  carregarPrestador().catch((error) => {
-    console.error('Erro no onMounted:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar página', position: 'top' });
-  });
+  void carregarPrestador();
 });
 </script>
 
 <style scoped lang="scss">
-// ✅ TODAS AS VARIÁVEIS DEFINIDAS
 $purple-primary: #667eea;
 $gray-50: #fafafa;
 $gray-100: #f5f5f5;
@@ -417,25 +468,23 @@ $gray-700: #616161;
 $gray-800: #424242;
 $gray-900: #212121;
 
-/* ========================================== */
-/* SKELETON LOADING STYLES */
-/* ========================================== */
-
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .skeleton-loading {
   background: $gray-100;
   min-height: 100vh;
 }
-
 .skeleton-header {
   position: relative;
   min-height: 250px;
 }
-
 .skeleton-back-btn {
   position: absolute;
   top: 10px;
@@ -446,14 +495,12 @@ $gray-900: #212121;
   background: rgba(0, 0, 0, 0.3);
   z-index: 10;
 }
-
 .skeleton-cover {
   height: 150px;
   background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .skeleton-avatar {
   position: absolute;
   top: 100px;
@@ -468,7 +515,6 @@ $gray-900: #212121;
   border: 4px solid white;
   z-index: 5;
 }
-
 .skeleton-name {
   position: absolute;
   top: 210px;
@@ -481,7 +527,6 @@ $gray-900: #212121;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .skeleton-rating {
   position: absolute;
   top: 245px;
@@ -494,7 +539,6 @@ $gray-900: #212121;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .skeleton-favorite-btn {
   margin: 16px auto;
   width: 180px;
@@ -504,14 +548,12 @@ $gray-900: #212121;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .skeleton-info-cards {
   display: flex;
   gap: 12px;
   padding: 0 16px;
   margin-bottom: 16px;
 }
-
 .skeleton-info-card {
   flex: 1;
   height: 80px;
@@ -519,14 +561,12 @@ $gray-900: #212121;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
-
 .skeleton-section {
   background: white;
   margin: 12px;
   border-radius: 12px;
   padding: 16px;
 }
-
 .skeleton-line {
   height: 14px;
   border-radius: 7px;
@@ -535,14 +575,12 @@ $gray-900: #212121;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .skeleton-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
 }
-
 .skeleton-chip {
   width: 100px;
   height: 32px;
@@ -551,7 +589,6 @@ $gray-900: #212121;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .skeleton-servico {
   display: flex;
   align-items: center;
@@ -559,7 +596,6 @@ $gray-900: #212121;
   padding: 12px 0;
   border-bottom: 1px solid $gray-200;
 }
-
 .skeleton-servico-icon {
   width: 40px;
   height: 40px;
@@ -568,18 +604,18 @@ $gray-900: #212121;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .skeleton-servico-info {
   flex: 1;
 }
-
-.w-40 { width: 40%; }
-.w-60 { width: 60%; }
-.w-80 { width: 80%; }
-
-/* ========================================== */
-/* ESTILOS ORIGINAIS (mantidos sem alterações) */
-/* ========================================== */
+.w-40 {
+  width: 40%;
+}
+.w-60 {
+  width: 60%;
+}
+.w-80 {
+  width: 80%;
+}
 
 .perfil-prestador-page {
   background: $gray-100;
@@ -605,7 +641,6 @@ $gray-900: #212121;
     background-size: cover;
     background-position: center;
     position: relative;
-
     .cover-overlay {
       position: absolute;
       top: 0;
@@ -652,12 +687,10 @@ $gray-900: #212121;
       justify-content: center;
       gap: 5px;
       margin-top: 5px;
-
       .rating-value {
         font-weight: 600;
         color: $gray-800;
       }
-
       .rating-count {
         color: $gray-600;
         font-size: 0.9rem;
@@ -669,7 +702,6 @@ $gray-900: #212121;
 .favorite-btn-wrapper {
   display: flex;
   justify-content: center;
-
   .favorite-btn {
     border-radius: 30px;
     padding: 8px 24px;
@@ -683,7 +715,6 @@ $gray-900: #212121;
     border-radius: 12px;
     text-align: center;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-
     .info-value {
       font-size: 0.85rem;
       font-weight: 700;
@@ -691,7 +722,6 @@ $gray-900: #212121;
       margin: 5px 0 2px;
       word-break: break-word;
     }
-
     .info-label {
       font-size: 0.7rem;
       color: $gray-500;
@@ -704,14 +734,12 @@ $gray-900: #212121;
   margin: 12px 12px;
   border-radius: 12px;
   padding: 16px;
-
   .section-title {
     font-size: 1.1rem;
     font-weight: 600;
     color: $gray-800;
     margin: 0 0 12px;
   }
-
   .section-text {
     color: $gray-600;
     line-height: 1.6;
@@ -732,26 +760,21 @@ $gray-900: #212121;
     gap: 12px;
     padding: 12px 0;
     border-bottom: 1px solid $gray-200;
-
     &:last-child {
       border-bottom: none;
     }
-
     .servico-info {
       flex: 1;
-
       .servico-nome {
         font-weight: 500;
         color: $gray-800;
       }
-
       .servico-preco {
         font-size: 0.8rem;
         color: $purple-primary;
         font-weight: 600;
       }
     }
-
     .servico-duracao {
       font-size: 0.8rem;
       color: $gray-500;
@@ -763,7 +786,6 @@ $gray-900: #212121;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-
   .portfolio-image {
     width: 100%;
     height: 100px;
@@ -781,16 +803,13 @@ $gray-900: #212121;
     padding: 12px 0;
     border-bottom: 1px solid $gray-200;
     cursor: pointer;
-
     &:last-child {
       border-bottom: none;
     }
-
     span {
       color: $gray-700;
       font-size: 0.9rem;
     }
-
     &:hover {
       background: $gray-50;
     }
@@ -801,33 +820,27 @@ $gray-900: #212121;
   .avaliacao-item {
     padding: 12px 0;
     border-bottom: 1px solid $gray-200;
-
     &:last-child {
       border-bottom: none;
     }
-
     .avaliacao-header {
       display: flex;
       align-items: center;
       gap: 12px;
       margin-bottom: 8px;
-
       .avaliacao-info {
         flex: 1;
-
         .avaliacao-nome {
           font-weight: 500;
           color: $gray-800;
           font-size: 0.9rem;
         }
       }
-
       .avaliacao-data {
         font-size: 0.7rem;
         color: $gray-500;
       }
     }
-
     .avaliacao-comentario {
       margin: 0;
       font-size: 0.85rem;
@@ -842,7 +855,6 @@ $gray-900: #212121;
   height: 80px;
 }
 
-// ✅ BOTÃO FLUTUANTE - CANTO INFERIOR DIREITO
 .chat-fab {
   position: fixed !important;
   bottom: 100px !important;

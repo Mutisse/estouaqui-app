@@ -1,4 +1,3 @@
-// stores/cliente-store.ts
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useQuasar, type QNotifyCreateOptions } from 'quasar';
@@ -21,13 +20,13 @@ export interface EnderecoData {
   lng?: number;
   principal: boolean;
 }
-
 export interface PrestadorData {
   id: number;
   nome: string;
   email: string;
   telefone: string;
   foto: string | null;
+  fotoProcessada?: string | null;
   profissao?: string;
   sobre?: string;
   media_avaliacao: number;
@@ -55,10 +54,11 @@ export interface PrestadorData {
   latitude?: number;
   longitude?: number;
   created_at?: string;
-  // ✅ ADICIONAR ESTAS DUAS LINHAS
   lat?: number;
   lng?: number;
+  raio?: number; // ✅ ADICIONAR ESTA LINHA
 }
+
 export interface CategoriaData {
   id: number;
   nome: string;
@@ -103,7 +103,6 @@ export interface FavoritoData {
   created_at: string;
 }
 
-// Interface completa para notificações
 export interface NotificacaoData {
   id: number;
   type: string;
@@ -120,7 +119,7 @@ export interface NotificacaoData {
     cliente_nome?: string;
     valor?: string;
     pedido_numero?: string;
-    [key: string]: unknown; // Para outros campos
+    [key: string]: unknown;
   };
 }
 
@@ -269,8 +268,64 @@ export const useClienteStore = defineStore('cliente', () => {
   const mensagensChat = ref<MensagemData[]>([]);
   const unreadCount = ref(0);
   const propostas = ref<PropostaData[]>([]);
+  const usuarioPerfil = ref<Record<string, unknown> | null>(null);
 
   const pendingRequests = new Map<string, Promise<unknown>>();
+
+  // ==========================================
+  // FUNÇÃO PARA GERAR AVATAR COM INICIAIS
+  // ==========================================
+
+  function gerarIniciais(nome: string): string {
+    if (!nome || nome.trim() === '') return '??';
+
+    const partes = nome.trim().split(' ');
+    const primeiraParte = partes[0];
+
+    if (!primeiraParte) return '??';
+
+    if (partes.length === 1) {
+      if (primeiraParte.length >= 2) {
+        return primeiraParte.substring(0, 2).toUpperCase();
+      }
+      return (primeiraParte[0] || '?') + '?';
+    }
+
+    const ultimaParte = partes[partes.length - 1];
+    if (!ultimaParte) {
+      if (primeiraParte.length >= 2) {
+        return primeiraParte.substring(0, 2).toUpperCase();
+      }
+      return (primeiraParte[0] || '?') + '?';
+    }
+
+    const primeiraLetra = primeiraParte[0] || '';
+    const ultimaLetra = ultimaParte[0] || '';
+
+    if (!primeiraLetra && !ultimaLetra) return '??';
+    if (!primeiraLetra) return (ultimaLetra + '?').toUpperCase();
+    if (!ultimaLetra) return (primeiraLetra + '?').toUpperCase();
+
+    return (primeiraLetra + ultimaLetra).toUpperCase();
+  }
+
+  function gerarAvatarUrl(nome: string, size: number = 100): string {
+    if (!nome || nome.trim() === '') {
+      return `https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=${size}&name=?`;
+    }
+    const iniciais = gerarIniciais(nome);
+    return `https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=${size}&name=${encodeURIComponent(iniciais)}`;
+  }
+
+  function processarFotoPrestador(prestador: RawPrestadorData): string | null {
+    if (prestador.foto && prestador.foto !== 'null' && prestador.foto !== '') {
+      if (prestador.foto.startsWith('http')) {
+        return prestador.foto;
+      }
+      return `/storage/${prestador.foto}`;
+    }
+    return gerarAvatarUrl(prestador.nome, 56);
+  }
 
   // ==========================================
   // FUNÇÃO AUXILIAR PARA EXTRAIR DADOS DA API
@@ -392,16 +447,21 @@ export const useClienteStore = defineStore('cliente', () => {
   // PERFIL
   // ==========================================
 
-  async function fetchProfile(): Promise<Record<string, unknown> | null> {
+  async function fetchProfile(
+    forceRefresh: boolean = false,
+  ): Promise<Record<string, unknown> | null> {
     return dedupeRequest(CACHE_KEYS.PROFILE, async () => {
       try {
         const data = await cacheStore.fetchWithCache(
           CACHE_KEYS.PROFILE,
           async () => {
             const response = await api.get(CLIENTE_ENDPOINTS.GET_PROFILE);
-            return response.data.data as Record<string, unknown>;
+            const profileData = response.data.data as Record<string, unknown>;
+            usuarioPerfil.value = profileData;
+            return profileData;
           },
           CACHE_TTL.LONG,
+          forceRefresh,
         );
         return data;
       } catch (err) {
@@ -420,6 +480,7 @@ export const useClienteStore = defineStore('cliente', () => {
       const response = await api.put(CLIENTE_ENDPOINTS.UPDATE_PROFILE, data);
       if (response.data.success === true) {
         cacheStore.invalidate(CACHE_KEYS.PROFILE);
+        await fetchProfile(true);
         return true;
       }
       return false;
@@ -437,6 +498,7 @@ export const useClienteStore = defineStore('cliente', () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       cacheStore.invalidate(CACHE_KEYS.PROFILE);
+      await fetchProfile(true);
       return response.data.data?.foto || null;
     } catch (err) {
       showError(err);
@@ -449,6 +511,7 @@ export const useClienteStore = defineStore('cliente', () => {
       const response = await api.delete(CLIENTE_ENDPOINTS.REMOVE_AVATAR);
       if (response.data.success === true) {
         cacheStore.invalidate(CACHE_KEYS.PROFILE);
+        await fetchProfile(true);
         return true;
       }
       return false;
@@ -499,11 +562,6 @@ export const useClienteStore = defineStore('cliente', () => {
   // PEDIDOS DO CLIENTE
   // ==========================================
 
-  // cliente-store.ts - já está correto
-  // ==========================================
-  // PEDIDOS DO CLIENTE
-  // ==========================================
-
   async function criarPedidoServico(data: {
     categoria_id: number;
     descricao: string;
@@ -514,8 +572,6 @@ export const useClienteStore = defineStore('cliente', () => {
 
     try {
       const formData = new FormData();
-
-      // ✅ GARANTIR QUE OS CAMPOS SÃO ADICIONADOS CORRETAMENTE
       formData.append('categoria_id', String(data.categoria_id));
       formData.append('descricao', data.descricao);
       formData.append('endereco', data.endereco);
@@ -810,7 +866,7 @@ export const useClienteStore = defineStore('cliente', () => {
   }
 
   // ==========================================
-  // PRESTADORES (consulta pública)
+  // PRESTADORES (consulta pública) - CORRIGIDO COM RAIO
   // ==========================================
 
   async function fetchPrestadoresProximos(
@@ -819,18 +875,35 @@ export const useClienteStore = defineStore('cliente', () => {
     raio?: number,
     forceRefresh: boolean = false,
   ): Promise<PrestadorData[]> {
-    const cacheKey = `prestadores_proximos_${lat}_${lng}_${raio || 10}`;
+    let raioFinal = raio || 10;
+
+    if (!raio && usuarioPerfil.value && usuarioPerfil.value.raio) {
+      raioFinal = Number(usuarioPerfil.value.raio);
+    } else if (!raio) {
+      try {
+        const perfil = await fetchProfile();
+        if (perfil && perfil.raio) {
+          raioFinal = Number(perfil.raio);
+        }
+      } catch {
+        console.warn('Não foi possível buscar raio do perfil, usando padrão 10km');
+      }
+    }
+
+    const cacheKey = `prestadores_proximos_${lat}_${lng}_${raioFinal}`;
+
     return dedupeRequest(cacheKey, async () => {
       try {
         const data = await cacheStore.fetchWithCache(
           cacheKey,
           async () => {
-            const url = CLIENTE_ENDPOINTS.PRESTADORES_PROXIMOS_LOCAL(lat, lng, raio);
+            const url = CLIENTE_ENDPOINTS.PRESTADORES_PROXIMOS_LOCAL(lat, lng, raioFinal);
             const response = await api.get(url);
             const dados = extractDataFromResponse<RawPrestadorData[]>(response.data);
 
             const prestadoresMapeados = dados.map((prestador: RawPrestadorData) => ({
               ...prestador,
+              foto: processarFotoPrestador(prestador),
               lat: prestador.latitude ?? 0,
               lng: prestador.longitude ?? 0,
               disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
@@ -862,6 +935,7 @@ export const useClienteStore = defineStore('cliente', () => {
 
             const prestadoresMapeados = dados.map((prestador: RawPrestadorData) => ({
               ...prestador,
+              foto: processarFotoPrestador(prestador),
               lat: prestador.latitude ?? 0,
               lng: prestador.longitude ?? 0,
               disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
@@ -893,6 +967,7 @@ export const useClienteStore = defineStore('cliente', () => {
 
             const prestadoresMapeados = dados.map((prestador: RawPrestadorData) => ({
               ...prestador,
+              foto: processarFotoPrestador(prestador),
               lat: prestador.latitude ?? 0,
               lng: prestador.longitude ?? 0,
               disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
@@ -912,7 +987,6 @@ export const useClienteStore = defineStore('cliente', () => {
       }
     });
   }
-
   async function fetchPrestadorDetalhes(id: string | number): Promise<PrestadorData | null> {
     const cacheKey = `prestador_detalhes_${id}`;
     return dedupeRequest(cacheKey, async () => {
@@ -922,26 +996,25 @@ export const useClienteStore = defineStore('cliente', () => {
           async () => {
             const response = await api.get(CLIENTE_ENDPOINTS.PRESTADOR_DETALHES(id.toString()));
 
-            // ✅ EXTRAIR OS DADOS CORRETAMENTE DA RESPOSTA
             let prestadorRaw = response.data.data;
 
-            // Se os dados vierem dentro de um objeto data.data (caso paginado)
+            if (prestadorRaw && prestadorRaw.data && !Array.isArray(prestadorRaw.data)) {
+              prestadorRaw = prestadorRaw.data;
+            }
             if (prestadorRaw && prestadorRaw.data && Array.isArray(prestadorRaw.data)) {
               prestadorRaw = prestadorRaw.data[0];
             }
 
             if (!prestadorRaw) {
-              console.error('❌ Dados do prestador não encontrados na resposta:', response.data);
               return null;
             }
 
-            // ✅ Mapear os dados completos do prestador
             const prestadorMapeado: PrestadorData = {
               id: prestadorRaw.id,
               nome: prestadorRaw.nome,
               email: prestadorRaw.email,
               telefone: prestadorRaw.telefone,
-              foto: prestadorRaw.foto || null,
+              foto: prestadorRaw.foto,
               profissao: prestadorRaw.profissao,
               sobre: prestadorRaw.sobre,
               media_avaliacao: prestadorRaw.media_avaliacao || 0,
@@ -951,11 +1024,11 @@ export const useClienteStore = defineStore('cliente', () => {
               latitude: prestadorRaw.latitude,
               longitude: prestadorRaw.longitude,
               created_at: prestadorRaw.created_at,
-              // ✅ CAMPOS ADICIONAIS QUE O BACKEND RETORNA
               categorias: prestadorRaw.categorias || [],
               servicos: prestadorRaw.servicos || [],
               avaliacoes: prestadorRaw.avaliacoes || [],
               portfolio: prestadorRaw.portfolio || [],
+              raio: prestadorRaw.raio || 10,
             };
 
             return prestadorMapeado;
@@ -985,6 +1058,7 @@ export const useClienteStore = defineStore('cliente', () => {
 
             const prestadoresMapeados = dados.map((prestador: RawPrestadorData) => ({
               ...prestador,
+              foto: processarFotoPrestador(prestador),
               lat: prestador.latitude ?? 0,
               lng: prestador.longitude ?? 0,
               disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
@@ -1019,6 +1093,7 @@ export const useClienteStore = defineStore('cliente', () => {
 
             const prestadoresMapeados = dados.map((prestador: RawPrestadorData) => ({
               ...prestador,
+              foto: processarFotoPrestador(prestador),
               lat: prestador.latitude ?? 0,
               lng: prestador.longitude ?? 0,
               disponivel: prestador.disponivel !== undefined ? prestador.disponivel : true,
@@ -1682,6 +1757,7 @@ export const useClienteStore = defineStore('cliente', () => {
     mensagensChat,
     unreadCount,
     propostas,
+    usuarioPerfil,
 
     // Registro State
     registerForm,
@@ -1695,6 +1771,11 @@ export const useClienteStore = defineStore('cliente', () => {
     progressWidth,
     passwordStrength,
     isFormValid,
+
+    // Utilitários
+    gerarIniciais,
+    gerarAvatarUrl,
+    processarFotoPrestador,
 
     // Perfil
     fetchProfile,

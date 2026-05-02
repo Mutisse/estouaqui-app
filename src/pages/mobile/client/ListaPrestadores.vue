@@ -26,8 +26,6 @@
           <div class="skeleton-badge"></div>
         </div>
       </div>
-
-      
     </div>
 
     <!-- Conteúdo real -->
@@ -79,7 +77,10 @@
       </div>
 
       <!-- Subcategorias -->
-      <div v-if="selectedCategory && subcategorias.length > 0" class="subcategories-chips q-px-md q-mb-md">
+      <div
+        v-if="selectedCategory && subcategorias.length > 0"
+        class="subcategories-chips q-px-md q-mb-md"
+      >
         <div class="sub-header row items-center justify-between">
           <span class="text-caption text-grey-6">Tipos de serviço:</span>
           <q-btn
@@ -114,7 +115,15 @@
       <div v-if="activeFiltersCount > 0" class="active-filters q-px-md q-pb-sm">
         <div class="row items-center justify-between">
           <span class="text-caption text-grey-6">Filtros ativos:</span>
-          <q-btn flat dense size="sm" color="primary" label="Limpar todos" @click="clearAllFilters" no-caps />
+          <q-btn
+            flat
+            dense
+            size="sm"
+            color="primary"
+            label="Limpar todos"
+            @click="clearAllFilters"
+            no-caps
+          />
         </div>
         <div class="row q-gutter-xs q-mt-xs">
           <q-chip
@@ -123,7 +132,10 @@
             size="sm"
             removable
             color="primary"
-            @remove="filtros.distancia_max = 50; void carregarPrestadores(true)"
+            @remove="
+              filtros.distancia_max = 50;
+              void carregarPrestadores(true);
+            "
           >
             <q-icon name="radar" size="14px" class="q-mr-xs" />
             ≤ {{ filtros.distancia_max }}km
@@ -135,7 +147,10 @@
             removable
             color="amber"
             text-color="dark"
-            @remove="filtros.rating_min = 0; void carregarPrestadores(true)"
+            @remove="
+              filtros.rating_min = 0;
+              void carregarPrestadores(true);
+            "
           >
             <q-icon name="star" size="14px" class="q-mr-xs" />
             ≥ {{ filtros.rating_min }}
@@ -147,7 +162,10 @@
             removable
             :color="filtros.disponivel === 'true' ? 'positive' : 'negative'"
             text-color="white"
-            @remove="filtros.disponivel = 'todos'; void carregarPrestadores(true)"
+            @remove="
+              filtros.disponivel = 'todos';
+              void carregarPrestadores(true);
+            "
           >
             <q-icon name="check_circle" size="14px" class="q-mr-xs" />
             {{ filtros.disponivel === 'true' ? 'Disponível' : 'Indisponível' }}
@@ -187,39 +205,76 @@
               :key="prestador.id"
               class="col-12 col-sm-6 col-md-4"
             >
-              <q-card class="prestador-card cursor-pointer" flat bordered @click="() => irParaPerfil(prestador.id)">
+              <q-card
+                class="prestador-card cursor-pointer"
+                flat
+                bordered
+                @click="() => irParaPerfil(prestador.id)"
+              >
                 <q-card-section class="row items-center no-wrap q-gutter-md">
+                  <!-- Avatar com fallback de iniciais - CORRIGIDO -->
                   <q-avatar size="56px">
+                    <!-- ✅ AGORA USA 'foto' em vez de 'fotoProcessada' -->
                     <img
-                      :src="prestador.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(prestador.nome)}&background=667eea&color=fff&bold=true&size=56`"
+                      v-if="prestador.foto"
+                      :src="prestador.foto"
                       :alt="prestador.nome"
+                      @error="(e) => handleImageError(e, prestador)"
+                    />
+                    <!-- Fallback: avatar com iniciais -->
+                    <div
+                      v-else
+                      class="avatar-placeholder"
+                      :style="{ backgroundColor: getAvatarColor(prestador.id) }"
                     >
+                      {{ obterIniciais(prestador.nome) }}
+                    </div>
                   </q-avatar>
 
                   <div class="col">
                     <div class="row items-center justify-between">
                       <div class="prestador-nome">{{ prestador.nome }}</div>
-                      <q-icon v-if="prestador.verificado" name="verified" color="primary" size="16px" />
+                      <q-icon
+                        v-if="prestador.verificado"
+                        name="verified"
+                        color="primary"
+                        size="16px"
+                      />
                     </div>
 
                     <div class="row items-center q-gutter-xs q-mt-xs">
                       <div class="rating">
                         <q-icon name="star" color="yellow-8" size="14px" />
-                        <span class="rating-value">{{ (prestador.media_avaliacao || 0).toFixed(1) }}</span>
+                        <span class="rating-value">{{
+                          (prestador.media_avaliacao || 0).toFixed(1)
+                        }}</span>
                         <span class="rating-count">({{ prestador.total_avaliacoes || 0 }})</span>
                       </div>
                       <q-separator vertical inset />
                       <div class="distancia">
                         <q-icon name="location_on" size="14px" class="text-grey-6" />
-                        <span class="distancia-value">{{ formatarDistancia(prestador.distancia) }}</span>
+                        <span class="distancia-value">{{
+                          formatarDistancia(prestador.distancia)
+                        }}</span>
                       </div>
                     </div>
 
                     <div class="categorias-preview q-mt-xs">
-                      <q-chip v-for="cat in prestador.categorias?.slice(0, 2)" :key="cat.id" dense size="sm" class="categoria-chip">
+                      <q-chip
+                        v-for="cat in prestador.categorias?.slice(0, 2)"
+                        :key="cat.id"
+                        dense
+                        size="sm"
+                        class="categoria-chip"
+                      >
                         {{ cat.nome }}
                       </q-chip>
-                      <q-chip v-if="prestador.categorias && prestador.categorias.length > 2" dense size="sm" class="categoria-chip more">
+                      <q-chip
+                        v-if="prestador.categorias && prestador.categorias.length > 2"
+                        dense
+                        size="sm"
+                        class="categoria-chip more"
+                      >
                         +{{ prestador.categorias.length - 2 }}
                       </q-chip>
                     </div>
@@ -236,13 +291,28 @@
           </div>
 
           <div v-if="hasMore" class="text-center q-mt-lg">
-            <q-btn flat color="primary" label="Carregar mais" icon="expand_more" @click="loadMore" :loading="loadingMore" no-caps />
+            <q-btn
+              flat
+              color="primary"
+              label="Carregar mais"
+              icon="expand_more"
+              @click="loadMore"
+              :loading="loadingMore"
+              no-caps
+            />
           </div>
         </div>
       </div>
 
       <!-- Drawer de filtros -->
-      <q-drawer v-model="showFilters" side="right" behavior="mobile" bordered :width="340" :breakpoint="0">
+      <q-drawer
+        v-model="showFilters"
+        side="right"
+        behavior="mobile"
+        bordered
+        :width="340"
+        :breakpoint="0"
+      >
         <q-toolbar class="bg-primary text-white">
           <q-toolbar-title>
             <div class="row items-center">
@@ -259,10 +329,30 @@
               <q-item-section>
                 <q-item-label class="text-weight-bold">Distância máxima</q-item-label>
                 <div class="row items-center justify-between q-mt-sm">
-                  <span class="text-caption text-grey-6">Até <strong>{{ filtros.distancia_max }}km</strong></span>
-                  <q-btn v-if="filtros.distancia_max < 50" flat dense size="sm" color="primary" label="Limpar" @click="filtros.distancia_max = 50" no-caps />
+                  <span class="text-caption text-grey-6"
+                    >Até <strong>{{ filtros.distancia_max }}km</strong></span
+                  >
+                  <q-btn
+                    v-if="filtros.distancia_max < 50"
+                    flat
+                    dense
+                    size="sm"
+                    color="primary"
+                    label="Limpar"
+                    @click="filtros.distancia_max = 50"
+                    no-caps
+                  />
                 </div>
-                <q-slider v-model="filtros.distancia_max" :min="1" :max="50" :step="1" label color="primary" class="q-mt-sm" label-always />
+                <q-slider
+                  v-model="filtros.distancia_max"
+                  :min="1"
+                  :max="50"
+                  :step="1"
+                  label
+                  color="primary"
+                  class="q-mt-sm"
+                  label-always
+                />
               </q-item-section>
             </q-item>
 
@@ -270,8 +360,23 @@
               <q-item-section>
                 <q-item-label class="text-weight-bold">Avaliação mínima</q-item-label>
                 <div class="row items-center justify-between q-mt-sm">
-                  <q-rating v-model="filtros.rating_min" :max="5" size="32px" color="amber" icon="star_border" icon-selected="star" />
-                  <q-btn v-if="filtros.rating_min > 0" flat dense size="sm" label="Limpar" @click="filtros.rating_min = 0" no-caps />
+                  <q-rating
+                    v-model="filtros.rating_min"
+                    :max="5"
+                    size="32px"
+                    color="amber"
+                    icon="star_border"
+                    icon-selected="star"
+                  />
+                  <q-btn
+                    v-if="filtros.rating_min > 0"
+                    flat
+                    dense
+                    size="sm"
+                    label="Limpar"
+                    @click="filtros.rating_min = 0"
+                    no-caps
+                  />
                 </div>
               </q-item-section>
             </q-item>
@@ -279,35 +384,88 @@
             <q-item>
               <q-item-section>
                 <q-item-label class="text-weight-bold">Disponibilidade</q-item-label>
-                <q-option-group v-model="filtros.disponivel" :options="disponibilidadeOptions" type="radio" inline class="q-mt-sm" />
+                <q-option-group
+                  v-model="filtros.disponivel"
+                  :options="disponibilidadeOptions"
+                  type="radio"
+                  inline
+                  class="q-mt-sm"
+                />
               </q-item-section>
             </q-item>
 
             <q-item>
               <q-item-section>
                 <q-item-label class="text-weight-bold">Categoria</q-item-label>
-                <q-select v-model="filtros.categoria_id" :options="categorias" option-value="id" option-label="nome" emit-value map-options dense outlined clearable placeholder="Todas categorias" @update:model-value="onCategoriaChange" class="q-mt-sm" />
+                <q-select
+                  v-model="filtros.categoria_id"
+                  :options="categorias"
+                  option-value="id"
+                  option-label="nome"
+                  emit-value
+                  map-options
+                  dense
+                  outlined
+                  clearable
+                  placeholder="Todas categorias"
+                  @update:model-value="onCategoriaChange"
+                  class="q-mt-sm"
+                />
               </q-item-section>
             </q-item>
 
             <q-item v-if="subcategorias.length > 0">
               <q-item-section>
                 <q-item-label class="text-weight-bold">Tipo de serviço</q-item-label>
-                <q-select v-model="filtros.subcategoria_id" :options="subcategorias" option-value="id" option-label="nome" emit-value map-options dense outlined clearable placeholder="Todos os tipos" class="q-mt-sm" />
+                <q-select
+                  v-model="filtros.subcategoria_id"
+                  :options="subcategorias"
+                  option-value="id"
+                  option-label="nome"
+                  emit-value
+                  map-options
+                  dense
+                  outlined
+                  clearable
+                  placeholder="Todos os tipos"
+                  class="q-mt-sm"
+                />
               </q-item-section>
             </q-item>
 
             <q-item>
               <q-item-section>
                 <q-item-label class="text-weight-bold">Ordenar por</q-item-label>
-                <q-select v-model="filtros.ordenar_por" :options="ordenacaoOptions" dense outlined emit-value map-options class="q-mt-sm" />
+                <q-select
+                  v-model="filtros.ordenar_por"
+                  :options="ordenacaoOptions"
+                  dense
+                  outlined
+                  emit-value
+                  map-options
+                  class="q-mt-sm"
+                />
               </q-item-section>
             </q-item>
           </q-list>
 
           <div class="row q-pa-md q-gutter-sm">
-            <q-btn flat color="primary" label="Limpar tudo" @click="clearAllFilters" class="col" no-caps />
-            <q-btn unelevated color="primary" label="Ver resultados" @click="applyFilters" class="col" no-caps />
+            <q-btn
+              flat
+              color="primary"
+              label="Limpar tudo"
+              @click="clearAllFilters"
+              class="col"
+              no-caps
+            />
+            <q-btn
+              unelevated
+              color="primary"
+              label="Ver resultados"
+              @click="applyFilters"
+              class="col"
+              no-caps
+            />
           </div>
         </q-scroll-area>
       </q-drawer>
@@ -342,9 +500,10 @@ const categorias = ref<{ id: number; nome: string; icone: string }[]>([]);
 const subcategorias = ref<{ id: number; nome: string }[]>([]);
 const selectedCategory = ref<number | null>(null);
 const selectedSubcategory = ref<number | null>(null);
+const imageErrors = ref<Record<number, boolean>>({});
 
 const categoriaNome = computed(() => {
-  const cat = categorias.value.find(c => c.id === selectedCategory.value);
+  const cat = categorias.value.find((c) => c.id === selectedCategory.value);
   return cat?.nome || '';
 });
 
@@ -362,20 +521,85 @@ const filtros = reactive({
   disponivel: 'todos' as 'todos' | 'true' | 'false',
   categoria_id: null as number | null,
   subcategoria_id: null as number | null,
-  ordenar_por: 'rating_desc' as 'rating_desc' | 'distancia_asc' | 'servicos_desc'
+  ordenar_por: 'rating_desc' as 'rating_desc' | 'distancia_asc' | 'servicos_desc',
 });
 
 const disponibilidadeOptions = [
   { label: 'Todos', value: 'todos' },
   { label: 'Disponível', value: 'true' },
-  { label: 'Indisponível', value: 'false' }
+  { label: 'Indisponível', value: 'false' },
 ];
 
 const ordenacaoOptions = [
   { label: '🌟 Melhor avaliação', value: 'rating_desc' },
   { label: '📍 Mais próximo', value: 'distancia_asc' },
-  { label: '📋 Mais serviços', value: 'servicos_desc' }
+  { label: '📋 Mais serviços', value: 'servicos_desc' },
 ];
+
+// ✅ FUNÇÃO PARA OBTER INICIAIS DO NOME
+const obterIniciais = (nome: string): string => {
+  if (!nome || nome.trim() === '') return '??';
+
+  const partes = nome.trim().split(' ');
+  const primeiraParte = partes[0];
+
+  if (!primeiraParte) return '??';
+
+  if (partes.length === 1) {
+    if (primeiraParte.length >= 2) {
+      return primeiraParte.substring(0, 2).toUpperCase();
+    }
+    return (primeiraParte[0] || '?') + '?';
+  }
+
+  const ultimaParte = partes[partes.length - 1];
+  if (!ultimaParte) {
+    if (primeiraParte.length >= 2) {
+      return primeiraParte.substring(0, 2).toUpperCase();
+    }
+    return (primeiraParte[0] || '?') + '?';
+  }
+
+  const primeiraLetra = primeiraParte[0] || '';
+  const ultimaLetra = ultimaParte[0] || '';
+
+  if (!primeiraLetra && !ultimaLetra) return '??';
+  if (!primeiraLetra) return (ultimaLetra + '?').toUpperCase();
+  if (!ultimaLetra) return (primeiraLetra + '?').toUpperCase();
+
+  return (primeiraLetra + ultimaLetra).toUpperCase();
+};
+
+// ✅ FUNÇÃO PARA GERAR COR DO AVATAR BASEADA NO ID
+const getAvatarColor = (id: number): string => {
+  const colors: string[] = [
+    '#667eea', '#48bb78', '#ed8936', '#f56565', '#9f7aea',
+    '#38b2ac', '#fbbf24', '#a0aec0', '#4a5568', '#d53f8c',
+  ];
+  const index = Math.abs(id) % colors.length;
+  return colors[index] ?? '#667eea';
+};
+
+// ✅ FUNÇÃO PARA TRATAR ERRO DE IMAGEM
+const handleImageError = (event: Event, prestador: PrestadorData) => {
+  const img = event.target as HTMLImageElement;
+  if (!imageErrors.value[prestador.id]) {
+    imageErrors.value[prestador.id] = true;
+    img.style.display = 'none';
+    const parent = img.parentElement;
+    if (parent) {
+      const existingPlaceholder = parent.querySelector('.avatar-placeholder');
+      if (existingPlaceholder) {
+        existingPlaceholder.remove();
+      }
+      const placeholder = document.createElement('div');
+      placeholder.className = 'avatar-placeholder';
+      placeholder.style.backgroundColor = getAvatarColor(prestador.id);
+      placeholder.innerText = obterIniciais(prestador.nome);
+      parent.appendChild(placeholder);
+    }
+  }
+};
 
 const activeFiltersCount = computed(() => {
   let count = 0;
@@ -413,13 +637,13 @@ const carregarSubcategorias = (): void => {
     subcategorias.value = [
       { id: 101, nome: 'Instalação Elétrica' },
       { id: 102, nome: 'Manutenção' },
-      { id: 103, nome: 'Projetos' }
+      { id: 103, nome: 'Projetos' },
     ];
   } else if (selectedCategory.value === 2) {
     subcategorias.value = [
       { id: 201, nome: 'Desentupimento' },
       { id: 202, nome: 'Instalação' },
-      { id: 203, nome: 'Reparos' }
+      { id: 203, nome: 'Reparos' },
     ];
   } else {
     subcategorias.value = [];
@@ -442,7 +666,12 @@ const carregarPrestadores = async (resetPage = true): Promise<void> => {
     if (Array.isArray(result)) {
       prestadoresData = result;
       hasMore.value = false;
-    } else if (result && typeof result === 'object' && 'data' in result && Array.isArray((result as PaginatedResult).data)) {
+    } else if (
+      result &&
+      typeof result === 'object' &&
+      'data' in result &&
+      Array.isArray((result as PaginatedResult).data)
+    ) {
       const paginated = result as PaginatedResult;
       prestadoresData = paginated.data;
       hasMore.value = paginated.current_page < paginated.last_page;
@@ -466,7 +695,11 @@ const carregarPrestadores = async (resetPage = true): Promise<void> => {
     }
   } catch (error) {
     console.error('Erro ao carregar prestadores:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar lista de prestadores', position: 'top' });
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar lista de prestadores',
+      position: 'top',
+    });
   } finally {
     loading.value = false;
     loadingMore.value = false;
@@ -574,7 +807,12 @@ const clearFilters = (): void => {
 const clearAllFilters = (): void => {
   clearFilters();
   showFilters.value = false;
-  $q.notify({ type: 'positive', message: 'Todos os filtros foram limpos', position: 'top', timeout: 1500 });
+  $q.notify({
+    type: 'positive',
+    message: 'Todos os filtros foram limpos',
+    position: 'top',
+    timeout: 1500,
+  });
 };
 
 const applyFilters = (): void => {
@@ -593,15 +831,28 @@ const applyFilters = (): void => {
   }
   page.value = 1;
   void carregarPrestadores(true);
-  $q.notify({ type: 'info', message: `${activeFiltersCount.value} filtro(s) aplicado(s)`, position: 'top', timeout: 1500 });
+  $q.notify({
+    type: 'info',
+    message: `${activeFiltersCount.value} filtro(s) aplicado(s)`,
+    position: 'top',
+    timeout: 1500,
+  });
 };
 
-watch([() => filtros.distancia_max, () => filtros.rating_min, () => filtros.disponivel, () => filtros.ordenar_por], () => {
-  if (!showFilters.value) {
-    page.value = 1;
-    void carregarPrestadores(true);
-  }
-});
+watch(
+  [
+    () => filtros.distancia_max,
+    () => filtros.rating_min,
+    () => filtros.disponivel,
+    () => filtros.ordenar_por,
+  ],
+  () => {
+    if (!showFilters.value) {
+      page.value = 1;
+      void carregarPrestadores(true);
+    }
+  },
+);
 
 onMounted(async () => {
   await carregarDadosIniciais();
@@ -736,26 +987,21 @@ onMounted(async () => {
   animation: shimmer 1.5s infinite;
 }
 
-.skeleton-spinner {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 20px 30px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 10000;
+.w-30 {
+  width: 30%;
+}
+.w-40 {
+  width: 40%;
+}
+.w-50 {
+  width: 50%;
+}
+.w-60 {
+  width: 60%;
 }
 
-.w-30 { width: 30%; }
-.w-40 { width: 40%; }
-.w-50 { width: 50%; }
-.w-60 { width: 60%; }
-
 // ==========================================
-// ESTILOS NORMAIS (mantidos)
+// ESTILOS NORMAIS
 // ==========================================
 
 .search-header {
@@ -885,6 +1131,20 @@ onMounted(async () => {
   }
 }
 
+// ✅ ESTILO PARA O AVATAR PLACEHOLDER COM INICIAIS
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: white;
+  text-transform: uppercase;
+}
+
 @media (max-width: 600px) {
   .prestador-card {
     .prestador-nome {
@@ -896,6 +1156,10 @@ onMounted(async () => {
         font-size: 0.6rem;
       }
     }
+  }
+
+  .avatar-placeholder {
+    font-size: 1rem;
   }
 }
 </style>
