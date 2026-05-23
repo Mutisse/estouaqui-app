@@ -1,312 +1,317 @@
 <template>
-  <q-page class="prestador-servicos bg-grey-1">
-    <!-- Cabeçalho -->
-    <div class="page-header q-pa-md">
-      <q-btn flat round icon="arrow_back" @click="router.back()" />
-      <div class="text-h5 text-bold">Meus Serviços</div>
-      <q-btn flat round icon="add" @click="adicionarServico" />
-    </div>
+  <div class="prestador-servicos">
 
-    <!-- Skeleton Loading (igual Facebook/Instagram) -->
-    <div v-if="loading" class="skeleton-container q-pa-md">
-      <div class="row q-col-gutter-md">
-        <div v-for="i in 4" :key="i" class="col-12 col-sm-6">
-          <div class="skeleton-card">
-            <!-- Avatar skeleton -->
-            <div class="row items-start q-gutter-sm">
-              <div class="skeleton-avatar"></div>
-              <div class="col">
-                <div class="skeleton-title"></div>
-                <div class="skeleton-text"></div>
-                <div class="skeleton-text-short"></div>
-              </div>
-            </div>
-            <!-- Animation shimmer -->
-            <div class="skeleton-shimmer"></div>
+    <!-- ===== CABEÇALHO MODERNO ===== -->
+    <header class="modern-header">
+      <button class="header-btn" @click="() => void router.back()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+      <div class="header-center">
+        <h1>Meus Serviços</h1>
+        <p>Gerencie seus serviços e preços</p>
+      </div>
+      <button class="header-btn add-btn" @click="adicionarServico">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- ===== SKELETON LOADING ===== -->
+    <div v-if="loadingServicos" class="skeleton-container">
+      <div class="skeleton-grid">
+        <div v-for="i in 4" :key="i" class="skeleton-card-modern">
+          <div class="skeleton-icon"></div>
+          <div class="skeleton-content">
+            <div class="skeleton-line w-60"></div>
+            <div class="skeleton-line w-40"></div>
+            <div class="skeleton-line w-50"></div>
+          </div>
+          <div class="skeleton-actions">
+            <div class="skeleton-btn"></div>
+            <div class="skeleton-toggle"></div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
-      <!-- Lista de serviços em GRADE 2 COLUNAS -->
-      <div class="servicos-grid q-pa-md">
-        <div v-if="servicos.length === 0" class="empty-state">
-          <q-icon name="handyman" size="64px" color="grey-4" />
-          <div class="text-h6 text-grey-7 q-mt-md">Nenhum serviço cadastrado</div>
-          <div class="text-grey-6 q-mt-sm">Clique no botão + para adicionar um serviço</div>
+
+      <!-- ===== LISTA DE SERVIÇOS ===== -->
+      <div class="servicos-container">
+        <div v-if="servicos.length === 0" class="empty-state-modern">
+          <div class="empty-icon">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <h3>Nenhum serviço cadastrado</h3>
+          <p>Clique no botão + para adicionar seu primeiro serviço</p>
         </div>
 
-        <!-- GRID 2 COLUNAS RESPONSIVO -->
-        <div v-else class="row q-col-gutter-md">
-          <div
-            v-for="servico in servicos"
-            :key="servico.id"
-            class="col-12 col-sm-6"
-          >
-            <q-card class="servico-card" :class="{ 'inativo': !servico.ativo }">
-              <!-- Status indicator -->
-              <div class="status-badge" :class="servico.ativo ? 'active' : 'inactive'">
-                {{ servico.ativo ? 'Ativo' : 'Inativo' }}
+        <div v-else class="servicos-grid-modern">
+          <div v-for="servico in servicos" :key="servico.id" class="servico-card-modern" :class="{ inactive: !servico.ativo }">
+
+            <!-- Badge de status -->
+            <div class="status-chip" :class="servico.ativo ? 'active' : 'inactive'">
+              <span class="status-dot"></span>
+              {{ servico.ativo ? 'Ativo' : 'Inativo' }}
+            </div>
+
+            <!-- Conteúdo do card -->
+            <div class="card-content">
+              <div class="icon-wrapper" :style="{ background: servico.ativo ? getGradientForIcon(servico.icone) : '#E5E7EB' }">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/>
+                  <line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
               </div>
 
-              <q-card-section class="q-pt-md">
-                <div class="row items-start no-wrap">
-                  <q-avatar
-                    :color="servico.ativo ? 'primary' : 'grey-4'"
-                    text-color="white"
-                    size="56px"
-                    class="servico-avatar"
-                  >
-                    <q-icon :name="servico.icone || 'handyman'" size="32px" />
-                  </q-avatar>
-
-                  <div class="col q-ml-sm">
-                    <div class="servico-nome text-bold">{{ servico.nome }}</div>
-                    <div class="servico-preco">
-                      {{ formatarValor(servico.preco) }} MZN
-                    </div>
-                    <div class="servico-duracao">
-                      <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                      {{ servico.duracao }} min
-                    </div>
-                  </div>
+              <div class="servico-info">
+                <h3 class="servico-nome">{{ servico.nome }}</h3>
+                <div class="servico-preco">
+                  <span class="preco-label">Preço</span>
+                  <span class="preco-valor">{{ formatarValor(servico.preco) }} MZN</span>
                 </div>
-              </q-card-section>
-
-              <q-card-section class="q-pt-none">
-                <div class="servico-descricao">
-                  {{ servico.descricao || 'Sem descrição' }}
+                <div class="servico-duracao">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span>{{ servico.duracao }} minutos</span>
                 </div>
-              </q-card-section>
+              </div>
+            </div>
 
-              <q-separator />
+            <!-- Descrição -->
+            <div class="servico-descricao" v-if="servico.descricao">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+              <p>{{ servico.descricao }}</p>
+            </div>
 
-              <q-card-actions align="right" class="q-pa-sm">
-                <q-btn
-                  flat
-                  dense
-                  icon="edit"
-                  label="Editar"
-                  color="primary"
-                  @click="editarServico(servico)"
-                />
-                <q-toggle
-                  :model-value="servico.ativo"
-                  color="positive"
-                  @update:model-value="toggleServico(servico)"
-                  :loading="loadingAcao === servico.id"
-                />
-              </q-card-actions>
-            </q-card>
+            <!-- Ações -->
+            <div class="card-actions">
+              <button class="action-btn edit" @click="editarServico(servico)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/>
+                  <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/>
+                </svg>
+                Editar
+              </button>
+              <label class="toggle-switch-modern">
+                <input type="checkbox" :checked="servico.ativo" @change="toggleServico(servico)" :disabled="loadingAcao === servico.id">
+                <span class="toggle-slider-modern"></span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Categorias de serviço -->
-      <div class="categorias-section q-pa-md">
-        <div class="section-header">
-          <div class="section-title">Categorias que atendo</div>
-          <q-btn flat dense label="Editar" icon="edit" @click="editarCategorias" />
-        </div>
-
-        <!-- Skeleton para categorias -->
-        <div v-if="loadingCategorias" class="skeleton-categories">
-          <div class="row q-col-gutter-sm">
-            <div v-for="i in 5" :key="i" class="col-auto">
-              <div class="skeleton-chip"></div>
-            </div>
+      <!-- ===== SEÇÃO DE CATEGORIAS ===== -->
+      <div class="categorias-section-modern">
+        <div class="section-header-modern">
+          <div class="section-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="8" height="8" rx="1"/>
+              <rect x="13" y="3" width="8" height="8" rx="1"/>
+              <rect x="3" y="13" width="8" height="8" rx="1"/>
+              <rect x="13" y="13" width="8" height="8" rx="1"/>
+            </svg>
+            Categorias que atendo
           </div>
+          <button class="edit-cat-btn" @click="editarCategorias">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/>
+              <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/>
+            </svg>
+            Editar
+          </button>
         </div>
 
-        <div v-else class="categorias-chips q-mt-sm">
-          <q-chip
-            v-for="cat in minhasCategorias"
-            :key="cat.id"
-            :removable="true"
-            @remove="removerCategoria(cat)"
-            color="primary"
-            text-color="white"
-            class="q-mr-xs q-mb-xs"
-          >
-            <q-icon :name="cat.icone || 'category'" size="16px" class="q-mr-xs" />
-            {{ cat.nome }}
-          </q-chip>
+        <div v-if="loadingCategorias" class="skeleton-categories">
+          <div class="skeleton-chip" v-for="i in 5" :key="i"></div>
+        </div>
 
-          <q-chip
-            clickable
-            icon="add"
-            label="Adicionar"
-            color="grey-3"
-            text-color="grey-8"
-            @click="adicionarCategoria"
-          />
+        <div v-else class="categorias-scroll">
+          <div v-for="cat in minhasCategorias" :key="cat.id" class="categoria-chip" :style="{ background: cat.cor || '#667eea' + '15', color: cat.cor || '#667eea' }">
+            <span class="chip-icon">{{ cat.icone || '🏷️' }}</span>
+            <span>{{ cat.nome }}</span>
+            <button class="chip-remove" @click="removerCategoria(cat)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <button class="add-chip" @click="adicionarCategoria">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Adicionar
+          </button>
         </div>
       </div>
     </template>
 
-    <!-- Dialog para adicionar/editar serviço -->
-    <q-dialog v-model="showServicoDialog" persistent>
-      <q-card style="min-width: 350px; max-width: 500px; width: 90%">
-        <q-card-section class="bg-primary text-white">
-          <div class="text-h6">{{ editandoServico ? 'Editar' : 'Novo' }} Serviço</div>
-        </q-card-section>
+    <!-- ===== MODAL DE SERVIÇO MODERNO ===== -->
+    <div class="modal-overlay" v-if="showServicoDialog" @click="showServicoDialog = false">
+      <div class="modal-content-modern" @click.stop>
+        <div class="modal-header-modern">
+          <div class="modal-icon" :style="{ background: getGradientForIcon('handyman') }">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <div>
+            <h3>{{ editandoServico ? 'Editar' : 'Novo' }} Serviço</h3>
+            <p>Preencha os dados do serviço</p>
+          </div>
+          <button class="modal-close" @click="showServicoDialog = false">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
 
-        <q-card-section class="q-gutter-md">
-          <q-input
-            v-model="servicoForm.nome"
-            label="Nome do serviço"
-            outlined
-            dense
-            :rules="[(val) => !!val || 'Nome é obrigatório']"
-          />
+        <div class="modal-body-modern">
+          <div class="input-group-modern">
+            <label class="input-label-modern">Nome do serviço</label>
+            <input type="text" v-model="servicoForm.nome" placeholder="Ex: Limpeza Residencial" class="modern-input" />
+          </div>
 
-          <q-select
-            v-model="servicoForm.categoria_id"
-            :options="categoriasDisponiveis"
-            label="Categoria"
-            outlined
-            dense
-            option-label="nome"
-            option-value="id"
-            map-options
-            emit-value
-            :rules="[(val) => !!val || 'Categoria é obrigatória']"
-          />
+          <div class="input-group-modern">
+            <label class="input-label-modern">Categoria</label>
+            <select v-model="servicoForm.categoria_id" class="modern-select">
+              <option :value="null">Selecione uma categoria</option>
+              <option v-for="cat in categoriasDisponiveis" :key="cat.id" :value="cat.id">
+                {{ cat.nome }}
+              </option>
+            </select>
+          </div>
 
-          <div class="row q-col-gutter-sm">
-            <div class="col">
-              <q-input
-                v-model.number="servicoForm.preco"
-                label="Preço (MZN)"
-                type="number"
-                outlined
-                dense
-                :rules="[(val) => val > 0 || 'Preço inválido']"
-              />
+          <div class="row-modern">
+            <div class="col-modern">
+              <div class="input-group-modern">
+                <label class="input-label-modern">Preço (MZN)</label>
+                <div class="price-input">
+                  <span class="price-prefix">MZN</span>
+                  <input type="number" v-model.number="servicoForm.preco" placeholder="0" />
+                </div>
+              </div>
             </div>
-            <div class="col">
-              <q-input
-                v-model.number="servicoForm.duracao"
-                label="Duração (min)"
-                type="number"
-                outlined
-                dense
-                :rules="[(val) => val > 0 || 'Duração inválida']"
-              />
+            <div class="col-modern">
+              <div class="input-group-modern">
+                <label class="input-label-modern">Duração (min)</label>
+                <div class="duration-input">
+                  <input type="number" v-model.number="servicoForm.duracao" placeholder="60" />
+                  <span class="duration-suffix">min</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <q-input
-            v-model="servicoForm.descricao"
-            label="Descrição"
-            type="textarea"
-            outlined
-            dense
-            autogrow
-          />
+          <div class="input-group-modern">
+            <label class="input-label-modern">Descrição</label>
+            <textarea v-model="servicoForm.descricao" rows="3" placeholder="Descreva o serviço..." class="modern-textarea"></textarea>
+          </div>
+        </div>
 
-          <q-select
-            v-model="servicoForm.icone"
-            :options="iconeOptions"
-            label="Ícone"
-            outlined
-            dense
-            options-dense
-            use-input
-            fill-input
-            @filter="filterIcones"
-          >
-            <template v-slot:option="{ itemProps, opt }">
-              <q-item v-bind="itemProps">
-                <q-item-section avatar>
-                  <q-icon :name="opt" />
-                </q-item-section>
-                <q-item-section>{{ opt }}</q-item-section>
-              </q-item>
-            </template>
-            <template v-slot:selected>
-              <div v-if="servicoForm.icone" class="row items-center">
-                <q-icon :name="servicoForm.icone" class="q-mr-sm" />
-                {{ servicoForm.icone }}
-              </div>
-            </template>
-          </q-select>
-        </q-card-section>
+        <div class="modal-footer-modern">
+          <button class="cancel-btn" @click="showServicoDialog = false">Cancelar</button>
+          <button class="save-btn" @click="salvarServico" :disabled="!servicoForm.nome || !servicoForm.preco || !servicoForm.duracao || !servicoForm.categoria_id">
+            <div v-if="loadingSalvar" class="spinner-small"></div>
+            <span v-else>{{ editandoServico ? 'Atualizar' : 'Adicionar' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat label="Cancelar" color="grey-7" v-close-popup @click="fecharDialog" />
-          <q-btn
-            unelevated
-            label="Salvar"
-            color="primary"
-            @click="salvarServico"
-            :loading="loadingSalvar"
-            :disable="
-              !servicoForm.nome ||
-              !servicoForm.preco ||
-              !servicoForm.duracao ||
-              !servicoForm.categoria_id
-            "
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <!-- ===== MODAL DE CATEGORIA MODERNO ===== -->
+    <div class="modal-overlay" v-if="showCategoriaDialog" @click="showCategoriaDialog = false">
+      <div class="modal-content-modern small" @click.stop>
+        <div class="modal-header-modern">
+          <div class="modal-icon small">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <rect x="3" y="3" width="8" height="8" rx="1"/>
+              <rect x="13" y="3" width="8" height="8" rx="1"/>
+              <rect x="3" y="13" width="8" height="8" rx="1"/>
+              <rect x="13" y="13" width="8" height="8" rx="1"/>
+            </svg>
+          </div>
+          <div>
+            <h3>Adicionar Categoria</h3>
+            <p>Selecione uma categoria para atender</p>
+          </div>
+          <button class="modal-close" @click="showCategoriaDialog = false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
 
-    <!-- Dialog para adicionar categorias -->
-    <q-dialog v-model="showCategoriaDialog">
-      <q-card style="min-width: 300px">
-        <q-card-section class="bg-primary text-white">
-          <div class="text-h6">Adicionar Categoria</div>
-        </q-card-section>
+        <div class="modal-body-modern">
+          <div class="input-group-modern">
+            <label class="input-label-modern">Categoria</label>
+            <select v-model="categoriaSelecionada" class="modern-select">
+              <option :value="null">Selecione uma categoria</option>
+              <option v-for="cat in categoriasParaAdicionar" :key="cat.id" :value="cat.id">
+                {{ cat.nome }}
+              </option>
+            </select>
+          </div>
+        </div>
 
-        <q-card-section>
-          <q-select
-            v-model="categoriaSelecionada"
-            :options="categoriasParaAdicionar"
-            option-label="nome"
-            option-value="id"
-            label="Selecione uma categoria"
-            outlined
-            dense
-            emit-value
-            map-options
-          />
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat label="Cancelar" color="grey-7" v-close-popup />
-          <q-btn
-            unelevated
-            label="Adicionar"
-            color="primary"
-            @click="adicionarCategoriaConfirmar"
-            :loading="loadingAdicionarCategoria"
-            :disable="!categoriaSelecionada"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-  </q-page>
+        <div class="modal-footer-modern">
+          <button class="cancel-btn" @click="showCategoriaDialog = false">Cancelar</button>
+          <button class="save-btn" @click="adicionarCategoriaConfirmar" :disabled="!categoriaSelecionada">
+            <div v-if="loadingAdicionarCategoria" class="spinner-small"></div>
+            <span v-else>Adicionar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorStore } from 'src/stores/prestador-store';
-import type { ServicoData, CategoriaPrestadorData } from 'src/stores/prestador-store';
+import { usePrestadorServicosStore } from 'src/stores/prestador/prestador-servicos-store';
+import { usePrestadorPerfilStore } from 'src/stores/prestador/prestador-perfil-store';
+import type { ServicoData } from 'src/stores/prestador/prestador-servicos-store';
+import type { CategoriaPrestadorData } from 'src/stores/prestador/prestador-perfil-store';
 import { api } from 'src/boot/axios';
 
-defineOptions({
-  name: 'PrestadorServicos',
-});
+defineOptions({ name: 'PrestadorServicos' });
 
 const router = useRouter();
 const $q = useQuasar();
-const prestadorStore = usePrestadorStore();
 
-// Estados
+const servicosStore = usePrestadorServicosStore();
+const perfilStore = usePrestadorPerfilStore();
+
 const showServicoDialog = ref(false);
 const showCategoriaDialog = ref(false);
 const editandoServico = ref(false);
@@ -316,51 +321,20 @@ const loadingSalvar = ref(false);
 const loadingAcao = ref<number | null>(null);
 const loadingCategorias = ref(false);
 const loadingAdicionarCategoria = ref(false);
-const iconeFiltro = ref('');
 
-// Dados do store
-const servicos = computed(() => prestadorStore.servicos);
-const minhasCategorias = computed(() => prestadorStore.minhasCategorias);
-const loading = computed(() => prestadorStore.loading);
+const servicos = computed(() => servicosStore.servicos);
+const minhasCategorias = computed(() => perfilStore.minhasCategorias);
+const loadingServicos = computed(() => servicosStore.loading);
 
-// Lista de todas as categorias disponíveis (vem da API)
 const todasCategorias = ref<CategoriaPrestadorData[]>([]);
-const loadingTodasCategorias = ref(false);
 
-// Ícones disponíveis
-const todosIcones = ref([
-  'bolt', 'water_drop', 'brush', 'cleaning_services', 'computer', 'content_cut',
-  'electrical_services', 'settings', 'build', 'handyman', 'yard', 'car_repair',
-  'school', 'photo_camera', 'construction', 'home', 'paint', 'plumbing',
-  'electrical', 'kitchen', 'local_laundry_service', 'ac_unit', 'sports_mma',
-  'pets', 'spa', 'restaurant', 'event', 'mic', 'music_note', 'videocam',
-  'security', 'move_to_inbox', 'shopping_cart', 'delivery_dining'
-]);
-
-const iconeOptions = computed(() => {
-  if (!iconeFiltro.value) return todosIcones.value;
-  return todosIcones.value.filter(icon =>
-    icon.toLowerCase().includes(iconeFiltro.value.toLowerCase())
-  );
-});
-
-const filterIcones = (val: string, update: (fn: () => void) => void) => {
-  iconeFiltro.value = val;
-  update(() => {});
-};
-
-// Categorias disponíveis para adicionar (excluindo as que já tenho)
 const categoriasParaAdicionar = computed(() => {
-  const minhasIds = new Set(minhasCategorias.value.map(c => c.id));
-  return todasCategorias.value.filter(c => !minhasIds.has(c.id));
+  const minhasIds = new Set(minhasCategorias.value.map((c: CategoriaPrestadorData) => c.id));
+  return todasCategorias.value.filter((c: CategoriaPrestadorData) => !minhasIds.has(c.id));
 });
 
-// Categorias disponíveis para o select do serviço
-const categoriasDisponiveis = computed(() => {
-  return todasCategorias.value;
-});
+const categoriasDisponiveis = computed(() => todasCategorias.value);
 
-// Formulário de serviço
 const servicoForm = ref({
   nome: '',
   categoria_id: null as number | null,
@@ -370,17 +344,27 @@ const servicoForm = ref({
   icone: 'handyman',
 });
 
-// Formatação
-const formatarValor = (valor: number) => {
-  return valor.toLocaleString('pt-PT', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+const gradients: string[] = [
+  'linear-gradient(135deg, #5B4BF5, #9F7AEA)',
+  'linear-gradient(135deg, #10B981, #34D399)',
+  'linear-gradient(135deg, #F59E0B, #FBBF24)',
+  'linear-gradient(135deg, #EF4444, #F87171)',
+  'linear-gradient(135deg, #3B82F6, #60A5FA)',
+  'linear-gradient(135deg, #8B5CF6, #A78BFA)',
+];
+
+const getGradientForIcon = (icon?: string): string => {
+  const defaultGradient = 'linear-gradient(135deg, #5B4BF5, #9F7AEA)';
+  if (!icon) return defaultGradient;
+  const idx = Math.abs(icon.charCodeAt(0)) % gradients.length;
+  return gradients[idx] || defaultGradient;
 };
 
-// Carregar categorias da API
-const carregarTodasCategorias = async () => {
-  loadingTodasCategorias.value = true;
+const formatarValor = (valor: number): string => {
+  return valor.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+
+const carregarTodasCategorias = async (): Promise<void> => {
   try {
     const response = await api.get('/prestadores/categorias');
     if (response.data.success && Array.isArray(response.data.data)) {
@@ -388,13 +372,10 @@ const carregarTodasCategorias = async () => {
     }
   } catch (error) {
     console.error('Erro ao carregar categorias:', error);
-  } finally {
-    loadingTodasCategorias.value = false;
   }
 };
 
-// Ações de serviço
-const adicionarServico = () => {
+const adicionarServico = (): void => {
   editandoServico.value = false;
   servicoEditandoId.value = null;
   servicoForm.value = {
@@ -408,7 +389,7 @@ const adicionarServico = () => {
   showServicoDialog.value = true;
 };
 
-const editarServico = (servico: ServicoData) => {
+const editarServico = (servico: ServicoData): void => {
   editandoServico.value = true;
   servicoEditandoId.value = servico.id;
   servicoForm.value = {
@@ -422,8 +403,8 @@ const editarServico = (servico: ServicoData) => {
   showServicoDialog.value = true;
 };
 
-const salvarServico = () => {
-  if (!servicoForm.value.categoria_id || !servicoForm.value.preco || !servicoForm.value.duracao) {
+const salvarServico = (): void => {
+  if (!servicoForm.value.categoria_id || !servicoForm.value.preco || !servicoForm.value.duracao || !servicoForm.value.nome) {
     $q.notify({ type: 'warning', message: 'Preencha todos os campos', position: 'top' });
     return;
   }
@@ -440,389 +421,730 @@ const salvarServico = () => {
   };
 
   if (editandoServico.value && servicoEditandoId.value) {
-    prestadorStore.updateServico(servicoEditandoId.value, dados)
-      .then((result) => {
-        if (result) {
-          $q.notify({ type: 'positive', message: 'Serviço atualizado', position: 'top' });
-          showServicoDialog.value = false;
-        }
+    servicosStore.updateServico(servicoEditandoId.value, dados)
+      .then(() => {
+        $q.notify({ type: 'positive', message: 'Serviço atualizado', position: 'top' });
+        showServicoDialog.value = false;
       })
-      .catch(() => {
-        $q.notify({ type: 'negative', message: 'Erro ao atualizar serviço', position: 'top' });
-      })
-      .finally(() => {
-        loadingSalvar.value = false;
-      });
+      .catch(() => $q.notify({ type: 'negative', message: 'Erro ao atualizar serviço', position: 'top' }))
+      .finally(() => { loadingSalvar.value = false; });
   } else {
-    prestadorStore.createServico(dados)
-      .then((result) => {
-        if (result) {
-          $q.notify({ type: 'positive', message: 'Serviço adicionado', position: 'top' });
-          showServicoDialog.value = false;
-        }
+    servicosStore.createServico(dados)
+      .then(() => {
+        $q.notify({ type: 'positive', message: 'Serviço adicionado', position: 'top' });
+        showServicoDialog.value = false;
       })
-      .catch(() => {
-        $q.notify({ type: 'negative', message: 'Erro ao adicionar serviço', position: 'top' });
-      })
-      .finally(() => {
-        loadingSalvar.value = false;
-      });
+      .catch(() => $q.notify({ type: 'negative', message: 'Erro ao adicionar serviço', position: 'top' }))
+      .finally(() => { loadingSalvar.value = false; });
   }
 };
 
-const toggleServico = (servico: ServicoData) => {
+const toggleServico = (servico: ServicoData): void => {
   loadingAcao.value = servico.id;
-  const novoStatus = !servico.ativo;
-
-  prestadorStore.toggleServico(servico.id)
-    .then((success) => {
+  servicosStore.toggleServico(servico.id)
+    .then((success: boolean) => {
       if (success) {
-        servico.ativo = novoStatus;
-        $q.notify({
-          type: novoStatus ? 'positive' : 'warning',
-          message: `Serviço ${novoStatus ? 'ativado' : 'desativado'}`,
-          position: 'top',
-        });
-      } else {
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao alterar status',
-          position: 'top',
-        });
+        servico.ativo = !servico.ativo;
+        $q.notify({ type: 'positive', message: `Serviço ${servico.ativo ? 'ativado' : 'desativado'}`, position: 'top' });
       }
     })
-    .catch(() => {
-      $q.notify({
-        type: 'negative',
-        message: 'Erro ao alterar status',
-        position: 'top',
-      });
-    })
-    .finally(() => {
-      loadingAcao.value = null;
-    });
+    .catch(() => $q.notify({ type: 'negative', message: 'Erro ao alterar status', position: 'top' }))
+    .finally(() => { loadingAcao.value = null; });
 };
 
-const fecharDialog = () => {
-  showServicoDialog.value = false;
-  servicoForm.value = {
-    nome: '',
-    categoria_id: null,
-    preco: null,
-    duracao: null,
-    descricao: '',
-    icone: 'handyman',
-  };
+const editarCategorias = (): void => {
+  $q.notify({ type: 'info', message: 'Clique no + para adicionar novas categorias', position: 'top' });
 };
 
-// Ações de categorias
-const editarCategorias = () => {
-  $q.notify({
-    type: 'info',
-    message: 'Clique no + para adicionar novas categorias',
-    position: 'top',
-  });
-};
-
-const adicionarCategoria = () => {
+const adicionarCategoria = (): void => {
   categoriaSelecionada.value = null;
   showCategoriaDialog.value = true;
 };
 
-const adicionarCategoriaConfirmar = () => {
+const adicionarCategoriaConfirmar = (): void => {
   if (!categoriaSelecionada.value) return;
 
   loadingAdicionarCategoria.value = true;
 
-  prestadorStore.addCategoria(categoriaSelecionada.value)
-    .then((success) => {
+  perfilStore.addCategoria(categoriaSelecionada.value)
+    .then((success: boolean) => {
       if (success) {
-        const cat = categoriasParaAdicionar.value.find(c => c.id === categoriaSelecionada.value);
-        if (cat) {
-          $q.notify({
-            type: 'positive',
-            message: `Categoria ${cat.nome} adicionada`,
-            position: 'top',
-          });
-        }
+        const cat = categoriasParaAdicionar.value.find((c: CategoriaPrestadorData) => c.id === categoriaSelecionada.value);
+        if (cat) $q.notify({ type: 'positive', message: `Categoria ${cat.nome} adicionada`, position: 'top' });
         showCategoriaDialog.value = false;
       }
     })
-    .catch(() => {
-      $q.notify({
-        type: 'negative',
-        message: 'Erro ao adicionar categoria',
-        position: 'top',
-      });
-    })
-    .finally(() => {
-      loadingAdicionarCategoria.value = false;
-    });
+    .catch(() => $q.notify({ type: 'negative', message: 'Erro ao adicionar categoria', position: 'top' }))
+    .finally(() => { loadingAdicionarCategoria.value = false; });
 };
 
-const removerCategoria = (categoria: CategoriaPrestadorData) => {
+const removerCategoria = (categoria: CategoriaPrestadorData): void => {
   $q.dialog({
     title: 'Confirmar',
     message: `Remover categoria ${categoria.nome}?`,
-    cancel: true,
-    persistent: true,
+    cancel: { label: 'Cancelar', flat: true },
+    ok: { label: 'Remover', color: 'negative', unelevated: true },
   }).onOk(() => {
-    prestadorStore.removeCategoria(categoria.id)
-      .then((success) => {
-        if (success) {
-          $q.notify({
-            type: 'positive',
-            message: 'Categoria removida',
-            position: 'top',
-          });
-        }
-      })
-      .catch(() => {
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao remover categoria',
-          position: 'top',
-        });
-      });
+    perfilStore.removeCategoria(categoria.id)
+      .then(() => $q.notify({ type: 'positive', message: 'Categoria removida', position: 'top' }))
+      .catch(() => $q.notify({ type: 'negative', message: 'Erro ao remover categoria', position: 'top' }));
   });
 };
 
-// Carregar dados
-const carregarDados = async () => {
+const carregarDados = async (): Promise<void> => {
   loadingCategorias.value = true;
   await Promise.all([
-    prestadorStore.fetchServicos(),
-    prestadorStore.fetchMinhasCategorias(),
+    servicosStore.fetchServicos(),
+    perfilStore.fetchMinhasCategorias(),
     carregarTodasCategorias(),
   ]);
   loadingCategorias.value = false;
 };
 
-// Inicialização
-onMounted(() => {
-  void carregarDados();
-});
+onMounted(() => { void carregarDados(); });
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
-$gray-50: #fafafa;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-$gray-700: #616161;
-$gray-800: #424242;
-$gray-900: #212121;
+$accent: #5B4BF5;
+$accent-light: rgba(91, 75, 245, 0.1);
+$success: #10B981;
+$success-light: rgba(16, 185, 129, 0.1);
+$warning: #F59E0B;
+$danger: #EF4444;
+$dark: #1A1A2E;
+$gray: #6B7280;
+$gray-light: #F9FAFB;
+$border: #E5E7EB;
+$white: #FFFFFF;
+$bg: #F3F4F6;
+$radius: 20px;
+$radius-sm: 14px;
+$radius-xs: 10px;
 
-.prestador-servicos {
-  min-height: 100vh;
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-.page-header {
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.prestador-servicos {
+  background: $bg;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+.modern-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
-  border-bottom: 1px solid $gray-200;
+  padding: 16px 20px;
+  background: $white;
+  border-bottom: 1px solid $border;
   position: sticky;
   top: 0;
   z-index: 10;
+
+  .header-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-light;
+    border: none;
+    cursor: pointer;
+    color: $gray;
+    transition: all 0.2s;
+
+    &:hover {
+      background: $accent-light;
+      color: $accent;
+    }
+
+    &.add-btn:hover {
+      background: $accent;
+      color: $white;
+    }
+  }
+
+  .header-center {
+    text-align: center;
+
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: $dark;
+      margin: 0;
+    }
+
+    p {
+      font-size: 0.7rem;
+      color: $gray;
+      margin: 2px 0 0;
+    }
+  }
 }
 
-// Skeleton Loading (estilo Facebook/Instagram)
 .skeleton-container {
-  .skeleton-card {
-    background: white;
-    border-radius: 12px;
-    padding: 16px;
+  padding: 16px;
+
+  .skeleton-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .skeleton-card-modern {
+    background: $white;
+    border-radius: $radius;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
     position: relative;
     overflow: hidden;
+
+    .skeleton-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: $radius-sm;
+      background: $gray-light;
+    }
+
+    .skeleton-content { flex: 1; }
+    .skeleton-line {
+      height: 14px;
+      background: $gray-light;
+      border-radius: 7px;
+      margin: 8px 0;
+    }
+
+    .skeleton-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+
+      .skeleton-btn { width: 60px; height: 32px; background: $gray-light; border-radius: 8px; }
+      .skeleton-toggle { width: 44px; height: 24px; background: $gray-light; border-radius: 12px; }
+    }
+  }
+}
+
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-60 { width: 60%; }
+
+.servicos-container { padding: 16px; }
+
+.empty-state-modern {
+  text-align: center;
+  padding: 60px 24px;
+
+  .empty-icon { margin-bottom: 24px; opacity: 0.5; }
+  h3 { font-size: 1.1rem; font-weight: 600; color: $dark; margin-bottom: 8px; }
+  p { font-size: 0.85rem; color: $gray; }
+}
+
+.servicos-grid-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.servico-card-modern {
+  background: $white;
+  border-radius: $radius;
+  padding: 20px;
+  position: relative;
+  transition: all 0.3s ease;
+  border: 1px solid $border;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   }
 
-  .skeleton-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: $gray-200;
-    flex-shrink: 0;
+  &.inactive {
+    opacity: 0.7;
+    background: $gray-light;
   }
 
-  .skeleton-title {
-    width: 70%;
-    height: 16px;
-    background: $gray-200;
-    border-radius: 4px;
-    margin-bottom: 12px;
-  }
-
-  .skeleton-text {
-    width: 90%;
-    height: 12px;
-    background: $gray-200;
-    border-radius: 4px;
-    margin-bottom: 8px;
-  }
-
-  .skeleton-text-short {
-    width: 50%;
-    height: 12px;
-    background: $gray-200;
-    border-radius: 4px;
-  }
-
-  .skeleton-shimmer {
+  .status-chip {
     position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 500;
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    &.active {
+      background: $success-light;
+      color: $success;
+      .status-dot { background: $success; }
+    }
+
+    &.inactive {
+      background: rgba($gray, 0.1);
+      color: $gray;
+      .status-dot { background: $gray; }
+    }
+  }
+
+  .card-content {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+
+    .icon-wrapper {
+      width: 64px;
+      height: 64px;
+      border-radius: $radius-sm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .servico-info { flex: 1; }
+
+    .servico-nome {
+      font-size: 1rem;
+      font-weight: 700;
+      color: $dark;
+      margin: 0 0 8px;
+    }
+
+    .servico-preco {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+
+      .preco-label {
+        font-size: 0.7rem;
+        color: $gray;
+      }
+
+      .preco-valor {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: $accent;
+      }
+    }
+
+    .servico-duracao {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      color: $gray;
+    }
+  }
+
+  .servico-descricao {
+    display: flex;
+    gap: 8px;
+    padding: 12px 0;
+    border-top: 1px solid $border;
+    margin-bottom: 12px;
+
+    svg { color: $gray; flex-shrink: 0; }
+    p {
+      font-size: 0.75rem;
+      color: $gray;
+      margin: 0;
+      line-height: 1.4;
+    }
+  }
+
+  .card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid $border;
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: transparent;
+      border: none;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: $gray;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: $accent-light;
+        color: $accent;
+      }
+    }
+  }
+}
+
+.toggle-switch-modern {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+
+    &:checked + .toggle-slider-modern {
+      background-color: $success;
+
+      &:before {
+        transform: translateX(24px);
+      }
+    }
+  }
+
+  .toggle-slider-modern {
+    position: absolute;
+    cursor: pointer;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.3),
-      transparent
-    );
-    animation: shimmer 1.5s infinite;
+    right: 0;
+    bottom: 0;
+    background-color: $border;
+    transition: 0.3s;
+    border-radius: 34px;
+
+    &:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+  }
+}
+
+.categorias-section-modern {
+  background: $white;
+  margin: 16px;
+  border-radius: $radius;
+  padding: 20px;
+  border: 1px solid $border;
+}
+
+.section-header-modern {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: $dark;
+  }
+
+  .edit-cat-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: $gray-light;
+    border: none;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    color: $gray;
+    cursor: pointer;
+
+    &:hover {
+      background: $accent-light;
+      color: $accent;
+    }
+  }
+}
+
+.categorias-scroll {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.categoria-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: rgba(91, 75, 245, 0.1);
+  color: $accent;
+
+  .chip-icon { font-size: 1rem; }
+
+  .chip-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    cursor: pointer;
+    color: currentColor;
+
+    &:hover { background: rgba(0, 0, 0, 0.2); }
+  }
+}
+
+.add-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: $gray-light;
+  border: 1px dashed $border;
+  color: $gray;
+  cursor: pointer;
+
+  &:hover {
+    background: $accent-light;
+    border-color: $accent;
+    color: $accent;
   }
 }
 
 .skeleton-chip {
   width: 80px;
-  height: 32px;
-  background: $gray-200;
-  border-radius: 16px;
+  height: 36px;
+  background: $gray-light;
+  border-radius: 30px;
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-// Grid de serviços
-.servicos-grid {
-  padding-bottom: 80px;
-}
-
-.servico-card {
-  border-radius: 16px;
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  }
-
-  &.inativo {
-    opacity: 0.7;
-    background: $gray-100;
-  }
-
-  .status-badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    font-size: 0.7rem;
-    padding: 4px 8px;
-    border-radius: 20px;
-    font-weight: 500;
-
-    &.active {
-      background: #4caf50;
-      color: white;
-    }
-
-    &.inactive {
-      background: $gray-500;
-      color: white;
-    }
-  }
-
-  .servico-avatar {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .servico-nome {
-    font-size: 1rem;
-    line-height: 1.3;
-    margin-bottom: 4px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .servico-preco {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: $purple-primary;
-    margin: 4px 0;
-  }
-
-  .servico-duracao {
-    font-size: 0.75rem;
-    color: $gray-600;
-    display: flex;
-    align-items: center;
-  }
-
-  .servico-descricao {
-    font-size: 0.8rem;
-    color: $gray-600;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin-top: 8px;
-  }
-}
-
-.empty-state {
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 50vh;
-  text-align: center;
+  z-index: 1000;
 }
 
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+.modal-content-modern {
+  background: $white;
+  border-radius: $radius;
+  width: 90%;
+  max-width: 480px;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
 
-  .section-title {
+  &.small { max-width: 400px; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header-modern {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  background: linear-gradient(135deg, $accent, darken($accent, 10%));
+  position: relative;
+
+  .modal-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: $radius-sm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.small {
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  h3 {
     font-size: 1rem;
     font-weight: 600;
-    color: $gray-800;
+    color: $white;
+    margin: 0;
+  }
+
+  p {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 2px 0 0;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    cursor: pointer;
+    color: $white;
+    transition: all 0.2s;
+
+    &:hover { background: rgba(255, 255, 255, 0.3); }
   }
 }
 
-.categorias-chips {
+.modal-body-modern { padding: 20px; }
+
+.input-group-modern {
+  margin-bottom: 16px;
+
+  .input-label-modern {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $dark;
+    margin-bottom: 8px;
+  }
+}
+
+.modern-input, .modern-select, .modern-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid $border;
+  border-radius: $radius-xs;
+  font-size: 0.85rem;
+  outline: none;
+  transition: all 0.2s;
+
+  &:focus { border-color: $accent; }
+}
+
+.row-modern {
   display: flex;
-  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  .col-modern { flex: 1; }
 }
 
-// Responsivo
-@media (max-width: 600px) {
-  .servico-card {
-    .servico-nome {
-      font-size: 0.9rem;
-    }
+.price-input, .duration-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid $border;
+  border-radius: $radius-xs;
+  overflow: hidden;
 
-    .servico-preco {
-      font-size: 0.95rem;
-    }
+  .price-prefix {
+    padding: 10px 12px;
+    background: $gray-light;
+    color: $gray;
+    border-right: 1px solid $border;
   }
+
+  input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    outline: none;
+    font-size: 0.85rem;
+  }
+
+  .duration-suffix {
+    padding: 10px 12px;
+    background: $gray-light;
+    color: $gray;
+    border-left: 1px solid $border;
+  }
+}
+
+.modern-textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.modal-footer-modern {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid $border;
+
+  .cancel-btn {
+    flex: 1;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid $border;
+    border-radius: $radius-xs;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: $gray;
+    cursor: pointer;
+
+    &:hover { background: $gray-light; }
+  }
+
+  .save-btn {
+    flex: 1;
+    padding: 10px;
+    background: $accent;
+    border: none;
+    border-radius: $radius-xs;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: $white;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { background: lighten($accent, 6%); }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
+  }
+}
+
+.spinner-small {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  margin: 0 auto;
+  animation: spin 0.6s linear infinite;
 }
 </style>

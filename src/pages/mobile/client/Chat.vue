@@ -1,6 +1,7 @@
 ﻿<template>
-  <q-page class="chat-page">
-    <!-- Skeleton Loading (enquanto carrega) -->
+  <div class="chat-page">
+
+    <!-- ===== SKELETON LOADING ===== -->
     <div v-if="carregamentoInicial" class="skeleton-loading">
       <div class="skeleton-header">
         <div class="skeleton-back-btn"></div>
@@ -27,34 +28,45 @@
       </div>
     </div>
 
-    <!-- Conteúdo original (sem alterações) -->
+    <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
+
       <!-- Header -->
-      <div class="header q-pa-md">
-        <q-btn flat round icon="arrow_back" @click="router.back" />
-        <div class="header-info">
-          <q-avatar size="40px">
-            <img
-              :src="prestador?.foto || getAvatarUrl(prestador?.nome || '')"
-              :alt="prestador?.nome"
-            />
-          </q-avatar>
-          <div class="header-details">
-            <div class="header-name">{{ prestador?.nome }}</div>
-            <div class="header-status" :class="{ online: prestador?.disponivel }">
+      <div class="chat-header">
+        <button class="back-btn" @click="() => void router.back()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+
+        <div class="chat-header__info">
+          <div class="chat-avatar">
+            <img :src="prestador?.foto || getAvatarUrl(prestador?.nome || '')" :alt="prestador?.nome" />
+            <div class="status-dot" :class="{ online: prestador?.disponivel }"></div>
+          </div>
+          <div class="chat-header__details">
+            <div class="chat-name">{{ prestador?.nome }}</div>
+            <div class="chat-status" :class="{ online: prestador?.disponivel }">
               {{ prestador?.disponivel ? 'Online' : 'Offline' }}
             </div>
           </div>
         </div>
-        <q-btn flat round icon="more_vert" />
+
+        <button class="menu-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="1"/>
+            <circle cx="12" cy="5" r="1"/>
+            <circle cx="12" cy="19" r="1"/>
+          </svg>
+        </button>
       </div>
 
       <!-- Área de mensagens -->
       <div class="messages-area" ref="messagesArea">
-        <div v-for="msg in mensagens" :key="msg.id" class="message-wrapper">
+        <div v-for="msg in mensagens" :key="msg.id" class="message-group">
           <div class="message-date">{{ formatarData(msg.created_at) }}</div>
-          <div class="message-row" :class="{ 'message-row-own': msg.is_owner }">
-            <div class="message-bubble" :class="{ 'message-bubble-own': msg.is_owner }">
+          <div class="message-row" :class="{ own: msg.is_owner }">
+            <div class="message-bubble" :class="{ own: msg.is_owner }">
               <div class="message-text">{{ msg.message }}</div>
               <div class="message-time">{{ formatarHora(msg.created_at) }}</div>
             </div>
@@ -63,50 +75,48 @@
       </div>
 
       <!-- Input area -->
-      <div class="input-area q-pa-md">
-        <q-input
-          v-model="novaMensagem"
-          outlined
-          dense
-          placeholder="Escreva uma mensagem..."
-          class="message-input"
-          bg-color="white"
-          :disable="enviando"
-          @keyup.enter="enviarMensagem"
-        >
-          <template v-slot:append>
-            <q-btn
-              flat
-              round
-              icon="send"
-              color="primary"
-              :disable="!novaMensagem.trim() || enviando"
-              :loading="enviando"
-              @click="enviarMensagem"
-            />
-          </template>
-        </q-input>
+      <div class="input-area">
+        <div class="input-container">
+          <input
+            v-model="novaMensagem"
+            type="text"
+            placeholder="Escreva uma mensagem..."
+            class="message-input"
+            :disabled="enviando"
+            @keyup.enter="enviarMensagem"
+          />
+          <button
+            class="send-btn"
+            :disabled="!novaMensagem.trim() || enviando"
+            @click="enviarMensagem"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </template>
-  </q-page>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { useClienteStore, type PrestadorData, type MensagemData } from 'src/stores/cliente-store';
+import { useClientePublicStore, type PrestadorData } from 'src/stores/client/cliente-public-store';
+import { useClienteComunicacaoStore, type MensagemData } from 'src/stores/client/cliente-comunicacao-store';
 
-defineOptions({
-  name: 'ChatPage',
-});
+defineOptions({ name: 'ChatPage' });
 
 const router = useRouter();
 const route = useRoute();
 const $q = useQuasar();
-const clienteStore = useClienteStore();
 
-// Estados
+const publicStore = useClientePublicStore();
+const comunicacaoStore = useClienteComunicacaoStore();
+
 const carregamentoInicial = ref(true);
 const enviando = ref(false);
 const novaMensagem = ref('');
@@ -116,17 +126,14 @@ const mensagens = ref<MensagemData[]>([]);
 const prestadorId = ref<number>(0);
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-// Computed para o último ID
 const ultimoId = computed(() => {
   return mensagens.value[mensagens.value.length - 1]?.id || 0;
 });
 
-// Gerar URL de avatar baseada no nome
 const getAvatarUrl = (nome: string) => {
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=667eea&color=fff&size=40`;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=5B4BF5&color=fff&size=40`;
 };
 
-// Formatar data
 const formatarData = (data: string) => {
   const date = new Date(data);
   const hoje = new Date();
@@ -138,23 +145,14 @@ const formatarData = (data: string) => {
   } else if (date.toDateString() === ontem.toDateString()) {
     return 'Ontem';
   }
-  return date.toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-// Formatar hora
 const formatarHora = (data: string) => {
   const date = new Date(data);
-  return date.toLocaleTimeString('pt-PT', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 };
 
-// Scroll para o final da conversa
 const scrollToBottom = async () => {
   await nextTick();
   setTimeout(() => {
@@ -164,7 +162,6 @@ const scrollToBottom = async () => {
   }, 100);
 };
 
-// Carregar dados do prestador
 const carregarPrestador = async () => {
   const id = route.params.id as string;
   if (!id) return;
@@ -172,48 +169,38 @@ const carregarPrestador = async () => {
   prestadorId.value = parseInt(id, 10);
 
   try {
-    const data = await clienteStore.fetchPrestadorDetalhes(prestadorId.value);
+    const data = await publicStore.fetchPrestadorDetalhes(prestadorId.value);
     if (data) {
       prestador.value = data;
     }
   } catch (error) {
     console.error('Erro ao carregar prestador:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar dados do prestador',
-      position: 'top',
-    });
+    $q.notify({ type: 'negative', message: 'Erro ao carregar dados do prestador', position: 'top' });
   }
 };
 
-// Carregar mensagens usando o store
 const carregarMensagens = async () => {
   if (!prestadorId.value) return;
 
   try {
-    const data = await clienteStore.fetchMensagens(prestadorId.value);
+    const data = await comunicacaoStore.fetchMensagens(prestadorId.value);
     if (data) {
       mensagens.value = data;
       await scrollToBottom();
     }
   } catch (error) {
     console.error('Erro ao carregar mensagens:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar mensagens',
-      position: 'top',
-    });
+    $q.notify({ type: 'negative', message: 'Erro ao carregar mensagens', position: 'top' });
   }
 };
 
-// Enviar mensagem usando o store
 const enviarMensagem = async () => {
   if (!novaMensagem.value.trim() || enviando.value || !prestadorId.value) return;
 
   enviando.value = true;
 
   try {
-    const mensagem = await clienteStore.sendMessage(prestadorId.value, novaMensagem.value.trim());
+    const mensagem = await comunicacaoStore.sendMessage(prestadorId.value, novaMensagem.value.trim());
 
     if (mensagem) {
       mensagens.value.push(mensagem);
@@ -222,29 +209,23 @@ const enviarMensagem = async () => {
     }
   } catch (error) {
     console.error('Erro ao enviar mensagem:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao enviar mensagem',
-      position: 'top',
-    });
+    $q.notify({ type: 'negative', message: 'Erro ao enviar mensagem', position: 'top' });
   } finally {
     enviando.value = false;
   }
 };
 
-// Marcar mensagens como lidas usando o store
 const marcarComoLidas = async () => {
   if (!prestadorId.value) return;
-  await clienteStore.markMessagesAsRead(prestadorId.value);
+  await comunicacaoStore.markMessagesAsRead(prestadorId.value);
 };
 
-// Função separada para o polling (não async, chama async internamente)
 const buscarNovasMensagens = () => {
   if (!prestadorId.value) return;
 
   void (async () => {
     try {
-      const novasMensagens = await clienteStore.fetchLatestMessages(
+      const novasMensagens = await comunicacaoStore.fetchLatestMessages(
         prestadorId.value,
         ultimoId.value,
       );
@@ -263,7 +244,6 @@ const buscarNovasMensagens = () => {
   })();
 };
 
-// Inicializar chat
 const iniciarChat = async () => {
   carregamentoInicial.value = true;
   try {
@@ -273,22 +253,17 @@ const iniciarChat = async () => {
   } catch (error) {
     console.error('Erro ao iniciar chat:', error);
   } finally {
-    setTimeout(() => {
-      carregamentoInicial.value = false;
-    }, 500);
+    setTimeout(() => { carregamentoInicial.value = false; }, 500);
   }
 };
 
-// Polling para novas mensagens
 const iniciarPolling = () => {
   if (pollingInterval) clearInterval(pollingInterval);
-
   pollingInterval = setInterval(() => {
     buscarNovasMensagens();
   }, 5000);
 };
 
-// Parar polling
 const pararPolling = () => {
   if (pollingInterval) {
     clearInterval(pollingInterval);
@@ -296,7 +271,6 @@ const pararPolling = () => {
   }
 };
 
-// Marcar como lidas quando a página ganhar foco
 const handleFocus = () => {
   void marcarComoLidas();
 };
@@ -314,44 +288,49 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-.chat-page {
-  background: #f0f2f5;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+// =====================
+// VARIABLES
+// =====================
+$accent: #5B4BF5;
+$accent-light: rgba(91, 75, 245, 0.1);
+$success: #10B981;
+$warning: #F59E0B;
+$danger: #EF4444;
+$dark: #0A0A0F;
+$gray: #6B7280;
+$gray-light: #F3F4F6;
+$border: #E5E7EB;
+$white: #FFFFFF;
+$radius: 16px;
+$radius-sm: 12px;
+$radius-xs: 8px;
 
-/* ========================================== */
-/* SKELETON LOADING STYLES */
-/* ========================================== */
-
+// =====================
+// SKELETON
+// =====================
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .skeleton-loading {
-  background: #f0f2f5;
+  background: $gray-light;
   height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 .skeleton-header {
-  background: white;
+  background: $white;
   padding: 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid #e0e0e0;
+  gap: 12px;
+  border-bottom: 1px solid $border;
   flex-shrink: 0;
 }
 
-.skeleton-back-btn {
+.skeleton-back-btn, .skeleton-menu-btn {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -364,12 +343,12 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .skeleton-avatar {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
   background-size: 200% 100%;
@@ -378,15 +357,6 @@ onUnmounted(() => {
 
 .skeleton-header-details {
   flex: 1;
-}
-
-.skeleton-menu-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
 }
 
 .skeleton-messages-area {
@@ -401,9 +371,9 @@ onUnmounted(() => {
 
 .skeleton-bubble {
   max-width: 70%;
-  padding: 10px 15px;
+  padding: 12px 16px;
   border-radius: 20px;
-  background: white;
+  background: $white;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
@@ -413,7 +383,7 @@ onUnmounted(() => {
 
 .skeleton-right {
   margin-left: auto;
-  background: #667eea;
+  background: $accent;
 }
 
 .skeleton-right .skeleton-line {
@@ -421,12 +391,12 @@ onUnmounted(() => {
 }
 
 .skeleton-input-area {
-  background: white;
+  background: $white;
   padding: 16px;
   display: flex;
   align-items: center;
   gap: 12px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid $border;
   flex-shrink: 0;
 }
 
@@ -440,8 +410,8 @@ onUnmounted(() => {
 }
 
 .skeleton-send-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
   background-size: 200% 100%;
@@ -449,125 +419,256 @@ onUnmounted(() => {
 }
 
 .skeleton-line {
-  height: 14px;
-  border-radius: 7px;
+  height: 12px;
+  border-radius: 6px;
   margin: 6px 0;
   background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
-.w-20 {
-  width: 20%;
-}
-.w-30 {
-  width: 30%;
-}
-.w-40 {
-  width: 40%;
-}
-.w-60 {
-  width: 60%;
+.w-20 { width: 20%; }
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-60 { width: 60%; }
+
+// =====================
+// CHAT PAGE
+// =====================
+.chat-page {
+  background: $gray-light;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-/* ========================================== */
-/* ESTILOS ORIGINAIS (mantidos sem alterações) */
-/* ========================================== */
-
-.header {
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+// =====================
+// CHAT HEADER
+// =====================
+.chat-header {
+  background: $white;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  border-bottom: 1px solid $border;
   flex-shrink: 0;
 
-  .header-info {
+  .back-btn, .menu-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    background: $gray-light;
+    border: none;
+    cursor: pointer;
+    color: $gray;
+    transition: all 0.2s;
+
+    &:hover {
+      background: $accent-light;
+      color: $accent;
+    }
+  }
+
+  &__info {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
 
-    .header-details {
-      .header-name {
-        font-weight: 600;
-        color: #333;
-      }
-      .header-status {
-        font-size: 0.8rem;
-        color: #999;
+.chat-avatar {
+  position: relative;
 
-        &.online {
-          color: #4caf50;
-        }
-      }
+  img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .status-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid $white;
+    background: $gray;
+
+    &.online {
+      background: $success;
     }
   }
 }
 
+.chat-header__details {
+  flex: 1;
+}
+
+.chat-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $dark;
+  margin-bottom: 2px;
+}
+
+.chat-status {
+  font-size: 0.7rem;
+  color: $gray;
+
+  &.online {
+    color: $success;
+  }
+}
+
+// =====================
+// MESSAGES AREA
+// =====================
 .messages-area {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-  .message-wrapper {
-    margin-bottom: 20px;
+.message-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-    .message-date {
-      text-align: center;
-      font-size: 0.8rem;
-      color: #999;
-      margin-bottom: 10px;
-    }
-  }
+.message-date {
+  text-align: center;
+  font-size: 0.7rem;
+  color: $gray;
+  margin-bottom: 4px;
+}
 
-  .message-row {
-    display: flex;
-    margin-bottom: 10px;
+.message-row {
+  display: flex;
 
-    &-own {
-      justify-content: flex-end;
-    }
-  }
-
-  .message-bubble {
-    max-width: 70%;
-    padding: 10px 15px;
-    border-radius: 20px;
-    background: white;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-
-    &-own {
-      background: #667eea;
-      color: white;
-
-      .message-time {
-        color: rgba(255, 255, 255, 0.8);
-      }
-    }
-
-    .message-text {
-      margin-bottom: 5px;
-      word-wrap: break-word;
-    }
-
-    .message-time {
-      font-size: 0.7rem;
-      color: #999;
-      text-align: right;
-    }
+  &.own {
+    justify-content: flex-end;
   }
 }
 
-.input-area {
-  background: white;
-  border-top: 1px solid #e0e0e0;
-  flex-shrink: 0;
+.message-bubble {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: $white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
-  .message-input {
-    :deep(.q-field__control) {
-      border-radius: 30px;
+  &.own {
+    background: $accent;
+    color: $white;
+    border-bottom-right-radius: 4px;
+
+    .message-time {
+      color: rgba(255, 255, 255, 0.7);
     }
   }
+
+  &:not(.own) {
+    border-bottom-left-radius: 4px;
+  }
+}
+
+.message-text {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 4px;
+  word-wrap: break-word;
+}
+
+.message-time {
+  font-size: 0.65rem;
+  text-align: right;
+  color: $gray;
+}
+
+// =====================
+// INPUT AREA
+// =====================
+.input-area {
+  background: $white;
+  border-top: 1px solid $border;
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: $gray-light;
+  border-radius: 30px;
+  padding: 4px 4px 4px 18px;
+}
+
+.message-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 10px 0;
+  font-size: 0.9rem;
+  outline: none;
+
+  &::placeholder {
+    color: $gray;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $accent;
+  border: none;
+  cursor: pointer;
+  color: $white;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: lighten($accent, 6%);
+    transform: scale(1.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// =====================
+// SCROLLBAR
+// =====================
+.messages-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.messages-area::-webkit-scrollbar-track {
+  background: $border;
+}
+
+.messages-area::-webkit-scrollbar-thumb {
+  background: $accent;
+  border-radius: 4px;
 }
 </style>

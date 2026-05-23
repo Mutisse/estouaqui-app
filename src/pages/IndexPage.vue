@@ -1,52 +1,204 @@
 <template>
-  <q-page>
-    <!-- Hero Section com Imagem de Fundo -->
-    <section class="hero-section">
-      <div class="hero-bg">
-        <div class="hero-overlay"></div>
+  <q-page class="ea-page">
+
+    <!-- ===== HERO ===== -->
+    <section class="ea-hero">
+      <div class="ea-hero__bg">
+        <div class="ea-hero__noise"></div>
+        <div class="ea-hero__orb ea-hero__orb--1"></div>
+        <div class="ea-hero__orb ea-hero__orb--2"></div>
+        <div class="ea-hero__orb ea-hero__orb--3"></div>
+        <div class="ea-hero__grid"></div>
       </div>
 
-      <div class="hero-content">
-        <div class="container">
-          <div class="row justify-center items-center text-center">
-            <div class="col-12 col-md-8">
-              <!-- Logo animada -->
-              <div class="logo-wrapper q-mb-lg">
-                <div class="hero-logo">
-                  <q-icon name="location_on" size="60px" class="hero-logo-icon" />
-                </div>
-                <q-icon name="bolt" size="30px" class="hero-logo-spark" />
-              </div>
+      <!-- Hero image right side -->
+      <div class="ea-hero__image-side">
+        <q-img
+          src="https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=900&q=85"
+          class="ea-hero__photo"
+          fit="cover"
+        />
+        <div class="ea-hero__image-overlay"></div>
+      </div>
 
-              <!-- Título com gradiente -->
-              <div class="hero-title q-mb-md">
-                <span class="hero-title-main">Estou</span>
-                <span class="hero-title-accent">Aqui</span>
-              </div>
+      <div class="ea-hero__content ea-container">
+        <div class="ea-hero__badge">
+          <span class="ea-badge__dot"></span>
+          Já disponível em Maputo
+        </div>
 
-              <!-- Subtítulo -->
-              <div class="hero-subtitle q-mb-xl">
-                Conectamos clientes e prestadores de serviços em Moçambique
-              </div>
+        <h1 class="ea-hero__heading">
+          O profissional certo,<br>
+          <span class="ea-heading-accent">perto de si</span>
+        </h1>
 
-              <!-- Botões de Ação com efeito glassmorphism -->
-              <div class="row justify-center q-gutter-md">
-                <q-btn
-                  class="hero-btn hero-btn-primary"
-                  label="Preciso de um Serviço"
-                  size="xl"
-                  to="/auth/register-cliente"
-                  icon="person_search"
-                  no-caps
-                />
-                <q-btn
-                  class="hero-btn hero-btn-secondary"
-                  label="Quero Oferecer Serviços"
-                  size="xl"
-                  to="/auth/register-prestador"
-                  icon="handyman"
-                  no-caps
-                />
+        <p class="ea-hero__sub">
+          Conectamos clientes e prestadores de serviços em Moçambique —<br class="ea-br-hide">
+          rápido, seguro e sem complicações.
+        </p>
+
+        <div class="ea-hero__actions">
+          <a href="/auth/register-cliente" class="ea-cta-primary">
+            <span>Preciso de um serviço</span>
+            <q-icon name="arrow_forward" size="18px" />
+          </a>
+          <a href="/auth/register-prestador" class="ea-cta-ghost">
+            Oferecer serviços
+          </a>
+        </div>
+
+        <div class="ea-hero__trust">
+          <div class="ea-trust-avatars">
+            <div class="ea-trust-av" style="background:#C8B6E2">A</div>
+            <div class="ea-trust-av" style="background:#B6D4E2">M</div>
+            <div class="ea-trust-av" style="background:#E2C8B6">F</div>
+            <div class="ea-trust-av" style="background:#B6E2C8">J</div>
+          </div>
+          <span class="ea-trust-text"><strong>1.200+</strong> clientes satisfeitos este mês</span>
+        </div>
+      </div>
+
+      <div class="ea-hero__cards-float">
+        <div class="ea-float-card ea-float-card--1">
+          <div class="ea-float-card__icon">
+            <q-icon name="bolt" size="20px" />
+          </div>
+          <div>
+            <div class="ea-float-card__title">João Maputo</div>
+            <div class="ea-float-card__sub">Eletricista · 4.9 ★</div>
+          </div>
+        </div>
+        <div class="ea-float-card ea-float-card--2">
+          <div class="ea-float-card__icon">
+            <q-icon name="check_circle" size="20px" />
+          </div>
+          <div>
+            <div class="ea-float-card__title">Serviço concluído</div>
+            <div class="ea-float-card__sub">há 2 minutos</div>
+          </div>
+        </div>
+        <div class="ea-float-card ea-float-card--3">
+          <div class="ea-float-card__icon">
+            <q-icon name="location_on" size="20px" />
+          </div>
+          <div>
+            <div class="ea-float-card__title">3 perto de si</div>
+            <div class="ea-float-card__sub">Disponíveis agora</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ea-hero__scroll-hint">
+        <div class="ea-scroll-line"></div>
+        <span>Explorar</span>
+      </div>
+    </section>
+
+    <!-- ===== STATS BAR ===== -->
+    <section class="ea-stats-bar">
+      <div class="ea-container ea-stats-bar__inner">
+        <div v-for="(stat, i) in stats" :key="i" class="ea-stat">
+          <div class="ea-stat__value">{{ stat.value }}</div>
+          <div class="ea-stat__label">{{ stat.label }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CATEGORIAS ===== -->
+    <section class="ea-section ea-categories">
+      <div class="ea-container">
+        <div class="ea-section-header">
+          <div class="ea-section-label">Categorias</div>
+          <h2 class="ea-section-title">Os serviços mais procurados</h2>
+          <p class="ea-section-sub">Tudo o que precisa, a um clique de distância</p>
+        </div>
+
+        <div class="ea-cat-grid">
+          <div
+            v-for="(cat, i) in categorias"
+            :key="cat.nome"
+            class="ea-cat-card"
+            :style="`--cat-color: ${cat.hex}; --cat-bg: ${cat.bgHex}; animation-delay: ${i * 0.04}s`"
+            @click="buscarPorCategoria(cat.nome)"
+          >
+            <div class="ea-cat-card__icon">
+              <q-icon :name="cat.icon" size="28px" />
+            </div>
+            <div class="ea-cat-card__name">{{ cat.nome }}</div>
+            <div class="ea-cat-card__count">{{ cat.count }}+ serviços</div>
+            <div class="ea-cat-card__arrow">
+              <q-icon name="arrow_forward" size="16px" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== COMO FUNCIONA ===== -->
+    <section class="ea-section ea-how">
+      <div class="ea-container">
+        <div class="ea-section-header">
+          <div class="ea-section-label">Processo</div>
+          <h2 class="ea-section-title">Em 3 passos simples</h2>
+        </div>
+
+        <div class="ea-steps">
+          <div v-for="(step, i) in steps" :key="i" class="ea-step">
+            <div class="ea-step__num">0{{ i + 1 }}</div>
+            <div class="ea-step__connector" v-if="i < steps.length - 1"></div>
+            <div class="ea-step__icon">
+              <q-icon :name="step.icon" size="32px" />
+            </div>
+            <div class="ea-step__title">{{ step.title }}</div>
+            <p class="ea-step__desc">{{ step.description }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== DESTAQUES / WHY ===== -->
+    <section class="ea-section ea-why">
+      <div class="ea-container ea-why__inner">
+        <div class="ea-why__left">
+          <div class="ea-section-label">Porquê nós</div>
+          <h2 class="ea-section-title">Construído para<br>Moçambique</h2>
+          <p class="ea-why__body">
+            Uma plataforma pensada para a realidade local — com geolocalização inteligente, pagamento flexível e suporte em português.
+          </p>
+          <a href="/sobre" class="ea-link-arrow">Saber mais <span>→</span></a>
+
+          <div class="ea-why__image-block">
+            <q-img
+              src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=700&q=80"
+              class="ea-why__img"
+              :ratio="4/3"
+            />
+            <div class="ea-why__img-badge">
+              <span>⭐ 4.8</span>
+              <span>Avaliação média</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ea-why__right">
+          <div v-for="(r, i) in reasons" :key="i" class="ea-reason" :style="`animation-delay: ${i * 0.1}s`">
+            <div class="ea-reason__icon" :style="`background: ${r.bg}`">
+              <q-icon :name="r.icon" size="20px" />
+            </div>
+            <div>
+              <div class="ea-reason__title">{{ r.title }}</div>
+              <div class="ea-reason__desc">{{ r.description }}</div>
+            </div>
+          </div>
+
+          <!-- Mini testimonial -->
+          <div class="ea-testimonial">
+            <p class="ea-testimonial__text">"Encontrei um eletricista em menos de 10 minutos. Serviço excelente e preço justo!"</p>
+            <div class="ea-testimonial__author">
+              <div class="ea-testimonial__av">AM</div>
+              <div>
+                <div class="ea-testimonial__name">Ana Mahumane</div>
+                <div class="ea-testimonial__role">Cliente · Maputo</div>
               </div>
             </div>
           </div>
@@ -54,771 +206,938 @@
       </div>
     </section>
 
-    <!-- Seção de Boas-vindas com cards elegantes -->
-    <section class="welcome-section q-py-xl">
-      <div class="container q-pa-md">
-        <div class="row items-center">
-          <div class="col-12 col-md-6">
-            <div class="section-tag">Bem-vindo ao futuro dos serviços</div>
-            <div class="section-title q-mb-md">
-              A plataforma que conecta você aos melhores profissionais
-            </div>
-            <div class="section-subtitle q-mb-lg">
-              Seja para uma reparação urgente, um serviço de beleza ou ajuda doméstica,
-              o EstouAqui ajuda você a encontrar o profissional ideal, perto de si,
-              de forma rápida e segura.
-            </div>
-
-            <!-- Cards de estatísticas internas -->
-            <div class="row q-gutter-md q-mb-lg">
-              <div class="col">
-                <div class="stat-mini-card">
-                  <div class="stat-mini-value">500+</div>
-                  <div class="stat-mini-label">Prestadores</div>
-                </div>
-              </div>
-              <div class="col">
-                <div class="stat-mini-card">
-                  <div class="stat-mini-value">1.2k+</div>
-                  <div class="stat-mini-label">Clientes</div>
-                </div>
-              </div>
-              <div class="col">
-                <div class="stat-mini-card">
-                  <div class="stat-mini-value">3k+</div>
-                  <div class="stat-mini-label">Serviços</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row q-gutter-md">
-              <q-btn flat class="action-btn-outline" label="Saiba Mais" icon="info" to="/sobre" no-caps />
-              <q-btn unelevated class="action-btn-primary" label="Ver Serviços" icon="list" to="/servicos" no-caps />
-            </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="image-wrapper">
-              <q-img
-                src="https://images.unsplash.com/photo-1577412647305-991150c7d163?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                class="featured-image"
-              />
-              <div class="image-decoration"></div>
-            </div>
-          </div>
+    <!-- ===== CTA FINAL ===== -->
+    <section class="ea-cta-section">
+      <div class="ea-cta-section__bg">
+        <div class="ea-cta__orb ea-cta__orb--1"></div>
+        <div class="ea-cta__orb ea-cta__orb--2"></div>
+      </div>
+      <div class="ea-container ea-cta__inner">
+        <div class="ea-cta__label">Comece hoje</div>
+        <h2 class="ea-cta__title">Pronto para<br>começar?</h2>
+        <p class="ea-cta__sub">Junte-se à maior comunidade de serviços locais de Moçambique</p>
+        <div class="ea-cta__btns">
+          <a href="/auth/register-cliente" class="ea-cta-white">
+            Criar conta de cliente
+            <q-icon name="arrow_forward" size="16px" />
+          </a>
+          <a href="/auth/register-prestador" class="ea-cta-outline-white">
+            Registar como prestador
+          </a>
         </div>
+        <div class="ea-cta__note">Gratuito • Sem cartão de crédito • Acesso imediato</div>
       </div>
     </section>
 
-    <!-- Como Funciona com cards em gradiente -->
-    <section class="how-it-works q-py-xl">
-      <div class="container q-pa-md">
-        <div class="text-center q-mb-xl">
-          <div class="section-tag center">Processo Simples</div>
-          <div class="section-title center">Como Funciona</div>
-          <div class="section-subtitle center">Três passos simples para resolver suas necessidades</div>
-        </div>
-
-        <div class="row q-col-gutter-xl">
-          <div v-for="(step, index) in steps" :key="index" class="col-12 col-md-4">
-            <div class="step-wrapper" :class="{ 'step-delay': index > 0 }">
-              <div class="step-number">{{ index + 1 }}</div>
-              <q-card class="step-card" flat>
-                <q-card-section class="text-center q-pa-xl">
-                  <div class="step-icon-wrapper">
-                    <q-icon :name="step.icon" size="48px" :class="`step-icon-${step.color}`" />
-                  </div>
-                  <div class="step-title q-mt-lg">{{ step.title }}</div>
-                  <p class="step-description">{{ step.description }}</p>
-                </q-card-section>
-              </q-card>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Categorias Populares com design moderno -->
-    <section class="categories-section q-py-xl">
-      <div class="container q-pa-md">
-        <div class="text-center q-mb-xl">
-          <div class="section-tag center">Serviços em Destaque</div>
-          <div class="section-title center">Categorias Populares</div>
-          <div class="section-subtitle center">Os serviços mais procurados em Maputo</div>
-        </div>
-
-        <div class="row q-col-gutter-lg">
-          <div v-for="(cat, index) in categorias" :key="cat.nome"
-               class="col-6 col-md-3"
-               :data-aos="'fade-up'"
-               :data-aos-delay="index * 50">
-            <div class="category-card-wrapper" @click="buscarPorCategoria(cat.nome)">
-              <div class="category-card">
-                <div class="category-icon-wrapper" :class="`category-icon-${cat.color}`">
-                  <q-icon :name="cat.icon" size="32px" />
-                </div>
-                <div class="category-info">
-                  <div class="category-name">{{ cat.nome }}</div>
-                  <div class="category-count">{{ cat.count }}+ serviços</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Porquê Escolher com cards interativos -->
-    <section class="why-us-section q-py-xl">
-      <div class="container q-pa-md">
-        <div class="text-center q-mb-xl">
-          <div class="section-tag center">Nossos Diferenciais</div>
-          <div class="section-title center">Porquê Escolher o EstouAqui?</div>
-        </div>
-
-        <div class="row q-col-gutter-xl">
-          <div v-for="(reason, index) in reasons" :key="index" class="col-12 col-md-4">
-            <div class="reason-card">
-              <div class="reason-icon-wrapper" :class="`reason-icon-${reason.color}`">
-                <q-icon :name="reason.icon" size="32px" color="white" />
-              </div>
-              <div class="reason-content">
-                <div class="reason-title">{{ reason.title }}</div>
-                <div class="reason-description">{{ reason.description }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA Final com design impactante -->
-    <section class="final-cta-section q-py-xl">
-      <div class="container">
-        <div class="cta-card">
-          <div class="row items-center justify-between">
-            <div class="col-12 col-md-7">
-              <div class="cta-title">Pronto para começar?</div>
-              <div class="cta-subtitle">Junte-se à maior comunidade de serviços locais de Moçambique</div>
-            </div>
-            <div class="col-12 col-md-5">
-              <div class="row justify-end q-gutter-md">
-                <q-btn
-                  class="cta-btn cta-btn-primary"
-                  label="Criar Conta de Cliente"
-                  to="/auth/register-cliente"
-                  icon="person"
-                  no-caps
-                />
-                <q-btn
-                  class="cta-btn cta-btn-secondary"
-                  label="Registar como Prestador"
-                  to="/auth/register-prestador"
-                  icon="work"
-                  no-caps
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
   </q-page>
 </template>
 
 <script setup lang="ts">
-defineOptions({
-  name: 'HomePage'
-})
-
+defineOptions({ name: 'HomePage' })
 import { useRouter } from 'vue-router'
-
 const router = useRouter()
 
+const stats = [
+  { value: '500+', label: 'Prestadores verificados' },
+  { value: '1.2k+', label: 'Clientes activos' },
+  { value: '3k+', label: 'Serviços realizados' },
+  { value: '4.8★', label: 'Avaliação média' },
+]
+
 const steps = [
-  {
-    icon: 'search',
-    color: 'primary',
-    title: 'Encontre',
-    description: 'Pesquise por prestadores perto de si, filtre por categoria e veja avaliações'
-  },
-  {
-    icon: 'chat',
-    color: 'secondary',
-    title: 'Conecte',
-    description: 'Converse com o prestador, combine detalhes, preço e horário'
-  },
-  {
-    icon: 'star',
-    color: 'positive',
-    title: 'Avalie',
-    description: 'Após o serviço, avalie o profissional e ajude a comunidade'
-  }
+  { icon: 'search', title: 'Encontre', description: 'Pesquise por categoria, localização ou nome. Veja perfis e avaliações reais.' },
+  { icon: 'chat', title: 'Conecte', description: 'Converse com o prestador, combine horário, local e preço.' },
+  { icon: 'star', title: 'Avalie', description: 'Após o serviço, avalie e ajude a comunidade a crescer.' },
 ]
 
 const categorias = [
-  { nome: 'Eletricista', icon: 'bolt', color: 'warning', count: 45 },
-  { nome: 'Canalizador', icon: 'water_drop', color: 'info', count: 32 },
-  { nome: 'Pintor', icon: 'brush', color: 'accent', count: 28 },
-  { nome: 'Informático', icon: 'computer', color: 'primary', count: 56 },
-  { nome: 'Cabeleireiro', icon: 'content_cut', color: 'pink', count: 34 },
-  { nome: 'Manicure', icon: 'handshake', color: 'purple', count: 41 },
-  { nome: 'Limpeza', icon: 'cleaning_services', color: 'cyan', count: 23 },
-  { nome: 'Motorista', icon: 'local_taxi', color: 'teal', count: 67 }
+  { nome: 'Eletricista',    icon: 'bolt',        hex: '#F59E0B', bgHex: '#FEF3C7', count: 45 },
+  { nome: 'Canalizador',   icon: 'water_drop',   hex: '#3B82F6', bgHex: '#DBEAFE', count: 32 },
+  { nome: 'Pintor',        icon: 'brush',       hex: '#8B5CF6', bgHex: '#EDE9FE', count: 28 },
+  { nome: 'Informático',   icon: 'computer',    hex: '#10B981', bgHex: '#D1FAE5', count: 56 },
+  { nome: 'Cabeleireiro',  icon: 'content_cut', hex: '#EC4899', bgHex: '#FCE7F3', count: 34 },
+  { nome: 'Manicure',      icon: 'spa',         hex: '#F472B6', bgHex: '#FDF2F8', count: 41 },
+  { nome: 'Limpeza',       icon: 'cleaning_services', hex: '#06B6D4', bgHex: '#CFFAFE', count: 23 },
+  { nome: 'Motorista',     icon: 'directions_car', hex: '#14B8A6', bgHex: '#CCFBF1', count: 67 },
 ]
 
 const reasons = [
-  {
-    icon: 'security',
-    color: 'primary',
-    title: 'Segurança',
-    description: 'Todos os prestadores passam por verificação e têm avaliações reais'
-  },
-  {
-    icon: 'speed',
-    color: 'secondary',
-    title: 'Rapidez',
-    description: 'Encontre profissionais próximos em poucos cliques com geolocalização'
-  },
-  {
-    icon: 'support_agent',
-    color: 'positive',
-    title: 'Suporte',
-    description: 'Equipa dedicada para ajudar em qualquer dúvida ou problema'
-  }
+  { icon: 'verified',     bg: '#EDE9FE', title: 'Prestadores verificados', description: 'Todos passam por verificação de identidade e têm avaliações auténticas.' },
+  { icon: 'location_on',  bg: '#D1FAE5', title: 'Geolocalização inteligente', description: 'Encontra os profissionais mais próximos de si em tempo real.' },
+  { icon: 'bolt',         bg: '#FEF3C7', title: 'Resposta em minutos', description: 'A maioria dos prestadores responde em menos de 15 minutos.' },
+  { icon: 'support_agent',bg: '#DBEAFE', title: 'Suporte dedicado', description: 'Equipa de suporte disponível para resolver qualquer questão.' },
 ]
 
 const buscarPorCategoria = (categoria: string) => {
- void  router.push(`/mobile/lista-prestadores?categoria=${categoria}`)
+  void router.push(`/mobile/lista-prestadores?categoria=${categoria}`)
 }
 </script>
 
 <style scoped lang="scss">
-// Variáveis de cores em tons de cinza com roxo
-$gray-50: #fafafa;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-$gray-700: #616161;
-$gray-800: #424242;
-$gray-900: #212121;
+// =====================
+//  TOKENS
+// =====================
+$ink: #0A0A0F;
+$ink-2: #3D3D4E;
+$ink-3: #7B7B8E;
+$surface: #FFFFFF;
+$surface-2: #F7F7FA;
+$surface-3: #EDEDF2;
+$accent: #5B4BF5;      // electric violet
+$accent-2: #7C3AED;
+$accent-light: #EDE9FE;
+$gold: #F59E0B;
+$radius-sm: 10px;
+$radius-md: 16px;
+$radius-lg: 24px;
+$radius-xl: 32px;
 
-$purple-primary: #667eea;
-$purple-secondary: #764ba2;
-$purple-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+// =====================
+//  RESET / BASE
+// =====================
+.ea-page {
+  font-family: 'DM Sans', 'Nunito', sans-serif;
+  background: $surface;
+  color: $ink;
+  overflow-x: hidden;
 }
 
-// Hero Section
-.hero-section {
+.ea-container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+// =====================
+//  HERO
+// =====================
+.ea-hero {
   position: relative;
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  background: $ink;
   overflow: hidden;
 
-  .hero-bg {
+  &__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  &__noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 200px;
+  }
+
+  &__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  &__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+
+    &--1 {
+      width: 600px; height: 600px;
+      top: -200px; right: -100px;
+      background: radial-gradient(circle, rgba(91,75,245,0.45) 0%, transparent 70%);
+    }
+    &--2 {
+      width: 400px; height: 400px;
+      bottom: 100px; left: -100px;
+      background: radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%);
+    }
+    &--3 {
+      width: 300px; height: 300px;
+      top: 40%; right: 30%;
+      background: radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%);
+    }
+  }
+
+  &__image-side {
     position: absolute;
     top: 0;
-    left: 0;
-    width: 100%;
+    right: 0;
+    width: 48%;
     height: 100%;
-    background-image: url('https://images.unsplash.com/photo-1577412647305-991150c7d163?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
-    background-size: cover;
-    background-position: center;
+    z-index: 1;
 
-    &::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
+    @media (max-width: 900px) {
       width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+      opacity: 0.18;
     }
   }
 
-  .hero-content {
+  &__photo {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, $ink 0%, $ink 10%, rgba(10,10,15,0.55) 60%, transparent 100%);
+
+    @media (max-width: 900px) {
+      background: transparent;
+    }
+  }
+
+  &__content {
     position: relative;
     z-index: 2;
-    width: 100%;
-  }
-}
-
-.logo-wrapper {
-  position: relative;
-  display: inline-block;
-
-  .hero-logo {
-    width: 100px;
-    height: 100px;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    border-radius: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-
-    .hero-logo-icon {
-      color: white;
-      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
-    }
-  }
-
-  .hero-logo-spark {
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    color: #ffd700;
-    animation: pulse 2s infinite;
-  }
-}
-
-.hero-title {
-  font-size: 4rem;
-  font-weight: 800;
-
-  .hero-title-main {
-    color: white;
-    text-shadow: 0 10px 30px rgba(0,0,0,0.2);
-  }
-
-  .hero-title-accent {
-    background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-}
-
-.hero-subtitle {
-  font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-
-.hero-btn {
-  min-width: 250px;
-  padding: 15px 30px;
-  border-radius: 50px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-
-  &-primary {
-    background: white;
-    color: $purple-primary;
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
-    }
-  }
-
-  &-secondary {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: translateY(-2px);
-    }
-  }
-}
-
-// Welcome Section
-.welcome-section {
-  background: $gray-50;
-  position: relative;
-
-  .image-wrapper {
-    position: relative;
-
-    .featured-image {
-      border-radius: 30px;
-      box-shadow: 0 30px 60px rgba(0,0,0,0.1);
-    }
-
-    .image-decoration {
-      position: absolute;
-      top: 30px;
-      right: -30px;
-      width: 100%;
-      height: 100%;
-      border: 2px solid $purple-primary;
-      border-radius: 30px;
-      z-index: -1;
-    }
-  }
-}
-
-.section-tag {
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: $purple-primary;
-  font-weight: 600;
-  margin-bottom: 1rem;
-
-  &.center {
-    text-align: center;
-  }
-}
-
-.section-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: $gray-900;
-
-  &.center {
-    text-align: center;
-  }
-}
-
-.section-subtitle {
-  font-size: 1.1rem;
-  color: $gray-600;
-  line-height: 1.6;
-
-  &.center {
-    text-align: center;
-  }
-}
-
-.stat-mini-card {
-  background: white;
-  padding: 15px;
-  border-radius: 15px;
-  text-align: center;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-
-  .stat-mini-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: $purple-primary;
-  }
-
-  .stat-mini-label {
-    font-size: 0.9rem;
-    color: $gray-600;
-  }
-}
-
-.action-btn-outline {
-  color: $purple-primary;
-  border: 2px solid $purple-primary;
-  border-radius: 30px;
-  padding: 10px 30px;
-
-  &:hover {
-    background: $purple-primary;
-    color: white;
-  }
-}
-
-.action-btn-primary {
-  background: $purple-gradient;
-  color: white;
-  border-radius: 30px;
-  padding: 10px 30px;
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 20px 30px rgba(102, 126, 234, 0.4);
-  }
-}
-
-// How it works
-.how-it-works {
-  background: white;
-
-  .step-wrapper {
-    position: relative;
-    height: 100%;
-
-    .step-number {
-      position: absolute;
-      top: -20px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 40px;
-      height: 40px;
-      background: $purple-gradient;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 1.2rem;
-      z-index: 2;
-      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-    }
-  }
-
-  .step-card {
-    height: 100%;
-    border-radius: 30px;
-    border: none;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 30px 40px rgba(0,0,0,0.1);
-
-      .step-icon-wrapper {
-        transform: scale(1.1) rotate(5deg);
-      }
-    }
-  }
-
-  .step-icon-wrapper {
-    width: 80px;
-    height: 80px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    transition: all 0.3s ease;
-
-    .step-icon-primary { color: $purple-primary; }
-    .step-icon-secondary { color: $purple-secondary; }
-    .step-icon-positive { color: #48bb78; }
-  }
-
-  .step-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: $gray-800;
-  }
-
-  .step-description {
-    color: $gray-600;
-    line-height: 1.6;
-  }
-}
-
-// Categories
-.categories-section {
-  background: $gray-100;
-
-  .category-card-wrapper {
-    cursor: pointer;
-
-    .category-card {
-      background: white;
-      padding: 20px;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 30px rgba(102, 126, 234, 0.15);
-
-        .category-icon-wrapper {
-          transform: scale(1.1) rotate(5deg);
-        }
-      }
-    }
-  }
-
-  .category-icon-wrapper {
-    width: 50px;
-    height: 50px;
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-
-    &.category-icon-warning { background: rgba(255, 193, 7, 0.1); color: #f39c12; }
-    &.category-icon-info { background: rgba(33, 150, 243, 0.1); color: #3498db; }
-    &.category-icon-accent { background: rgba(156, 39, 176, 0.1); color: #9b59b6; }
-    &.category-icon-primary { background: rgba(102, 126, 234, 0.1); color: $purple-primary; }
-    &.category-icon-pink { background: rgba(233, 30, 99, 0.1); color: #e91e63; }
-    &.category-icon-purple { background: rgba(118, 75, 162, 0.1); color: $purple-secondary; }
-    &.category-icon-cyan { background: rgba(0, 188, 212, 0.1); color: #00bcd4; }
-    &.category-icon-teal { background: rgba(0, 150, 136, 0.1); color: #009688; }
-  }
-
-  .category-info {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 100px 24px 160px;
+    max-width: 640px;
+  }
 
-    .category-name {
-      font-size: 1rem;
-      font-weight: 600;
-      color: $gray-800;
-    }
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.85);
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+    backdrop-filter: blur(10px);
+    width: fit-content;
+  }
 
-    .category-count {
-      font-size: 0.8rem;
-      color: $gray-500;
+  &__heading {
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin: 0 0 24px;
+  }
+
+  &__sub {
+    font-size: clamp(1.05rem, 2vw, 1.25rem);
+    color: rgba(255,255,255,0.6);
+    line-height: 1.6;
+    margin: 0 0 40px;
+    max-width: 560px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 48px;
+  }
+
+  &__trust {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__cards-float {
+    position: absolute;
+    right: 6%;
+    top: 50%;
+    transform: translateY(-45%);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 3;
+
+    @media (max-width: 1024px) {
+      display: none;
     }
+  }
+
+  &__scroll-hint {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 5;
+    color: rgba(255,255,255,0.3);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 }
 
-// Why us
-.why-us-section {
-  background: white;
+// Hero badge dot
+.ea-badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ADE80;
+  box-shadow: 0 0 8px #4ADE80;
+  flex-shrink: 0;
+}
 
-  .reason-card {
-    background: $gray-50;
-    padding: 40px 30px;
-    border-radius: 30px;
-    text-align: center;
-    height: 100%;
-    transition: all 0.3s ease;
+// Heading accent
+.ea-heading-accent {
+  background: linear-gradient(135deg, $accent 0%, #A78BFA 50%, $gold 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-    &:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 30px 40px rgba(102, 126, 234, 0.1);
+// CTAs
+.ea-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: $accent;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 14px 28px;
+  border-radius: 100px;
+  text-decoration: none;
+  transition: all 0.25s;
+  box-shadow: 0 0 0 0 rgba(91,75,245,0);
 
-      .reason-icon-wrapper {
-        transform: scale(1.1) rotate(5deg);
-      }
+  &:hover {
+    background: lighten($accent, 5%);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(91,75,245,0.45);
+  }
+}
+.ea-cta-ghost {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(255,255,255,0.75);
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 14px 24px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 100px;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.05);
+  transition: all 0.25s;
+
+  &:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.3);
+  }
+}
+
+// Trust avatars
+.ea-trust-avatars {
+  display: flex;
+
+  .ea-trust-av {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: $ink;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid $ink;
+    margin-left: -8px;
+
+    &:first-child { margin-left: 0; }
+  }
+}
+.ea-trust-text {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.55);
+  strong { color: rgba(255,255,255,0.85); }
+}
+
+// Float cards
+.ea-float-card {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(20px);
+  border-radius: $radius-md;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 240px;
+  animation: ea-float linear infinite;
+
+  &--1 { animation-duration: 6s; animation-delay: 0s; }
+  &--2 { animation-duration: 7s; animation-delay: -2s; }
+  &--3 { animation-duration: 8s; animation-delay: -4s; }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $accent;
+  }
+  &__title { font-size: 0.9rem; font-weight: 600; color: #fff; }
+  &__sub { font-size: 0.78rem; color: rgba(255,255,255,0.5); }
+}
+
+@keyframes ea-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+// Scroll hint line
+.ea-scroll-line {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.3));
+}
+
+// =====================
+//  STATS BAR
+// =====================
+.ea-stats-bar {
+  background: $ink;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 32px 0;
+
+  &__inner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+
+    @media (max-width: 600px) {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px 0;
     }
   }
+}
+.ea-stat {
+  text-align: center;
+  padding: 0 20px;
+  border-right: 1px solid rgba(255,255,255,0.06);
 
-  .reason-icon-wrapper {
-    width: 80px;
-    height: 80px;
-    border-radius: 20px;
+  &:last-child { border-right: none; }
+
+  &__value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.03em;
+  }
+
+  &__label {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.4);
+    margin-top: 4px;
+  }
+}
+
+// =====================
+//  SECTIONS SHARED
+// =====================
+.ea-section {
+  padding: 100px 0;
+}
+
+.ea-section-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.ea-section-label {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $accent;
+  background: $accent-light;
+  padding: 5px 14px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+}
+
+.ea-section-title {
+  font-size: clamp(1.9rem, 3.5vw, 2.8rem);
+  font-weight: 800;
+  color: $ink;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 14px;
+}
+
+.ea-section-sub {
+  font-size: 1.05rem;
+  color: $ink-3;
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+// =====================
+//  CATEGORIES
+// =====================
+.ea-categories {
+  background: $surface-2;
+}
+
+.ea-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+
+  @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 500px) { grid-template-columns: 1fr 1fr; gap: 10px; }
+}
+
+.ea-cat-card {
+  background: $surface;
+  border: 1.5px solid $surface-3;
+  border-radius: $radius-md;
+  padding: 24px 20px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--cat-bg) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+
+  &:hover {
+    border-color: var(--cat-color);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+
+    &::before { opacity: 1; }
+
+    .ea-cat-card__arrow { opacity: 1; transform: translateX(0); }
+  }
+
+  &__icon {
+    margin-bottom: 12px;
+    position: relative;
+    z-index: 1;
+    color: var(--cat-color);
+  }
+
+  &__name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: $ink;
+    margin-bottom: 4px;
+    position: relative;
+    z-index: 1;
+  }
+
+  &__count {
+    font-size: 0.8rem;
+    color: $ink-3;
+    position: relative;
+    z-index: 1;
+  }
+
+  &__arrow {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: var(--cat-color);
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: all 0.2s;
+    z-index: 1;
+  }
+}
+
+// =====================
+//  HOW IT WORKS
+// =====================
+.ea-how {
+  background: $surface;
+}
+
+.ea-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px;
+  position: relative;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+.ea-step {
+  position: relative;
+  text-align: center;
+
+  &__num {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: $accent;
+    letter-spacing: 0.08em;
+    margin-bottom: 20px;
+  }
+
+  &__connector {
+    position: absolute;
+    top: 68px;
+    right: -24px;
+    width: 48px;
+    height: 1px;
+    background: linear-gradient(to right, $surface-3, transparent);
+
+    @media (max-width: 768px) { display: none; }
+  }
+
+  &__icon {
+    width: 72px;
+    height: 72px;
+    background: $surface-2;
+    border-radius: $radius-md;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 20px;
-    transition: all 0.3s ease;
-
-    &.reason-icon-primary { background: $purple-gradient; }
-    &.reason-icon-secondary { background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); }
-    &.reason-icon-positive { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
+    border: 1.5px solid $surface-3;
+    transition: all 0.25s;
+    color: $accent;
   }
 
-  .reason-title {
-    font-size: 1.3rem;
+  &:hover .ea-step__icon {
+    background: $accent-light;
+    border-color: $accent;
+    transform: scale(1.05);
+  }
+
+  &__title {
+    font-size: 1.15rem;
     font-weight: 700;
-    color: $gray-800;
+    color: $ink;
     margin-bottom: 10px;
   }
 
-  .reason-description {
-    color: $gray-600;
+  &__desc {
+    font-size: 0.9rem;
+    color: $ink-3;
     line-height: 1.6;
+    max-width: 260px;
+    margin: 0 auto;
   }
 }
 
-// Final CTA
-.final-cta-section {
-  background: $gray-100;
+// =====================
+//  WHY US
+// =====================
+.ea-why {
+  background: $surface-2;
 
-  .cta-card {
-    background: $purple-gradient;
-    padding: 60px;
-    border-radius: 40px;
-    box-shadow: 0 30px 60px rgba(102, 126, 234, 0.3);
+  &__inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
 
-    .cta-title {
-      font-size: 2rem;
-      font-weight: 700;
-      color: white;
-      margin-bottom: 10px;
-    }
-
-    .cta-subtitle {
-      font-size: 1.1rem;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .cta-btn {
-      padding: 15px 30px;
-      border-radius: 50px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-
-      &-primary {
-        background: white;
-        color: $purple-primary;
-
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-      }
-
-      &-secondary {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        color: white;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.3);
-          transform: translateY(-2px);
-        }
-      }
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+      gap: 48px;
     }
   }
-}
 
-// Animações
-@keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
-}
-
-// Responsividade
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 2.5rem;
+  &__left {
+    .ea-section-label, .ea-section-title { text-align: left; }
   }
 
-  .hero-subtitle {
-    font-size: 1.2rem;
-  }
-
-  .hero-btn {
-    min-width: 200px;
+  &__body {
     font-size: 1rem;
-    padding: 10px 20px;
+    color: $ink-2;
+    line-height: 1.7;
+    margin: 0 0 24px;
   }
 
-  .section-title {
-    font-size: 2rem;
-  }
+  &__image-block {
+    position: relative;
+    margin-top: 40px;
 
-  .cta-card {
-    padding: 30px !important;
-    text-align: center;
-
-    .row {
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .col-12.col-md-5 .row {
-      justify-content: center !important;
+    .ea-why__img {
+      border-radius: $radius-lg;
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.1);
     }
   }
 
-  .image-decoration {
-    display: none;
+  &__img-badge {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: $surface;
+    border-radius: $radius-md;
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+
+    span:first-child {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: $ink;
+    }
+    span:last-child {
+      font-size: 0.78rem;
+      color: $ink-3;
+    }
   }
+}
+
+.ea-link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: $accent;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: gap 0.2s;
+  &:hover { gap: 10px; }
+}
+
+.ea-reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 24px;
+  background: $surface;
+  border-radius: $radius-md;
+  border: 1.5px solid $surface-3;
+  margin-bottom: 16px;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: $accent;
+    box-shadow: 0 8px 24px rgba(91,75,245,0.08);
+  }
+
+  &__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: $radius-sm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: $accent;
+  }
+
+  &__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: $ink;
+    margin-bottom: 4px;
+  }
+
+  &__desc {
+    font-size: 0.85rem;
+    color: $ink-3;
+    line-height: 1.5;
+  }
+}
+
+.ea-testimonial {
+  background: $ink;
+  border-radius: $radius-md;
+  padding: 28px;
+  margin-top: 8px;
+
+  &__text {
+    font-size: 0.95rem;
+    color: rgba(255,255,255,0.8);
+    line-height: 1.6;
+    font-style: italic;
+    margin: 0 0 20px;
+  }
+
+  &__author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__av {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: $accent;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  &__role {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.45);
+  }
+}
+
+// =====================
+//  FINAL CTA
+// =====================
+.ea-cta-section {
+  position: relative;
+  background: $ink;
+  overflow: hidden;
+  padding: 120px 0;
+  text-align: center;
+}
+
+.ea-cta-section__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ea-cta__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+
+  &--1 {
+    width: 500px; height: 500px;
+    top: -200px; left: -100px;
+    background: radial-gradient(circle, rgba(91,75,245,0.4) 0%, transparent 70%);
+  }
+  &--2 {
+    width: 400px; height: 400px;
+    bottom: -150px; right: -50px;
+    background: radial-gradient(circle, rgba(245,158,11,0.2) 0%, transparent 70%);
+  }
+}
+
+.ea-cta__inner {
+  position: relative;
+  z-index: 2;
+}
+
+.ea-cta__label {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $accent;
+  background: rgba(91,75,245,0.15);
+  border: 1px solid rgba(91,75,245,0.3);
+  padding: 5px 14px;
+  border-radius: 100px;
+  margin-bottom: 24px;
+}
+
+.ea-cta__title {
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0 0 20px;
+}
+
+.ea-cta__sub {
+  font-size: 1.1rem;
+  color: rgba(255,255,255,0.5);
+  margin: 0 0 48px;
+  line-height: 1.6;
+}
+
+.ea-cta__btns {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.ea-cta-white {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  color: $ink;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 16px 32px;
+  border-radius: 100px;
+  text-decoration: none;
+  transition: all 0.25s;
+
+  &:hover {
+    background: #f0effe;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(255,255,255,0.15);
+  }
+}
+
+.ea-cta-outline-white {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(255,255,255,0.75);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 16px 32px;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  border-radius: 100px;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.05);
+  transition: all 0.25s;
+
+  &:hover {
+    color: #fff;
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.08);
+  }
+}
+
+.ea-cta__note {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.04em;
+}
+
+// =====================
+//  UTILITIES
+// =====================
+.ea-br-hide {
+  @media (max-width: 600px) { display: none; }
 }
 </style>

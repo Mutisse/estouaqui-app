@@ -15,13 +15,13 @@
           color="grey-7"
           outline
           @click="carregarServicos"
-          :loading="adminStore.loading"
+          :loading="conteudoStore.loading"
         />
       </div>
     </div>
 
-    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
-    <div v-if="adminStore.loading" class="skeleton-container">
+    <!-- Skeleton Loading -->
+    <div v-if="conteudoStore.loading" class="skeleton-container">
       <div class="skeleton-card">
         <div class="skeleton-header">
           <div class="skeleton-title"></div>
@@ -62,7 +62,7 @@
       <div class="skeleton-shimmer"></div>
     </div>
 
-    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <!-- Conteúdo real -->
     <template v-else>
       <q-card class="servicos-card">
         <q-card-section>
@@ -96,10 +96,10 @@
         </q-card-section>
 
         <q-table
-          :rows="adminStore.servicos"
+          :rows="conteudoStore.servicos"
           :columns="colunas"
           row-key="id"
-          :loading="adminStore.loading"
+          :loading="conteudoStore.loading"
           :rows-per-page-options="[10, 20, 50]"
           class="servicos-table"
         >
@@ -318,15 +318,16 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useQuasar, type QTableColumn } from 'quasar';
-import { useAdminStore } from 'src/stores/admin-store';
-import type { ServicoData, CategoriaData } from 'src/stores/admin-store';
+// ✅ IMPORT CORRETO
+import { useAdminConteudoStore, type ServicoData, type CategoriaData } from 'src/stores/admin/admin-conteudo-store';
 
 defineOptions({
   name: 'AdminServicos',
 });
 
 const $q = useQuasar();
-const adminStore = useAdminStore();
+// ✅ USANDO O STORE CORRETO
+const conteudoStore = useAdminConteudoStore();
 
 // Estados
 const mostrarDialog = ref(false);
@@ -405,10 +406,10 @@ const form = reactive({
   ativo: true,
 });
 
-// Carregar categorias para os selects
+// ✅ Carregar categorias usando conteudoStore
 const carregarCategorias = async () => {
   try {
-    const cats = await adminStore.fetchCategorias();
+    const cats = await conteudoStore.fetchCategorias();
     categoriasSelectOptions.value = cats.map((cat: CategoriaData) => ({
       label: cat.nome,
       value: cat.id,
@@ -418,7 +419,7 @@ const carregarCategorias = async () => {
   }
 };
 
-// Carregar serviços
+// ✅ Carregar serviços usando conteudoStore
 const carregarServicos = async () => {
   try {
     const params: {
@@ -428,7 +429,7 @@ const carregarServicos = async () => {
     if (filtroCategoria.value) params.categoria = filtroCategoria.value;
     if (filtroAtivo.value !== null) params.ativo = filtroAtivo.value;
 
-    await adminStore.fetchServicos(params);
+    await conteudoStore.fetchServicos(params);
   } catch (error) {
     console.error('Erro ao carregar serviços:', error);
   }
@@ -446,7 +447,7 @@ const editarServico = (servico: ServicoData) => {
   mostrarDialog.value = true;
 };
 
-// Salvar serviço (apenas edição)
+// ✅ Salvar serviço usando conteudoStore
 const salvarServico = async () => {
   if (!form.nome || !form.categoria_id || !form.preco) {
     $q.notify({
@@ -459,7 +460,7 @@ const salvarServico = async () => {
 
   salvando.value = true;
   try {
-    const response = await adminStore.updateServico(servicoEditandoId.value!, {
+    const response = await conteudoStore.updateServico(servicoEditandoId.value!, {
       categoria_id: form.categoria_id,
       descricao: form.descricao,
       preco: form.preco,
@@ -467,7 +468,7 @@ const salvarServico = async () => {
       ativo: form.ativo,
     });
 
-    if (response?.success) {
+    if (response) {
       $q.notify({
         type: 'positive',
         message: 'Serviço atualizado com sucesso!',
@@ -490,8 +491,7 @@ const salvarServico = async () => {
   }
 };
 
-// Remover serviço
-// Remover serviço
+// ✅ Remover serviço usando conteudoStore
 const removerServico = (servico: ServicoData) => {
   $q.dialog({
     title: 'Confirmar remoção',
@@ -502,8 +502,8 @@ const removerServico = (servico: ServicoData) => {
   }).onOk(() => {
     void (async () => {
       try {
-        const response = await adminStore.deleteServico(servico.id);
-        if (response?.success) {
+        const response = await conteudoStore.deleteServico(servico.id);
+        if (response) {
           $q.notify({
             type: 'positive',
             message: 'Serviço removido com sucesso!',
@@ -533,6 +533,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+// ... styles mantidos iguais ao original
 .admin-servicos {
   max-width: 1200px;
   margin: 0 auto;
@@ -571,10 +572,7 @@ onMounted(() => {
   }
 }
 
-// ==========================================
-// SKELETON LOADING (Facebook/Instagram style)
-// ==========================================
-
+// Skeleton Loading
 .skeleton-container {
   position: relative;
   overflow: hidden;
@@ -698,10 +696,7 @@ onMounted(() => {
   }
 }
 
-// ==========================================
-// ESTILOS PRINCIPAIS
-// ==========================================
-
+// Estilos principais
 .servicos-card {
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -797,7 +792,6 @@ onMounted(() => {
   }
 }
 
-// Responsivo
 @media (max-width: 768px) {
   .admin-servicos {
     padding: 16px;

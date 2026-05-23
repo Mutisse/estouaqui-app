@@ -1,434 +1,376 @@
 <template>
-  <q-page class="inicio-page bg-grey-1">
-    <!-- Skeleton Loading (mostra enquanto carrega) -->
+  <q-page class="inicio-page">
+    <!-- Skeleton Loading -->
     <div v-if="carregandoInicial" class="skeleton-loading">
-      <!-- Skeleton Header -->
       <div class="skeleton-header">
         <div class="skeleton-avatar"></div>
         <div class="skeleton-header-text">
-          <div class="skeleton-line w-60"></div>
           <div class="skeleton-line w-40"></div>
+          <div class="skeleton-line w-60"></div>
         </div>
         <div class="skeleton-date"></div>
       </div>
-
-      <!-- Skeleton Stats Cards -->
       <div class="skeleton-stats">
-        <div v-for="i in 3" :key="i" class="skeleton-stat-card">
+        <div v-for="i in 3" :key="i" class="skeleton-stat-pill">
           <div class="skeleton-icon"></div>
           <div class="skeleton-line w-50"></div>
           <div class="skeleton-line w-30"></div>
         </div>
       </div>
-
-      <!-- Skeleton Banner -->
       <div class="skeleton-banner"></div>
-
-      <!-- Skeleton Categories -->
       <div class="skeleton-section">
         <div class="skeleton-section-header">
           <div class="skeleton-line w-40"></div>
           <div class="skeleton-line w-20"></div>
         </div>
-        <div class="skeleton-categorias">
-          <div v-for="i in 4" :key="i" class="skeleton-categoria-item">
-            <div class="skeleton-category-icon"></div>
+        <div class="skeleton-cats">
+          <div v-for="i in 4" :key="i" class="skeleton-cat">
+            <div class="skeleton-cat-icon"></div>
             <div class="skeleton-line w-60"></div>
             <div class="skeleton-line w-40"></div>
           </div>
         </div>
       </div>
-
-      <!-- Skeleton Prestadores -->
       <div class="skeleton-section">
         <div class="skeleton-section-header">
           <div class="skeleton-line w-40"></div>
           <div class="skeleton-line w-20"></div>
         </div>
-        <div class="skeleton-prestadores">
-          <div v-for="i in 2" :key="i" class="skeleton-prestador-card">
-            <div class="skeleton-card-img"></div>
-            <div class="skeleton-card-info">
+        <div class="skeleton-dest">
+          <div v-for="i in 4" :key="i" class="skeleton-dest-card">
+            <div class="skeleton-dest-img"></div>
+            <div class="skeleton-dest-info">
               <div class="skeleton-line w-80"></div>
-              <div class="skeleton-line w-60"></div>
-              <div class="skeleton-line w-40"></div>
+              <div class="skeleton-line w-50"></div>
             </div>
           </div>
         </div>
       </div>
-
-      
     </div>
 
     <!-- Conteúdo real -->
     <template v-else>
-      <!-- Saudação do usuário com foto -->
-      <div class="greeting-section q-pa-md">
-        <div class="greeting">
-          <q-avatar size="48px" class="q-mr-sm">
+      <!-- Header -->
+      <div class="page-header">
+        <div class="page-header__left">
+          <q-avatar size="46px" class="user-avatar">
             <img :src="authStore.userFoto || defaultAvatar" />
           </q-avatar>
           <div>
-            <span class="greeting-text">Olá,</span>
-            <span class="user-name">{{ userName }}</span>
-            <div class="user-badge" v-if="authStore.isCliente">
-              <q-icon name="check_circle" size="14px" color="positive" />
-              <span>Cliente verificado</span>
+            <div class="header-sub">Olá,</div>
+            <div class="header-name">{{ userName }}</div>
+            <div v-if="authStore.isCliente" class="header-badge">
+              <span class="badge-dot"></span>
+              Cliente verificado
             </div>
           </div>
         </div>
-        <div class="date">{{ currentDate }}</div>
+        <div class="header-date">{{ diaSemana }}<br />{{ dataFormatada }}</div>
       </div>
 
-      <!-- Stats Cards -->
-      <div class="summary-cards q-px-md q-mb-md">
-        <div class="row q-col-gutter-sm">
-          <div class="col-4">
-            <div class="summary-card" @click="goTo('/mobile/meus-pedidos')">
-              <q-icon name="assignment" size="20px" color="primary" />
-              <div class="summary-value">{{ clienteStore.dashboard?.pedidos_pendentes || 0 }}</div>
-              <div class="summary-label">Pedidos ativos</div>
-            </div>
-          </div>
-          <div class="col-4">
-            <div class="summary-card" @click="goTo('/mobile/notificacoes')">
-              <q-icon name="chat" size="20px" color="secondary" />
-              <div class="summary-value">{{ notificacoesNaoLidas }}</div>
-              <div class="summary-label">Notificações</div>
-            </div>
-          </div>
-          <div class="col-4">
-            <div class="summary-card" @click="goTo('/mobile/favoritos')">
-              <q-icon name="favorite" size="20px" color="red" />
-              <div class="summary-value">{{ clienteStore.dashboard?.favoritos_count || 0 }}</div>
-              <div class="summary-label">Favoritos</div>
-            </div>
-          </div>
+      <!-- Stats Pills -->
+      <div class="stats-row">
+        <div class="stat-pill stat-pill--primary" @click="goTo('/mobile/meus-pedidos')">
+          <q-icon name="assignment" size="20px" class="stat-pill__icon" />
+          <div class="stat-pill__value">{{ pedidosStore.dashboard?.pedidos_pendentes || 0 }}</div>
+          <div class="stat-pill__label">Pedidos ativos</div>
+        </div>
+        <div class="stat-pill stat-pill--purple" @click="goTo('/mobile/notificacoes')">
+          <q-icon name="notifications" size="20px" class="stat-pill__icon" />
+          <div class="stat-pill__value">{{ notificacoesNaoLidas }}</div>
+          <div class="stat-pill__label">Notificações</div>
+        </div>
+        <div class="stat-pill stat-pill--red" @click="goTo('/mobile/favoritos')">
+          <q-icon name="favorite" size="20px" class="stat-pill__icon" />
+          <div class="stat-pill__value">{{ pedidosStore.dashboard?.favoritos_count || 0 }}</div>
+          <div class="stat-pill__label">Favoritos</div>
         </div>
       </div>
 
       <!-- Banner promocional -->
-      <div class="section q-px-md q-mb-md">
-        <div class="promo-banner" @click="verPromocao">
-          <div class="promo-banner-content">
-            <q-icon name="emoji_people" size="32px" color="white" />
-            <div>
-              <div class="promo-banner-title">Ganhe 500 MZN</div>
-              <div class="promo-banner-subtitle">Indique um amigo e ganhe bónus</div>
-            </div>
-            <q-btn flat dense label="Saber mais" text-color="white" />
-          </div>
+      <div class="promo-banner" @click="verPromocao">
+        <div class="promo-banner__icon">
+          <q-icon name="emoji_people" size="24px" color="white" />
         </div>
+        <div class="promo-banner__body">
+          <div class="promo-banner__title">Ganhe 500 MZN</div>
+          <div class="promo-banner__sub">Indique um amigo e ganhe bónus</div>
+        </div>
+        <div class="promo-banner__cta">Saber mais</div>
       </div>
 
       <!-- Categorias populares -->
-      <div class="section q-px-md q-mb-md" v-if="categoriasPopulares.length > 0">
+      <div v-if="categoriasPopulares.length > 0" class="page-section">
         <div class="section-header">
-          <div class="section-title">Categorias populares</div>
+          <h2 class="section-title">Categorias populares</h2>
           <q-btn
             flat
             dense
-            label="Ver todas"
+            no-caps
+            label="Ver todas →"
             class="section-link"
             to="/mobile/lista-prestadores"
-            no-caps
           />
         </div>
-        <div class="row q-col-gutter-sm">
+        <div class="cats-grid">
           <div
             v-for="categoria in categoriasPopulares.slice(0, 4)"
             :key="categoria.id"
-            class="col-3"
+            class="cat-card"
+            @click="buscarPorCategoria(categoria.id)"
           >
-            <div class="category-card" @click="buscarPorCategoria(categoria.id)">
-              <q-icon
-                :name="categoria.icone || 'category'"
-                size="28px"
-                :color="categoria.cor || 'primary'"
-              />
-              <div class="category-name">{{ categoria.nome }}</div>
-              <div class="category-count">{{ categoria.servicos_count || 0 }} serviços</div>
+            <div class="cat-card__icon" :style="getCatIconStyle(categoria.cor)">
+              <q-icon :name="categoria.icone || 'category'" size="22px" />
             </div>
+            <div class="cat-card__name">{{ categoria.nome }}</div>
+            <div class="cat-card__count">{{ categoria.servicos_count || 0 }} serv.</div>
           </div>
         </div>
       </div>
 
       <!-- Prestadores em destaque -->
-      <div class="section q-px-md q-mb-md" v-if="prestadoresDestaque.length > 0">
+      <div v-if="prestadoresDestaque.length > 0" class="page-section">
         <div class="section-header">
-          <div class="section-title">Prestadores em destaque</div>
+          <h2 class="section-title">Prestadores em destaque</h2>
           <q-btn
             flat
             dense
-            label="Ver todos"
+            no-caps
+            label="Ver todos →"
             class="section-link"
             to="/mobile/lista-prestadores"
-            no-caps
           />
         </div>
-
-        <div v-if="carregandoDestaque" class="text-center q-py-md">
-          <q-spinner color="primary" size="40px" />
+        <div v-if="carregandoDestaque" class="loading-center">
+          <q-spinner color="primary" size="36px" />
         </div>
-        <div v-else class="row q-col-gutter-sm">
-          <div v-for="prestador in prestadoresDestaque" :key="prestador.id" class="col-6">
-            <q-card class="service-card" flat bordered @click="verPrestador(prestador.id)">
-              <q-img :src="prestador.foto || defaultImage" height="100px" />
-              <q-card-section class="q-pa-sm">
-                <div class="service-title">{{ prestador.nome }}</div>
-                <div class="service-provider">
-                  {{ prestador.categorias?.[0]?.nome || prestador.profissao || 'Profissional' }}
-                </div>
-                <div class="service-rating">
-                  <q-rating
-                    :model-value="obterMediaAvaliacao(prestador.media_avaliacao)"
-                    size="14px"
-                    :max="5"
-                    color="yellow"
-                    readonly
-                  />
-                  <span class="rating-count">({{ prestador.total_avaliacoes || 0 }})</span>
-                </div>
-              </q-card-section>
-            </q-card>
+        <div v-else class="dest-grid">
+          <div
+            v-for="prestador in prestadoresDestaque"
+            :key="prestador.id"
+            class="dest-card"
+            @click="verPrestador(prestador.id)"
+          >
+            <div class="dest-card__img">
+              <q-img :src="prestador.foto || defaultImage" height="90px" fit="cover" />
+            </div>
+            <div class="dest-card__body">
+              <div class="dest-card__name">{{ prestador.nome }}</div>
+              <div class="dest-card__cat">
+                {{ prestador.categorias?.[0]?.nome || prestador.profissao || 'Profissional' }}
+              </div>
+              <div class="dest-card__stars">
+                <q-rating
+                  :model-value="obterMediaAvaliacao(prestador.media_avaliacao)"
+                  size="12px"
+                  :max="5"
+                  color="amber-6"
+                  readonly
+                />
+                <span class="dest-card__count">({{ prestador.total_avaliacoes || 0 }})</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Promoções (carrossel) -->
-      <div class="section q-px-md q-mb-md" v-if="promocoesReais.length > 0">
+      <!-- Promoções especiais -->
+      <div v-if="promocoesReais.length > 0" class="page-section">
         <div class="section-header">
-          <div class="section-title">Promoções especiais</div>
-          <q-btn flat dense label="Ver todas" class="section-link" to="/mobile/promocoes" no-caps />
-        </div>
-
-        <div class="promo-slider">
-          <q-carousel
-            v-model="promoSlide"
-            animated
-            navigation
-            padding
-            arrows
-            height="130px"
-            class="rounded-borders"
-          >
-            <q-carousel-slide
-              v-for="(promo, index) in promocoesReais"
-              :key="index"
-              :name="index"
-              class="no-padding"
-            >
-              <div class="promo-card-slide" :style="getPromoGradient(promo)">
-                <div class="promo-slide-content">
-                  <div class="promo-info">
-                    <div class="promo-title">{{ promo.titulo }}</div>
-                    <div class="promo-subtitle">{{ promo.descricao }}</div>
-                    <div class="promo-code" v-if="promo.codigo">
-                      <q-icon name="content_copy" size="12px" />
-                      Cupom: {{ promo.codigo }}
-                    </div>
-                    <div class="promo-validity" v-if="promo.validade">
-                      <q-icon name="event" size="10px" />
-                      Válido até {{ formatDate(promo.validade) }}
-                    </div>
-                  </div>
-                  <q-btn
-                    :label="
-                      promo.tipo_desconto === 'percentual'
-                        ? `${promo.valor_desconto}% OFF`
-                        : formatMoney(promo.valor_desconto) + ' OFF'
-                    "
-                    size="sm"
-                    unelevated
-                    color="white"
-                    text-color="primary"
-                    @click.stop="usarPromocao(promo)"
-                  />
-                </div>
-              </div>
-            </q-carousel-slide>
-          </q-carousel>
-        </div>
-      </div>
-
-      <!-- Prestadores mais bem avaliados -->
-      <div class="section q-px-md q-mb-md" v-if="prestadoresTop.length > 0">
-        <div class="section-header">
-          <div class="section-title">Top prestadores</div>
+          <h2 class="section-title">Promoções especiais</h2>
           <q-btn
             flat
             dense
-            label="Ver todos"
-            class="section-link"
-            to="/mobile/lista-prestadores"
             no-caps
+            label="Ver todas →"
+            class="section-link"
+            to="/mobile/promocoes"
           />
         </div>
-
-        <div v-if="carregandoTop" class="text-center q-py-md">
-          <q-spinner color="primary" size="40px" />
-        </div>
-        <div v-else>
+        <div class="promo-list">
           <div
-            v-for="prestador in prestadoresTop"
-            :key="prestador.id"
-            class="provider-card"
-            @click="verPrestador(prestador.id)"
+            v-for="(promo, index) in promocoesReais"
+            :key="index"
+            class="promo-slide"
+            :style="getPromoGradient(promo)"
+            @click="usarPromocao(promo)"
           >
-            <div class="provider-item">
-              <q-avatar size="50px" class="q-mr-sm">
-                <img
-                  :src="
-                    prestador.foto ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(prestador.nome)}&background=667eea&color=fff`
-                  "
-                />
-              </q-avatar>
-              <div class="provider-info">
-                <div class="provider-name">{{ prestador.nome }}</div>
-                <div class="provider-category">
-                  {{ prestador.categorias?.[0]?.nome || prestador.profissao || 'Profissional' }}
-                </div>
-                <div class="provider-rating">
-                  <q-rating
-                    :model-value="obterMediaAvaliacao(prestador.media_avaliacao)"
-                    size="14px"
-                    :max="5"
-                    color="yellow"
-                    readonly
-                  />
-                  <span class="rating-count">({{ prestador.total_avaliacoes || 0 }})</span>
-                </div>
+            <div class="promo-slide__info">
+              <div class="promo-slide__title">{{ promo.titulo }}</div>
+              <div class="promo-slide__sub">{{ promo.descricao }}</div>
+              <div v-if="promo.codigo" class="promo-slide__code">
+                <q-icon name="content_copy" size="11px" />
+                {{ promo.codigo }}
               </div>
             </div>
+            <div class="promo-slide__disc">
+              {{
+                promo.tipo_desconto === 'percentual'
+                  ? `${promo.valor_desconto}% OFF`
+                  : formatMoney(promo.valor_desconto) + ' OFF'
+              }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top prestadores -->
+      <div v-if="prestadoresTop.length > 0" class="page-section">
+        <div class="section-header">
+          <h2 class="section-title">Top prestadores</h2>
+          <q-btn
+            flat
+            dense
+            no-caps
+            label="Ver todos →"
+            class="section-link"
+            to="/mobile/lista-prestadores"
+          />
+        </div>
+        <div v-if="carregandoTop" class="loading-center">
+          <q-spinner color="primary" size="36px" />
+        </div>
+        <div v-else class="top-list">
+          <div
+            v-for="(prestador, index) in prestadoresTop"
+            :key="prestador.id"
+            class="top-card"
+            @click="verPrestador(prestador.id)"
+          >
+            <div class="top-card__avatar" :style="getAvatarStyle(prestador.nome)">
+              {{ getInitials(prestador.nome) }}
+            </div>
+            <div class="top-card__info">
+              <div class="top-card__name">{{ prestador.nome }}</div>
+              <div class="top-card__cat">
+                {{ prestador.categorias?.[0]?.nome || prestador.profissao || 'Profissional' }}
+                · ★ {{ obterMediaAvaliacao(prestador.media_avaliacao).toFixed(1) }}
+              </div>
+            </div>
+            <div class="top-badge">Top #{{ index + 1 }}</div>
           </div>
         </div>
       </div>
 
       <!-- Últimos pedidos -->
-      <div class="section q-px-md q-mb-md" v-if="ultimosPedidos.length > 0">
+      <div v-if="ultimosPedidos.length > 0" class="page-section">
         <div class="section-header">
-          <div class="section-title">Seus últimos pedidos</div>
+          <h2 class="section-title">Seus últimos pedidos</h2>
           <q-btn
             flat
             dense
-            label="Ver todos"
+            no-caps
+            label="Ver todos →"
             class="section-link"
             to="/mobile/meus-pedidos"
-            no-caps
           />
         </div>
-        <div
-          v-for="pedido in ultimosPedidos"
-          :key="pedido.id"
-          class="recent-order-card"
-          @click="verPedido(pedido.id)"
-        >
-          <div class="row items-center">
-            <q-avatar size="40px" class="q-mr-sm">
-              <q-icon name="receipt" color="primary" />
-            </q-avatar>
-            <div class="col">
-              <div class="order-number">Pedido #{{ pedido.numero }}</div>
-              <div class="order-status" :class="pedido.status">
-                {{ getStatusTexto(pedido.status) }}
-              </div>
+        <div class="orders-list">
+          <div
+            v-for="pedido in ultimosPedidos"
+            :key="pedido.id"
+            class="order-card"
+            @click="verPedido(pedido.id)"
+          >
+            <div class="order-card__icon">
+              <q-icon name="receipt_long" size="20px" />
             </div>
-            <div class="order-price">
+            <div class="order-card__info">
+              <div class="order-card__num">Pedido #{{ pedido.numero }}</div>
+              <span class="order-status" :class="`order-status--${pedido.status}`">
+                {{ getStatusTexto(pedido.status) }}
+              </span>
+            </div>
+            <div class="order-card__price">
               {{ pedido.valor ? formatMoney(pedido.valor) : 'A definir' }}
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Mensagem quando não há dados -->
+      <!-- Estado vazio -->
       <div
         v-if="!prestadoresDestaque.length && !prestadoresTop.length && !ultimosPedidos.length"
-        class="empty-state q-pa-xl text-center"
+        class="empty-state"
       >
-        <q-icon name="info" size="64px" color="grey-4" />
-        <div class="text-h6 text-grey-7 q-mt-md">Bem-vindo ao EstouAqui!</div>
-        <div class="text-grey-6">
+        <q-icon name="explore" size="56px" class="empty-state__icon" />
+        <h3 class="empty-state__title">Bem-vindo ao EstouAqui!</h3>
+        <p class="empty-state__text">
           Explore os serviços disponíveis e encontre os melhores prestadores.
-        </div>
+        </p>
         <q-btn
-          class="q-mt-md"
+          unelevated
           color="primary"
           label="Explorar serviços"
           to="/mobile/lista-prestadores"
+          class="q-mt-sm"
+          no-caps
         />
       </div>
     </template>
 
-    <!-- Botão flutuante (+) para criar pedido -->
+    <!-- FAB -->
     <q-page-sticky position="bottom-right" :offset="[18, 18]">
       <q-btn
         fab
         icon="add"
         color="primary"
-        size="18px"
         @click="abrirModalCriarPedido"
-        class="fab-button"
+        class="fab-btn"
+        aria-label="Criar novo pedido"
       />
     </q-page-sticky>
 
-    <!-- Modal para criar pedido -->
+    <!-- Modal criar pedido -->
     <q-dialog v-model="modalCriarPedido" persistent>
-      <q-card style="min-width: 350px; max-width: 500px; width: 100%; border-radius: 20px">
-        <q-card-section
-          class="q-pa-md"
-          style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-        >
-          <div class="text-h6 text-white">Novo Pedido de Serviço</div>
-          <div class="text-subtitle2 text-white" style="opacity: 0.9">Descreva o que precisa</div>
-        </q-card-section>
+      <q-card class="modal-pedido">
+        <div class="modal-pedido__head">
+          <div class="modal-pedido__title">Novo pedido de serviço</div>
+          <div class="modal-pedido__sub">Descreva o que precisa</div>
+        </div>
 
-        <q-card-section class="q-pa-md">
-          <!-- Categoria -->
-          <div class="input-label">Tipo de Serviço *</div>
+        <q-card-section class="modal-pedido__body">
+          <div class="field-label">Tipo de serviço *</div>
           <q-select
             v-model="novoPedido.categoria_id"
             :options="categoriasOptions"
             label="Selecione a categoria"
             outlined
             dense
-            class="q-mb-md"
+            class="field-input q-mb-md"
             emit-value
             map-options
             :rules="[(val) => !!val || 'Selecione uma categoria']"
           />
 
-          <!-- Descrição -->
-          <div class="input-label">Descrição *</div>
+          <div class="field-label">Descrição *</div>
           <q-input
             v-model="novoPedido.descricao"
             type="textarea"
             outlined
             dense
-            placeholder="Ex: Preciso de um canalizador para reparar uma fuga de água..."
-            class="q-mb-md"
-            :rules="[(val) => !!val || 'Descrição é obrigatória']"
+            placeholder="Ex: Preciso de um canalizador para reparar uma fuga..."
+            class="field-input q-mb-md"
             rows="3"
+            :rules="[(val) => !!val || 'Descrição obrigatória']"
           />
 
-          <!-- Endereço -->
-          <div class="input-label">Localização *</div>
+          <div class="field-label">Localização *</div>
           <q-input
             v-model="novoPedido.endereco"
             outlined
             dense
             placeholder="Ex: Rua da Paz, 123, Maputo"
-            class="q-mb-md"
-            :rules="[(val) => !!val || 'Endereço é obrigatório']"
+            class="field-input q-mb-md"
+            :rules="[(val) => !!val || 'Endereço obrigatório']"
           >
             <template v-slot:prepend>
-              <q-icon name="location_on" color="grey-6" />
+              <q-icon name="location_on" color="grey-5" />
             </template>
           </q-input>
 
-          <!-- Foto (opcional) -->
-          <div class="input-label">Foto (opcional)</div>
-          <div class="photo-upload-area" @click="triggerFileInput">
+          <div class="field-label">Foto (opcional)</div>
+          <div class="photo-upload" @click="triggerFileInput">
             <input
               ref="fotoInput"
               type="file"
@@ -436,39 +378,36 @@
               style="display: none"
               @change="handleFotoUpload"
             />
-            <div class="photo-preview" v-if="fotoPreview">
-              <img
-                :src="fotoPreview"
-                alt="Preview"
-                style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px"
-              />
+            <div v-if="fotoPreview" class="photo-upload__preview">
+              <img :src="fotoPreview" alt="Preview" />
               <q-btn
                 flat
                 round
                 dense
                 icon="close"
                 size="sm"
-                class="remove-photo"
+                class="photo-upload__remove"
                 @click.stop="removerFoto"
               />
             </div>
-            <div class="photo-placeholder" v-else>
-              <q-icon name="add_a_photo" size="32px" color="grey-5" />
-              <div class="placeholder-text">Clique para adicionar foto</div>
-              <div class="placeholder-hint">JPG, PNG até 5MB</div>
+            <div v-else class="photo-upload__placeholder">
+              <q-icon name="add_a_photo" size="28px" color="grey-4" />
+              <div class="photo-upload__text">Clique para adicionar foto</div>
+              <div class="photo-upload__hint">JPG, PNG até 5MB</div>
             </div>
           </div>
         </q-card-section>
 
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat label="Cancelar" v-close-popup class="text-grey-7" />
+        <q-card-actions align="right" class="modal-pedido__actions">
+          <q-btn flat no-caps label="Cancelar" v-close-popup class="btn-cancel" />
           <q-btn
             unelevated
-            label="Publicar Pedido"
+            no-caps
+            label="Publicar pedido"
             color="primary"
             :loading="carregandoCriarPedido"
             @click="criarPedido"
-            class="q-px-md"
+            class="btn-publish"
           />
         </q-card-actions>
       </q-card>
@@ -482,23 +421,29 @@ import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { AxiosError } from 'axios';
 import { useAuthStore } from 'src/stores/auth-store';
+// ✅ IMPORTS CORRETOS - Stores separados
 import {
-  useClienteStore,
+  useClientePublicStore,
   type CategoriaData,
   type PrestadorData,
-  type PedidoData,
+} from 'src/stores/client/cliente-public-store';
+import { useClientePedidosStore, type PedidoData } from 'src/stores/client/cliente-pedidos-store';
+import {
+  useClienteComunicacaoStore,
   type NotificacaoData,
-} from 'src/stores/cliente-store';
-import { usePromocaoStore, type PromocaoData } from 'src/stores/promocao-store';
+} from 'src/stores/client/cliente-comunicacao-store';
+import { usePromocaoStore, type PromocaoData } from 'src/stores/client/promocao-store';
 
-defineOptions({
-  name: 'MobileInicio',
-});
+defineOptions({ name: 'MobileInicio' });
 
 const router = useRouter();
 const $q = useQuasar();
 const authStore = useAuthStore();
-const clienteStore = useClienteStore();
+
+// ✅ USANDO OS STORES CORRETOS
+const publicStore = useClientePublicStore();
+const pedidosStore = useClientePedidosStore();
+const comunicacaoStore = useClienteComunicacaoStore();
 const promocaoStore = usePromocaoStore();
 
 const defaultImage = 'https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_1280.png';
@@ -508,206 +453,150 @@ const defaultAvatar = 'https://ui-avatars.com/api/?background=667eea&color=fff&b
 const carregandoInicial = ref(true);
 const carregandoDestaque = ref(true);
 const carregandoTop = ref(true);
-const promoSlide = ref(0);
 const categoriasCarregadas = ref<CategoriaData[]>([]);
 
-// Estados para criar pedido
+// Estados modal
 const modalCriarPedido = ref(false);
 const carregandoCriarPedido = ref(false);
 const fotoInput = ref<HTMLInputElement | null>(null);
 const fotoPreview = ref<string | null>(null);
 const fotoFile = ref<File | null>(null);
-
-const novoPedido = ref({
-  categoria_id: null as number | null,
-  descricao: '',
-  endereco: '',
-});
-
-// Options para selects
+const novoPedido = ref({ categoria_id: null as number | null, descricao: '', endereco: '' });
 const categoriasOptions = ref<{ label: string; value: number }[]>([]);
 
-// Função auxiliar para garantir que é array
-const ensureArray = <T,>(value: T[] | null | undefined): T[] => {
-  if (Array.isArray(value)) {
-    return value;
-  }
-  return [];
-};
+// Helpers
+const ensureArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
 
-// Função auxiliar para converter media_avaliacao para número
 const obterMediaAvaliacao = (media: string | number | null | undefined): number => {
   if (media === null || media === undefined) return 0;
   const num = typeof media === 'string' ? parseFloat(media) : media;
   return isNaN(num) ? 0 : num;
 };
 
-// Computed com dados reais do store
-const categoriasPopulares = computed<CategoriaData[]>(() => {
-  return ensureArray<CategoriaData>(categoriasCarregadas.value);
+// Computed usando stores separados
+const categoriasPopulares = computed<CategoriaData[]>(() =>
+  ensureArray<CategoriaData>(categoriasCarregadas.value),
+);
+const promocoesReais = computed<PromocaoData[]>(() =>
+  ensureArray<PromocaoData>(promocaoStore.promocoes),
+);
+const ultimosPedidos = computed<PedidoData[]>(() =>
+  ensureArray<PedidoData>(pedidosStore.pedidos).slice(0, 3),
+);
+const userName = computed<string>(() => authStore.user?.nome?.split(' ')[0] || 'Utilizador');
+const notificacoesNaoLidas = computed<number>(
+  () => ensureArray<NotificacaoData>(comunicacaoStore.notificacoes).filter((n) => !n.lida).length,
+);
+const prestadoresDestaque = computed<PrestadorData[]>(() =>
+  ensureArray<PrestadorData>(publicStore.prestadoresDestaque).slice(0, 4),
+);
+const prestadoresTop = computed<PrestadorData[]>(() =>
+  ensureArray<PrestadorData>(publicStore.prestadoresTop).slice(0, 3),
+);
+
+const diaSemana = computed(() => new Date().toLocaleDateString('pt-PT', { weekday: 'long' }));
+const dataFormatada = computed(() =>
+  new Date().toLocaleDateString('pt-PT', { day: 'numeric', month: 'long' }),
+);
+
+// Avatar helpers
+const avatarGradients = [
+  'linear-gradient(135deg,#667EEA,#764BA2)',
+  'linear-gradient(135deg,#10B981,#059669)',
+  'linear-gradient(135deg,#F59E0B,#D97706)',
+  'linear-gradient(135deg,#EF4444,#DC2626)',
+  'linear-gradient(135deg,#3B82F6,#1D4ED8)',
+];
+
+const getAvatarStyle = (nome: string) => ({
+  background: avatarGradients[nome.charCodeAt(0) % avatarGradients.length],
 });
 
-// Promoções reais do store
-const promocoesReais = computed<PromocaoData[]>(() => {
-  return ensureArray<PromocaoData>(promocaoStore.promocoes);
+const getInitials = (nome: string) =>
+  nome
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
+
+const getCatIconStyle = (cor?: string) => ({
+  background: cor ? `${cor}18` : 'rgba(102,126,234,0.1)',
+  color: cor || '#667EEA',
 });
 
-// Últimos pedidos
-const ultimosPedidos = computed<PedidoData[]>(() => {
-  const pedidos = ensureArray<PedidoData>(clienteStore.pedidos);
-  return pedidos.slice(0, 3);
-});
-
-const userName = computed<string>(() => {
-  return authStore.user?.nome?.split(' ')[0] || 'Utilizador';
-});
-
-const currentDate = new Date().toLocaleDateString('pt-PT', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
-
-// Notificações não lidas
-const notificacoesNaoLidas = computed<number>(() => {
-  const notificacoes = ensureArray<NotificacaoData>(clienteStore.notificacoes);
-  return notificacoes.filter((n) => !n.lida).length;
-});
-
-// Prestadores destaque
-const prestadoresDestaque = computed<PrestadorData[]>(() => {
-  const prestadores = ensureArray<PrestadorData>(clienteStore.prestadoresDestaque);
-  return prestadores.slice(0, 4);
-});
-
-// Prestadores top
-const prestadoresTop = computed<PrestadorData[]>(() => {
-  const prestadores = ensureArray<PrestadorData>(clienteStore.prestadoresTop);
-  return prestadores.slice(0, 3);
-});
-
-// Funções auxiliares
-const formatMoney = (value: number): string => {
-  if (!value && value !== 0) return '0 MZN';
-  return new Intl.NumberFormat('pt-PT', {
+// Format helpers
+const formatMoney = (value: number): string =>
+  new Intl.NumberFormat('pt-PT', {
     style: 'currency',
     currency: 'MZN',
     minimumFractionDigits: 0,
   }).format(value);
-};
-
-const formatDate = (date: string): string => {
-  if (!date) return '';
-  const d = new Date(date);
-  return d.toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-};
 
 const getStatusTexto = (status: string): string => {
-  const statusMap: Record<string, string> = {
+  const map: Record<string, string> = {
     pendente: 'Pendente',
     aceito: 'Aceito',
     em_andamento: 'Em andamento',
     concluido: 'Concluído',
     cancelado: 'Cancelado',
   };
-  return statusMap[status] || status;
+  return map[status] || status;
 };
 
-const getPromoGradient = (promo: PromocaoData): { background: string } => {
-  const gradients: string[] = [
-    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-  ];
+const promoGradients = [
+  'linear-gradient(135deg,#667EEA,#764BA2)',
+  'linear-gradient(135deg,#f093fb,#f5576c)',
+  'linear-gradient(135deg,#4facfe,#00f2fe)',
+  'linear-gradient(135deg,#43e97b,#38f9d7)',
+];
 
-  const id = promo?.id ?? 0;
-  const index = Math.abs(id) % gradients.length;
-  return { background: gradients[index]! };
-};
+const getPromoGradient = (promo: PromocaoData) => ({
+  background: promoGradients[Math.abs(promo?.id ?? 0) % promoGradients.length],
+});
 
-const verPrestador = (id: number): void => {
-  if (id) {
-    void router.push(`/mobile/perfil-prestador/${id}`);
-  }
-};
+// Navegação
+const goTo = (path: string) => void router.push(path);
+const verPrestador = (id: number) => id && void router.push(`/mobile/perfil-prestador/${id}`);
+const verPedido = (id: number) => id && void router.push(`/mobile/detalhes-pedido/${id}`);
+const buscarPorCategoria = (id: number) =>
+  id && void router.push(`/mobile/lista-prestadores?categoria=${id}`);
+const verPromocao = () => void router.push('/mobile/promocoes');
 
-const verPedido = (id: number): void => {
-  if (id) {
-    void router.push(`/mobile/detalhes-pedido/${id}`);
-  }
-};
-
-const buscarPorCategoria = (id: number): void => {
-  if (id) {
-    void router.push(`/mobile/lista-prestadores?categoria=${id}`);
-  }
-};
-
-const verPromocao = (): void => {
-  void router.push('/mobile/promocoes');
-};
-
-const usarPromocao = async (promo: PromocaoData): Promise<void> => {
+const usarPromocao = async (promo: PromocaoData) => {
   if (!promo?.codigo) return;
-
   const result = await promocaoStore.validarCupom(promo.codigo);
   if (result) {
-    $q.notify({
-      type: 'positive',
-      message: `Cupom ${promo.codigo} aplicado com sucesso!`,
-      position: 'top',
-    });
+    $q.notify({ type: 'positive', message: `Cupom ${promo.codigo} aplicado!`, position: 'top' });
   }
 };
 
-const goTo = (path: string): void => {
-  void router.push(path);
-};
-
-// Métodos para criar pedido
+// Modal
 const abrirModalCriarPedido = () => {
-  novoPedido.value = {
-    categoria_id: null,
-    descricao: '',
-    endereco: '',
-  };
+  novoPedido.value = { categoria_id: null, descricao: '', endereco: '' };
   fotoPreview.value = null;
   fotoFile.value = null;
   modalCriarPedido.value = true;
 };
 
-const triggerFileInput = () => {
-  fotoInput.value?.click();
-};
+const triggerFileInput = () => fotoInput.value?.click();
 
 const handleFotoUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
+  const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
-
   if (file.size > 5 * 1024 * 1024) {
-    $q.notify({ type: 'negative', message: 'A imagem deve ter no máximo 5MB', position: 'top' });
+    $q.notify({ type: 'negative', message: 'Imagem deve ter no máximo 5MB', position: 'top' });
     return;
   }
-
   fotoFile.value = file;
   fotoPreview.value = URL.createObjectURL(file);
 };
 
 const removerFoto = () => {
-  if (fotoPreview.value) {
-    URL.revokeObjectURL(fotoPreview.value);
-  }
+  if (fotoPreview.value) URL.revokeObjectURL(fotoPreview.value);
   fotoPreview.value = null;
   fotoFile.value = null;
-  if (fotoInput.value) {
-    fotoInput.value.value = '';
-  }
+  if (fotoInput.value) fotoInput.value.value = '';
 };
 
 const criarPedido = async () => {
@@ -715,36 +604,27 @@ const criarPedido = async () => {
     $q.notify({ type: 'warning', message: 'Selecione o tipo de serviço', position: 'top' });
     return;
   }
-
-  if (!novoPedido.value.descricao || novoPedido.value.descricao.trim() === '') {
+  if (!novoPedido.value.descricao?.trim()) {
     $q.notify({ type: 'warning', message: 'Descreva o serviço que precisa', position: 'top' });
     return;
   }
-
-  if (!novoPedido.value.endereco || novoPedido.value.endereco.trim() === '') {
+  if (!novoPedido.value.endereco?.trim()) {
     $q.notify({ type: 'warning', message: 'Informe o endereço', position: 'top' });
     return;
   }
-
   carregandoCriarPedido.value = true;
-
   try {
-    const resultado = await clienteStore.criarPedidoServico({
+    // ✅ Usando pedidosStore
+    const resultado = await pedidosStore.criarPedidoServico({
       categoria_id: Number(novoPedido.value.categoria_id),
       descricao: novoPedido.value.descricao.trim(),
       endereco: novoPedido.value.endereco.trim(),
       foto: fotoFile.value,
     });
-
     if (resultado) {
-      $q.notify({
-        type: 'positive',
-        message: 'Pedido publicado com sucesso! Prestadores vão analisar.',
-        position: 'top',
-      });
+      $q.notify({ type: 'positive', message: 'Pedido publicado com sucesso!', position: 'top' });
       modalCriarPedido.value = false;
-      await clienteStore.fetchDashboard(true);
-      await clienteStore.fetchMeusPedidos(true);
+      await Promise.all([pedidosStore.fetchDashboard(true), pedidosStore.fetchMeusPedidos(true)]);
     } else {
       $q.notify({
         type: 'negative',
@@ -756,7 +636,7 @@ const criarPedido = async () => {
     const err = error as AxiosError<{ message?: string }>;
     $q.notify({
       type: 'negative',
-      message: err.response?.data?.message || 'Erro ao criar pedido. Tente novamente.',
+      message: err.response?.data?.message || 'Erro ao criar pedido.',
       position: 'top',
     });
   } finally {
@@ -764,72 +644,58 @@ const criarPedido = async () => {
   }
 };
 
-// Carregar categorias para o select
+// Carregamento
 const carregarCategoriasSelect = async () => {
   try {
-    const categorias = await clienteStore.fetchCategorias();
-    if (categorias && Array.isArray(categorias)) {
-      categoriasOptions.value = categorias.map((cat: CategoriaData) => ({
-        label: cat.nome,
-        value: cat.id,
-      }));
+    // ✅ Usando publicStore
+    const cats = await publicStore.fetchCategorias();
+    if (Array.isArray(cats)) {
+      categoriasOptions.value = cats.map((c: CategoriaData) => ({ label: c.nome, value: c.id }));
     }
   } catch (error) {
-    console.error('Erro ao carregar categorias:', error);
+    console.error(error);
   }
 };
 
-// Carregamento faseado COM SKELETON
-const carregarDados = async (): Promise<void> => {
+const carregarDados = async () => {
   carregandoInicial.value = true;
-
   try {
-    // Carregar categorias primeiro
     try {
-      const categorias = await clienteStore.fetchCategorias();
-      if (categorias && Array.isArray(categorias)) {
-        categoriasCarregadas.value = categorias;
-      } else {
-        categoriasCarregadas.value = [];
-      }
-    } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
+      // ✅ Usando publicStore
+      const cats = await publicStore.fetchCategorias();
+      categoriasCarregadas.value = Array.isArray(cats) ? cats : [];
+    } catch {
       categoriasCarregadas.value = [];
     }
 
-    // Carregar outros dados em paralelo
     await Promise.all([
-      clienteStore.fetchDashboard(),
-      clienteStore.fetchMeusPedidos(),
-      clienteStore.fetchNotificacoes(),
-      clienteStore.fetchFavoritos(),
+      pedidosStore.fetchDashboard(),
+      pedidosStore.fetchMeusPedidos(),
+      comunicacaoStore.fetchNotificacoes(),
+      comunicacaoStore.fetchFavoritos(),
     ]);
 
-    // Carregar prestadores
     await Promise.all([
-      clienteStore.fetchPrestadoresDestaque().finally(() => {
+      publicStore.fetchPrestadoresDestaque().finally(() => {
         carregandoDestaque.value = false;
       }),
-      clienteStore.fetchPrestadoresTop().finally(() => {
+      publicStore.fetchPrestadoresTop().finally(() => {
         carregandoTop.value = false;
       }),
     ]);
 
-    // Carregar promoções
     await promocaoStore.fetchPromocoes().catch(() => {});
   } catch (error) {
     console.error('Erro ao carregar dados:', error);
     carregandoDestaque.value = false;
     carregandoTop.value = false;
   } finally {
-    // Delay mínimo para o skeleton ser visível (evita flicker)
     setTimeout(() => {
       carregandoInicial.value = false;
-    }, 500);
+    }, 400);
   }
 };
 
-// Iniciar carregamento
 onMounted(() => {
   void carregarDados();
   void carregarCategoriasSelect();
@@ -837,29 +703,30 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
-$purple-secondary: #764ba2;
-$gray-50: #fafafa;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-$gray-700: #616161;
-$gray-800: #424242;
-$gray-900: #212121;
+// =====================
+// TOKENS
+// =====================
+$primary: #667eea;
+$primary-2: #764ba2;
+$primary-light: rgba(102, 126, 234, 0.09);
+$primary-mid: rgba(102, 126, 234, 0.18);
+$green: #10b981;
+$green-light: rgba(16, 185, 129, 0.1);
+$gold: #f59e0b;
+$red: #ef4444;
+$ink: #0f0f1a;
+$ink-2: #3d3d55;
+$muted: #9898b0;
+$line: rgba(0, 0, 0, 0.07);
+$surface: #ffffff;
+$bg: #f3f3f8;
+$radius: 14px;
+$radius-sm: 10px;
+$radius-xs: 8px;
 
-.inicio-page {
-  padding-bottom: 16px;
-  background: $gray-100;
-  min-height: 100vh;
-}
-
-/* ========================================== */
-/* SKELETON LOADING STYLES (SEM TEXTO) */
-/* ========================================== */
-
+// =====================
+// SKELETON
+// =====================
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -869,287 +736,340 @@ $gray-900: #212121;
   }
 }
 
+%shimmer {
+  background: linear-gradient(90deg, #e4e4ec 25%, #f0f0f6 50%, #e4e4ec 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
 .skeleton-loading {
-  background: $gray-100;
+  background: $bg;
   min-height: 100vh;
-  padding: 0;
 }
 
 .skeleton-header {
-  background: white;
+  background: $surface;
   padding: 20px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
+  border-bottom: 1px solid $line;
 }
-
 .skeleton-avatar {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  flex-shrink: 0;
+  @extend %shimmer;
 }
-
 .skeleton-header-text {
   flex: 1;
 }
-
 .skeleton-date {
-  width: 80px;
-  height: 20px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-line {
-  height: 14px;
-  border-radius: 7px;
-  margin: 6px 0;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  width: 70px;
+  height: 32px;
+  border-radius: $radius-xs;
+  @extend %shimmer;
 }
 
 .skeleton-stats {
   display: flex;
-  gap: 12px;
-  padding: 16px;
+  gap: 8px;
+  padding: 14px 16px;
+  .skeleton-stat-pill {
+    flex: 1;
+    background: $surface;
+    border-radius: $radius-sm;
+    padding: 12px 8px;
+    text-align: center;
+    border: 1px solid $line;
+  }
 }
-
-.skeleton-stat-card {
-  flex: 1;
-  background: white;
-  border-radius: 12px;
-  padding: 12px;
-  text-align: center;
-  border: 1px solid $gray-200;
-}
-
 .skeleton-icon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  margin: 0 auto 8px auto;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  margin: 0 auto 8px;
+  @extend %shimmer;
 }
 
 .skeleton-banner {
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  height: 100px;
-  border-radius: 16px;
-  margin: 0 16px 24px 16px;
+  height: 88px;
+  border-radius: $radius;
+  margin: 0 16px 20px;
+  @extend %shimmer;
 }
 
 .skeleton-section {
-  background: white;
-  border-radius: 16px;
+  background: $surface;
+  border-radius: $radius;
+  margin: 0 16px 16px;
   padding: 16px;
-  margin: 0 16px 16px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid $line;
 }
-
 .skeleton-section-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
-.skeleton-categorias {
+.skeleton-cats {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
-
-.skeleton-categoria-item {
+.skeleton-cat {
   flex: 1;
   text-align: center;
 }
-
-.skeleton-category-icon {
-  width: 50px;
-  height: 50px;
+.skeleton-cat-icon {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  margin: 0 auto 8px auto;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  margin: 0 auto 8px;
+  @extend %shimmer;
 }
 
-.skeleton-prestadores {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.skeleton-dest {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.skeleton-dest-card {
+  border-radius: $radius-sm;
+  overflow: hidden;
+  border: 1px solid $line;
+  background: $surface;
+}
+.skeleton-dest-img {
+  height: 90px;
+  @extend %shimmer;
+}
+.skeleton-dest-info {
+  padding: 10px;
 }
 
-.skeleton-prestador-card {
-  display: flex;
-  gap: 12px;
-  padding: 8px;
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  margin: 5px 0;
+  @extend %shimmer;
+  &.w-20 {
+    width: 20%;
+  }
+  &.w-30 {
+    width: 30%;
+  }
+  &.w-40 {
+    width: 40%;
+  }
+  &.w-50 {
+    width: 50%;
+  }
+  &.w-60 {
+    width: 60%;
+  }
+  &.w-80 {
+    width: 80%;
+  }
 }
 
-.skeleton-card-img {
-  width: 80px;
-  height: 80px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+// =====================
+// LAYOUT
+// =====================
+.inicio-page {
+  background: $bg;
+  min-height: 100vh;
+  padding-bottom: 20px;
 }
 
-.skeleton-card-info {
-  flex: 1;
-}
-
-.skeleton-spinner {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 10000;
-}
-
-.w-20 { width: 20%; }
-.w-30 { width: 30%; }
-.w-40 { width: 40%; }
-.w-50 { width: 50%; }
-.w-60 { width: 60%; }
-.w-80 { width: 80%; }
-
-/* ========================================== */
-/* ESTILOS NORMAIS (mantidos) */
-/* ========================================== */
-
-.greeting-section {
+// =====================
+// HEADER
+// =====================
+.page-header {
+  background: $surface;
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid $line;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 20px;
-  background: white;
 
-  .greeting {
+  &__left {
     display: flex;
     align-items: center;
-  }
-
-  .greeting-text {
-    font-size: 1.2rem;
-    color: $gray-600;
-    margin-right: 5px;
-  }
-
-  .user-name {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: $gray-900;
-  }
-
-  .user-badge {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.7rem;
-    color: $gray-600;
-    margin-top: 2px;
-  }
-
-  .date {
-    font-size: 0.8rem;
-    color: $gray-500;
+    gap: 10px;
   }
 }
 
-.summary-card {
-  background: white;
-  border-radius: 12px;
+.user-avatar {
+  border: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.header-sub {
+  font-size: 11px;
+  color: $muted;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 1px;
+}
+.header-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: $ink;
+  line-height: 1.2;
+}
+.header-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: $green;
+  margin-top: 2px;
+  .badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: $green;
+  }
+}
+.header-date {
+  font-size: 11px;
+  color: $muted;
+  text-align: right;
+  line-height: 1.6;
+  text-transform: capitalize;
+}
+
+// =====================
+// STATS PILLS
+// =====================
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.stat-pill {
+  background: $surface;
+  border-radius: $radius-sm;
   padding: 12px 8px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  border: 1px solid $gray-200;
+  border: 1px solid $line;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s;
 
   &:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
 
-  .summary-value {
-    font-size: 1.4rem;
+  &__icon {
+    margin-bottom: 6px;
+  }
+  &__value {
+    font-size: 20px;
     font-weight: 700;
-    color: $gray-800;
-    margin: 4px 0;
+    color: $ink;
+    line-height: 1;
+  }
+  &__label {
+    font-size: 10px;
+    color: $muted;
+    margin-top: 3px;
+    line-height: 1.3;
   }
 
-  .summary-label {
-    font-size: 0.7rem;
-    color: $gray-500;
+  &--primary .stat-pill__icon {
+    color: $primary;
   }
-}
-
-.category-card {
-  background: white;
-  border-radius: 12px;
-  padding: 12px 8px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid $gray-200;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  &--purple .stat-pill__icon {
+    color: $primary-2;
   }
-
-  .category-name {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: $gray-800;
-    margin-top: 8px;
-  }
-
-  .category-count {
-    font-size: 0.7rem;
-    color: $gray-500;
-    margin-top: 2px;
+  &--red .stat-pill__icon {
+    color: $red;
   }
 }
 
+// =====================
+// PROMO BANNER
+// =====================
 .promo-banner {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  border-radius: 16px;
+  background: $primary;
+  border-radius: $radius;
   padding: 16px;
+  margin: 0 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
 
-  .promo-banner-content {
+  &::after,
+  &::before {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+  }
+  &::after {
+    width: 90px;
+    height: 90px;
+    right: -15px;
+    top: -20px;
+  }
+  &::before {
+    width: 60px;
+    height: 60px;
+    right: 40px;
+    bottom: -25px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &__icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.18);
     display: flex;
     align-items: center;
-    gap: 12px;
-    color: white;
-
-    .promo-banner-title {
-      font-size: 1rem;
-      font-weight: 700;
-    }
-
-    .promo-banner-subtitle {
-      font-size: 0.8rem;
-      opacity: 0.9;
-    }
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  &__body {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+  }
+  &__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+  &__sub {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  &__cta {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    white-space: nowrap;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
   }
 }
 
-.section {
+// =====================
+// SECTION
+// =====================
+.page-section {
   margin-bottom: 24px;
 }
 
@@ -1157,281 +1077,469 @@ $gray-900: #212121;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 16px;
   margin-bottom: 12px;
-  padding: 0 4px;
 
   .section-title {
-    font-size: 1.1rem;
+    font-size: 15px;
     font-weight: 600;
-    color: $gray-800;
+    color: $ink;
+    margin: 0;
   }
-
   .section-link {
-    color: $purple-primary;
-    font-size: 0.8rem;
+    font-size: 12px;
+    color: $primary;
+    font-weight: 500;
+    padding: 3px 8px !important;
+    border-radius: $radius-xs !important;
+    &:hover {
+      background: $primary-light !important;
+    }
   }
 }
 
-.service-card {
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 8px;
+.loading-center {
+  text-align: center;
+  padding: 20px 0;
+}
+
+// =====================
+// CATEGORIAS
+// =====================
+.cats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.cat-card {
+  background: $surface;
+  border-radius: $radius-sm;
+  padding: 12px 6px;
+  text-align: center;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  border: 1px solid $line;
+  transition: all 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: $primary;
+  }
+
+  &__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 8px;
+  }
+  &__name {
+    font-size: 11px;
+    font-weight: 500;
+    color: $ink;
+    margin-bottom: 2px;
+  }
+  &__count {
+    font-size: 10px;
+    color: $muted;
+  }
+}
+
+// =====================
+// DESTAQUE GRID
+// =====================
+.dest-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 16px;
+}
+
+.dest-card {
+  background: $surface;
+  border-radius: $radius;
+  border: 1px solid $line;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s;
 
   &:hover {
     transform: translateY(-2px);
   }
 
-  .service-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: $gray-800;
+  &__body {
+    padding: 10px 12px;
+  }
+  &__name {
+    font-size: 13px;
+    font-weight: 500;
+    color: $ink;
+    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  .service-provider {
-    font-size: 0.75rem;
-    color: $gray-600;
-    margin: 2px 0;
+  &__cat {
+    font-size: 11px;
+    color: $muted;
+    margin-bottom: 4px;
   }
-
-  .service-rating {
+  &__stars {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin: 2px 0;
-
-    .rating-count {
-      font-size: 0.7rem;
-      color: $gray-500;
-    }
+    gap: 3px;
+  }
+  &__count {
+    font-size: 10px;
+    color: $muted;
   }
 }
 
-.promo-slider {
-  .promo-card-slide {
-    height: 100%;
-    border-radius: 12px;
-    padding: 16px;
-
-    .promo-slide-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      height: 100%;
-      gap: 16px;
-
-      .promo-info {
-        flex: 1;
-      }
-
-      .promo-title {
-        font-size: 1rem;
-        font-weight: 700;
-        color: white;
-      }
-
-      .promo-subtitle {
-        font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.9);
-        margin-top: 4px;
-      }
-
-      .promo-code {
-        font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.8);
-        margin-top: 6px;
-        font-family: monospace;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-
-      .promo-validity {
-        font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.7);
-        margin-top: 4px;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-    }
-  }
+// =====================
+// PROMOÇÕES
+// =====================
+.promo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
 }
 
-.provider-card {
-  background: white;
-  border-radius: 12px;
-  margin-bottom: 8px;
+.promo-slide {
+  border-radius: $radius;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   cursor: pointer;
-  transition: transform 0.2s ease;
-  padding: 8px;
 
-  &:hover {
-    transform: translateY(-2px);
-  }
-
-  .provider-item {
-    display: flex;
-    align-items: center;
-  }
-
-  .provider-info {
+  &__info {
     flex: 1;
-    margin-left: 12px;
   }
-
-  .provider-name {
-    font-size: 1rem;
-    font-weight: 600;
-    color: $gray-800;
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2px;
   }
-
-  .provider-category {
-    font-size: 0.8rem;
-    color: $gray-600;
+  &__sub {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 5px;
   }
-
-  .provider-rating {
+  &__code {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.75);
+    font-family: monospace;
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-top: 2px;
-
-    .rating-count {
-      font-size: 0.7rem;
-      color: $gray-500;
-    }
+    gap: 3px;
   }
-}
-
-.recent-order-card {
-  background: white;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-  border: 1px solid $gray-200;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-
-  .order-number {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: $gray-800;
-  }
-
-  .order-status {
-    font-size: 0.7rem;
-    padding: 2px 8px;
-    border-radius: 12px;
-    display: inline-block;
-    margin-top: 4px;
-
-    &.pendente {
-      background: #fff3e0;
-      color: #f57c00;
-    }
-
-    &.aceito {
-      background: #e8f5e9;
-      color: #2e7d32;
-    }
-
-    &.em_andamento {
-      background: #e3f2fd;
-      color: #1976d2;
-    }
-
-    &.concluido {
-      background: #e8f5e9;
-      color: #2e7d32;
-    }
-
-    &.cancelado {
-      background: #ffebee;
-      color: #d32f2f;
-    }
-  }
-
-  .order-price {
-    font-size: 1rem;
+  &__disc {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 12px;
     font-weight: 700;
-    color: $purple-primary;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    white-space: nowrap;
   }
 }
 
-.empty-state {
-  background: white;
-  border-radius: 16px;
-  margin: 20px;
+// =====================
+// TOP LIST
+// =====================
+.top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
 }
 
-.fab-button {
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-  transition: all 0.3s ease;
+.top-card {
+  background: $surface;
+  border-radius: $radius;
+  border: 1px solid $line;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
 
   &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 15px 30px rgba(102, 126, 234, 0.5);
+    background: $primary-light;
+  }
+
+  &__avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+  &__name {
+    font-size: 14px;
+    font-weight: 500;
+    color: $ink;
+    margin-bottom: 2px;
+  }
+  &__cat {
+    font-size: 11px;
+    color: $muted;
   }
 }
 
-.input-label {
-  font-size: 0.85rem;
+.top-badge {
+  font-size: 10px;
   font-weight: 600;
-  color: $gray-700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: $primary-light;
+  color: $primary;
+  white-space: nowrap;
+}
+
+// =====================
+// ORDERS LIST
+// =====================
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.order-card {
+  background: $surface;
+  border-radius: $radius;
+  border: 1px solid $line;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: $primary-light;
+  }
+
+  &__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-xs;
+    background: $primary-light;
+    color: $primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  &__info {
+    flex: 1;
+  }
+  &__num {
+    font-size: 13px;
+    font-weight: 500;
+    color: $ink;
+    margin-bottom: 3px;
+  }
+  &__price {
+    font-size: 14px;
+    font-weight: 700;
+    color: $primary;
+    white-space: nowrap;
+  }
+}
+
+.order-status {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &--pendente {
+    background: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+  }
+  &--aceito {
+    background: $green-light;
+    color: darken($green, 15%);
+  }
+  &--em_andamento {
+    background: $primary-light;
+    color: $primary;
+  }
+  &--concluido {
+    background: $green-light;
+    color: darken($green, 15%);
+  }
+  &--cancelado {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+  }
+}
+
+// =====================
+// FAB
+// =====================
+.fab-btn {
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4) !important;
+  transition: all 0.3s !important;
+  &:hover {
+    transform: scale(1.06);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5) !important;
+  }
+}
+
+// =====================
+// EMPTY STATE
+// =====================
+.empty-state {
+  background: $surface;
+  border-radius: $radius;
+  border: 1px solid $line;
+  margin: 20px 16px;
+  padding: 40px 24px;
+  text-align: center;
+
+  &__icon {
+    color: #ccc;
+    margin-bottom: 14px;
+  }
+  &__title {
+    font-size: 17px;
+    font-weight: 600;
+    color: $ink;
+    margin-bottom: 6px;
+  }
+  &__text {
+    font-size: 13px;
+    color: $muted;
+    line-height: 1.5;
+  }
+}
+
+// =====================
+// MODAL
+// =====================
+.modal-pedido {
+  min-width: 320px;
+  max-width: 480px;
+  width: 100%;
+  border-radius: 20px !important;
+  overflow: hidden;
+
+  &__head {
+    padding: 18px 20px 16px;
+    background: linear-gradient(135deg, $primary, $primary-2);
+  }
+  &__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+  &__sub {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  &__body {
+    padding: 16px 20px;
+  }
+  &__actions {
+    padding: 8px 20px 20px !important;
+    gap: 8px;
+  }
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: $ink-2;
   margin-bottom: 5px;
 }
+.field-input {
+  border-radius: $radius-xs !important;
+}
 
-.photo-upload-area {
-  border: 2px dashed $gray-300;
-  border-radius: 15px;
+.btn-cancel {
+  padding: 8px 16px !important;
+  border-radius: $radius-xs !important;
+  color: $muted !important;
+  font-size: 13px !important;
+}
+.btn-publish {
+  padding: 8px 20px !important;
+  border-radius: $radius-xs !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+.photo-upload {
+  border: 1.5px dashed $line;
+  border-radius: $radius-sm;
   padding: 20px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: $gray-50;
+  background: $bg;
+  transition: all 0.2s;
 
   &:hover {
-    border-color: $purple-primary;
-    background: rgba(102, 126, 234, 0.05);
+    border-color: $primary;
+    background: $primary-light;
   }
 
-  .photo-preview {
+  &__preview {
     position: relative;
     display: inline-block;
     width: 100%;
     max-width: 200px;
-    height: 150px;
-
-    .remove-photo {
-      position: absolute;
-      top: -10px;
-      right: -10px;
-      background: white;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    height: 140px;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: $radius-xs;
     }
   }
-
-  .photo-placeholder {
-    .placeholder-text {
-      margin-top: 10px;
-      color: $gray-600;
-      font-weight: 500;
-    }
-
-    .placeholder-hint {
-      font-size: 0.7rem;
-      color: $gray-500;
-      margin-top: 5px;
-    }
+  &__remove {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: $surface !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  }
+  &__placeholder {
+  }
+  &__text {
+    font-size: 13px;
+    color: $muted;
+    font-weight: 500;
+    margin-top: 8px;
+  }
+  &__hint {
+    font-size: 11px;
+    color: lighten($muted, 10%);
+    margin-top: 3px;
   }
 }
 </style>

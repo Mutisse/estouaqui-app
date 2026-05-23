@@ -1,29 +1,24 @@
 <template>
-  <q-page class="prestador-ganhos bg-grey-1">
-    <!-- Skeleton Loading (enquanto carrega) -->
+  <div class="prestador-ganhos">
+    <!-- ===== SKELETON LOADING ===== -->
     <div v-if="carregamentoInicial" class="skeleton-loading">
       <div class="skeleton-header">
         <div class="skeleton-back-btn"></div>
         <div class="skeleton-title"></div>
         <div class="skeleton-menu-btn"></div>
       </div>
-      <div class="skeleton-saldo-card q-pa-md">
-        <div class="skeleton-saldo-inner"></div>
-      </div>
+      <div class="skeleton-saldo-card"></div>
       <div class="skeleton-filtros">
-        <div class="skeleton-filter-btn"></div>
-        <div class="skeleton-filter-btn"></div>
-        <div class="skeleton-filter-btn"></div>
-        <div class="skeleton-filter-btn"></div>
+        <div v-for="i in 4" :key="i" class="skeleton-filter-btn"></div>
       </div>
-      <div class="skeleton-resumo q-px-md">
+      <div class="skeleton-resumo">
         <div class="row q-col-gutter-sm">
           <div v-for="i in 3" :key="i" class="col-4">
             <div class="skeleton-resumo-card"></div>
           </div>
         </div>
       </div>
-      <div class="skeleton-grafico q-px-md q-mb-md">
+      <div class="skeleton-grafico">
         <div class="skeleton-section-header"></div>
         <div class="skeleton-grafico-card">
           <div class="skeleton-grafico-barras">
@@ -31,7 +26,7 @@
           </div>
         </div>
       </div>
-      <div class="skeleton-historico q-pa-md">
+      <div class="skeleton-historico">
         <div class="skeleton-section-header"></div>
         <div class="skeleton-list">
           <div v-for="i in 3" :key="i" class="skeleton-list-item">
@@ -44,7 +39,7 @@
           </div>
         </div>
       </div>
-      <div class="skeleton-estatisticas q-pa-md">
+      <div class="skeleton-estatisticas">
         <div class="skeleton-section-header"></div>
         <div class="row q-col-gutter-sm">
           <div v-for="i in 4" :key="i" class="col-12 col-md-6">
@@ -54,221 +49,326 @@
       </div>
     </div>
 
-    <!-- Conteúdo original -->
+    <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
-      <!-- Cabeçalho -->
-      <div class="page-header q-pa-md">
-        <q-btn flat round icon="arrow_back" @click="router.back()" />
-        <div class="text-h5 text-bold">Meus Ganhos</div>
-        <q-btn flat round icon="more_vert" @click="opcoes" />
+      <!-- ===== CABEÇALHO ===== -->
+      <div class="page-header">
+        <button class="back-btn" @click="() => void router.back()">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <h1 class="page-title">Meus Ganhos</h1>
+        <button class="menu-btn" @click="opcoes">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="1" />
+            <circle cx="12" cy="5" r="1" />
+            <circle cx="12" cy="19" r="1" />
+          </svg>
+        </button>
       </div>
 
-      <!-- Loading -->
+      <!-- Loading interno -->
       <div v-if="loading" class="loading-state">
-        <q-spinner color="primary" size="48px" />
-        <div class="text-grey-6 q-mt-md">Carregando dados...</div>
+        <div class="loader"></div>
+        <p>Carregando dados...</p>
       </div>
 
       <template v-else>
-        <!-- Saldo atual -->
-        <div class="saldo-card q-pa-md">
-          <q-card flat bordered class="saldo-card-inner">
-            <q-card-section class="text-center">
-              <div class="saldo-label">Saldo disponível</div>
-              <div class="saldo-valor">{{ formatarValor(saldoDisponivel) }} MZN</div>
-              <q-btn
-                unelevated
-                color="primary"
-                label="Realizar saque"
-                class="q-mt-md saque-btn"
-                @click="irParaSaques"
-                no-caps
-              />
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- Filtros de período -->
-        <div class="filtros-periodo q-px-md q-mb-md">
-          <q-btn-toggle
-            v-model="periodo"
-            toggle-color="primary"
-            :options="[
-              { label: 'Hoje', value: 'hoje' },
-              { label: 'Semana', value: 'semana' },
-              { label: 'Mês', value: 'mes' },
-              { label: 'Ano', value: 'ano' },
-            ]"
-            @update:model-value="carregarDados"
-          />
-        </div>
-
-        <!-- Resumo de ganhos -->
-        <div class="resumo-ganhos q-px-md q-mb-md">
-          <div class="row q-col-gutter-sm">
-            <div class="col-4">
-              <q-card class="resumo-card" flat bordered>
-                <q-card-section class="text-center">
-                  <div class="resumo-valor">{{ resumo.totalServicos }}</div>
-                  <div class="resumo-label">Serviços</div>
-                </q-card-section>
-              </q-card>
-            </div>
-            <div class="col-4">
-              <q-card class="resumo-card" flat bordered>
-                <q-card-section class="text-center">
-                  <div class="resumo-valor">{{ formatarValor(resumo.ganhosPeriodo) }}</div>
-                  <div class="resumo-label">Ganhos</div>
-                </q-card-section>
-              </q-card>
-            </div>
-            <div class="col-4">
-              <q-card class="resumo-card" flat bordered>
-                <q-card-section class="text-center">
-                  <div class="resumo-valor">{{ formatarValor(resumo.media) }}</div>
-                  <div class="resumo-label">Média</div>
-                </q-card-section>
-              </q-card>
-            </div>
+        <!-- ===== SALDO CARD ===== -->
+        <div class="saldo-card">
+          <div class="saldo-card__inner">
+            <div class="saldo-label">Saldo disponível</div>
+            <div class="saldo-value">{{ formatarValor(saldoDisponivel) }} MZN</div>
+            <button class="saque-btn" @click="irParaSaques">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
+                />
+                <circle cx="12" cy="12" r="4" />
+              </svg>
+              Realizar saque
+            </button>
           </div>
         </div>
 
-        <!-- Gráfico de ganhos -->
-        <div class="grafico-section q-px-md q-mb-md">
+        <!-- ===== FILTROS DE PERÍODO ===== -->
+        <div class="periodo-filters">
+          <button
+            class="periodo-btn"
+            :class="{ active: periodo === 'hoje' }"
+            @click="
+              periodo = 'hoje';
+              carregarDados();
+            "
+          >
+            Hoje
+          </button>
+          <button
+            class="periodo-btn"
+            :class="{ active: periodo === 'semana' }"
+            @click="
+              periodo = 'semana';
+              carregarDados();
+            "
+          >
+            Semana
+          </button>
+          <button
+            class="periodo-btn"
+            :class="{ active: periodo === 'mes' }"
+            @click="
+              periodo = 'mes';
+              carregarDados();
+            "
+          >
+            Mês
+          </button>
+          <button
+            class="periodo-btn"
+            :class="{ active: periodo === 'ano' }"
+            @click="
+              periodo = 'ano';
+              carregarDados();
+            "
+          >
+            Ano
+          </button>
+        </div>
+
+        <!-- ===== RESUMO ===== -->
+        <div class="resumo-grid">
+          <div class="resumo-card">
+            <div class="resumo-card__value">{{ resumo.totalServicos }}</div>
+            <div class="resumo-card__label">Serviços</div>
+          </div>
+          <div class="resumo-card">
+            <div class="resumo-card__value">{{ formatarValor(resumo.ganhosPeriodo) }}</div>
+            <div class="resumo-card__label">Ganhos</div>
+          </div>
+          <div class="resumo-card">
+            <div class="resumo-card__value">{{ formatarValor(resumo.media) }}</div>
+            <div class="resumo-card__label">Média</div>
+          </div>
+        </div>
+
+        <!-- ===== GRÁFICO ===== -->
+        <div class="grafico-section">
           <div class="section-header">
-            <div class="section-title">Evolução de ganhos</div>
+            <h3>Evolução de ganhos</h3>
           </div>
-          <q-card flat bordered class="grafico-card">
-            <q-card-section>
-              <div v-if="graficoData.length === 0" class="text-center q-py-lg">
-                <q-icon name="bar_chart" size="48px" color="grey-4" />
-                <div class="text-grey-6 q-mt-sm">Nenhum dado disponível</div>
-              </div>
-              <div v-else class="grafico-barras">
-                <div v-for="(item, index) in graficoData" :key="index" class="barra-item">
-                  <div class="barra-label">{{ item.label }}</div>
-                  <div class="barra-container">
-                    <div
-                      class="barra"
-                      :style="{ height: item.altura + 'px', backgroundColor: item.cor }"
-                    ></div>
-                  </div>
-                  <div class="barra-valor">{{ formatarValor(item.valor) }}k</div>
+          <div class="grafico-card">
+            <div v-if="graficoData.length === 0" class="grafico-empty">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#D1D5DB"
+                stroke-width="1.5"
+              >
+                <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+                <path d="M12 8v4l2 2" />
+              </svg>
+              <p>Nenhum dado disponível</p>
+            </div>
+            <div v-else class="grafico-barras">
+              <div v-for="(item, index) in graficoData" :key="index" class="barra-item">
+                <div class="barra-label">{{ item.label }}</div>
+                <div class="barra-container">
+                  <div class="barra" :style="{ height: item.altura + 'px' }"></div>
                 </div>
+                <div class="barra-valor">{{ formatarValor(item.valor) }}k</div>
               </div>
-            </q-card-section>
-          </q-card>
+            </div>
+          </div>
         </div>
 
-        <!-- Histórico de ganhos -->
-        <div class="historico-ganhos q-pa-md">
+        <!-- ===== HISTÓRICO ===== -->
+        <div class="historico-section">
           <div class="section-header">
-            <div class="section-title">Últimos ganhos</div>
-            <q-btn flat dense label="Ver todos" icon="chevron_right" @click="verTodos" />
+            <h3>Últimos ganhos</h3>
+            <button class="view-all" @click="verTodos">Ver todos →</button>
           </div>
-
-          <div v-if="historicoGanhos.length === 0" class="empty-state q-pa-md text-center">
-            <q-icon name="payments" size="48px" color="grey-4" />
-            <div class="text-grey-6 q-mt-sm">Nenhum ganho registrado</div>
+          <div v-if="historicoGanhos.length === 0" class="empty-state">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#D1D5DB"
+              stroke-width="1.5"
+            >
+              <path
+                d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
+              />
+              <circle cx="12" cy="12" r="4" />
+            </svg>
+            <p>Nenhum ganho registrado</p>
           </div>
-
-          <q-list v-else bordered separator class="historico-list">
-            <q-item v-for="ganho in historicoGanhos" :key="ganho.id" class="ganho-item">
-              <q-item-section avatar>
-                <q-avatar :color="ganho.cor" text-color="white" size="40px">
-                  <q-icon :name="ganho.icone" />
-                </q-avatar>
-              </q-item-section>
-
-              <q-item-section>
-                <q-item-label>{{ ganho.cliente }}</q-item-label>
-                <q-item-label caption>{{ ganho.servico }} • {{ ganho.data }}</q-item-label>
-              </q-item-section>
-
-              <q-item-section side>
-                <div class="ganho-valor text-positive">{{ formatarValor(ganho.valor) }} MZN</div>
-              </q-item-section>
-            </q-item>
-          </q-list>
+          <div v-else class="historico-list">
+            <div v-for="ganho in historicoGanhos" :key="ganho.id" class="historico-item">
+              <div class="historico-item__avatar" :class="ganho.cor">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
+                  />
+                </svg>
+              </div>
+              <div class="historico-item__info">
+                <div class="historico-item__cliente">{{ ganho.cliente }}</div>
+                <div class="historico-item__servico">{{ ganho.servico }} • {{ ganho.data }}</div>
+              </div>
+              <div class="historico-item__valor">+{{ formatarValor(ganho.valor) }} MZN</div>
+            </div>
+          </div>
         </div>
 
-        <!-- Estatísticas detalhadas -->
-        <div class="estatisticas-detalhadas q-pa-md q-mt-md">
+        <!-- ===== ESTATÍSTICAS DETALHADAS ===== -->
+        <div class="estatisticas-section">
           <div class="section-header">
-            <div class="section-title">Estatísticas Detalhadas</div>
+            <h3>Estatísticas Detalhadas</h3>
           </div>
-
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-md-6">
-              <q-card flat bordered class="estatistica-card">
-                <q-card-section>
-                  <div class="estatistica-titulo">Melhor mês</div>
-                  <div class="estatistica-valor">{{ estatisticas.melhorMes.mes }}</div>
-                  <div class="estatistica-sub">
-                    {{ formatarValor(estatisticas.melhorMes.valor) }} MZN
-                  </div>
-                </q-card-section>
-              </q-card>
+          <div class="estatisticas-grid">
+            <div class="estatistica-card">
+              <div class="estatistica-card__icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5B4BF5"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </div>
+              <div class="estatistica-card__title">Melhor mês</div>
+              <div class="estatistica-card__value">{{ estatisticas.melhorMes.mes }}</div>
+              <div class="estatistica-card__sub">
+                {{ formatarValor(estatisticas.melhorMes.valor) }} MZN
+              </div>
             </div>
-            <div class="col-12 col-md-6">
-              <q-card flat bordered class="estatistica-card">
-                <q-card-section>
-                  <div class="estatistica-titulo">Serviço mais requisitado</div>
-                  <div class="estatistica-valor">{{ estatisticas.servicoMaisRequisitado.nome }}</div>
-                  <div class="estatistica-sub">
-                    {{ estatisticas.servicoMaisRequisitado.quantidade }} serviços
-                  </div>
-                </q-card-section>
-              </q-card>
+            <div class="estatistica-card">
+              <div class="estatistica-card__icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5B4BF5"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"
+                  />
+                </svg>
+              </div>
+              <div class="estatistica-card__title">Serviço mais requisitado</div>
+              <div class="estatistica-card__value">
+                {{ estatisticas.servicoMaisRequisitado.nome }}
+              </div>
+              <div class="estatistica-card__sub">
+                {{ estatisticas.servicoMaisRequisitado.quantidade }} serviços
+              </div>
             </div>
-            <div class="col-12 col-md-6">
-              <q-card flat bordered class="estatistica-card">
-                <q-card-section>
-                  <div class="estatistica-titulo">Melhor cliente</div>
-                  <div class="estatistica-valor">{{ estatisticas.melhorCliente.nome }}</div>
-                  <div class="estatistica-sub">
-                    {{ formatarValor(estatisticas.melhorCliente.totalGasto) }} MZN gastos
-                  </div>
-                </q-card-section>
-              </q-card>
+            <div class="estatistica-card">
+              <div class="estatistica-card__icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5B4BF5"
+                  stroke-width="2"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <div class="estatistica-card__title">Melhor cliente</div>
+              <div class="estatistica-card__value">{{ estatisticas.melhorCliente.nome }}</div>
+              <div class="estatistica-card__sub">
+                {{ formatarValor(estatisticas.melhorCliente.totalGasto) }} MZN gastos
+              </div>
             </div>
-            <div class="col-12 col-md-6">
-              <q-card flat bordered class="estatistica-card">
-                <q-card-section>
-                  <div class="estatistica-titulo">Média por serviço</div>
-                  <div class="estatistica-valor">
-                    {{ formatarValor(estatisticas.mediaPorServico) }} MZN
-                  </div>
-                  <div class="estatistica-sub">
-                    {{ estatisticas.totalServicos }} serviços realizados
-                  </div>
-                </q-card-section>
-              </q-card>
+            <div class="estatistica-card">
+              <div class="estatistica-card__icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5B4BF5"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
+                  />
+                </svg>
+              </div>
+              <div class="estatistica-card__title">Média por serviço</div>
+              <div class="estatistica-card__value">
+                {{ formatarValor(estatisticas.mediaPorServico) }} MZN
+              </div>
+              <div class="estatistica-card__sub">
+                {{ estatisticas.totalServicos }} serviços realizados
+              </div>
             </div>
           </div>
         </div>
       </template>
     </template>
 
-    <!-- Botão flutuante para estatísticas -->
-    <q-page-sticky position="bottom-right" :offset="[18, 18]">
-      <q-btn fab icon="bar_chart" color="primary" @click="scrollParaEstatisticas">
-        <q-tooltip>Ver estatísticas detalhadas</q-tooltip>
-      </q-btn>
-    </q-page-sticky>
-  </q-page>
+    <!-- ===== FAB ===== -->
+    <button class="fab-btn" @click="scrollParaEstatisticas">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+        <path d="M12 8v4l2 2" />
+      </svg>
+    </button>
+  </div>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorStore } from 'src/stores/prestador-store';
-import type { SolicitacaoData, ServicoTipoOptionData } from 'src/stores/prestador-store';
+import { usePrestadorFinanceiroStore } from 'src/stores/prestador/prestador-financeiro-store';
+import { usePrestadorServicosStore } from 'src/stores/prestador/prestador-servicos-store';
+import type { SolicitacaoData } from 'src/stores/prestador/prestador-servicos-store';
 
-defineOptions({
-  name: 'PrestadorGanhos',
-});
+defineOptions({ name: 'PrestadorGanhos' });
 
 interface GanhoHistorico {
   id: number;
@@ -276,7 +376,6 @@ interface GanhoHistorico {
   servico: string;
   data: string;
   valor: number;
-  icone: string;
   cor: string;
 }
 
@@ -290,41 +389,28 @@ interface GraficoItem {
   label: string;
   valor: number;
   altura: number;
-  cor: string;
 }
 
 interface Estatisticas {
-  melhorMes: {
-    mes: string;
-    valor: number;
-  };
-  servicoMaisRequisitado: {
-    nome: string;
-    quantidade: number;
-  };
-  melhorCliente: {
-    nome: string;
-    totalGasto: number;
-  };
+  melhorMes: { mes: string; valor: number };
+  servicoMaisRequisitado: { nome: string; quantidade: number };
+  melhorCliente: { nome: string; totalGasto: number };
   mediaPorServico: number;
   totalServicos: number;
 }
 
 const router = useRouter();
 const $q = useQuasar();
-const prestadorStore = usePrestadorStore();
 
-// Estados
+const financeiroStore = usePrestadorFinanceiroStore();
+const servicosStore = usePrestadorServicosStore();
+
 const carregamentoInicial = ref(true);
 const loading = ref(true);
 const periodo = ref('mes');
 const saldoDisponivel = ref(0);
 const historicoGanhos = ref<GanhoHistorico[]>([]);
-const resumo = ref<ResumoGanhos>({
-  totalServicos: 0,
-  ganhosPeriodo: 0,
-  media: 0,
-});
+const resumo = ref<ResumoGanhos>({ totalServicos: 0, ganhosPeriodo: 0, media: 0 });
 const graficoData = ref<GraficoItem[]>([]);
 const estatisticas = ref<Estatisticas>({
   melhorMes: { mes: '--', valor: 0 },
@@ -334,135 +420,44 @@ const estatisticas = ref<Estatisticas>({
   totalServicos: 0,
 });
 
-const servicoTiposMap = new Map<string, { icone: string; cor: string }>();
-const coresGrafico: string[] = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', '#43e97b'];
-
-const formatarValor = (valor: number) => {
-  return valor.toLocaleString('pt-PT', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+const formatarValor = (valor: number): string => {
+  if (valor >= 1000) return (valor / 1000).toFixed(1) + 'k';
+  return valor.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-const formatarData = (dataString: string) => {
+const formatarData = (dataString: string): string => {
   const date = new Date(dataString);
   const hoje = new Date();
   const ontem = new Date(hoje);
   ontem.setDate(hoje.getDate() - 1);
 
-  if (date.toDateString() === hoje.toDateString()) {
-    return `Hoje, ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-  } else if (date.toDateString() === ontem.toDateString()) {
-    return `Ontem, ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-  }
-
-  return date.toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  if (date.toDateString() === hoje.toDateString()) return 'Hoje';
+  if (date.toDateString() === ontem.toDateString()) return 'Ontem';
+  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
 };
 
-const getIconePorServico = (servicoNome: string): string => {
-  const nome = servicoNome.toLowerCase();
-  for (const [key, value] of servicoTiposMap) {
-    if (nome.includes(key)) {
-      return value.icone;
-    }
-  }
-  return 'handyman';
+const obterCorGanho = (index: number): string => {
+  const cores: string[] = ['primary', 'success', 'warning', 'info', 'accent'];
+  const posicao = index % cores.length;
+  return cores[posicao] || 'primary';
 };
 
-const getCorPorServico = (servicoNome: string): string => {
-  const nome = servicoNome.toLowerCase();
-  for (const [key, value] of servicoTiposMap) {
-    if (nome.includes(key)) {
-      return value.cor;
-    }
-  }
-  return 'grey-7';
-};
-
-const calcularEstatisticas = (pedidos: SolicitacaoData[]) => {
-  const ganhosPorMes: Record<string, number> = {};
-  pedidos.forEach((p) => {
-    const data = new Date(p.data);
-    const mesAno = `${data.toLocaleDateString('pt-PT', { month: 'long' })} ${data.getFullYear()}`;
-    ganhosPorMes[mesAno] = (ganhosPorMes[mesAno] || 0) + p.valor;
-  });
-
-  let melhorMes = { mes: '--', valor: 0 };
-  Object.entries(ganhosPorMes).forEach(([mes, valor]) => {
-    if (valor > melhorMes.valor) {
-      melhorMes = { mes, valor };
-    }
-  });
-
-  const servicosCount: Record<string, number> = {};
-  pedidos.forEach((p) => {
-    const nomeServico = p.servico?.nome || 'Serviço';
-    servicosCount[nomeServico] = (servicosCount[nomeServico] || 0) + 1;
-  });
-
-  let servicoMaisRequisitado = { nome: '--', quantidade: 0 };
-  Object.entries(servicosCount).forEach(([nome, quantidade]) => {
-    if (quantidade > servicoMaisRequisitado.quantidade) {
-      servicoMaisRequisitado = { nome, quantidade };
-    }
-  });
-
-  const gastosPorCliente: Record<string, { nome: string; total: number }> = {};
-  pedidos.forEach((p) => {
-    const clienteNome = p.cliente?.nome || 'Cliente';
-    if (!gastosPorCliente[clienteNome]) {
-      gastosPorCliente[clienteNome] = { nome: clienteNome, total: 0 };
-    }
-    gastosPorCliente[clienteNome].total += p.valor;
-  });
-
-  let melhorCliente = { nome: '--', totalGasto: 0 };
-  Object.values(gastosPorCliente).forEach((cliente) => {
-    if (cliente.total > melhorCliente.totalGasto) {
-      melhorCliente = { nome: cliente.nome, totalGasto: cliente.total };
-    }
-  });
-
-  const totalServicos = pedidos.length;
-  const totalGanhos = pedidos.reduce((sum, p) => sum + p.valor, 0);
-  const mediaPorServico = totalServicos > 0 ? totalGanhos / totalServicos : 0;
-
-  return {
-    melhorMes,
-    servicoMaisRequisitado,
-    melhorCliente,
-    mediaPorServico,
-    totalServicos,
-  };
-};
-
-const carregarDados = async () => {
+const carregarDados = async (): Promise<void> => {
   loading.value = true;
   try {
-    await prestadorStore.fetchServicoTiposOptions();
-    servicoTiposMap.clear();
-    prestadorStore.servicoTiposOptions.forEach((tipo: ServicoTipoOptionData) => {
-      servicoTiposMap.set(tipo.label.toLowerCase(), {
-        icone: tipo.icone,
-        cor: tipo.cor,
-      });
-    });
-
-    await prestadorStore.fetchGanhos();
-    const ganhos = prestadorStore.ganhos;
+    await financeiroStore.fetchGanhos();
+    const ganhos = financeiroStore.ganhos;
     saldoDisponivel.value = ganhos.total - ganhos.pendente;
 
-    await prestadorStore.fetchSolicitacoes('concluido');
-    const pedidos = prestadorStore.solicitacoes;
+    await servicosStore.fetchSolicitacoes('concluido');
+    const pedidos: SolicitacaoData[] = servicosStore.solicitacoes;
+
+    // Estatísticas
     estatisticas.value = calcularEstatisticas(pedidos);
 
+    // Filtrar por período
     const dataAtual = new Date();
-    let dataLimite = new Date();
-
+    const dataLimite = new Date();
     switch (periodo.value) {
       case 'hoje':
         dataLimite.setHours(0, 0, 0, 0);
@@ -477,7 +472,7 @@ const carregarDados = async () => {
         dataLimite.setFullYear(dataAtual.getFullYear() - 1);
         break;
       default:
-        dataLimite = new Date(0);
+        dataLimite.setDate(dataAtual.getDate() - 30);
     }
 
     const pedidosFiltrados = pedidos.filter((p) => new Date(p.data) >= dataLimite);
@@ -486,27 +481,31 @@ const carregarDados = async () => {
     const ganhosPeriodo = pedidosFiltrados.reduce((sum, p) => sum + p.valor, 0);
     const media = totalServicos > 0 ? ganhosPeriodo / totalServicos : 0;
 
-    resumo.value = {
-      totalServicos,
-      ganhosPeriodo,
-      media: Math.round(media),
-    };
+    resumo.value = { totalServicos, ganhosPeriodo, media: Math.round(media) };
 
-    historicoGanhos.value = pedidosFiltrados.slice(0, 5).map((pedido) => ({
-      id: pedido.id,
-      cliente: pedido.cliente?.nome || 'Cliente',
-      servico: pedido.servico?.nome || 'Serviço',
-      data: formatarData(pedido.data),
-      valor: pedido.valor,
-      icone: getIconePorServico(pedido.servico?.nome || ''),
-      cor: getCorPorServico(pedido.servico?.nome || ''),
-    }));
+    // Histórico de ganhos - com verificação de undefined
+    const historicoTemp: GanhoHistorico[] = [];
+    const limite = Math.min(pedidosFiltrados.length, 5);
+    for (let i = 0; i < limite; i++) {
+      const p = pedidosFiltrados[i];
+      if (p) {
+        historicoTemp.push({
+          id: p.id,
+          cliente: p.cliente?.nome || 'Cliente',
+          servico: p.servico?.nome || 'Serviço',
+          data: formatarData(p.data),
+          valor: p.valor,
+          cor: obterCorGanho(i),
+        });
+      }
+    }
+    historicoGanhos.value = historicoTemp;
 
+    // Gráfico
     const meses: GraficoItem[] = [];
-    const hoje = new Date();
     for (let i = 5; i >= 0; i--) {
-      const data = new Date(hoje);
-      data.setMonth(hoje.getMonth() - i);
+      const data = new Date();
+      data.setMonth(data.getMonth() - i);
       const nomeMes = data.toLocaleDateString('pt-PT', { month: 'short' });
       const ganhosMes = pedidos
         .filter((p) => {
@@ -518,55 +517,82 @@ const carregarDados = async () => {
         })
         .reduce((sum, p) => sum + p.valor, 0);
 
-      const altura = Math.min(120, (ganhosMes / 10000) * 120);
-      const corIndex = i % coresGrafico.length;
-      const cor = coresGrafico[corIndex] || '#667eea';
-
       meses.push({
         label: nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1),
         valor: ganhosMes / 1000,
-        altura: altura || 5,
-        cor: cor,
+        altura: Math.min(120, (ganhosMes / 10000) * 120) || 5,
       });
     }
     graficoData.value = meses;
   } catch (error) {
     console.error('Erro ao carregar dados:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar dados',
-      position: 'top',
-    });
+    $q.notify({ type: 'negative', message: 'Erro ao carregar dados', position: 'top' });
   } finally {
     loading.value = false;
   }
 };
 
-const irParaSaques = () => {
+const calcularEstatisticas = (pedidos: SolicitacaoData[]): Estatisticas => {
+  const ganhosPorMes: Record<string, number> = {};
+  pedidos.forEach((p) => {
+    const data = new Date(p.data);
+    const mesAno = `${data.toLocaleDateString('pt-PT', { month: 'long' })} ${data.getFullYear()}`;
+    ganhosPorMes[mesAno] = (ganhosPorMes[mesAno] || 0) + p.valor;
+  });
+
+  let melhorMes = { mes: '--', valor: 0 };
+  Object.entries(ganhosPorMes).forEach(([mes, valor]) => {
+    if (valor > melhorMes.valor) melhorMes = { mes, valor };
+  });
+
+  const servicosCount: Record<string, number> = {};
+  pedidos.forEach((p) => {
+    const nomeServico = p.servico?.nome || 'Serviço';
+    servicosCount[nomeServico] = (servicosCount[nomeServico] || 0) + 1;
+  });
+
+  let servicoMaisRequisitado = { nome: '--', quantidade: 0 };
+  Object.entries(servicosCount).forEach(([nome, quantidade]) => {
+    if (quantidade > servicoMaisRequisitado.quantidade)
+      servicoMaisRequisitado = { nome, quantidade };
+  });
+
+  const gastosPorCliente: Record<string, { nome: string; total: number }> = {};
+  pedidos.forEach((p) => {
+    const clienteNome = p.cliente?.nome || 'Cliente';
+    if (!gastosPorCliente[clienteNome]) {
+      gastosPorCliente[clienteNome] = { nome: clienteNome, total: 0 };
+    }
+    gastosPorCliente[clienteNome].total += p.valor;
+  });
+
+  let melhorCliente = { nome: '--', totalGasto: 0 };
+  Object.values(gastosPorCliente).forEach((cliente) => {
+    if (cliente.total > melhorCliente.totalGasto)
+      melhorCliente = { nome: cliente.nome, totalGasto: cliente.total };
+  });
+
+  const totalServicos = pedidos.length;
+  const totalGanhos = pedidos.reduce((sum, p) => sum + p.valor, 0);
+  const mediaPorServico = totalServicos > 0 ? totalGanhos / totalServicos : 0;
+
+  return { melhorMes, servicoMaisRequisitado, melhorCliente, mediaPorServico, totalServicos };
+};
+
+const irParaSaques = (): void => {
   void router.push('/mobile/prestador/saques');
 };
 
-const opcoes = () => {
-  $q.notify({
-    type: 'info',
-    message: 'Opções em breve',
-    position: 'top',
-  });
+const opcoes = (): void => {
+  $q.notify({ type: 'info', message: 'Opções em breve', position: 'top' });
 };
 
-const verTodos = () => {
-  $q.notify({
-    type: 'info',
-    message: 'Histórico completo em breve',
-    position: 'top',
-  });
+const verTodos = (): void => {
+  $q.notify({ type: 'info', message: 'Histórico completo em breve', position: 'top' });
 };
 
-const scrollParaEstatisticas = () => {
-  const element = document.querySelector('.estatisticas-detalhadas');
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+const scrollParaEstatisticas = (): void => {
+  document.querySelector('.estatisticas-section')?.scrollIntoView({ behavior: 'smooth' });
 };
 
 onMounted(async () => {
@@ -582,277 +608,419 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
-$gray-50: #fafafa;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-$gray-700: #616161;
-$gray-800: #424242;
-$gray-900: #212121;
+// =====================
+// VARIABLES
+// =====================
+$accent: #5b4bf5;
+$accent-light: rgba(91, 75, 245, 0.1);
+$success: #10b981;
+$warning: #f59e0b;
+$danger: #ef4444;
+$info: #3b82f6;
+$dark: #0a0a0f;
+$gray: #6b7280;
+$gray-light: #f3f4f6;
+$border: #e5e7eb;
+$white: #ffffff;
+$bg: #f4f4f8;
+$radius: 16px;
+$radius-sm: 12px;
+$radius-xs: 8px;
 
-/* ========================================== */
-/* SKELETON LOADING STYLES */
-/* ========================================== */
-
+// =====================
+// SKELETON
+// =====================
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+%shimmer {
+  background: linear-gradient(90deg, #e8e8ee 25%, #f4f4f8 50%, #e8e8ee 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
 .skeleton-loading {
-  background: $gray-100;
+  background: $bg;
   min-height: 100vh;
 }
-
 .skeleton-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
+  background: $white;
   padding: 16px;
-  border-bottom: 1px solid $gray-200;
+  border-bottom: 1px solid $border;
 }
-
-.skeleton-back-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-title {
-  width: 120px;
-  height: 24px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
+.skeleton-back-btn,
 .skeleton-menu-btn {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  @extend %shimmer;
 }
-
+.skeleton-title {
+  width: 120px;
+  height: 24px;
+  border-radius: 12px;
+  @extend %shimmer;
+}
 .skeleton-saldo-card {
-  padding: 16px;
-}
-
-.skeleton-saldo-inner {
-  height: 150px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
+  height: 160px;
+  margin: 16px;
+  background: linear-gradient(135deg, $accent, #9f7aea);
+  border-radius: $radius;
   opacity: 0.7;
 }
-
 .skeleton-filtros {
   display: flex;
   gap: 8px;
   padding: 12px 16px;
-  background: white;
+  background: $white;
 }
-
 .skeleton-filter-btn {
   flex: 1;
   height: 36px;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  border-radius: $radius-xs;
+  @extend %shimmer;
 }
-
+.skeleton-resumo {
+  padding: 16px;
+}
 .skeleton-resumo-card {
   height: 80px;
-  background: white;
-  border-radius: 12px;
-  border: 1px solid $gray-200;
+  background: $white;
+  border-radius: $radius-sm;
+  border: 1px solid $border;
+  @extend %shimmer;
 }
-
-.skeleton-grafico {
+.skeleton-grafico,
+.skeleton-historico,
+.skeleton-estatisticas {
+  padding: 0 16px;
   margin-bottom: 24px;
 }
-
 .skeleton-section-header {
   height: 24px;
   width: 150px;
   border-radius: 12px;
   margin-bottom: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  @extend %shimmer;
 }
-
 .skeleton-grafico-card {
-  background: white;
-  border-radius: 12px;
+  background: $white;
+  border-radius: $radius;
   padding: 16px;
-  border: 1px solid $gray-200;
+  border: 1px solid $border;
 }
-
 .skeleton-grafico-barras {
   display: flex;
   justify-content: space-around;
   align-items: flex-end;
   height: 150px;
 }
-
 .skeleton-barra {
   width: 40px;
   height: 80px;
   border-radius: 15px 15px 0 0;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  @extend %shimmer;
 }
-
 .skeleton-list {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid $gray-200;
+  background: $white;
+  border-radius: $radius;
+  border: 1px solid $border;
   overflow: hidden;
 }
-
 .skeleton-list-item {
   display: flex;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid $gray-200;
+  border-bottom: 1px solid $border;
 }
-
 .skeleton-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
   margin-right: 12px;
+  @extend %shimmer;
 }
-
 .skeleton-list-info {
   flex: 1;
 }
-
 .skeleton-line {
   height: 14px;
   border-radius: 7px;
   margin: 4px 0;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  @extend %shimmer;
 }
-
 .skeleton-badge {
   width: 80px;
   height: 24px;
   border-radius: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  @extend %shimmer;
 }
-
 .skeleton-estatistica-card {
   height: 100px;
-  background: white;
-  border-radius: 12px;
-  border: 1px solid $gray-200;
+  background: $white;
+  border-radius: $radius;
+  border: 1px solid $border;
   margin-bottom: 12px;
+  @extend %shimmer;
+}
+.w-30 {
+  width: 30%;
+}
+.w-40 {
+  width: 40%;
+}
+.w-50 {
+  width: 50%;
+}
+.w-60 {
+  width: 60%;
 }
 
-.w-30 { width: 30%; }
-.w-40 { width: 40%; }
-.w-50 { width: 50%; }
-.w-60 { width: 60%; }
-
-/* ========================================== */
-/* ESTILOS ORIGINAIS (mantidos sem alterações) */
-/* ========================================== */
-
+// =====================
+// LAYOUT PRINCIPAL
+// =====================
 .prestador-ganhos {
+  background: $bg;
   min-height: 100vh;
+  padding-bottom: 80px;
 }
 
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
-  border-bottom: 1px solid $gray-200;
+  background: $white;
+  padding: 12px 16px;
+  border-bottom: 1px solid $border;
+
+  .back-btn,
+  .menu-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-light;
+    border: none;
+    cursor: pointer;
+    color: $gray;
+    transition: all 0.2s;
+
+    &:hover {
+      background: $accent-light;
+      color: $accent;
+    }
+  }
+
+  .page-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $dark;
+    margin: 0;
+  }
 }
 
 .loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 50vh;
+  text-align: center;
+  padding: 60px 20px;
+
+  .loader {
+    width: 40px;
+    height: 40px;
+    border: 3px solid $accent-light;
+    border-top-color: $accent;
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    animation: spin 0.8s linear infinite;
+  }
+  p {
+    color: $gray;
+    font-size: 0.85rem;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.empty-state {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid $gray-200;
-}
-
+// =====================
+// SALDO CARD
+// =====================
 .saldo-card {
-  .saldo-card-inner {
-    border-radius: 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
+  padding: 16px;
+
+  &__inner {
+    background: linear-gradient(135deg, $accent, #9f7aea);
+    border-radius: $radius;
+    padding: 32px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 200px;
+      height: 200px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+    }
   }
 
   .saldo-label {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 8px;
   }
 
-  .saldo-valor {
-    color: white;
-    font-size: 2.5rem;
+  .saldo-value {
+    font-size: 2.2rem;
     font-weight: 700;
-    line-height: 1.2;
+    color: $white;
+    margin-bottom: 20px;
   }
 
   .saque-btn {
-    background: white;
-    color: $purple-primary;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: $white;
+    border: none;
+    padding: 10px 24px;
     border-radius: 30px;
-    padding: 8px 24px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: $accent;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
   }
 }
 
-.filtros-periodo {
-  background: white;
-  padding: 12px 0;
+// =====================
+// PERÍODO FILTERS
+// =====================
+.periodo-filters {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  background: $white;
+  border-bottom: 1px solid $border;
+}
+
+.periodo-btn {
+  flex: 1;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: $radius-xs;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: $gray;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: $accent-light;
+    color: $accent;
+  }
+  &.active {
+    background: $accent;
+    color: $white;
+  }
+}
+
+// =====================
+// RESUMO
+// =====================
+.resumo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px;
 }
 
 .resumo-card {
-  border-radius: 12px;
+  background: $white;
+  border-radius: $radius-sm;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid $border;
 
-  .resumo-valor {
-    font-size: 1.2rem;
+  &__value {
+    font-size: 1.3rem;
     font-weight: 700;
-    color: $purple-primary;
+    color: $accent;
+    line-height: 1.2;
+    margin-bottom: 4px;
   }
 
-  .resumo-label {
+  &__label {
     font-size: 0.7rem;
-    color: $gray-600;
+    color: $gray;
+  }
+}
+
+// =====================
+// GRÁFICO
+// =====================
+.grafico-section {
+  padding: 0 16px;
+  margin-bottom: 24px;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+
+  h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: $dark;
+    margin: 0;
+  }
+  .view-all {
+    background: none;
+    border: none;
+    font-size: 0.75rem;
+    color: $accent;
+    cursor: pointer;
   }
 }
 
 .grafico-card {
-  border-radius: 12px;
+  background: $white;
+  border-radius: $radius;
+  padding: 20px;
+  border: 1px solid $border;
+}
+
+.grafico-empty {
+  text-align: center;
+  padding: 20px;
+  p {
+    font-size: 0.8rem;
+    color: $gray;
+    margin-top: 8px;
+  }
 }
 
 .grafico-barras {
@@ -860,7 +1028,6 @@ $gray-900: #212121;
   align-items: flex-end;
   justify-content: space-around;
   height: 150px;
-  margin-top: 20px;
 }
 
 .barra-item {
@@ -873,7 +1040,7 @@ $gray-900: #212121;
 .barra-container {
   height: 120px;
   width: 30px;
-  background: $gray-200;
+  background: $gray-light;
   border-radius: 15px 15px 0 0;
   margin: 5px 0;
   position: relative;
@@ -885,74 +1052,179 @@ $gray-900: #212121;
   bottom: 0;
   left: 0;
   width: 100%;
+  background: $accent;
+  border-radius: 15px 15px 0 0;
   transition: height 0.3s ease;
 }
 
 .barra-label {
   font-size: 0.7rem;
-  color: $gray-600;
+  color: $gray;
 }
-
 .barra-valor {
   font-size: 0.7rem;
   font-weight: 600;
-  color: $purple-primary;
+  color: $accent;
+}
+
+// =====================
+// HISTÓRICO
+// =====================
+.historico-section {
+  padding: 0 16px;
+  margin-bottom: 24px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  background: $white;
+  border-radius: $radius;
+  border: 1px solid $border;
+
+  p {
+    font-size: 0.8rem;
+    color: $gray;
+    margin-top: 8px;
+  }
 }
 
 .historico-list {
-  border-radius: 12px;
+  background: $white;
+  border-radius: $radius;
+  border: 1px solid $border;
   overflow: hidden;
 }
 
-.ganho-item {
-  .ganho-valor {
-    font-weight: 600;
-  }
-}
-
-.estatisticas-detalhadas {
-  margin-bottom: 80px;
-
-  .estatistica-card {
-    border-radius: 12px;
-    margin-bottom: 12px;
-    transition: transform 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
-    }
-
-    .estatistica-titulo {
-      font-size: 0.8rem;
-      color: $gray-600;
-      margin-bottom: 8px;
-    }
-
-    .estatistica-valor {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: $gray-800;
-    }
-
-    .estatistica-sub {
-      font-size: 0.8rem;
-      color: $purple-primary;
-      margin-top: 4px;
-    }
-  }
-}
-
-.section-header {
+.historico-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid $border;
 
-  .section-title {
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.primary {
+      background: rgba($accent, 0.1);
+      color: $accent;
+    }
+    &.success {
+      background: rgba($success, 0.1);
+      color: $success;
+    }
+    &.warning {
+      background: rgba($warning, 0.1);
+      color: $warning;
+    }
+    &.info {
+      background: rgba($info, 0.1);
+      color: $info;
+    }
+    &.accent {
+      background: rgba($accent, 0.1);
+      color: $accent;
+    }
+  }
+
+  &__info {
+    flex: 1;
+  }
+  &__cliente {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: $dark;
+    margin-bottom: 2px;
+  }
+  &__servico {
+    font-size: 0.7rem;
+    color: $gray;
+  }
+  &__valor {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: $success;
+  }
+}
+
+// =====================
+// ESTATÍSTICAS
+// =====================
+.estatisticas-section {
+  padding: 0 16px;
+  margin-bottom: 24px;
+}
+.estatisticas-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.estatistica-card {
+  background: $white;
+  border-radius: $radius;
+  padding: 16px;
+  border: 1px solid $border;
+  transition: all 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: $accent;
+  }
+
+  &__icon {
+    margin-bottom: 12px;
+  }
+  &__title {
+    font-size: 0.7rem;
+    color: $gray;
+    margin-bottom: 4px;
+  }
+  &__value {
     font-size: 1rem;
     font-weight: 600;
-    color: $gray-800;
+    color: $dark;
+    margin-bottom: 2px;
+  }
+  &__sub {
+    font-size: 0.7rem;
+    color: $accent;
+  }
+}
+
+// =====================
+// FAB
+// =====================
+.fab-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: $accent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba($accent, 0.4);
+  transition: all 0.2s;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba($accent, 0.5);
   }
 }
 </style>

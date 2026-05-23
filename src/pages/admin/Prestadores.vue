@@ -15,7 +15,7 @@
           color="grey-7"
           outline
           @click="carregarPrestadores"
-          :loading="adminStore.loading"
+          :loading="utilizadoresStore.loading"
         />
       </div>
     </div>
@@ -88,9 +88,8 @@
       </q-card-section>
     </q-card>
 
-    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
-    <div v-if="adminStore.loading" class="skeleton-container">
-      <!-- Table header skeleton -->
+    <!-- Skeleton Loading -->
+    <div v-if="utilizadoresStore.loading" class="skeleton-container">
       <div class="skeleton-table-header">
         <div class="row justify-between items-center">
           <div class="skeleton-total"></div>
@@ -98,14 +97,11 @@
         </div>
       </div>
 
-      <!-- Table skeleton -->
       <div class="skeleton-table">
-        <!-- Header row -->
         <div class="skeleton-table-header-row">
           <div v-for="i in colunas.length" :key="`header-${i}`" class="skeleton-header-cell"></div>
         </div>
 
-        <!-- Body rows -->
         <div v-for="row in 5" :key="row" class="skeleton-table-row">
           <div class="skeleton-cell">
             <div class="skeleton-text"></div>
@@ -120,11 +116,10 @@
         </div>
       </div>
 
-      <!-- Shimmer animation -->
       <div class="skeleton-shimmer"></div>
     </div>
 
-    <!-- Tabela de prestadores (apenas quando não está carregando) -->
+    <!-- Tabela de prestadores -->
     <q-card v-else class="prestadores-table-card">
       <q-card-section class="table-header">
         <div class="row justify-between items-center">
@@ -148,7 +143,7 @@
       </q-card-section>
 
       <q-table
-        :rows="adminStore.prestadores"
+        :rows="utilizadoresStore.prestadores"
         :columns="colunas"
         row-key="id"
         hide-bottom
@@ -348,7 +343,6 @@
         </q-card-section>
 
         <q-card-section v-if="prestadorSelecionado" class="details-content">
-          <!-- conteúdo mantido igual ao original -->
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-4 text-center">
               <q-avatar size="120px" class="avatar-large">
@@ -449,52 +443,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
-import { useQuasar, type QTableColumn } from 'quasar'
-import { useAdminStore } from 'src/stores/admin-store'
+import { ref, reactive, onMounted, watch } from 'vue';
+import { useQuasar, type QTableColumn } from 'quasar';
+// ✅ IMPORTS CORRETOS
+import { useAdminUtilizadoresStore, type PrestadorData } from 'src/stores/admin/admin-utilizadores-store';
+import { useAdminConteudoStore, type CategoriaData } from 'src/stores/admin/admin-conteudo-store';
 
-interface PrestadorCategoria {
-  id: number
-  nome: string
-  icone?: string
-}
 
-interface PrestadorData {
-  id: number
-  nome: string
-  email: string
-  telefone: string
-  verificado: boolean
-  media_avaliacao: number
-  total_avaliacoes: number
-  categorias?: PrestadorCategoria[]
-  blocked_at?: string | null
-  created_at?: string
-  avatar?: string
-}
-
-interface CategoriaData {
-  id: number
-  nome: string
-  slug: string
-  icone: string
-  cor: string
-  descricao: string
-  ativo: boolean
-  servicos_count: number
-}
 
 defineOptions({
-  name: 'AdminPrestadores'
-})
+  name: 'AdminPrestadores',
+});
 
-const $q = useQuasar()
-const adminStore = useAdminStore()
+const $q = useQuasar();
+// ✅ USANDO OS STORES CORRETOS
+const utilizadoresStore = useAdminUtilizadoresStore();
+const conteudoStore = useAdminConteudoStore();
 
 // Estados
-const mostrarFiltros = ref(false)
-const mostrarDetalhes = ref(false)
-const prestadorSelecionado = ref<PrestadorData | null>(null)
+const mostrarFiltros = ref(false);
+const mostrarDetalhes = ref(false);
+const prestadorSelecionado = ref<PrestadorData | null>(null);
 
 // Filtros
 const filtros = reactive({
@@ -502,31 +471,31 @@ const filtros = reactive({
   status: null as string | null,
   categoria: null as number | null,
   avaliacaoMin: null as number | null,
-  ordenar: 'nome_asc'
-})
+  ordenar: 'nome_asc',
+});
 
 // Paginação
 const paginacao = reactive({
   page: 1,
   perPage: 20,
   total: 0,
-  lastPage: 1
-})
+  lastPage: 1,
+});
 
 // Opções
 const statusOptions = [
   { label: 'Verificados', value: 'verificado' },
-  { label: 'Pendentes', value: 'pendente' }
-]
+  { label: 'Pendentes', value: 'pendente' },
+];
 
-const categoriasSelectOptions = ref<{ label: string; value: number }[]>([])
+const categoriasSelectOptions = ref<{ label: string; value: number }[]>([]);
 
 const ordenacaoOptions = [
   { label: 'Nome (A-Z)', value: 'nome_asc' },
   { label: 'Nome (Z-A)', value: 'nome_desc' },
   { label: 'Melhor avaliação', value: 'avaliacao_desc' },
-  { label: 'Mais serviços', value: 'servicos_desc' }
-]
+  { label: 'Mais serviços', value: 'servicos_desc' },
+];
 
 // Colunas da tabela
 const colunas: QTableColumn[] = [
@@ -536,8 +505,8 @@ const colunas: QTableColumn[] = [
   { name: 'status', label: 'Status', field: 'verificado', align: 'center', sortable: false },
   { name: 'avaliacao', label: 'Avaliação', field: 'media_avaliacao', align: 'center', sortable: true },
   { name: 'categorias', label: 'Categorias', field: 'categorias', align: 'left', sortable: false },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center', sortable: false }
-]
+  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center', sortable: false },
+];
 
 // Métodos auxiliares
 const getCategoriaCor = (nome: string) => {
@@ -546,240 +515,245 @@ const getCategoriaCor = (nome: string) => {
     'Canalizador': 'secondary',
     'Pintor': 'info',
     'Informático': 'warning',
-    'Limpeza': 'positive'
-  }
-  return cores[nome] || 'grey'
-}
+    'Limpeza': 'positive',
+  };
+  return cores[nome] || 'grey';
+};
 
 const formatDate = (date?: string) => {
-  if (!date) return '-'
+  if (!date) return '-';
   return new Date(date).toLocaleDateString('pt-PT', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
-  })
-}
+    year: 'numeric',
+  });
+};
 
-// Carregar categorias para os filtros
+// ✅ Carregar categorias usando conteudoStore
 const carregarCategorias = async () => {
   try {
-    const cats = await adminStore.fetchCategorias()
+    const cats = await conteudoStore.fetchCategorias();
     categoriasSelectOptions.value = cats.map((cat: CategoriaData) => ({
       label: cat.nome,
-      value: cat.id
-    }))
+      value: cat.id,
+    }));
   } catch (error) {
-    console.error('Erro ao carregar categorias:', error)
+    console.error('Erro ao carregar categorias:', error);
   }
-}
+};
 
-// Carregar prestadores
+// ✅ Carregar prestadores usando utilizadoresStore
 const carregarPrestadores = async () => {
   try {
     const params: {
-      page: number
-      per_page: number
-      busca?: string
-      verificado?: boolean
-      categoria?: number
-      avaliacao_min?: number
+      page: number;
+      per_page: number;
+      busca?: string;
+      verificado?: boolean;
+      categoria?: number;
+      avaliacao_min?: number;
     } = {
       page: paginacao.page,
-      per_page: paginacao.perPage
-    }
+      per_page: paginacao.perPage,
+    };
 
-    if (filtros.busca) params.busca = filtros.busca
-    if (filtros.status === 'verificado') params.verificado = true
-    if (filtros.status === 'pendente') params.verificado = false
-    if (filtros.categoria) params.categoria = filtros.categoria
-    if (filtros.avaliacaoMin) params.avaliacao_min = filtros.avaliacaoMin
+    if (filtros.busca) params.busca = filtros.busca;
+    if (filtros.status === 'verificado') params.verificado = true;
+    if (filtros.status === 'pendente') params.verificado = false;
+    if (filtros.categoria) params.categoria = filtros.categoria;
+    if (filtros.avaliacaoMin) params.avaliacao_min = filtros.avaliacaoMin;
 
-    const result = await adminStore.fetchPrestadores(params)
+    const result = await utilizadoresStore.fetchPrestadores(params);
 
     if (result) {
-      paginacao.total = result.total
-      paginacao.lastPage = result.last_page
-      paginacao.page = result.current_page
+      paginacao.total = result.total;
+      paginacao.lastPage = result.last_page;
+      paginacao.page = result.current_page;
     }
   } catch (err) {
-    console.error('Erro ao carregar prestadores:', err)
+    console.error('Erro ao carregar prestadores:', err);
   }
-}
+};
 
 // Handlers
 const handleBuscaChange = () => {
-  paginacao.page = 1
-  void carregarPrestadores()
-}
+  paginacao.page = 1;
+  void carregarPrestadores();
+};
 
 const handleFilterChange = () => {
-  paginacao.page = 1
-  void carregarPrestadores()
-}
+  paginacao.page = 1;
+  void carregarPrestadores();
+};
 
 const limparBusca = () => {
-  filtros.busca = ''
-  handleBuscaChange()
-}
+  filtros.busca = '';
+  handleBuscaChange();
+};
 
 const abrirFiltros = () => {
-  mostrarFiltros.value = true
-}
+  mostrarFiltros.value = true;
+};
 
 const limparFiltros = () => {
-  filtros.status = null
-  filtros.categoria = null
-  filtros.avaliacaoMin = null
-  filtros.ordenar = 'nome_asc'
-}
+  filtros.status = null;
+  filtros.categoria = null;
+  filtros.avaliacaoMin = null;
+  filtros.ordenar = 'nome_asc';
+};
 
 const aplicarFiltros = () => {
-  mostrarFiltros.value = false
-  paginacao.page = 1
-  void carregarPrestadores()
-}
+  mostrarFiltros.value = false;
+  paginacao.page = 1;
+  void carregarPrestadores();
+};
 
 const verPrestador = (prestador: PrestadorData) => {
-  prestadorSelecionado.value = prestador
-  mostrarDetalhes.value = true
-}
+  prestadorSelecionado.value = prestador;
+  mostrarDetalhes.value = true;
+};
 
 const editarPrestador = (prestador: PrestadorData) => {
   $q.notify({
     type: 'info',
     message: `Editar ${prestador.nome}`,
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
+// ✅ Aprovar prestador usando utilizadoresStore
 const aprovarPrestador = (id: number) => {
   $q.dialog({
     title: 'Confirmar',
     message: 'Tem certeza que deseja aprovar este prestador?',
     cancel: true,
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     void (async () => {
       try {
-        const result = await adminStore.aprovarPrestador(id)
+        const result = await utilizadoresStore.aprovarPrestador(id);
         if (result) {
           $q.notify({
             type: 'positive',
-            message: 'Prestador aprovado com sucesso!'
-          })
-          await carregarPrestadores()
-          mostrarDetalhes.value = false
+            message: 'Prestador aprovado com sucesso!',
+          });
+          await carregarPrestadores();
+          mostrarDetalhes.value = false;
         }
       } catch (err) {
-        console.error('Erro ao aprovar:', err)
+        console.error('Erro ao aprovar:', err);
         $q.notify({
           type: 'negative',
-          message: 'Erro ao aprovar prestador'
-        })
+          message: 'Erro ao aprovar prestador',
+        });
       }
-    })()
-  })
-}
+    })();
+  });
+};
 
+// ✅ Reprovar prestador usando utilizadoresStore
 const reprovarPrestador = (id: number) => {
   $q.dialog({
     title: 'Confirmar',
     message: 'Tem certeza que deseja reprovar este prestador?',
     cancel: true,
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     void (async () => {
       try {
-        const result = await adminStore.reprovarPrestador(id)
+        const result = await utilizadoresStore.reprovarPrestador(id);
         if (result) {
           $q.notify({
             type: 'warning',
-            message: 'Prestador reprovado!'
-          })
-          await carregarPrestadores()
-          mostrarDetalhes.value = false
+            message: 'Prestador reprovado!',
+          });
+          await carregarPrestadores();
+          mostrarDetalhes.value = false;
         }
       } catch (err) {
-        console.error('Erro ao reprovar:', err)
+        console.error('Erro ao reprovar:', err);
         $q.notify({
           type: 'negative',
-          message: 'Erro ao reprovar prestador'
-        })
+          message: 'Erro ao reprovar prestador',
+        });
       }
-    })()
-  })
-}
+    })();
+  });
+};
 
+// ✅ Bloquear prestador usando utilizadoresStore
 const bloquearPrestador = (prestador: PrestadorData) => {
   $q.dialog({
     title: 'Confirmar',
     message: `Tem certeza que deseja bloquear o prestador ${prestador.nome}?`,
     cancel: true,
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     void (async () => {
       try {
-        const result = await adminStore.blockUtilizador(prestador.id)
+        const result = await utilizadoresStore.blockUtilizador(prestador.id);
         if (result) {
           $q.notify({
             type: 'positive',
-            message: 'Prestador bloqueado com sucesso!'
-          })
-          await carregarPrestadores()
+            message: 'Prestador bloqueado com sucesso!',
+          });
+          await carregarPrestadores();
         }
       } catch (err) {
-        console.error('Erro ao bloquear:', err)
+        console.error('Erro ao bloquear:', err);
         $q.notify({
           type: 'negative',
-          message: 'Erro ao bloquear prestador'
-        })
+          message: 'Erro ao bloquear prestador',
+        });
       }
-    })()
-  })
-}
+    })();
+  });
+};
 
+// ✅ Desbloquear prestador usando utilizadoresStore
 const desbloquearPrestador = (prestador: PrestadorData) => {
   $q.dialog({
     title: 'Confirmar',
     message: `Tem certeza que deseja desbloquear o prestador ${prestador.nome}?`,
     cancel: true,
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     void (async () => {
       try {
-        const result = await adminStore.unblockUtilizador(prestador.id)
+        const result = await utilizadoresStore.unblockUtilizador(prestador.id);
         if (result) {
           $q.notify({
             type: 'positive',
-            message: 'Prestador desbloqueado com sucesso!'
-          })
-          await carregarPrestadores()
+            message: 'Prestador desbloqueado com sucesso!',
+          });
+          await carregarPrestadores();
         }
       } catch (err) {
-        console.error('Erro ao desbloquear:', err)
+        console.error('Erro ao desbloquear:', err);
         $q.notify({
           type: 'negative',
-          message: 'Erro ao desbloquear prestador'
-        })
+          message: 'Erro ao desbloquear prestador',
+        });
       }
-    })()
-  })
-}
+    })();
+  });
+};
 
 // Watch
 watch([() => filtros.busca, () => filtros.status, () => filtros.categoria, () => filtros.avaliacaoMin], () => {
-  paginacao.page = 1
-  void carregarPrestadores()
-})
+  paginacao.page = 1;
+  void carregarPrestadores();
+});
 
 // Carregar dados ao montar
 onMounted(() => {
-  void carregarCategorias()
-  void carregarPrestadores()
-})
+  void carregarCategorias();
+  void carregarPrestadores();
+});
 </script>
 
 <style scoped lang="scss">
+// ... styles mantidos iguais ao original
 $primary-color: #667eea;
 $gray-100: #f5f5f5;
 $gray-200: #eeeeee;
@@ -836,10 +810,7 @@ $gray-500: #9e9e9e;
   }
 }
 
-// ==========================================
-// SKELETON LOADING (Facebook/Instagram style)
-// ==========================================
-
+// Skeleton Loading
 .skeleton-container {
   background: white;
   border-radius: 16px;
@@ -992,10 +963,7 @@ $gray-500: #9e9e9e;
   100% { transform: translateX(100%); }
 }
 
-// ==========================================
-// ESTILOS PRINCIPAIS
-// ==========================================
-
+// Estilos principais
 .table-header {
   border-bottom: 1px solid #e9ecef;
 

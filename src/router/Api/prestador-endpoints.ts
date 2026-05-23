@@ -1,6 +1,8 @@
+// src/router/Api/prestador-endpoints.ts
+
 /**
  * Endpoints completos da API para Prestador
- * ALINHADOS COM AS ROTAS DO BACKEND LARAVEL - ATUALIZADO
+ * ALINHADOS COM AS ROTAS DO BACKEND LARAVEL
  */
 export const PRESTADOR_ENDPOINTS = {
   // ==========================================
@@ -28,14 +30,13 @@ export const PRESTADOR_ENDPOINTS = {
   ACTIVITIES_HISTORY: '/activities',
 
   // ==========================================
-  // 4. NOTIFICAÇÕES (CORRIGIDO - alinhado com backend)
+  // 4. NOTIFICAÇÕES
   // ==========================================
-  NOTIFICATIONS: '/notifications',        // ✅ Corrigido
-  NOTIFICATIONS_RECENT: '/notifications/notifications/recent',  // ✅ Adicionado
-  UNREAD_COUNT: '/notifications/notifications/unread-count',    // ✅ Adicionado
-  MARK_NOTIFICATION_READ: (id: string) => `/notifications/notifications/${id}/read`,  // ✅ Corrigido
-  MARK_ALL_NOTIFICATIONS_READ: '/notifications/notifications/read-all',  // ✅ Corrigido
-  CREATE_NOTIFICATION_INDEXES: '/notifications/notifications/create-indexes', // ✅ Adicionado
+  NOTIFICATIONS: '/notifications',
+  NOTIFICATIONS_RECENT: '/notifications/recent',
+  UNREAD_COUNT: '/notifications/unread-count',
+  MARK_NOTIFICATION_READ: (id: string) => `/notifications/${id}/read`,
+  MARK_ALL_NOTIFICATIONS_READ: '/notifications/read-all',
 
   // ==========================================
   // 5. SERVIÇOS DO PRESTADOR
@@ -54,7 +55,7 @@ export const PRESTADOR_ENDPOINTS = {
   DESBLOQUEAR_HORARIO: (id: string) => `/prestador/agenda/${id}`,
 
   // ==========================================
-  // 7. SOLICITAÇÕES/PEDIDOS (antigo sistema)
+  // 7. SOLICITAÇÕES/PEDIDOS
   // ==========================================
   SOLICITACOES: '/prestador/solicitacoes',
   SOLICITACOES_BY_STATUS: (status: string) => `/prestador/solicitacoes?status=${status}`,
@@ -62,14 +63,14 @@ export const PRESTADOR_ENDPOINTS = {
   RECUSAR_SOLICITACAO: (id: string) => `/prestador/solicitacoes/${id}/recusar`,
 
   // ==========================================
-  // 8. PROPOSTAS DO PRESTADOR (NOVO SISTEMA)
+  // 8. PROPOSTAS DO PRESTADOR
   // ==========================================
   PEDIDOS_DISPONIVEIS: '/prestador/pedidos-disponiveis',
   ENVIAR_PROPOSTA: '/prestador/propostas',
   MINHAS_PROPOSTAS: '/prestador/propostas',
 
   // ==========================================
-  // 9. CATEGORIAS DO PRESTADOR
+  // 9. CATEGORIAS DO PRESTADOR (ROTAS CORRETAS)
   // ==========================================
   MINHAS_CATEGORIAS: '/prestador/categorias',
   ADICIONAR_CATEGORIA: (categoriaId: string) => `/prestador/categorias/${categoriaId}`,
@@ -129,7 +130,7 @@ export const PRESTADOR_ENDPOINTS = {
   ATUALIZAR_DISPONIBILIDADE: '/prestador/disponibilidade',
 
   // ==========================================
-  // 16. DADOS AUXILIARES (PÚBLICOS - sem autenticação)
+  // 16. DADOS AUXILIARES (PÚBLICOS)
   // ==========================================
   AUX_DIAS_SEMANA: '/auxiliar/dias-semana',
   AUX_MESES: '/auxiliar/meses',
@@ -138,24 +139,24 @@ export const PRESTADOR_ENDPOINTS = {
   AUX_HORARIOS_OPTIONS: '/auxiliar/horarios-options',
 
   // ==========================================
-  // 17. TIPOS DE SERVIÇO (PÚBLICOS - sem autenticação)
+  // 17. TIPOS DE SERVIÇO (PÚBLICOS)
   // ==========================================
   PUBLIC_SERVICO_TIPOS: '/public/servico-tipos',
   PUBLIC_SERVICO_TIPOS_OPTIONS: '/public/servico-tipos/options',
 
   // ==========================================
-  // 18. OPÇÕES DE RAIO (PÚBLICOS - sem autenticação)
+  // 18. OPÇÕES DE RAIO (PÚBLICOS)
   // ==========================================
   PUBLIC_RAIO_OPCOES: '/public/raio-opcoes',
   PUBLIC_RAIO_OPCOES_OPTIONS: '/public/raio-opcoes/options',
 
   // ==========================================
-  // 19. CATEGORIAS (PÚBLICAS - sem autenticação)
+  // 19. CATEGORIAS PÚBLICAS (PARA REGISTRO)
   // ==========================================
   PUBLIC_CATEGORIAS: '/public/categorias',
 
   // ==========================================
-  // 20. PROMOÇÕES ATIVAS (PÚBLICAS - sem autenticação)
+  // 20. PROMOÇÕES ATIVAS (PÚBLICAS)
   // ==========================================
   PUBLIC_PROMOCOES_ATIVAS: '/public/promocoes/ativas',
 

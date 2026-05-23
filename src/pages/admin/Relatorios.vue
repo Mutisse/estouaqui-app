@@ -14,13 +14,12 @@
         color="grey-7"
         outline
         @click="carregarDados"
-        :loading="adminStore.loading"
+        :loading="dashboardStore.loading"
       />
     </div>
 
-    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
-    <div v-if="adminStore.loading" class="skeleton-container">
-      <!-- Periodo Card skeleton -->
+    <!-- Skeleton Loading -->
+    <div v-if="dashboardStore.loading" class="skeleton-container">
       <div class="row q-col-gutter-lg">
         <div class="col-12 col-md-3">
           <div class="skeleton-card">
@@ -32,7 +31,6 @@
           </div>
         </div>
 
-        <!-- Resumo Card skeleton -->
         <div class="col-12 col-md-9">
           <div class="skeleton-card">
             <div class="skeleton-title"></div>
@@ -50,7 +48,6 @@
           </div>
         </div>
 
-        <!-- Tabs skeleton -->
         <div class="col-12">
           <div class="skeleton-card">
             <div class="skeleton-tabs">
@@ -73,11 +70,10 @@
         </div>
       </div>
 
-      <!-- Shimmer animation -->
       <div class="skeleton-shimmer"></div>
     </div>
 
-    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <!-- Conteúdo real -->
     <template v-else>
       <div class="row q-col-gutter-lg">
         <!-- Seletor de Período -->
@@ -98,13 +94,7 @@
                 @update:model-value="carregarDados"
               />
               <div v-if="periodo === 'custom'" class="q-mt-md">
-                <q-input
-                  v-model="dataInicio"
-                  label="Data Início"
-                  dense
-                  outlined
-                  type="date"
-                />
+                <q-input v-model="dataInicio" label="Data Início" dense outlined type="date" />
                 <q-input
                   v-model="dataFim"
                   label="Data Fim"
@@ -141,7 +131,9 @@
                     </div>
                     <div class="resumo-content">
                       <div class="resumo-label">Receita Total</div>
-                      <div class="resumo-value text-positive">{{ formatMoney(receitaPeriodo) }}</div>
+                      <div class="resumo-value text-positive">
+                        {{ formatMoney(receitaPeriodo) }}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -205,7 +197,7 @@
                     :rows="relatorioServicos"
                     :columns="servicosColumns"
                     row-key="periodo"
-                    :loading="adminStore.loading"
+                    :loading="dashboardStore.loading"
                     :rows-per-page-options="[5, 10, 20]"
                     flat
                     bordered
@@ -219,9 +211,15 @@
                     <template v-slot:body-cell-servicos_por_status="props">
                       <q-td :props="props">
                         <div class="status-chips">
-                          <q-chip size="sm" color="info" dense>Pendente: {{ props.row.servicos_por_status?.pendente || 0 }}</q-chip>
-                          <q-chip size="sm" color="warning" dense>Aceito: {{ props.row.servicos_por_status?.aceito || 0 }}</q-chip>
-                          <q-chip size="sm" color="positive" dense>Concluído: {{ props.row.servicos_por_status?.concluido || 0 }}</q-chip>
+                          <q-chip size="sm" color="info" dense
+                            >Pendente: {{ props.row.servicos_por_status?.pendente || 0 }}</q-chip
+                          >
+                          <q-chip size="sm" color="warning" dense
+                            >Aceito: {{ props.row.servicos_por_status?.aceito || 0 }}</q-chip
+                          >
+                          <q-chip size="sm" color="positive" dense
+                            >Concluído: {{ props.row.servicos_por_status?.concluido || 0 }}</q-chip
+                          >
                         </div>
                       </q-td>
                     </template>
@@ -248,7 +246,7 @@
                     :rows="relatorioPrestadores"
                     :columns="prestadoresColumns"
                     row-key="total"
-                    :loading="adminStore.loading"
+                    :loading="dashboardStore.loading"
                     :rows-per-page-options="[5, 10, 20]"
                     flat
                     bordered
@@ -257,10 +255,16 @@
                     <template v-slot:body-cell-top_prestadores="props">
                       <q-td :props="props">
                         <div class="top-prestadores">
-                          <div v-for="prestador in props.row.top_prestadores" :key="prestador.id" class="prestador-item">
+                          <div
+                            v-for="prestador in props.row.top_prestadores"
+                            :key="prestador.id"
+                            class="prestador-item"
+                          >
                             <q-icon name="star" size="12px" color="warning" />
                             <span>{{ prestador.nome }}</span>
-                            <span class="text-caption text-grey">({{ prestador.media_avaliacao }} ★)</span>
+                            <span class="text-caption text-grey"
+                              >({{ prestador.media_avaliacao }} ★)</span
+                            >
                           </div>
                         </div>
                       </q-td>
@@ -288,7 +292,7 @@
                     :rows="relatorioFinanceiro"
                     :columns="financeiroColumns"
                     row-key="periodo"
-                    :loading="adminStore.loading"
+                    :loading="dashboardStore.loading"
                     :rows-per-page-options="[5, 10, 20]"
                     flat
                     bordered
@@ -323,61 +327,70 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useQuasar, type QTableColumn } from 'quasar'
-import { useAdminStore } from 'src/stores/admin-store'
+import { ref, computed, onMounted } from 'vue';
+import { useQuasar, type QTableColumn } from 'quasar';
+import { useAdminDashboardStore } from 'src/stores/admin/admin-dashboard-store';
+import { useAdminFinanceiroStore } from 'src/stores/admin/admin-financeiro-store';
+
+// ==========================================
+// INTERFACES
+// ==========================================
 
 interface ServicosPorStatus {
-  pendente: number
-  aceito: number
-  em_andamento: number
-  concluido: number
-  cancelado: number
+  pendente: number;
+  aceito: number;
+  em_andamento: number;
+  concluido: number;
+  cancelado: number;
 }
 
 interface RelatorioServicos {
-  periodo: string
-  total_servicos: number
-  receita_total: number
-  servicos_por_status: ServicosPorStatus
+  periodo: string;
+  total_servicos: number;
+  receita_total: number;
+  servicos_por_status: ServicosPorStatus;
 }
 
 interface PrestadorTop {
-  id: number
-  nome: string
-  media_avaliacao: number
-  total_avaliacoes: number
+  id: number;
+  nome: string;
+  media_avaliacao: number;
+  total_servicos: number;
 }
 
 interface RelatorioPrestadores {
-  total: number
-  verificados: number
-  nao_verificados: number
-  media_avaliacao_geral: number
-  top_prestadores: PrestadorTop[]
+  total: number;
+  verificados: number;
+  nao_verificados: number;
+  ativos: number;
+  bloqueados: number;
+  media_avaliacao_geral: number;
+  top_prestadores: PrestadorTop[];
+  periodo: string;
 }
 
 interface RelatorioFinanceiro {
-  periodo: string
-  entradas: number
-  saidas: number
-  saldo: number
-  comissoes: number
+  periodo: string;
+  entradas: number;
+  saidas: number;
+  saldo: number;
+  comissoes: number;
 }
 
 defineOptions({
-  name: 'AdminRelatorios'
-})
+  name: 'AdminRelatorios',
+});
 
-const $q = useQuasar()
-const adminStore = useAdminStore()
+const $q = useQuasar();
+const dashboardStore = useAdminDashboardStore();
+const financeiroStore = useAdminFinanceiroStore();
 
 // Estados
-const periodo = ref('mes')
-const tabRelatorio = ref('servicos')
-const exportando = ref(false)
-const dataInicio = ref('')
-const dataFim = ref('')
+const periodo = ref('mes');
+const tabRelatorio = ref('servicos');
+const exportando = ref(false);
+const dataInicio = ref('');
+const dataFim = ref('');
 
 // Opções de período
 const periodos = [
@@ -385,65 +398,105 @@ const periodos = [
   { label: 'Esta semana', value: 'semana' },
   { label: 'Este mês', value: 'mes' },
   { label: 'Este ano', value: 'ano' },
-  { label: 'Personalizado', value: 'custom' }
-]
+  { label: 'Personalizado', value: 'custom' },
+];
 
 // Computed para dados do período
 const receitaPeriodo = computed(() => {
-  const receita = adminStore.estatisticas.receita_total
-  const percentual = periodo.value === 'mes' ? receita : receita * 0.8
-  return percentual
-})
+  const receita = dashboardStore.estatisticas.receita_total;
+  const percentual = periodo.value === 'mes' ? receita : receita * 0.8;
+  return percentual;
+});
 
 const servicosPeriodo = computed(() => {
-  const servicos = adminStore.estatisticas.total_pedidos
-  const percentual = periodo.value === 'mes' ? servicos : Math.floor(servicos * 0.7)
-  return percentual
-})
+  const servicos = dashboardStore.estatisticas.total_pedidos;
+  const percentual = periodo.value === 'mes' ? servicos : Math.floor(servicos * 0.7);
+  return percentual;
+});
 
 const novosUtilizadoresPeriodo = computed(() => {
-  const users = adminStore.dashboard.total_users
-  const percentual = periodo.value === 'mes' ? Math.floor(users * 0.15) : Math.floor(users * 0.3)
-  return percentual
-})
+  const users = dashboardStore.dashboard.total_users;
+  const percentual = periodo.value === 'mes' ? Math.floor(users * 0.15) : Math.floor(users * 0.3);
+  return percentual;
+});
 
-// Relatório de Serviços
+// Relatórios
 const relatorioServicos = computed((): RelatorioServicos[] => {
-  const data = adminStore.relatorioServicos
-  if (!data) return []
-  return [data as RelatorioServicos]
-})
+  const data = financeiroStore.relatorioServicos;
+  if (!data) return [];
+  return [data];
+});
 
-// Relatório de Prestadores
 const relatorioPrestadores = computed((): RelatorioPrestadores[] => {
-  const data = adminStore.relatorioPrestadores
-  if (!data) return []
-  return [data as RelatorioPrestadores]
-})
+  const data = financeiroStore.relatorioPrestadores;
+  if (!data) return [];
+  return [data];
+});
 
-// Relatório Financeiro
 const relatorioFinanceiro = computed((): RelatorioFinanceiro[] => {
-  const data = adminStore.relatorioFinanceiro
-  if (!data) return []
-  return [data as RelatorioFinanceiro]
-})
+  const data = financeiroStore.relatorioFinanceiro;
+  if (!data) return [];
+  return [data];
+});
 
 // Colunas para tabela de serviços
 const servicosColumns: QTableColumn[] = [
   { name: 'periodo', label: 'Período', field: 'periodo', align: 'left', sortable: true },
-  { name: 'total_servicos', label: 'Total Serviços', field: 'total_servicos', align: 'center', sortable: true },
-  { name: 'receita_total', label: 'Receita Total', field: 'receita_total', align: 'center', sortable: true },
-  { name: 'servicos_por_status', label: 'Status', field: 'servicos_por_status', align: 'left', sortable: false }
-]
+  {
+    name: 'total_servicos',
+    label: 'Total Serviços',
+    field: 'total_servicos',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    name: 'receita_total',
+    label: 'Receita Total',
+    field: 'receita_total',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    name: 'servicos_por_status',
+    label: 'Status',
+    field: 'servicos_por_status',
+    align: 'left',
+    sortable: false,
+  },
+];
 
 // Colunas para tabela de prestadores
 const prestadoresColumns: QTableColumn[] = [
   { name: 'total', label: 'Total Prestadores', field: 'total', align: 'center', sortable: true },
-  { name: 'verificados', label: 'Verificados', field: 'verificados', align: 'center', sortable: true },
-  { name: 'nao_verificados', label: 'Não Verificados', field: 'nao_verificados', align: 'center', sortable: true },
-  { name: 'media_avaliacao_geral', label: 'Média Avaliação', field: 'media_avaliacao_geral', align: 'center', sortable: true },
-  { name: 'top_prestadores', label: 'Top Prestadores', field: 'top_prestadores', align: 'left', sortable: false }
-]
+  {
+    name: 'verificados',
+    label: 'Verificados',
+    field: 'verificados',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    name: 'nao_verificados',
+    label: 'Não Verificados',
+    field: 'nao_verificados',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    name: 'media_avaliacao_geral',
+    label: 'Média Avaliação',
+    field: 'media_avaliacao_geral',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    name: 'top_prestadores',
+    label: 'Top Prestadores',
+    field: 'top_prestadores',
+    align: 'left',
+    sortable: false,
+  },
+];
 
 // Colunas para tabela financeira
 const financeiroColumns: QTableColumn[] = [
@@ -451,151 +504,165 @@ const financeiroColumns: QTableColumn[] = [
   { name: 'entradas', label: 'Entradas', field: 'entradas', align: 'center', sortable: true },
   { name: 'saidas', label: 'Saídas', field: 'saidas', align: 'center', sortable: true },
   { name: 'saldo', label: 'Saldo', field: 'saldo', align: 'center', sortable: true },
-  { name: 'comissoes', label: 'Comissões', field: 'comissoes', align: 'center', sortable: true }
-]
+  { name: 'comissoes', label: 'Comissões', field: 'comissoes', align: 'center', sortable: true },
+];
 
 // Funções auxiliares
 const formatNumber = (value: number): string => {
-  return new Intl.NumberFormat('pt-PT').format(value)
-}
+  return new Intl.NumberFormat('pt-PT').format(value);
+};
 
 const formatMoney = (value: number): string => {
   return new Intl.NumberFormat('pt-PT', {
     style: 'currency',
     currency: 'MZN',
-    minimumFractionDigits: 0
-  }).format(value)
-}
+    minimumFractionDigits: 0,
+  }).format(value);
+};
 
 // Carregar dados
 const carregarDados = async (): Promise<void> => {
   try {
-    const periodoValue = periodo.value === 'custom' ? 'mes' : periodo.value
+    const periodoValue = periodo.value === 'custom' ? 'mes' : periodo.value;
 
     await Promise.all([
-      adminStore.fetchDashboard(),
-      adminStore.fetchStats(),
-      adminStore.fetchRelatorioServicos(periodoValue),
-      adminStore.fetchRelatorioPrestadores(),
-      adminStore.fetchRelatorioFinanceiro(periodoValue)
-    ])
+      dashboardStore.fetchDashboard(),
+      dashboardStore.fetchStats(),
+      financeiroStore.fetchRelatorioServicos(periodoValue),
+      financeiroStore.fetchRelatorioPrestadores(),
+      financeiroStore.fetchRelatorioFinanceiro(periodoValue),
+    ]);
   } catch (error) {
-    console.error('Erro ao carregar dados:', error)
+    console.error('Erro ao carregar dados:', error);
     $q.notify({
       type: 'negative',
       message: 'Erro ao carregar dados dos relatórios',
-      position: 'top'
-    })
+      position: 'top',
+    });
   }
-}
+};
 
-// Exportar relatório
+// ✅ Exportar relatório (sem any)
 const exportarRelatorio = (tipo: string): void => {
-  if (exportando.value) return
+  if (exportando.value) return;
 
-  exportando.value = true
+  exportando.value = true;
 
   try {
-    let data: RelatorioServicos[] | RelatorioPrestadores[] | RelatorioFinanceiro[] = []
-    let filename = ''
-    let headers: string[] = []
+    let data: RelatorioServicos[] | RelatorioPrestadores[] | RelatorioFinanceiro[] = [];
+    let filename = '';
+    let headers: string[] = [];
 
     if (tipo === 'servicos') {
-      data = relatorioServicos.value
-      filename = `relatorio_servicos_${periodo.value}`
-      headers = ['Período', 'Total Serviços', 'Receita Total', 'Pendentes', 'Aceitos', 'Em Andamento', 'Concluídos', 'Cancelados']
+      data = relatorioServicos.value;
+      filename = `relatorio_servicos_${periodo.value}`;
+      headers = [
+        'Período',
+        'Total Serviços',
+        'Receita Total',
+        'Pendentes',
+        'Aceitos',
+        'Em Andamento',
+        'Concluídos',
+        'Cancelados',
+      ];
     } else if (tipo === 'prestadores') {
-      data = relatorioPrestadores.value
-      filename = 'relatorio_prestadores'
-      headers = ['Total', 'Verificados', 'Não Verificados', 'Média Avaliação', 'Top Prestadores']
+      data = relatorioPrestadores.value;
+      filename = 'relatorio_prestadores';
+      headers = ['Total', 'Verificados', 'Não Verificados', 'Média Avaliação', 'Top Prestadores'];
     } else {
-      data = relatorioFinanceiro.value
-      filename = `relatorio_financeiro_${periodo.value}`
-      headers = ['Período', 'Entradas', 'Saídas', 'Saldo', 'Comissões']
+      data = relatorioFinanceiro.value;
+      filename = `relatorio_financeiro_${periodo.value}`;
+      headers = ['Período', 'Entradas', 'Saídas', 'Saldo', 'Comissões'];
     }
 
     if (data.length === 0) {
       $q.notify({
         type: 'warning',
         message: 'Não há dados para exportar',
-        position: 'top'
-      })
-      return
+        position: 'top',
+      });
+      return;
     }
 
-    // Gerar CSV
-    const csvRows: string[][] = [headers]
+    const csvRows: string[][] = [headers];
 
-    data.forEach(row => {
-      if (tipo === 'servicos') {
-        const servicosRow = row as RelatorioServicos
+    if (tipo === 'servicos') {
+      const servicosData = data as RelatorioServicos[];
+      servicosData.forEach((row: RelatorioServicos) => {
         csvRows.push([
-          servicosRow.periodo || '',
-          String(servicosRow.total_servicos || 0),
-          String(servicosRow.receita_total || 0),
-          String(servicosRow.servicos_por_status?.pendente || 0),
-          String(servicosRow.servicos_por_status?.aceito || '0'),
-          String(servicosRow.servicos_por_status?.em_andamento || '0'),
-          String(servicosRow.servicos_por_status?.concluido || '0'),
-          String(servicosRow.servicos_por_status?.cancelado || '0')
-        ])
-      } else if (tipo === 'prestadores') {
-        const prestadoresRow = row as RelatorioPrestadores
-        const topPrestadores = prestadoresRow.top_prestadores?.map(p => p.nome).join('; ') || ''
+          row.periodo || '',
+          String(row.total_servicos || 0),
+          String(row.receita_total || 0),
+          String(row.servicos_por_status?.pendente || 0),
+          String(row.servicos_por_status?.aceito || '0'),
+          String(row.servicos_por_status?.em_andamento || '0'),
+          String(row.servicos_por_status?.concluido || '0'),
+          String(row.servicos_por_status?.cancelado || '0'),
+        ]);
+      });
+    } else if (tipo === 'prestadores') {
+      const prestadoresData = data as RelatorioPrestadores[];
+      prestadoresData.forEach((row: RelatorioPrestadores) => {
+        const topPrestadores =
+          row.top_prestadores?.map((p: PrestadorTop) => p.nome).join('; ') || '';
         csvRows.push([
-          String(prestadoresRow.total || 0),
-          String(prestadoresRow.verificados || 0),
-          String(prestadoresRow.nao_verificados || 0),
-          String(prestadoresRow.media_avaliacao_geral || 0),
-          topPrestadores
-        ])
-      } else {
-        const financeiroRow = row as RelatorioFinanceiro
+          String(row.total || 0),
+          String(row.verificados || 0),
+          String(row.nao_verificados || 0),
+          String(row.media_avaliacao_geral || 0),
+          topPrestadores,
+        ]);
+      });
+    } else {
+      const financeiroData = data as RelatorioFinanceiro[];
+      financeiroData.forEach((row: RelatorioFinanceiro) => {
         csvRows.push([
-          financeiroRow.periodo || '',
-          String(financeiroRow.entradas || 0),
-          String(financeiroRow.saidas || 0),
-          String(financeiroRow.saldo || 0),
-          String(financeiroRow.comissoes || 0)
-        ])
-      }
-    })
+          row.periodo || '',
+          String(row.entradas || 0),
+          String(row.saidas || 0),
+          String(row.saldo || 0),
+          String(row.comissoes || 0),
+        ]);
+      });
+    }
 
-    const csv = csvRows.map(row => row.join(',')).join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.href = url
-    link.setAttribute('download', `${filename}_${new Date().toISOString().slice(0, 19)}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    const csv = csvRows.map((row) => row.join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', `${filename}_${new Date().toISOString().slice(0, 19)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
     $q.notify({
       type: 'positive',
       message: 'Relatório exportado com sucesso!',
-      position: 'top'
-    })
+      position: 'top',
+    });
   } catch (error) {
-    console.error('Erro ao exportar:', error)
+    console.error('Erro ao exportar:', error);
     $q.notify({
       type: 'negative',
       message: 'Erro ao exportar relatório',
-      position: 'top'
-    })
+      position: 'top',
+    });
   } finally {
-    exportando.value = false
+    exportando.value = false;
   }
-}
+};
 
 // Carregar dados ao montar
 onMounted(() => {
-  void carregarDados()
-})
+  void carregarDados();
+});
 </script>
 
 <style scoped lang="scss">
+// ... styles mantidos iguais ao original
 $primary-color: #667eea;
 $gray-100: #f5f5f5;
 $gray-200: #eeeeee;
@@ -637,10 +704,7 @@ $gray-600: #757575;
   }
 }
 
-// ==========================================
-// SKELETON LOADING (Facebook/Instagram style)
-// ==========================================
-
+// Skeleton Loading
 .skeleton-container {
   position: relative;
   overflow: hidden;
@@ -786,20 +850,21 @@ $gray-600: #757575;
   left: 0;
   right: 0;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   animation: shimmer 1.5s infinite;
   pointer-events: none;
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
-// ==========================================
-// ESTILOS PRINCIPAIS
-// ==========================================
-
+// Estilos principais
 .periodo-card,
 .resumo-card,
 .relatorios-card {

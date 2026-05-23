@@ -27,7 +27,6 @@
           <div class="skeleton-btn"></div>
         </div>
       </div>
-      
     </div>
 
     <!-- Conteúdo original -->
@@ -90,7 +89,12 @@
         </div>
 
         <div v-else class="promocoes-grid">
-          <div v-for="promo in promocoes" :key="promo.id" class="promo-card" :class="{ featured: isDestaque(promo) }">
+          <div
+            v-for="promo in promocoes"
+            :key="promo.id"
+            class="promo-card"
+            :class="{ featured: isDestaque(promo) }"
+          >
             <div class="promo-card-inner">
               <!-- Badge de destaque -->
               <div class="promo-badge" v-if="isDestaque(promo)">
@@ -99,8 +103,14 @@
               </div>
 
               <!-- Ícone de promoção -->
-              <div class="promo-icon" :class="{ 'icon-percent': promo.tipo_desconto === 'percentual' }">
-                <q-icon :name="promo.tipo_desconto === 'percentual' ? 'percent' : 'sell'" size="32px" />
+              <div
+                class="promo-icon"
+                :class="{ 'icon-percent': promo.tipo_desconto === 'percentual' }"
+              >
+                <q-icon
+                  :name="promo.tipo_desconto === 'percentual' ? 'percent' : 'sell'"
+                  size="32px"
+                />
               </div>
 
               <!-- Conteúdo principal -->
@@ -117,8 +127,14 @@
 
                 <!-- Detalhes da promoção -->
                 <div class="promo-details">
-                  <div class="discount-badge" :class="{ 'discount-high': promo.valor_desconto >= 20 }">
-                    <q-icon :name="promo.tipo_desconto === 'percentual' ? 'percent' : 'attach_money'" size="14px" />
+                  <div
+                    class="discount-badge"
+                    :class="{ 'discount-high': promo.valor_desconto >= 20 }"
+                  >
+                    <q-icon
+                      :name="promo.tipo_desconto === 'percentual' ? 'percent' : 'attach_money'"
+                      size="14px"
+                    />
                     {{ formatDesconto(promo) }}
                   </div>
                   <div class="min-value" v-if="promo.valor_minimo > 0">
@@ -194,7 +210,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePromocaoStore, type PromocaoData } from 'src/stores/promocao-store';
+import { usePromocaoStore, type PromocaoData } from 'src/stores/client/promocao-store';
 
 defineOptions({
   name: 'MobilePromocoes',
@@ -330,8 +346,12 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
 /* ========================================== */
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .skeleton-loading {
@@ -461,11 +481,21 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   z-index: 10000;
 }
 
-.w-20 { width: 20%; }
-.w-30 { width: 30%; }
-.w-40 { width: 40%; }
-.w-60 { width: 60%; }
-.w-80 { width: 80%; }
+.w-20 {
+  width: 20%;
+}
+.w-30 {
+  width: 30%;
+}
+.w-40 {
+  width: 40%;
+}
+.w-60 {
+  width: 60%;
+}
+.w-80 {
+  width: 80%;
+}
 
 /* ========================================== */
 /* ESTILOS ORIGINAIS (mantidos sem alterações) */

@@ -1,20 +1,38 @@
 <template>
-  <q-page class="prestador-pedidos bg-grey-1">
-    <!-- Skeleton Loading (enquanto carrega) -->
-    <div v-if="carregamentoInicial" class="skeleton-loading">
+  <div class="prestador-pedidos">
+
+    <!-- ===== CABEÇALHO ===== -->
+    <div class="page-header">
+      <button class="back-btn" @click="() => void router.back()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+      <h1 class="page-title">Pedidos Recebidos</h1>
+      <button class="menu-btn" @click="opcoes">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="1"/>
+          <circle cx="12" cy="5" r="1"/>
+          <circle cx="12" cy="19" r="1"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ===== SKELETON LOADING ===== -->
+    <div v-if="carregamentoInicial" class="skeleton-container">
       <div class="skeleton-header">
-        <div class="skeleton-back-btn"></div>
+        <div class="skeleton-back"></div>
         <div class="skeleton-title"></div>
-        <div class="skeleton-menu-btn"></div>
+        <div class="skeleton-menu"></div>
       </div>
       <div class="skeleton-tabs">
         <div v-for="i in 4" :key="i" class="skeleton-tab"></div>
       </div>
-      <div class="skeleton-cards q-pa-md">
+      <div class="skeleton-cards">
         <div v-for="i in 2" :key="i" class="skeleton-card">
           <div class="skeleton-card-header">
             <div class="skeleton-avatar"></div>
-            <div class="skeleton-card-info">
+            <div class="skeleton-info">
               <div class="skeleton-line w-50"></div>
               <div class="skeleton-line w-40"></div>
               <div class="skeleton-line w-30"></div>
@@ -33,331 +51,326 @@
       </div>
     </div>
 
-    <!-- Conteúdo original -->
+    <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
-      <!-- Cabeçalho -->
-      <div class="page-header q-pa-md">
-        <q-btn flat round icon="arrow_back" @click="router.back()" />
-        <div class="text-h5 text-bold">Pedidos Recebidos</div>
-        <q-btn flat round icon="more_vert" @click="opcoes" />
-      </div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="loading-state">
-        <q-spinner color="primary" size="48px" />
-        <div class="text-grey-6 q-mt-md">Carregando pedidos...</div>
+      <!-- Loading overlay -->
+      <div v-if="loading" class="loading-overlay">
+        <div class="loader"></div>
+        <p>Carregando pedidos...</p>
       </div>
 
       <template v-else>
-        <!-- Tabs de filtro -->
-        <q-tabs
-          v-model="tab"
-          class="filter-tabs"
-          active-color="primary"
-          indicator-color="primary"
-          align="justify"
-        >
-          <q-tab name="pendentes" label="Pendentes">
-            <q-badge v-if="contadores.pendentes > 0" color="red" floating>{{
-              contadores.pendentes
-            }}</q-badge>
-          </q-tab>
-          <q-tab name="confirmados" label="Confirmados">
-            <q-badge v-if="contadores.confirmados > 0" color="green" floating>{{
-              contadores.confirmados
-            }}</q-badge>
-          </q-tab>
-          <q-tab name="concluidos" label="Concluídos" />
-          <q-tab name="cancelados" label="Cancelados" />
-        </q-tabs>
 
-        <!-- Lista de pedidos -->
-        <q-tab-panels v-model="tab" animated class="bg-transparent">
-          <!-- Pendentes -->
-          <q-tab-panel name="pendentes" class="q-pa-md">
-            <div v-if="pedidosPendentes.length === 0" class="empty-state">
-              <q-icon name="inbox" size="64px" color="grey-4" />
-              <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido pendente</div>
-              <div class="text-grey-6 q-mt-sm">Quando receber novos pedidos, aparecerão aqui</div>
-            </div>
+        <!-- ===== TABS ===== -->
+        <div class="tabs-container">
+          <button
+            v-for="tabOption in tabsOpcoes"
+            :key="tabOption.value"
+            class="tab-btn"
+            :class="{ active: tab === tabOption.value }"
+            @click="tab = tabOption.value"
+          >
+            {{ tabOption.label }}
+            <span v-if="tabOption.value === 'pendentes' && contadores.pendentes > 0" class="tab-badge danger">
+              {{ contadores.pendentes }}
+            </span>
+            <span v-if="tabOption.value === 'confirmados' && contadores.confirmados > 0" class="tab-badge success">
+              {{ contadores.confirmados }}
+            </span>
+          </button>
+        </div>
 
-            <div v-else class="pedidos-list">
-              <q-card
-                v-for="pedido in pedidosPendentes"
-                :key="pedido.id"
-                class="pedido-card q-mb-md"
-                flat
-                bordered
-              >
-                <q-card-section>
-                  <div class="row items-center">
-                    <q-avatar size="50px" class="q-mr-md">
-                      <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
-                    </q-avatar>
-                    <div class="col">
-                      <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
-                      <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                      <div class="pedido-info">
-                        <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                        {{ formatarData(pedido.data) }}
-                      </div>
-                    </div>
+        <!-- ===== TAB: PENDENTES ===== -->
+        <div v-show="tab === 'pendentes'" class="tab-content">
+          <div v-if="pedidosPendentes.length === 0" class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            <h3>Nenhum pedido pendente</h3>
+            <p>Quando receber novos pedidos, aparecerão aqui</p>
+          </div>
+
+          <div v-else class="pedidos-list">
+            <div v-for="pedido in pedidosPendentes" :key="pedido.id" class="pedido-card">
+              <div class="pedido-card__header">
+                <div class="pedido-avatar" :style="getAvatarStyle(pedido.cliente?.nome)">
+                  {{ getInitials(pedido.cliente?.nome || 'Cliente') }}
+                </div>
+                <div class="pedido-info">
+                  <div class="pedido-nome">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                  <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                  <div class="pedido-data">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    {{ formatarData(pedido.data) }}
                   </div>
-                </q-card-section>
+                </div>
+                <span class="status-badge warning">Pendente</span>
+              </div>
 
-                <q-card-section class="q-pt-none">
-                  <div class="pedido-detalhes">
-                    <div class="row q-col-gutter-sm">
-                      <div class="col-6">
-                        <div class="detalhe-label">Duração</div>
-                        <div class="detalhe-valor">{{ obterDuracaoServico(pedido) }} min</div>
-                      </div>
-                      <div class="col-6">
-                        <div class="detalhe-label">Valor</div>
-                        <div class="detalhe-valor text-primary">{{ formatarValor(pedido.valor) }} MZN</div>
-                      </div>
-                    </div>
-                    <div class="row q-mt-sm">
-                      <div class="col-12">
-                        <div class="detalhe-label">Localização</div>
-                        <div class="detalhe-valor flex items-center">
-                          <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
-                          {{ pedido.endereco || 'Endereço não informado' }}
-                        </div>
-                      </div>
-                    </div>
-                    <div v-if="pedido.observacoes" class="row q-mt-sm">
-                      <div class="col-12">
-                        <div class="detalhe-label">Observações</div>
-                        <div class="detalhe-valor">{{ pedido.observacoes }}</div>
-                      </div>
-                    </div>
+              <div class="pedido-card__body">
+                <div class="details-grid">
+                  <div class="detail-item">
+                    <div class="detail-label">Duração</div>
+                    <div class="detail-value">{{ obterDuracaoServico(pedido) }} min</div>
                   </div>
-                </q-card-section>
-
-                <q-card-actions align="right" class="q-pa-md">
-                  <q-btn
-                    flat
-                    label="Recusar"
-                    color="negative"
-                    icon="close"
-                    @click="recusarPedido(pedido)"
-                    :loading="loadingAcao === pedido.id"
-                  />
-                  <q-btn
-                    unelevated
-                    label="Aceitar"
-                    color="positive"
-                    icon="check"
-                    @click="aceitarPedido(pedido)"
-                    :loading="loadingAcao === pedido.id"
-                  />
-                </q-card-actions>
-              </q-card>
-            </div>
-          </q-tab-panel>
-
-          <!-- Confirmados -->
-          <q-tab-panel name="confirmados" class="q-pa-md">
-            <div v-if="pedidosConfirmados.length === 0" class="empty-state">
-              <q-icon name="check_circle" size="64px" color="grey-4" />
-              <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido confirmado</div>
-              <div class="text-grey-6 q-mt-sm">Os pedidos que aceitar aparecerão aqui</div>
-            </div>
-
-            <div v-else class="pedidos-list">
-              <q-card
-                v-for="pedido in pedidosConfirmados"
-                :key="pedido.id"
-                class="pedido-card q-mb-md"
-                flat
-                bordered
-              >
-                <q-card-section>
-                  <div class="row items-center">
-                    <q-avatar size="50px" class="q-mr-md">
-                      <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
-                    </q-avatar>
-                    <div class="col">
-                      <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
-                      <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                      <div class="pedido-info">
-                        <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                        {{ formatarData(pedido.data) }}
-                      </div>
-                    </div>
-                    <div class="pedido-status confirmado">
-                      <q-icon name="check_circle" size="16px" class="q-mr-xs" />
-                      Confirmado
-                    </div>
+                  <div class="detail-item">
+                    <div class="detail-label">Valor</div>
+                    <div class="detail-value primary">{{ formatarValor(pedido.valor) }} MZN</div>
                   </div>
-                </q-card-section>
-
-                <q-card-section class="q-pt-none">
-                  <div class="pedido-detalhes">
-                    <div class="row q-col-gutter-sm">
-                      <div class="col-6">
-                        <div class="detalhe-label">Duração</div>
-                        <div class="detalhe-valor">{{ obterDuracaoServico(pedido) }} min</div>
-                      </div>
-                      <div class="col-6">
-                        <div class="detalhe-label">Valor</div>
-                        <div class="detalhe-valor text-primary">{{ formatarValor(pedido.valor) }} MZN</div>
-                      </div>
-                    </div>
-                    <div class="row q-mt-sm">
-                      <div class="col-12">
-                        <div class="detalhe-label">Localização</div>
-                        <div class="detalhe-valor flex items-center">
-                          <q-icon name="location_on" size="16px" class="q-mr-xs text-grey-6" />
-                          {{ pedido.endereco || 'Endereço não informado' }}
-                        </div>
-                      </div>
-                    </div>
+                </div>
+                <div class="detail-item full-width">
+                  <div class="detail-label">Localização</div>
+                  <div class="detail-value">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                      <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    {{ pedido.endereco || 'Endereço não informado' }}
                   </div>
-                </q-card-section>
+                </div>
+                <div v-if="pedido.observacoes" class="detail-item full-width">
+                  <div class="detail-label">Observações</div>
+                  <div class="detail-value muted">{{ pedido.observacoes }}</div>
+                </div>
+              </div>
 
-                <q-card-actions align="right" class="q-pa-md">
-                  <q-btn flat label="Chat" icon="chat" color="primary" @click="abrirChat(pedido)" />
-                  <q-btn
-                    flat
-                    label="Iniciar"
-                    icon="play_arrow"
-                    color="positive"
-                    @click="iniciarServico(pedido)"
-                    :loading="loadingAcao === pedido.id"
-                  />
-                </q-card-actions>
-              </q-card>
+              <div class="pedido-card__footer">
+                <button class="action-btn secondary" @click="recusarPedido(pedido)" :disabled="loadingAcao === pedido.id">
+                  <div v-if="loadingAcao === pedido.id" class="btn-spinner-small"></div>
+                  <span v-else>Recusar</span>
+                </button>
+                <button class="action-btn primary" @click="aceitarPedido(pedido)" :disabled="loadingAcao === pedido.id">
+                  <div v-if="loadingAcao === pedido.id" class="btn-spinner-small"></div>
+                  <span v-else>Aceitar</span>
+                </button>
+              </div>
             </div>
-          </q-tab-panel>
+          </div>
+        </div>
 
-          <!-- Concluídos -->
-          <q-tab-panel name="concluidos" class="q-pa-md">
-            <div v-if="pedidosConcluidos.length === 0" class="empty-state">
-              <q-icon name="task_alt" size="64px" color="grey-4" />
-              <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido concluído</div>
-              <div class="text-grey-6 q-mt-sm">Histórico de serviços realizados</div>
-            </div>
+        <!-- ===== TAB: CONFIRMADOS ===== -->
+        <div v-show="tab === 'confirmados'" class="tab-content">
+          <div v-if="pedidosConfirmados.length === 0" class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <h3>Nenhum pedido confirmado</h3>
+            <p>Os pedidos que aceitar aparecerão aqui</p>
+          </div>
 
-            <div v-else class="pedidos-list">
-              <q-card
-                v-for="pedido in pedidosConcluidos"
-                :key="pedido.id"
-                class="pedido-card q-mb-md"
-                flat
-                bordered
-              >
-                <q-card-section>
-                  <div class="row items-center">
-                    <q-avatar size="50px" class="q-mr-md">
-                      <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
-                    </q-avatar>
-                    <div class="col">
-                      <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
-                      <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                      <div class="pedido-info">
-                        <q-icon name="calendar_today" size="14px" class="q-mr-xs" />
-                        {{ formatarData(pedido.data) }}
-                      </div>
-                    </div>
-                    <div class="pedido-status concluido">
-                      <q-icon name="task_alt" size="16px" class="q-mr-xs" />
-                      Concluído
-                    </div>
+          <div v-else class="pedidos-list">
+            <div v-for="pedido in pedidosConfirmados" :key="pedido.id" class="pedido-card">
+              <div class="pedido-card__header">
+                <div class="pedido-avatar" :style="getAvatarStyle(pedido.cliente?.nome)">
+                  {{ getInitials(pedido.cliente?.nome || 'Cliente') }}
+                </div>
+                <div class="pedido-info">
+                  <div class="pedido-nome">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                  <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                  <div class="pedido-data">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    {{ formatarData(pedido.data) }}
                   </div>
-                </q-card-section>
+                </div>
+                <span class="status-badge success">Confirmado</span>
+              </div>
 
-                <q-card-section class="q-pt-none">
-                  <div class="row items-center">
-                    <q-icon name="star" color="yellow" size="16px" />
-                    <span class="text-caption text-grey-6 q-ml-sm">Aguardando avaliação do cliente</span>
+              <div class="pedido-card__body">
+                <div class="details-grid">
+                  <div class="detail-item">
+                    <div class="detail-label">Duração</div>
+                    <div class="detail-value">{{ obterDuracaoServico(pedido) }} min</div>
                   </div>
-                </q-card-section>
-
-                <q-card-actions align="right" class="q-pa-md">
-                  <q-btn
-                    flat
-                    label="Ver detalhes"
-                    icon="visibility"
-                    color="primary"
-                    @click="verDetalhes(pedido)"
-                  />
-                </q-card-actions>
-              </q-card>
-            </div>
-          </q-tab-panel>
-
-          <!-- Cancelados -->
-          <q-tab-panel name="cancelados" class="q-pa-md">
-            <div v-if="pedidosCancelados.length === 0" class="empty-state">
-              <q-icon name="cancel" size="64px" color="grey-4" />
-              <div class="text-h6 text-grey-7 q-mt-md">Nenhum pedido cancelado</div>
-            </div>
-
-            <div v-else class="pedidos-list">
-              <q-card
-                v-for="pedido in pedidosCancelados"
-                :key="pedido.id"
-                class="pedido-card q-mb-md"
-                flat
-                bordered
-              >
-                <q-card-section>
-                  <div class="row items-center">
-                    <q-avatar size="50px" class="q-mr-md">
-                      <img :src="pedido.cliente?.foto || 'https://cdn.quasar.dev/img/avatar.png'" alt="avatar" />
-                    </q-avatar>
-                    <div class="col">
-                      <div class="pedido-cliente">{{ pedido.cliente?.nome || 'Cliente' }}</div>
-                      <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
-                      <div class="pedido-info">
-                        <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                        {{ formatarData(pedido.data) }}
-                      </div>
-                    </div>
-                    <div class="pedido-status cancelado">
-                      <q-icon name="cancel" size="16px" class="q-mr-xs" />
-                      Cancelado
-                    </div>
+                  <div class="detail-item">
+                    <div class="detail-label">Valor</div>
+                    <div class="detail-value primary">{{ formatarValor(pedido.valor) }} MZN</div>
                   </div>
-                </q-card-section>
-              </q-card>
+                </div>
+                <div class="detail-item full-width">
+                  <div class="detail-label">Localização</div>
+                  <div class="detail-value">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                      <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    {{ pedido.endereco || 'Endereço não informado' }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="pedido-card__footer">
+                <button class="action-btn outline" @click="abrirChat(pedido)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  Chat
+                </button>
+                <button class="action-btn primary" @click="iniciarServico(pedido)" :disabled="loadingAcao === pedido.id">
+                  <div v-if="loadingAcao === pedido.id" class="btn-spinner-small"></div>
+                  <span v-else>Iniciar</span>
+                </button>
+              </div>
             </div>
-          </q-tab-panel>
-        </q-tab-panels>
+          </div>
+        </div>
+
+        <!-- ===== TAB: CONCLUÍDOS ===== -->
+        <div v-show="tab === 'concluidos'" class="tab-content">
+          <div v-if="pedidosConcluidos.length === 0" class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <h3>Nenhum pedido concluído</h3>
+            <p>Histórico de serviços realizados</p>
+          </div>
+
+          <div v-else class="pedidos-list">
+            <div v-for="pedido in pedidosConcluidos" :key="pedido.id" class="pedido-card">
+              <div class="pedido-card__header">
+                <div class="pedido-avatar" :style="getAvatarStyle(pedido.cliente?.nome)">
+                  {{ getInitials(pedido.cliente?.nome || 'Cliente') }}
+                </div>
+                <div class="pedido-info">
+                  <div class="pedido-nome">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                  <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                  <div class="pedido-data">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    {{ formatarData(pedido.data) }}
+                  </div>
+                </div>
+                <span class="status-badge info">Concluído</span>
+              </div>
+
+              <div class="pedido-card__footer-note">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span>Aguardando avaliação do cliente</span>
+              </div>
+
+              <div class="pedido-card__footer">
+                <button class="action-btn outline" @click="verDetalhes(pedido)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Ver detalhes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== TAB: CANCELADOS ===== -->
+        <div v-show="tab === 'cancelados'" class="tab-content">
+          <div v-if="pedidosCancelados.length === 0" class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            <h3>Nenhum pedido cancelado</h3>
+          </div>
+
+          <div v-else class="pedidos-list">
+            <div v-for="pedido in pedidosCancelados" :key="pedido.id" class="pedido-card">
+              <div class="pedido-card__header">
+                <div class="pedido-avatar" :style="getAvatarStyle(pedido.cliente?.nome)">
+                  {{ getInitials(pedido.cliente?.nome || 'Cliente') }}
+                </div>
+                <div class="pedido-info">
+                  <div class="pedido-nome">{{ pedido.cliente?.nome || 'Cliente' }}</div>
+                  <div class="pedido-servico">{{ pedido.servico?.nome || 'Serviço' }}</div>
+                  <div class="pedido-data">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    {{ formatarData(pedido.data) }}
+                  </div>
+                </div>
+                <span class="status-badge danger">Cancelado</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </template>
     </template>
 
-    <!-- Botão flutuante para configurações -->
-    <q-page-sticky position="bottom-right" :offset="[18, 18]">
-      <q-btn fab icon="settings" color="primary" @click="configurarNotificacoes">
-        <q-tooltip>Configurar notificações</q-tooltip>
-      </q-btn>
-    </q-page-sticky>
-  </q-page>
+    <!-- ===== BOTÃO FLUTUANTE ===== -->
+    <button class="fab-btn" @click="configurarNotificacoes">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.03.03A10 10 0 0 0 12 17.66a10 10 0 0 0 6.37-2.63z"/>
+      </svg>
+    </button>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorStore } from 'src/stores/prestador-store';
-import type { SolicitacaoData } from 'src/stores/prestador-store';
+import { usePrestadorServicosStore } from 'src/stores/prestador/prestador-servicos-store';
+import type { SolicitacaoData } from 'src/stores/prestador/prestador-servicos-store';
 
-defineOptions({
-  name: 'PrestadorPedidos',
-});
+defineOptions({ name: 'PrestadorPedidos' });
+
+interface TabOpcao {
+  label: string;
+  value: string;
+}
 
 const router = useRouter();
 const $q = useQuasar();
-const prestadorStore = usePrestadorStore();
+const servicosStore = usePrestadorServicosStore();
 
-// Estado
 const carregamentoInicial = ref(true);
+const loading = ref(false);
 const tab = ref('pendentes');
 const loadingAcao = ref<number | null>(null);
-const loading = ref(false);
+
+const tabsOpcoes: TabOpcao[] = [
+  { label: 'Pendentes', value: 'pendentes' },
+  { label: 'Confirmados', value: 'confirmados' },
+  { label: 'Concluídos', value: 'concluidos' },
+  { label: 'Cancelados', value: 'cancelados' },
+];
+
+const avatarGradients = [
+  'linear-gradient(135deg, #5B4BF5, #9F7AEA)',
+  'linear-gradient(135deg, #10B981, #34D399)',
+  'linear-gradient(135deg, #F59E0B, #FBBF24)',
+  'linear-gradient(135deg, #EF4444, #F87171)',
+  'linear-gradient(135deg, #3B82F6, #60A5FA)',
+  'linear-gradient(135deg, #8B5CF6, #A78BFA)',
+];
+
+const getAvatarStyle = (nome?: string) => {
+  if (!nome) return { background: avatarGradients[0] };
+  const idx = Math.abs(nome.charCodeAt(0)) % avatarGradients.length;
+  return { background: avatarGradients[idx] };
+};
+
+const getInitials = (nome: string): string => {
+  return nome.split(' ').slice(0, 2).map(n => n.charAt(0)).join('').toUpperCase();
+};
 
 const obterDuracaoServico = (pedido: SolicitacaoData): number => {
   if (pedido.servico && 'duracao' in pedido.servico && typeof pedido.servico.duracao === 'number') {
@@ -367,19 +380,19 @@ const obterDuracaoServico = (pedido: SolicitacaoData): number => {
 };
 
 const pedidosPendentes = computed(() =>
-  prestadorStore.solicitacoes.filter(p => p.status === 'pendente')
+  servicosStore.solicitacoes.filter((p: SolicitacaoData) => p.status === 'pendente'),
 );
 
 const pedidosConfirmados = computed(() =>
-  prestadorStore.solicitacoes.filter(p => p.status === 'aceito' || p.status === 'confirmado')
+  servicosStore.solicitacoes.filter((p: SolicitacaoData) => p.status === 'aceito' || p.status === 'confirmado'),
 );
 
 const pedidosConcluidos = computed(() =>
-  prestadorStore.solicitacoes.filter(p => p.status === 'concluido')
+  servicosStore.solicitacoes.filter((p: SolicitacaoData) => p.status === 'concluido'),
 );
 
 const pedidosCancelados = computed(() =>
-  prestadorStore.solicitacoes.filter(p => p.status === 'cancelado')
+  servicosStore.solicitacoes.filter((p: SolicitacaoData) => p.status === 'cancelado'),
 );
 
 const contadores = computed(() => ({
@@ -389,7 +402,8 @@ const contadores = computed(() => ({
   cancelados: pedidosCancelados.value.length,
 }));
 
-const formatarData = (dataString: string) => {
+const formatarData = (dataString: string): string => {
+  if (!dataString) return '';
   const date = new Date(dataString);
   const now = new Date();
   const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
@@ -398,129 +412,70 @@ const formatarData = (dataString: string) => {
     return `Hoje às ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   } else if (diffHours < 48) {
     return 'Ontem';
-  } else {
-    return date.toLocaleDateString('pt-PT', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   }
+  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 };
 
-const formatarValor = (valor: number) => {
-  return valor.toLocaleString('pt-PT', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+const formatarValor = (valor: number): string => {
+  if (!valor && valor !== 0) return '0';
+  return valor.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-const aceitarPedido = (pedido: SolicitacaoData) => {
+const aceitarPedido = (pedido: SolicitacaoData): void => {
   loadingAcao.value = pedido.id;
-
   $q.dialog({
     title: 'Confirmar aceitação',
     message: `Deseja aceitar o pedido de ${pedido.cliente?.nome || 'cliente'}?`,
-    cancel: true,
-    persistent: true,
-    ok: {
-      label: 'Aceitar',
-      color: 'positive',
-      unelevated: true,
-    },
+    cancel: { label: 'Cancelar', flat: true },
+    ok: { label: 'Aceitar', color: 'positive', unelevated: true },
   }).onOk(() => {
-    prestadorStore.aceitarSolicitacao(pedido.id)
-      .then((success) => {
+    servicosStore.aceitarSolicitacao(pedido.id)
+      .then((success: boolean) => {
         if (success) {
-          $q.notify({
-            type: 'positive',
-            message: 'Pedido aceito com sucesso!',
-            position: 'top',
-            icon: 'check_circle',
-          });
+          $q.notify({ type: 'positive', message: 'Pedido aceito com sucesso!', position: 'top' });
         }
       })
-      .catch(() => {
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao aceitar pedido',
-          position: 'top',
-        });
-      })
-      .finally(() => {
-        loadingAcao.value = null;
-      });
-  }).onCancel(() => {
-    loadingAcao.value = null;
-  });
+      .catch(() => $q.notify({ type: 'negative', message: 'Erro ao aceitar pedido', position: 'top' }))
+      .finally(() => { loadingAcao.value = null; });
+  }).onCancel(() => { loadingAcao.value = null; });
 };
 
-const recusarPedido = (pedido: SolicitacaoData) => {
+const recusarPedido = (pedido: SolicitacaoData): void => {
   loadingAcao.value = pedido.id;
-
   $q.dialog({
     title: 'Confirmar recusa',
     message: `Deseja recusar o pedido de ${pedido.cliente?.nome || 'cliente'}?`,
-    cancel: true,
-    persistent: true,
-    ok: {
-      label: 'Recusar',
-      color: 'negative',
-      unelevated: true,
-    },
+    cancel: { label: 'Cancelar', flat: true },
+    ok: { label: 'Recusar', color: 'negative', unelevated: true },
   }).onOk(() => {
-    prestadorStore.recusarSolicitacao(pedido.id)
-      .then((success) => {
+    servicosStore.recusarSolicitacao(pedido.id)
+      .then((success: boolean) => {
         if (success) {
-          $q.notify({
-            type: 'negative',
-            message: 'Pedido recusado',
-            position: 'top',
-            icon: 'cancel',
-          });
+          $q.notify({ type: 'negative', message: 'Pedido recusado', position: 'top' });
         }
       })
-      .catch(() => {
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao recusar pedido',
-          position: 'top',
-        });
-      })
-      .finally(() => {
-        loadingAcao.value = null;
-      });
-  }).onCancel(() => {
-    loadingAcao.value = null;
-  });
+      .catch(() => $q.notify({ type: 'negative', message: 'Erro ao recusar pedido', position: 'top' }))
+      .finally(() => { loadingAcao.value = null; });
+  }).onCancel(() => { loadingAcao.value = null; });
 };
 
-const iniciarServico = (pedido: SolicitacaoData) => {
+const iniciarServico = (pedido: SolicitacaoData): void => {
   $q.dialog({
     title: 'Iniciar serviço',
     message: `Confirmar início do serviço para ${pedido.cliente?.nome || 'cliente'}?`,
-    cancel: true,
-    persistent: true,
+    cancel: { label: 'Cancelar', flat: true },
+    ok: { label: 'Iniciar', color: 'positive', unelevated: true },
   }).onOk(() => {
-    $q.notify({
-      type: 'positive',
-      message: 'Serviço iniciado!',
-      position: 'top',
-      icon: 'play_circle',
-    });
+    $q.notify({ type: 'positive', message: 'Serviço iniciado!', position: 'top' });
   });
 };
 
-const abrirChat = (pedido: SolicitacaoData) => {
+const abrirChat = (pedido: SolicitacaoData): void => {
   void router.push(`/mobile/chat/${pedido.cliente_id}`);
 };
 
-const verDetalhes = (pedido: SolicitacaoData) => {
-  $q.notify({
-    type: 'info',
-    message: `Pedido #${pedido.numero || pedido.id}`,
-    position: 'top',
-  });
+const verDetalhes = (pedido: SolicitacaoData): void => {
+  $q.notify({ type: 'info', message: `Pedido #${pedido.numero || pedido.id}`, position: 'top' });
 };
 
 const opcoes = (): void => {
@@ -536,36 +491,23 @@ const opcoes = (): void => {
         { label: 'Aceitar automaticamente', value: 'auto' },
       ],
     },
-    cancel: true,
-    persistent: true,
+    cancel: { label: 'Cancelar', flat: true },
   }).onOk(() => {
-    $q.notify({
-      type: 'positive',
-      message: 'Configuração salva',
-      position: 'top',
-    });
+    $q.notify({ type: 'positive', message: 'Configuração salva', position: 'top' });
   });
 };
 
 const configurarNotificacoes = (): void => {
-  $q.notify({
-    type: 'info',
-    message: 'Configurações de notificação em breve',
-    position: 'top',
-  });
+  $q.notify({ type: 'info', message: 'Configurações de notificação em breve', position: 'top' });
 };
 
-const carregarPedidos = async () => {
+const carregarPedidos = async (): Promise<void> => {
   loading.value = true;
   try {
-    await prestadorStore.fetchSolicitacoes();
+    await servicosStore.fetchSolicitacoes();
   } catch (error) {
     console.error('Erro ao carregar pedidos:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar pedidos',
-      position: 'top',
-    });
+    $q.notify({ type: 'negative', message: 'Erro ao carregar pedidos', position: 'top' });
   } finally {
     loading.value = false;
   }
@@ -576,153 +518,156 @@ onMounted(async () => {
   try {
     await carregarPedidos();
   } finally {
-    setTimeout(() => {
-      carregamentoInicial.value = false;
-    }, 500);
+    setTimeout(() => { carregamentoInicial.value = false; }, 500);
   }
 });
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
-$gray-50: #fafafa;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-$gray-700: #616161;
-$gray-800: #424242;
-$gray-900: #212121;
-
-/* ========================================== */
-/* SKELETON LOADING STYLES */
-/* ========================================== */
+$accent: #5B4BF5;
+$accent-light: rgba(91, 75, 245, 0.1);
+$success: #10B981;
+$success-light: rgba(16, 185, 129, 0.1);
+$warning: #F59E0B;
+$warning-light: rgba(245, 158, 11, 0.1);
+$danger: #EF4444;
+$danger-light: rgba(239, 68, 68, 0.1);
+$dark: #0A0A0F;
+$gray: #6B7280;
+$gray-light: #F3F4F6;
+$border: #E5E7EB;
+$white: #FFFFFF;
+$bg: #F4F4F8;
+$radius: 16px;
+$radius-sm: 12px;
+$radius-xs: 8px;
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-.skeleton-loading {
-  background: $gray-100;
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.prestador-pedidos {
+  background: $bg;
   min-height: 100vh;
+  padding-bottom: 80px;
 }
 
-.skeleton-header {
+.page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
-  padding: 16px;
-  border-bottom: 1px solid $gray-200;
+  background: $white;
+  padding: 12px 16px;
+  border-bottom: 1px solid $border;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  .back-btn, .menu-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-light;
+    border: none;
+    cursor: pointer;
+    color: $gray;
+    transition: all 0.2s;
+    &:hover { background: $accent-light; color: $accent; }
+  }
+
+  .page-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $dark;
+    margin: 0;
+  }
 }
 
-.skeleton-back-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-title {
-  width: 180px;
-  height: 24px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-menu-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-tabs {
+.loading-overlay {
   display: flex;
-  background: white;
-  padding: 8px 0;
-  border-bottom: 1px solid $gray-200;
-}
-
-.skeleton-tab {
-  flex: 1;
-  height: 40px;
-  border-radius: 8px;
-  margin: 0 4px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-cards {
-  padding: 16px;
-}
-
-.skeleton-card {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 16px;
-  border: 1px solid $gray-200;
-}
-
-.skeleton-card-header {
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 16px;
+  justify-content: center;
+  min-height: 50vh;
+
+  .loader {
+    width: 48px;
+    height: 48px;
+    border: 3px solid $border;
+    border-top-color: $accent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  p { margin-top: 16px; color: $gray; font-size: 0.85rem; }
 }
 
-.skeleton-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  margin-right: 16px;
-}
+// =====================
+// SKELETON
+// =====================
+.skeleton-container {
+  .skeleton-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: $white;
+    padding: 12px 16px;
+    border-bottom: 1px solid $border;
 
-.skeleton-card-info {
-  flex: 1;
-}
+    .skeleton-back, .skeleton-menu {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: $gray-light;
+    }
 
-.skeleton-line {
-  height: 14px;
-  border-radius: 7px;
-  margin: 6px 0;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
+    .skeleton-title {
+      width: 160px;
+      height: 24px;
+      background: $gray-light;
+      border-radius: $radius-xs;
+    }
+  }
 
-.skeleton-card-body {
-  margin: 16px 0;
-}
+  .skeleton-tabs {
+    display: flex;
+    background: $white;
+    padding: 8px;
+    gap: 8px;
 
-.skeleton-card-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid $gray-200;
-}
+    .skeleton-tab {
+      flex: 1;
+      height: 40px;
+      background: $gray-light;
+      border-radius: 20px;
+    }
+  }
 
-.skeleton-btn {
-  width: 100px;
-  height: 36px;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  .skeleton-cards { padding: 16px; }
+
+  .skeleton-card {
+    background: $white;
+    border-radius: $radius;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid $border;
+
+    .skeleton-card-header { display: flex; align-items: center; margin-bottom: 16px; }
+    .skeleton-avatar { width: 50px; height: 50px; border-radius: 50%; background: $gray-light; margin-right: 12px; }
+    .skeleton-info { flex: 1; }
+    .skeleton-line { height: 14px; background: $gray-light; border-radius: 7px; margin: 6px 0; }
+    .skeleton-card-body { margin: 16px 0; }
+    .skeleton-card-footer { display: flex; justify-content: flex-end; gap: 12px; padding-top: 12px; border-top: 1px solid $border; }
+    .skeleton-btn { width: 100px; height: 36px; background: $gray-light; border-radius: 8px; }
+  }
 }
 
 .w-30 { width: 30%; }
@@ -730,135 +675,252 @@ $gray-900: #212121;
 .w-50 { width: 50%; }
 .w-60 { width: 60%; }
 
-/* ========================================== */
-/* ESTILOS ORIGINAIS (mantidos sem alterações) */
-/* ========================================== */
-
-.prestador-pedidos {
-  min-height: 100vh;
-}
-
-.page-header {
+// =====================
+// TABS
+// =====================
+.tabs-container {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: white;
-  border-bottom: 1px solid $gray-200;
-}
+  background: $white;
+  padding: 8px;
+  gap: 8px;
+  border-bottom: 1px solid $border;
 
-.filter-tabs {
-  background: white;
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 50vh;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 50vh;
-  text-align: center;
-}
-
-.pedido-card {
-  border-radius: 16px;
-  transition: transform 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.1);
-  }
-
-  .pedido-cliente {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: $gray-800;
-  }
-
-  .pedido-servico {
-    font-size: 0.9rem;
-    color: $purple-primary;
-    margin: 2px 0;
-  }
-
-  .pedido-info {
+  .tab-btn {
+    flex: 1;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 24px;
     font-size: 0.8rem;
-    color: $gray-600;
-    display: flex;
-    align-items: center;
-  }
-}
-
-.pedido-detalhes {
-  background: $gray-50;
-  border-radius: 12px;
-  padding: 12px;
-
-  .detalhe-label {
-    font-size: 0.7rem;
-    color: $gray-500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .detalhe-valor {
-    font-size: 0.9rem;
     font-weight: 500;
-    color: $gray-800;
-  }
-}
+    color: $gray;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
 
-.pedido-status {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
+    &:hover { background: $gray-light; }
 
-  &.confirmado {
-    background: #e8f5e9;
-    color: #2e7d32;
-  }
+    &.active {
+      background: $accent;
+      color: $white;
+    }
 
-  &.concluido {
-    background: #e3f2fd;
-    color: #1976d2;
-  }
+    .tab-badge {
+      position: absolute;
+      top: 4px;
+      right: 12px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
-  &.cancelado {
-    background: #ffebee;
-    color: #c62828;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.pedido-card {
-  animation: slideIn 0.3s ease;
-}
-
-@media (max-width: 599px) {
-  .pedido-card {
-    .row.q-col-gutter-sm > .col-6 {
-      width: 100%;
+      &.danger { background: $danger; color: $white; }
+      &.success { background: $success; color: $white; }
     }
   }
+}
+
+.tab-content { padding: 16px; }
+
+// =====================
+// EMPTY STATE
+// =====================
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: $white;
+  border-radius: $radius;
+  border: 1px solid $border;
+
+  svg { margin-bottom: 16px; }
+  h3 { font-size: 1rem; font-weight: 600; color: $dark; margin-bottom: 8px; }
+  p { color: $gray; font-size: 0.8rem; }
+}
+
+// =====================
+// PEDIDO CARD
+// =====================
+.pedidos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pedido-card {
+  background: $white;
+  border-radius: $radius;
+  border: 1px solid $border;
+  overflow: hidden;
+  transition: all 0.2s;
+
+  &:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid $border;
+  }
+
+  &__body { padding: 16px; background: rgba(0, 0, 0, 0.01); }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 12px 16px;
+    border-top: 1px solid $border;
+  }
+
+  &__footer-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba($warning, 0.08);
+    font-size: 0.75rem;
+    color: darken($warning, 15%);
+  }
+}
+
+.pedido-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: $white;
+  flex-shrink: 0;
+}
+
+.pedido-info {
+  flex: 1;
+
+  .pedido-nome { font-size: 1rem; font-weight: 600; color: $dark; margin-bottom: 2px; }
+  .pedido-servico { font-size: 0.8rem; color: $accent; margin-bottom: 2px; }
+  .pedido-data { font-size: 0.7rem; color: $gray; display: flex; align-items: center; gap: 4px; }
+}
+
+.status-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &.warning { background: $warning-light; color: darken($warning, 20%); }
+  &.success { background: $success-light; color: darken($success, 15%); }
+  &.info { background: $accent-light; color: $accent; }
+  &.danger { background: $danger-light; color: darken($danger, 15%); }
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  .detail-item {
+    &.full-width { grid-column: span 2; }
+
+    .detail-label { font-size: 0.65rem; color: $gray; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .detail-value { font-size: 0.9rem; font-weight: 500; color: $dark; display: flex; align-items: center; gap: 4px;
+      &.primary { color: $accent; font-weight: 600; }
+      &.muted { color: $gray; font-weight: 400; }
+    }
+  }
+}
+
+.action-btn {
+  padding: 8px 20px;
+  border-radius: $radius-xs;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &.primary {
+    background: $accent;
+    border: none;
+    color: $white;
+    &:hover:not(:disabled) { background: lighten($accent, 6%); }
+  }
+
+  &.secondary {
+    background: transparent;
+    border: 1px solid $border;
+    color: $gray;
+    &:hover:not(:disabled) { background: $gray-light; border-color: $gray; }
+  }
+
+  &.outline {
+    background: transparent;
+    border: 1px solid $border;
+    color: $accent;
+    &:hover { background: $accent-light; border-color: $accent; }
+  }
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.btn-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+// =====================
+// FAB BUTTON
+// =====================
+.fab-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: $accent;
+  border: none;
+  color: $white;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba($accent, 0.4);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+
+  &:hover {
+    transform: scale(1.05);
+    background: lighten($accent, 6%);
+  }
+}
+
+// =====================
+// RESPONSIVIDADE
+// =====================
+@media (max-width: 480px) {
+  .pedido-card__header { flex-wrap: wrap; }
+  .status-badge { margin-left: auto; }
+  .pedido-card__footer { flex-direction: column; }
+  .action-btn { justify-content: center; }
+  .details-grid { grid-template-columns: 1fr; }
+  .detail-item.full-width { grid-column: span 1; }
+  .tabs-container .tab-btn { font-size: 0.7rem; }
 }
 </style>

@@ -12,14 +12,14 @@
         icon="refresh"
         class="refresh-btn"
         @click="atualizarDados"
-        :loading="adminStore.loading"
+        :loading="dashboardStore.loading"
       >
         <q-tooltip>Atualizar dados</q-tooltip>
       </q-btn>
     </div>
 
-    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
-    <div v-if="adminStore.loading" class="skeleton-container">
+    <!-- Skeleton Loading -->
+    <div v-if="dashboardStore.loading" class="skeleton-container">
       <!-- Cards principais skeleton -->
       <div class="stats-grid">
         <div v-for="i in 4" :key="i" class="skeleton-stat-card">
@@ -131,11 +131,11 @@
       <div class="skeleton-shimmer"></div>
     </div>
 
-    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <!-- Conteúdo real -->
     <template v-else>
       <!-- Cards de estatísticas principais -->
       <div class="stats-grid">
-        <div class="stat-card" v-for="card in adminStore.cardsPrincipais" :key="card.title">
+        <div class="stat-card" v-for="card in dashboardStore.cardsPrincipais" :key="card.title">
           <div class="stat-card-content">
             <div class="stat-icon" :style="{ background: card.bgColor }">
               <q-icon :name="card.icon" size="28px" :color="card.iconColor" />
@@ -156,7 +156,7 @@
       <div class="stats-grid-secondary">
         <div
           class="stat-card-secondary"
-          v-for="card in adminStore.cardsSecundarios"
+          v-for="card in dashboardStore.cardsSecundarios"
           :key="card.title"
         >
           <div class="stat-card-secondary-content">
@@ -180,7 +180,7 @@
           <div class="chart-content">
             <div class="bars-container">
               <div
-                v-for="(item, index) in adminStore.atividadeFormatada"
+                v-for="(item, index) in dashboardStore.atividadeFormatada"
                 :key="index"
                 class="bar-item"
               >
@@ -201,7 +201,7 @@
           </div>
           <div class="distribuicao-content">
             <div
-              v-for="tipo in adminStore.distribuicaoPorTipo"
+              v-for="tipo in dashboardStore.distribuicaoPorTipo"
               :key="tipo.label"
               class="distribuicao-item"
             >
@@ -213,7 +213,7 @@
             </div>
             <div class="distribuicao-total">
               <span class="total-label">Total de Utilizadores</span>
-              <span class="total-value">{{ formatNumber(adminStore.dashboard.total_users) }}</span>
+              <span class="total-value">{{ formatNumber(dashboardStore.dashboard.total_users) }}</span>
             </div>
           </div>
         </div>
@@ -236,7 +236,7 @@
           </div>
           <div class="users-list">
             <div
-              v-for="user in adminStore.ultimosUtilizadores"
+              v-for="user in utilizadoresStore.ultimosUtilizadores"
               :key="user.id"
               class="user-item"
               @click="verUtilizador(user.id)"
@@ -278,7 +278,7 @@
           </div>
           <div class="services-list">
             <div
-              v-for="servico in adminStore.servicosRecentes"
+              v-for="servico in conteudoStore.servicosRecentes"
               :key="servico.id"
               class="service-item"
               @click="verServico(servico.id)"
@@ -326,7 +326,10 @@
 import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
-import { useAdminStore } from 'src/stores/admin-store';
+// ✅ IMPORTS CORRETOS - Stores separados
+import { useAdminDashboardStore } from 'src/stores/admin/admin-dashboard-store';
+import { useAdminUtilizadoresStore } from 'src/stores/admin/admin-utilizadores-store';
+import { useAdminConteudoStore } from 'src/stores/admin/admin-conteudo-store';
 import { useQuasar } from 'quasar';
 
 defineOptions({
@@ -335,7 +338,10 @@ defineOptions({
 
 const router = useRouter();
 const authStore = useAuthStore();
-const adminStore = useAdminStore();
+// ✅ USANDO OS STORES CORRETOS
+const dashboardStore = useAdminDashboardStore();
+const utilizadoresStore = useAdminUtilizadoresStore();
+const conteudoStore = useAdminConteudoStore();
 const $q = useQuasar();
 
 // Nome do admin
@@ -396,7 +402,9 @@ const formatMoney = (num: number) =>
 
 // Ações
 const atualizarDados = async () => {
-  await adminStore.carregarTodosDados(true);
+  await dashboardStore.carregarDashboard(true);
+  await utilizadoresStore.fetchUltimosUtilizadores(5, true);
+  await conteudoStore.fetchServicosRecentes(5, true);
   $q.notify({
     type: 'positive',
     message: 'Dados atualizados!',
@@ -422,12 +430,17 @@ const novaAcao = (tipo: string) => {
 };
 
 // Carregar dados ao montar
-onMounted(() => {
-  void adminStore.carregarTodosDados();
+onMounted(async () => {
+  await Promise.all([
+    dashboardStore.carregarDashboard(),
+    utilizadoresStore.fetchUltimosUtilizadores(5),
+    conteudoStore.fetchServicosRecentes(5),
+  ]);
 });
 </script>
 
 <style scoped lang="scss">
+// ... (styles mantidos iguais ao original)
 .admin-dashboard {
   max-width: 1400px;
   margin: 0 auto;
@@ -461,16 +474,12 @@ onMounted(() => {
   }
 }
 
-// ==========================================
-// SKELETON LOADING (Facebook/Instagram style)
-// ==========================================
-
+// Skeleton Loading
 .skeleton-container {
   position: relative;
   overflow: hidden;
 }
 
-// Skeleton Cards Principais
 .skeleton-stat-card {
   background: white;
   border-radius: 16px;
@@ -514,7 +523,6 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-// Skeleton Cards Secundários
 .skeleton-stat-card-secondary {
   background: white;
   border-radius: 16px;
@@ -550,7 +558,6 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-// Skeleton Gráficos
 .skeleton-chart-card,
 .skeleton-distribuicao-card {
   background: white;
@@ -662,7 +669,6 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-// Skeleton Listas Recentes
 .skeleton-recent-card {
   background: white;
   border-radius: 16px;
@@ -755,7 +761,6 @@ onMounted(() => {
   border-radius: 16px;
 }
 
-// Skeleton Ações Rápidas
 .skeleton-quick-actions {
   background: white;
   border-radius: 16px;
@@ -782,7 +787,6 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-// Shimmer Animation
 .skeleton-shimmer {
   position: fixed;
   top: 0;
@@ -799,10 +803,7 @@ onMounted(() => {
   100% { transform: translateX(100%); }
 }
 
-// ==========================================
-// ESTILOS PRINCIPAIS
-// ==========================================
-
+// Estilos principais
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

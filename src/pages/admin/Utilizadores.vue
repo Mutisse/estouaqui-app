@@ -77,7 +77,7 @@
               color="primary"
               dense
               @click="carregarUtilizadores"
-              :loading="adminStore.loading"
+              :loading="utilizadoresStore.loading"
               class="full-width"
             />
           </div>
@@ -85,9 +85,8 @@
       </q-card-section>
     </q-card>
 
-    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
-    <div v-if="adminStore.loading" class="skeleton-container">
-      <!-- Header skeleton -->
+    <!-- Skeleton Loading -->
+    <div v-if="utilizadoresStore.loading" class="skeleton-container">
       <div class="skeleton-table-header">
         <div class="row justify-between items-center">
           <div class="skeleton-total"></div>
@@ -95,14 +94,11 @@
         </div>
       </div>
 
-      <!-- Table skeleton rows -->
       <div class="skeleton-table">
-        <!-- Table header skeleton -->
         <div class="skeleton-table-header-row">
-          <div v-for="i in 7" :key="`header-${i}`" class="skeleton-header-cell"></div>
+          <div v-for="i in 8" :key="`header-${i}`" class="skeleton-header-cell"></div>
         </div>
 
-        <!-- Table body skeleton rows -->
         <div v-for="row in 5" :key="row" class="skeleton-table-row">
           <div class="skeleton-cell"><div class="skeleton-text-short"></div></div>
           <div class="skeleton-cell"><div class="skeleton-text"></div></div>
@@ -115,11 +111,10 @@
         </div>
       </div>
 
-      <!-- Shimmer animation -->
       <div class="skeleton-shimmer"></div>
     </div>
 
-    <!-- Tabela de Utilizadores (apenas quando não está carregando) -->
+    <!-- Tabela de Utilizadores -->
     <q-card v-else class="users-table-card">
       <q-card-section class="table-header">
         <div class="row justify-between items-center">
@@ -143,7 +138,7 @@
       </q-card-section>
 
       <q-table
-        :rows="adminStore.utilizadores"
+        :rows="utilizadoresStore.utilizadores"
         :columns="columns"
         row-key="id"
         hide-bottom
@@ -415,71 +410,68 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
-import { useQuasar, type QTableColumn } from 'quasar'
-import { useAdminStore } from 'src/stores/admin-store'
+import { ref, reactive, onMounted, watch } from 'vue';
+import { useQuasar, type QTableColumn } from 'quasar';
+// ✅ IMPORT CORRETO
+import { useAdminUtilizadoresStore, type UserData } from 'src/stores/admin/admin-utilizadores-store';
 
-interface UserData {
-  id: number
-  nome: string
-  email: string
-  telefone: string
-  tipo: string
-  avatar?: string
-  data?: string
-  created_at?: string
-  blocked_at?: string | null
-  verificado?: boolean
+interface UserEditForm {
+  id: number;
+  nome: string;
+  email: string;
+  telefone: string;
+  tipo: string;
 }
 
 defineOptions({
-  name: 'AdminUtilizadores'
-})
+  name: 'AdminUtilizadores',
+});
 
-const $q = useQuasar()
-const adminStore = useAdminStore()
+const $q = useQuasar();
+// ✅ USANDO O STORE CORRETO
+const utilizadoresStore = useAdminUtilizadoresStore();
 
 // Estado local
-const dialogEdit = ref(false)
-const dialogDetails = ref(false)
-const salvando = ref(false)
-const detalhes = ref<UserData | null>(null)
+const dialogEdit = ref(false);
+const dialogDetails = ref(false);
+const salvando = ref(false);
+const detalhes = ref<UserData | null>(null);
 
 // Filtros
 const filters = reactive({
   busca: '',
   tipo: null as string | null,
-  status: null as string | null
-})
+  status: null as string | null,
+});
 
 // Paginação
 const pagination = reactive({
   page: 1,
   perPage: 20,
   total: 0,
-  lastPage: 1
-})
+  lastPage: 1,
+});
 
 // Formulário de edição
-const editForm = reactive({
+const editForm = reactive<UserEditForm>({
   id: 0,
   nome: '',
   email: '',
   telefone: '',
-  tipo: ''
-})
+  tipo: '',
+});
 
 // Opções
 const tipoOptions = [
   { label: 'Cliente', value: 'cliente' },
   { label: 'Prestador', value: 'prestador' },
-  { label: 'Administrador', value: 'admin' }
-]
+  { label: 'Administrador', value: 'admin' },
+];
 
 const statusOptions = [
   { label: 'Ativos', value: 'ativo' },
-  { label: 'Bloqueados', value: 'bloqueado' }
-]
+  { label: 'Bloqueados', value: 'bloqueado' },
+];
 
 // Colunas da tabela
 const columns: QTableColumn[] = [
@@ -490,229 +482,239 @@ const columns: QTableColumn[] = [
   { name: 'tipo', label: 'Tipo', field: 'tipo', align: 'center', sortable: false },
   { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: false },
   { name: 'verificado', label: 'Verificado', field: 'verificado', align: 'center', sortable: false },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center', sortable: false }
-]
+  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center', sortable: false },
+];
 
 // Métodos auxiliares
-const getTipoLabel = (tipo: string) => {
+const getTipoLabel = (tipo: string): string => {
   const labels: Record<string, string> = {
     cliente: 'Cliente',
     prestador: 'Prestador',
-    admin: 'Administrador'
-  }
-  return labels[tipo] || tipo
-}
+    admin: 'Administrador',
+  };
+  return labels[tipo] || tipo;
+};
 
-const getTipoColor = (tipo: string) => {
+const getTipoColor = (tipo: string): string => {
   const colors: Record<string, string> = {
     cliente: 'primary',
     prestador: 'secondary',
-    admin: 'grey-8'
-  }
-  return colors[tipo] || 'grey'
-}
+    admin: 'grey-8',
+  };
+  return colors[tipo] || 'grey';
+};
 
-const getTipoIcon = (tipo: string) => {
+const getTipoIcon = (tipo: string): string => {
   const icons: Record<string, string> = {
     cliente: 'person',
     prestador: 'handyman',
-    admin: 'admin_panel_settings'
-  }
-  return icons[tipo] || 'person'
-}
+    admin: 'admin_panel_settings',
+  };
+  return icons[tipo] || 'person';
+};
 
-const formatDate = (date?: string) => {
-  if (!date) return '-'
+const formatDate = (date?: string): string => {
+  if (!date) return '-';
   return new Date(date).toLocaleDateString('pt-PT', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+    minute: '2-digit',
+  });
+};
 
-const clearSearch = () => {
-  filters.busca = ''
-  handleFilterChange()
-}
+const clearSearch = (): void => {
+  filters.busca = '';
+  handleFilterChange();
+};
 
-const novoUtilizador = () => {
+const novoUtilizador = (): void => {
   $q.notify({
     type: 'info',
     message: 'Funcionalidade em desenvolvimento',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
-// Carregar utilizadores
-const carregarUtilizadores = async () => {
+// ✅ Carregar utilizadores usando utilizadoresStore
+const carregarUtilizadores = async (): Promise<void> => {
   try {
     const params: {
-      page: number
-      per_page: number
-      busca?: string
-      tipo?: string
-      status?: string
+      page: number;
+      per_page: number;
+      busca?: string;
+      tipo?: string;
+      status?: string;
     } = {
       page: pagination.page,
-      per_page: pagination.perPage
-    }
+      per_page: pagination.perPage,
+    };
 
-    if (filters.busca) params.busca = filters.busca
-    if (filters.tipo) params.tipo = filters.tipo
-    if (filters.status) params.status = filters.status
+    if (filters.busca) params.busca = filters.busca;
+    if (filters.tipo) params.tipo = filters.tipo;
+    if (filters.status === 'ativo') params.status = 'ativo';
+    if (filters.status === 'bloqueado') params.status = 'bloqueado';
 
-    const result = await adminStore.fetchUtilizadores(params)
+    const result = await utilizadoresStore.fetchUtilizadores(params);
 
     if (result) {
-      pagination.total = result.total
-      pagination.lastPage = result.last_page
-      pagination.page = result.current_page
+      pagination.total = result.total;
+      pagination.lastPage = result.last_page;
+      pagination.page = result.current_page;
     }
   } catch (err) {
-    console.error('Erro ao carregar utilizadores:', err)
+    console.error('Erro ao carregar utilizadores:', err);
     $q.notify({
       type: 'negative',
-      message: 'Erro ao carregar utilizadores'
-    })
+      message: 'Erro ao carregar utilizadores',
+      position: 'top',
+    });
   }
-}
+};
 
 // Handler para mudança de filtro
-const handleFilterChange = () => {
-  pagination.page = 1
-  void carregarUtilizadores()
-}
+const handleFilterChange = (): void => {
+  pagination.page = 1;
+  void carregarUtilizadores();
+};
 
-// Ver detalhes
-const verDetalhes = async (id: number) => {
+// ✅ Ver detalhes usando utilizadoresStore
+const verDetalhes = async (id: number): Promise<void> => {
   try {
-    const user = await adminStore.fetchUtilizadorDetalhes(id)
+    const user = await utilizadoresStore.fetchUtilizadorDetalhes(id);
     if (user) {
-      detalhes.value = user
-      dialogDetails.value = true
+      detalhes.value = user;
+      dialogDetails.value = true;
     }
   } catch (err) {
-    console.error('Erro ao carregar detalhes:', err)
+    console.error('Erro ao carregar detalhes:', err);
     $q.notify({
       type: 'negative',
-      message: 'Erro ao carregar detalhes do utilizador'
-    })
+      message: 'Erro ao carregar detalhes do utilizador',
+      position: 'top',
+    });
   }
-}
+};
 
 // Editar utilizador
-const editarUtilizador = (user: UserData) => {
-  editForm.id = user.id
-  editForm.nome = user.nome
-  editForm.email = user.email
-  editForm.telefone = user.telefone
-  editForm.tipo = user.tipo
-  dialogEdit.value = true
-}
+const editarUtilizador = (user: UserData): void => {
+  editForm.id = user.id;
+  editForm.nome = user.nome;
+  editForm.email = user.email;
+  editForm.telefone = user.telefone;
+  editForm.tipo = user.tipo;
+  dialogEdit.value = true;
+};
 
-// Salvar edição
-const salvarEdicao = async () => {
-  salvando.value = true
+// ✅ Salvar edição usando utilizadoresStore
+const salvarEdicao = async (): Promise<void> => {
+  salvando.value = true;
   try {
-    const result = await adminStore.updateUtilizador(editForm.id, {
+    const result = await utilizadoresStore.updateUtilizador(editForm.id, {
       nome: editForm.nome,
       email: editForm.email,
       telefone: editForm.telefone,
-      tipo: editForm.tipo
-    })
+      tipo: editForm.tipo,
+    });
 
     if (result) {
       $q.notify({
         type: 'positive',
-        message: 'Utilizador atualizado com sucesso!'
-      })
-      dialogEdit.value = false
-      await carregarUtilizadores()
+        message: 'Utilizador atualizado com sucesso!',
+        position: 'top',
+      });
+      dialogEdit.value = false;
+      await carregarUtilizadores();
     }
   } catch (err) {
-    console.error('Erro ao atualizar:', err)
+    console.error('Erro ao atualizar:', err);
     $q.notify({
       type: 'negative',
-      message: 'Erro ao atualizar utilizador'
-    })
+      message: 'Erro ao atualizar utilizador',
+      position: 'top',
+    });
   } finally {
-    salvando.value = false
+    salvando.value = false;
   }
-}
+};
 
-// Bloquear utilizador
-const bloquearUtilizador = (id: number, nome: string) => {
+// ✅ Bloquear utilizador usando utilizadoresStore
+const bloquearUtilizador = (id: number, nome: string): void => {
   $q.dialog({
     title: 'Confirmar',
     message: `Tem certeza que deseja bloquear o utilizador ${nome}?`,
     cancel: true,
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     void (async () => {
       try {
-        const result = await adminStore.blockUtilizador(id)
+        const result = await utilizadoresStore.blockUtilizador(id);
         if (result) {
           $q.notify({
             type: 'positive',
-            message: 'Utilizador bloqueado com sucesso!'
-          })
-          await carregarUtilizadores()
+            message: 'Utilizador bloqueado com sucesso!',
+            position: 'top',
+          });
+          await carregarUtilizadores();
         }
       } catch (err) {
-        console.error('Erro ao bloquear:', err)
+        console.error('Erro ao bloquear:', err);
         $q.notify({
           type: 'negative',
-          message: 'Erro ao bloquear utilizador'
-        })
+          message: 'Erro ao bloquear utilizador',
+          position: 'top',
+        });
       }
-    })()
-  })
-}
+    })();
+  });
+};
 
-// Desbloquear utilizador
-const desbloquearUtilizador = (id: number, nome: string) => {
+// ✅ Desbloquear utilizador usando utilizadoresStore
+const desbloquearUtilizador = (id: number, nome: string): void => {
   $q.dialog({
     title: 'Confirmar',
     message: `Tem certeza que deseja desbloquear o utilizador ${nome}?`,
     cancel: true,
-    persistent: true
+    persistent: true,
   }).onOk(() => {
     void (async () => {
       try {
-        const result = await adminStore.unblockUtilizador(id)
+        const result = await utilizadoresStore.unblockUtilizador(id);
         if (result) {
           $q.notify({
             type: 'positive',
-            message: 'Utilizador desbloqueado com sucesso!'
-          })
-          await carregarUtilizadores()
+            message: 'Utilizador desbloqueado com sucesso!',
+            position: 'top',
+          });
+          await carregarUtilizadores();
         }
       } catch (err) {
-        console.error('Erro ao desbloquear:', err)
+        console.error('Erro ao desbloquear:', err);
         $q.notify({
           type: 'negative',
-          message: 'Erro ao desbloquear utilizador'
-        })
+          message: 'Erro ao desbloquear utilizador',
+          position: 'top',
+        });
       }
-    })()
-  })
-}
+    })();
+  });
+};
 
 // Observar mudanças nos filtros
 watch([() => filters.busca, () => filters.tipo, () => filters.status], () => {
-  pagination.page = 1
-  void carregarUtilizadores()
-})
+  pagination.page = 1;
+  void carregarUtilizadores();
+});
 
 // Carregar dados ao montar
 onMounted(() => {
-  void carregarUtilizadores()
-})
+  void carregarUtilizadores();
+});
 </script>
 
 <style scoped lang="scss">
+// ... styles mantidos iguais ao original
 $primary-color: #667eea;
 $gray-100: #f5f5f5;
 $gray-200: #eeeeee;
@@ -729,7 +731,6 @@ $gray-600: #757575;
   min-height: 100vh;
 }
 
-// Header
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -755,7 +756,6 @@ $gray-600: #757575;
   }
 }
 
-// Cards
 .filters-card,
 .users-table-card {
   border-radius: 16px;
@@ -767,7 +767,6 @@ $gray-600: #757575;
   }
 }
 
-// Inputs
 .search-input,
 .filter-select {
   :deep(.q-field__control) {
@@ -775,10 +774,7 @@ $gray-600: #757575;
   }
 }
 
-// ==========================================
-// SKELETON LOADING (Facebook/Instagram style)
-// ==========================================
-
+// Skeleton Loading
 .skeleton-container {
   background: white;
   border-radius: 16px;
@@ -820,8 +816,16 @@ $gray-600: #757575;
       border-radius: 4px;
       margin: 0 8px;
 
-      &:first-child { margin-left: 0; width: 60px; flex: none; }
-      &:last-child { margin-right: 0; width: 120px; flex: none; }
+      &:first-child {
+        margin-left: 0;
+        width: 60px;
+        flex: none;
+      }
+      &:last-child {
+        margin-right: 0;
+        width: 120px;
+        flex: none;
+      }
     }
   }
 
@@ -834,8 +838,16 @@ $gray-600: #757575;
       flex: 1;
       margin: 0 8px;
 
-      &:first-child { margin-left: 0; width: 60px; flex: none; }
-      &:last-child { margin-right: 0; width: 120px; flex: none; }
+      &:first-child {
+        margin-left: 0;
+        width: 60px;
+        flex: none;
+      }
+      &:last-child {
+        margin-right: 0;
+        width: 120px;
+        flex: none;
+      }
 
       .skeleton-text {
         width: 100%;
@@ -889,12 +901,7 @@ $gray-600: #757575;
   left: 0;
   right: 0;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   animation: shimmer 1.5s infinite;
   pointer-events: none;
 }
@@ -908,7 +915,6 @@ $gray-600: #757575;
   }
 }
 
-// Table header
 .table-header {
   border-bottom: 1px solid #e9ecef;
 
@@ -929,7 +935,6 @@ $gray-600: #757575;
   }
 }
 
-// Table
 .users-table {
   :deep(.q-table) {
     thead tr th {
@@ -953,7 +958,6 @@ $gray-600: #757575;
   }
 }
 
-// Badges
 .status-badge,
 .tipo-badge,
 .verificado-badge {
@@ -965,7 +969,6 @@ $gray-600: #757575;
   align-items: center;
 }
 
-// Action buttons
 .action-buttons {
   display: flex;
   gap: 4px;
@@ -979,13 +982,11 @@ $gray-600: #757575;
   }
 }
 
-// Table footer
 .table-footer {
   border-top: 1px solid #e9ecef;
   padding: 16px;
 }
 
-// Dialogs
 .edit-dialog,
 .details-dialog {
   min-width: 450px;
@@ -1063,7 +1064,6 @@ $gray-600: #757575;
   }
 }
 
-// Responsive
 @media (max-width: 768px) {
   .admin-users-page {
     padding: 16px;

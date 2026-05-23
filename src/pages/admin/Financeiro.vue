@@ -24,7 +24,7 @@
           color="grey-7"
           outline
           @click="carregarDados"
-          :loading="adminStore.loading"
+          :loading="financeiroStore.loading"
         />
         <q-btn
           v-if="isRoot"
@@ -37,8 +37,8 @@
       </div>
     </div>
 
-    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
-    <div v-if="adminStore.loading" class="skeleton-container">
+    <!-- Skeleton Loading -->
+    <div v-if="financeiroStore.loading" class="skeleton-container">
       <!-- Cards skeleton -->
       <div class="row q-col-gutter-lg q-mb-lg">
         <div v-for="i in 4" :key="i" class="col-12 col-sm-6 col-md-3">
@@ -127,11 +127,10 @@
         </div>
       </div>
 
-      <!-- Shimmer animation -->
       <div class="skeleton-shimmer"></div>
     </div>
 
-    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <!-- Conteúdo real -->
     <template v-else>
       <!-- Cards de Resumo -->
       <div class="row q-col-gutter-lg q-mb-lg">
@@ -328,7 +327,7 @@
             :rows="transacoesFiltradas"
             :columns="colunas"
             row-key="id"
-            :loading="adminStore.loading"
+            :loading="financeiroStore.loading"
             :rows-per-page-options="[10, 20, 50]"
             class="transacoes-table"
             flat
@@ -396,10 +395,10 @@
             </template>
           </q-table>
 
-          <div class="row justify-between items-center q-mt-md q-pt-md" v-if="adminStore.transacoes.length > 0">
+          <div class="row justify-between items-center q-mt-md q-pt-md" v-if="financeiroStore.transacoes.length > 0">
             <div class="text-caption text-grey">
               <q-icon name="info" size="14px" />
-              Mostrando {{ transacoesFiltradas.length }} de {{ adminStore.transacoes.length }} transações
+              Mostrando {{ transacoesFiltradas.length }} de {{ financeiroStore.transacoes.length }} transações
             </div>
             <div class="text-subtitle2 text-primary">
               Total: {{ formatMoney(calcularTotalTransacoes) }}
@@ -454,202 +453,207 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useQuasar, type QTableColumn } from 'quasar'
-import { useAdminStore } from 'src/stores/admin-store'
-import { useAuthStore } from 'src/stores/auth-store'
+import { ref, computed, onMounted } from 'vue';
+import { useQuasar, type QTableColumn } from 'quasar';
+// ✅ IMPORTS CORRETOS
+import { useAdminFinanceiroStore } from 'src/stores/admin/admin-financeiro-store';
+import { useAuthStore } from 'src/stores/auth-store';
+import type { TransacaoData } from 'src/stores/admin/admin-financeiro-store';
 
 defineOptions({
-  name: 'AdminFinanceiro'
-})
+  name: 'AdminFinanceiro',
+});
 
-const $q = useQuasar()
-const adminStore = useAdminStore()
-const authStore = useAuthStore()
+const $q = useQuasar();
+// ✅ USANDO O STORE CORRETO
+const financeiroStore = useAdminFinanceiroStore();
+const authStore = useAuthStore();
 
 // Detectar se é ROOT
 const isRoot = computed(() => {
-  return authStore.user?.email === 'root@estouaqui.com'
-})
+  return authStore.user?.email === 'root@estouaqui.com';
+});
 
 // Estados
-const filtroTipo = ref<string | null>(null)
-const filtroStatus = ref<string | null>(null)
-const busca = ref('')
-const mostrarModalExportacao = ref(false)
+const filtroTipo = ref<string | null>(null);
+const filtroStatus = ref<string | null>(null);
+const busca = ref('');
+const mostrarModalExportacao = ref(false);
 
 // Configuração de exportação
 const exportConfig = ref({
   formato: 'csv',
   periodo: 'mes',
-  tipo: null as string | null
-})
+  tipo: null as string | null,
+});
 
 // Opções
 const tipoOptions = [
   { label: 'Entradas', value: 'entrada' },
   { label: 'Saídas', value: 'saida' },
-  { label: 'Comissões', value: 'comissao' }
-]
+  { label: 'Comissões', value: 'comissao' },
+];
 
 const statusOptions = [
   { label: 'Concluído', value: 'concluido' },
   { label: 'Pendente', value: 'pendente' },
-  { label: 'Processando', value: 'processando' }
-]
+  { label: 'Processando', value: 'processando' },
+];
 
 const formatosExportacao = [
   { label: 'CSV', value: 'csv' },
-  { label: 'Excel', value: 'excel' }
-]
+  { label: 'Excel', value: 'excel' },
+];
 
 const periodosExportacao = [
   { label: 'Mês atual', value: 'mes' },
   { label: 'Últimos 3 meses', value: '3meses' },
   { label: 'Últimos 6 meses', value: '6meses' },
-  { label: 'Ano atual', value: 'ano' }
-]
+  { label: 'Ano atual', value: 'ano' },
+];
 
 // Computed
 const mesAtual = computed(() => {
-  return new Date().toLocaleString('pt-PT', { month: 'long', year: 'numeric' })
-})
+  return new Date().toLocaleString('pt-PT', { month: 'long', year: 'numeric' });
+});
 
-const resumoFinanceiro = computed(() => adminStore.resumoFinanceiro)
+const resumoFinanceiro = computed(() => financeiroStore.resumoFinanceiro);
 
+// ✅ Computed com tipagem correta
 const totalEntradas = computed(() => {
-  return adminStore.transacoes
-    .filter(t => t.tipo === 'entrada')
-    .reduce((sum, t) => sum + t.valor, 0)
-})
+  return financeiroStore.transacoes
+    .filter((t: TransacaoData) => t.tipo === 'entrada')
+    .reduce((sum: number, t: TransacaoData) => sum + t.valor, 0);
+});
 
 const totalSaidas = computed(() => {
-  return adminStore.transacoes
-    .filter(t => t.tipo === 'saida')
-    .reduce((sum, t) => sum + t.valor, 0)
-})
+  return financeiroStore.transacoes
+    .filter((t: TransacaoData) => t.tipo === 'saida')
+    .reduce((sum: number, t: TransacaoData) => sum + t.valor, 0);
+});
 
-const totalGeral = computed(() => totalEntradas.value + totalSaidas.value + resumoFinanceiro.value.comissoes)
+const totalGeral = computed(() => totalEntradas.value + totalSaidas.value + resumoFinanceiro.value.comissoes);
 
-const percentualEntradas = computed(() => totalGeral.value > 0 ? totalEntradas.value / totalGeral.value : 0)
-const percentualSaidas = computed(() => totalGeral.value > 0 ? totalSaidas.value / totalGeral.value : 0)
-const percentualComissoes = computed(() => totalGeral.value > 0 ? resumoFinanceiro.value.comissoes / totalGeral.value : 0)
+const percentualEntradas = computed(() => totalGeral.value > 0 ? totalEntradas.value / totalGeral.value : 0);
+const percentualSaidas = computed(() => totalGeral.value > 0 ? totalSaidas.value / totalGeral.value : 0);
+const percentualComissoes = computed(() => totalGeral.value > 0 ? resumoFinanceiro.value.comissoes / totalGeral.value : 0);
 
-// Dados do gráfico
+// ✅ Dados do gráfico com tipagem correta
 const dadosGrafico = computed(() => {
-  const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-  const entradasPorMes = new Array(12).fill(0)
-  const saidasPorMes = new Array(12).fill(0)
+  const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const entradasPorMes = new Array(12).fill(0);
+  const saidasPorMes = new Array(12).fill(0);
 
-  adminStore.transacoes.forEach(transacao => {
+  financeiroStore.transacoes.forEach((transacao: TransacaoData) => {
     if (transacao.created_at) {
-      const mes = new Date(transacao.created_at).getMonth()
+      const mes = new Date(transacao.created_at).getMonth();
       if (transacao.tipo === 'entrada') {
-        entradasPorMes[mes] += transacao.valor
+        entradasPorMes[mes] += transacao.valor;
       } else {
-        saidasPorMes[mes] += transacao.valor
+        saidasPorMes[mes] += transacao.valor;
       }
     }
-  })
+  });
 
-  const mesAtualIndex = new Date().getMonth()
-  const ultimosMeses = []
+  const mesAtualIndex = new Date().getMonth();
+  const ultimosMeses = [];
   for (let i = 5; i >= 0; i--) {
-    let mesIndex = mesAtualIndex - i
-    if (mesIndex < 0) mesIndex += 12
-    const valor = entradasPorMes[mesIndex] - saidasPorMes[mesIndex]
-    const maxValor = Math.max(...entradasPorMes, ...saidasPorMes, 1)
-    const altura = (Math.abs(valor) / maxValor) * 140 + 20
+    let mesIndex = mesAtualIndex - i;
+    if (mesIndex < 0) mesIndex += 12;
+    const valor = entradasPorMes[mesIndex] - saidasPorMes[mesIndex];
+    const maxValor = Math.max(...entradasPorMes, ...saidasPorMes, 1);
+    const altura = (Math.abs(valor) / maxValor) * 140 + 20;
     ultimosMeses.push({
       mes: meses[mesIndex],
       valor: valor,
       altura: Math.max(30, Math.min(160, altura)),
-      cor: valor >= 0 ? '#2e7d32' : '#d32f2f'
-    })
+      cor: valor >= 0 ? '#2e7d32' : '#d32f2f',
+    });
   }
-  return ultimosMeses
-})
+  return ultimosMeses;
+});
 
+// ✅ Transações filtradas com tipagem correta
 const transacoesFiltradas = computed(() => {
-  let transacoes = adminStore.transacoes
+  let transacoes: TransacaoData[] = [...financeiroStore.transacoes];
 
   if (filtroTipo.value) {
-    transacoes = transacoes.filter(t => t.tipo === filtroTipo.value)
+    transacoes = transacoes.filter((t: TransacaoData) => t.tipo === filtroTipo.value);
   }
 
   if (filtroStatus.value) {
-    transacoes = transacoes.filter(t => t.status === filtroStatus.value)
+    transacoes = transacoes.filter((t: TransacaoData) => t.status === filtroStatus.value);
   }
 
   if (busca.value) {
-    const termo = busca.value.toLowerCase()
-    transacoes = transacoes.filter(t =>
+    const termo = busca.value.toLowerCase();
+    transacoes = transacoes.filter((t: TransacaoData) =>
       t.descricao?.toLowerCase().includes(termo) ||
       t.numero?.toLowerCase().includes(termo)
-    )
+    );
   }
 
-  return transacoes
-})
+  return transacoes;
+});
 
 const calcularTotalTransacoes = computed(() => {
-  return transacoesFiltradas.value.reduce((total, transacao) => {
+  return transacoesFiltradas.value.reduce((total: number, transacao: TransacaoData) => {
     if (transacao.tipo === 'entrada') {
-      return total + transacao.valor
+      return total + transacao.valor;
     }
-    return total - transacao.valor
-  }, 0)
-})
+    return total - transacao.valor;
+  }, 0);
+});
 
 // Funções auxiliares
 const formatMoney = (value: number) => {
   return new Intl.NumberFormat('pt-PT', {
     style: 'currency',
     currency: 'MZN',
-    minimumFractionDigits: 0
-  }).format(value)
-}
+    minimumFractionDigits: 0,
+  }).format(value);
+};
 
 const formatarData = (data: string) => {
-  if (!data) return '-'
+  if (!data) return '-';
   try {
     return new Date(data).toLocaleString('pt-PT', {
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
-    })
+      minute: '2-digit',
+    });
   } catch {
-    return data
+    return data;
   }
-}
+};
 
 const getStatusCor = (status: string) => {
   const cores: Record<string, string> = {
     concluido: 'positive',
     pendente: 'warning',
-    processando: 'info'
-  }
-  return cores[status] || 'grey'
-}
+    processando: 'info',
+  };
+  return cores[status] || 'grey';
+};
 
 const getStatusTexto = (status: string) => {
   const textos: Record<string, string> = {
     concluido: 'Concluído',
     pendente: 'Pendente',
-    processando: 'Processando'
-  }
-  return textos[status] || status
-}
+    processando: 'Processando',
+  };
+  return textos[status] || status;
+};
 
 const getStatusIcon = (status: string) => {
   const icons: Record<string, string> = {
     concluido: 'check_circle',
     pendente: 'pending',
-    processando: 'hourglass_empty'
-  }
-  return icons[status] || 'help'
-}
+    processando: 'hourglass_empty',
+  };
+  return icons[status] || 'help';
+};
 
 const getMetodoCor = (metodo: string) => {
   const cores: Record<string, string> = {
@@ -657,10 +661,10 @@ const getMetodoCor = (metodo: string) => {
     visa: 'primary',
     mastercard: 'secondary',
     transferencia: 'info',
-    dinheiro: 'warning'
-  }
-  return cores[metodo?.toLowerCase()] || 'grey'
-}
+    dinheiro: 'warning',
+  };
+  return cores[metodo?.toLowerCase()] || 'grey';
+};
 
 const getMetodoIcon = (metodo: string) => {
   const icons: Record<string, string> = {
@@ -668,10 +672,10 @@ const getMetodoIcon = (metodo: string) => {
     visa: 'credit_card',
     mastercard: 'credit_card',
     transferencia: 'account_balance',
-    dinheiro: 'attach_money'
-  }
-  return icons[metodo?.toLowerCase()] || 'payment'
-}
+    dinheiro: 'attach_money',
+  };
+  return icons[metodo?.toLowerCase()] || 'payment';
+};
 
 const getMetodoLabel = (metodo: string) => {
   const labels: Record<string, string> = {
@@ -679,10 +683,10 @@ const getMetodoLabel = (metodo: string) => {
     visa: 'Visa',
     mastercard: 'Mastercard',
     transferencia: 'Transferência',
-    dinheiro: 'Dinheiro'
-  }
-  return labels[metodo?.toLowerCase()] || metodo || 'N/A'
-}
+    dinheiro: 'Dinheiro',
+  };
+  return labels[metodo?.toLowerCase()] || metodo || 'N/A';
+};
 
 // Colunas da tabela
 const colunas: QTableColumn[] = [
@@ -691,62 +695,63 @@ const colunas: QTableColumn[] = [
   { name: 'tipo', label: 'Tipo', field: 'tipo', align: 'center', sortable: true },
   { name: 'valor', label: 'Valor', field: 'valor', align: 'center', sortable: true },
   { name: 'metodo', label: 'Método', field: 'metodo', align: 'center', sortable: false },
-  { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: true }
-]
+  { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: true },
+];
 
 // Ações
 const carregarDados = async () => {
   try {
     await Promise.all([
-      adminStore.fetchResumoFinanceiro(),
-      carregarTransacoes()
-    ])
+      financeiroStore.fetchResumoFinanceiro(),
+      carregarTransacoes(),
+    ]);
     $q.notify({
       type: 'positive',
       message: 'Dados atualizados com sucesso!',
       position: 'top',
-      timeout: 2000
-    })
+      timeout: 2000,
+    });
   } catch (error) {
-    console.error('Erro ao carregar dados:', error)
+    console.error('Erro ao carregar dados:', error);
     $q.notify({
       type: 'negative',
       message: 'Erro ao carregar dados financeiros',
-      position: 'top'
-    })
+      position: 'top',
+    });
   }
-}
+};
 
 const carregarTransacoes = async () => {
-  const params: { tipo?: string; status?: string } = {}
-  if (filtroTipo.value) params.tipo = filtroTipo.value
-  if (filtroStatus.value) params.status = filtroStatus.value
+  const params: { tipo?: string; status?: string } = {};
+  if (filtroTipo.value) params.tipo = filtroTipo.value;
+  if (filtroStatus.value) params.status = filtroStatus.value;
 
-  await adminStore.fetchTransacoes(params)
-}
+  await financeiroStore.fetchTransacoes(params);
+};
 
 const exportarRelatorioCompleto = () => {
-  if (!isRoot.value) return
-  mostrarModalExportacao.value = true
-}
+  if (!isRoot.value) return;
+  mostrarModalExportacao.value = true;
+};
 
 const gerarExportacao = () => {
-  if (!isRoot.value) return
+  if (!isRoot.value) return;
   $q.notify({
     type: 'positive',
     message: `Relatório em ${exportConfig.value.formato.toUpperCase()} gerado com sucesso!`,
-    position: 'top'
-  })
-  mostrarModalExportacao.value = false
-}
+    position: 'top',
+  });
+  mostrarModalExportacao.value = false;
+};
 
 // Carregar dados ao montar
 onMounted(() => {
-  void carregarDados()
-})
+  void carregarDados();
+});
 </script>
 
 <style scoped lang="scss">
+// ... styles mantidos iguais ao original
 .admin-financeiro {
   max-width: 1400px;
   margin: 0 auto;
@@ -785,16 +790,12 @@ onMounted(() => {
   }
 }
 
-// ==========================================
-// SKELETON LOADING (Facebook/Instagram style)
-// ==========================================
-
+// Skeleton Loading
 .skeleton-container {
   position: relative;
   overflow: hidden;
 }
 
-// Skeleton Cards
 .skeleton-card {
   background: white;
   border-radius: 20px;
@@ -838,7 +839,6 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-// Skeleton Gráfico
 .skeleton-chart-card,
 .skeleton-distribuicao-card {
   background: white;
@@ -886,7 +886,6 @@ onMounted(() => {
   margin-top: 8px;
 }
 
-// Skeleton Distribuição
 .skeleton-distribuicao-items {
   padding: 20px;
 }
@@ -921,7 +920,6 @@ onMounted(() => {
   border-radius: 3px;
 }
 
-// Skeleton Tabela
 .skeleton-table-card {
   background: white;
   border-radius: 16px;
@@ -1039,7 +1037,6 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-// Shimmer Animation
 .skeleton-shimmer {
   position: fixed;
   top: 0;
@@ -1056,11 +1053,7 @@ onMounted(() => {
   100% { transform: translateX(100%); }
 }
 
-// ==========================================
-// ESTILOS PRINCIPAIS
-// ==========================================
-
-// Cards Financeiros
+// Estilos principais
 .finance-card {
   background: white;
   border-radius: 20px;
@@ -1133,7 +1126,6 @@ onMounted(() => {
   .card-icon { color: #9c27b0; background: rgba(156, 39, 176, 0.1); }
 }
 
-// Gráficos
 .chart-card, .resumo-card {
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -1204,7 +1196,6 @@ onMounted(() => {
   }
 }
 
-// Distribuição
 .distribuicao-item {
   .distribuicao-header {
     display: flex;
@@ -1224,7 +1215,6 @@ onMounted(() => {
   }
 }
 
-// Tabela
 .transacoes-card {
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -1309,7 +1299,6 @@ onMounted(() => {
   font-size: 0.7rem;
 }
 
-// Responsivo
 @media (max-width: 768px) {
   .admin-financeiro {
     padding: 16px;
@@ -1324,16 +1313,12 @@ onMounted(() => {
     width: 100%;
   }
 
-  .chart-bars {
-    .bar {
-      width: 25px;
-    }
+  .chart-bars .bar {
+    width: 25px;
   }
 
-  .finance-card {
-    .card-value {
-      font-size: 1.2rem;
-    }
+  .finance-card .card-value {
+    font-size: 1.2rem;
   }
 
   .skeleton-filters {

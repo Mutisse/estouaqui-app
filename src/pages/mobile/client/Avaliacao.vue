@@ -1,5 +1,4 @@
-﻿<!-- pages/mobile/client/Avaliacao.vue -->
-<template>
+﻿<template>
   <q-page class="avaliacao-page">
     <!-- Skeleton Loading (enquanto carrega) -->
     <div v-if="carregamentoInicial" class="skeleton-loading">
@@ -59,7 +58,7 @@
           </q-avatar>
           <div class="provider-details">
             <div class="provider-name">{{ prestador?.nome || 'Prestador' }}</div>
-            <div class="service-name">{{ servico?.nome || 'Serviço' }}</div>
+            <div class="service-name">{{ servico?.servicoNome || 'Serviço' }}</div>
             <div class="service-date">{{ formatarData(servico?.data) }}</div>
           </div>
         </div>
@@ -152,14 +151,13 @@
     </template>
   </q-page>
 </template>
-
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { api } from 'src/boot/axios';
 import { useAuthStore } from 'src/stores/auth-store';
-import { CLIENTE_ENDPOINTS } from 'src/router/Api/cliente-endpoints';
+import { useClientePedidosStore, type PedidoData, type AvaliacaoData } from 'src/stores/client/cliente-pedidos-store';
+import { useClientePublicStore, type PrestadorData } from 'src/stores/client/cliente-public-store';
 
 defineOptions({
   name: 'AvaliacaoPage'
@@ -170,18 +168,15 @@ const route = useRoute();
 const $q = useQuasar();
 const authStore = useAuthStore();
 
-// Tipos
-interface PrestadorAvaliacao {
-  id: string | number;
-  nome: string;
-  foto: string | null;
-}
+const pedidosStore = useClientePedidosStore();
+const publicStore = useClientePublicStore();
 
+// Tipos
 interface ServicoAvaliado {
-  id: string | number;
-  nome: string;
+  id: number;
+  servicoNome: string;
   data: string;
-  prestador_id: string | number;
+  prestadorId: number;
 }
 
 interface CategoriaAvaliacao {
@@ -193,7 +188,7 @@ interface CategoriaAvaliacao {
 const carregamentoInicial = ref(true);
 const submitting = ref(false);
 const erro = ref<string | null>(null);
-const prestador = ref<PrestadorAvaliacao | null>(null);
+const prestador = ref<PrestadorData | null>(null);
 const servico = ref<ServicoAvaliado | null>(null);
 const jaAvaliou = ref(false);
 
@@ -235,13 +230,24 @@ const formatarData = (data?: string): string => {
   }
 };
 
-const getCategoriasArray = (): string[] => {
-  return categoriasAvaliacao.value
-    .filter(cat => cat.valor > 0)
-    .map(cat => cat.nome);
+// ✅ Função para verificar se já avaliou - SEM ANY
+const verificarJaAvaliou = async (pedidoId: number): Promise<boolean> => {
+  try {
+    await pedidosStore.fetchAvaliacoes();
+    const avaliacoes = pedidosStore.avaliacoes;
+
+    // ✅ SOLUÇÃO CORRETA: Verificar se a avaliação existe com type guard
+    const jaAvaliou = avaliacoes.some((avaliacao: AvaliacaoData) => {
+      return avaliacao.pedido_id === pedidoId;
+    });
+
+    return jaAvaliou;
+  } catch {
+    return false;
+  }
 };
 
-// Carregar dados do serviço
+// Carregar dados usando os stores
 const carregarDados = async (): Promise<void> => {
   erro.value = null;
 
@@ -253,36 +259,36 @@ const carregarDados = async (): Promise<void> => {
     return;
   }
 
-  try {
-    const response = await api.get(CLIENTE_ENDPOINTS.DETALHES_PEDIDO(pedidoId));
+  const id = Number(pedidoId);
 
-    if (response.data.success) {
-      const pedido = response.data.data;
+  try {
+    await pedidosStore.fetchMeusPedidos();
+    const pedidoEncontrado = pedidosStore.pedidos.find((p: PedidoData) => p.id === id);
+
+    if (pedidoEncontrado) {
       servico.value = {
-        id: pedido.id,
-        nome: pedido.servico?.nome || 'Serviço',
-        data: pedido.created_at,
-        prestador_id: pedido.prestador_id
+        id: pedidoEncontrado.id,
+        servicoNome: pedidoEncontrado.servico?.nome || 'Serviço',
+        data: pedidoEncontrado.created_at,
+        prestadorId: pedidoEncontrado.prestador?.id || 0
       };
 
-      const prestadorResponse = await api.get(CLIENTE_ENDPOINTS.PRESTADOR_DETALHES(pedido.prestador_id));
-      if (prestadorResponse.data.success) {
-        prestador.value = {
-          id: prestadorResponse.data.data.id,
-          nome: prestadorResponse.data.data.nome,
-          foto: prestadorResponse.data.data.foto
-        };
+      if (servico.value.prestadorId) {
+        const prestadorData = await publicStore.fetchPrestadorDetalhes(servico.value.prestadorId);
+        if (prestadorData) {
+          prestador.value = prestadorData;
+        }
       }
 
-      const checkResponse = await api.get(CLIENTE_ENDPOINTS.CHECK_PEDIDO_AVALIACAO(pedidoId));
-      if (checkResponse.data.success && checkResponse.data.data.avaliado) {
+      const avaliou = await verificarJaAvaliou(id);
+      if (avaliou) {
         jaAvaliou.value = true;
         erro.value = 'Você já avaliou este serviço.';
         carregamentoInicial.value = false;
         return;
       }
     } else {
-      erro.value = response.data.error || 'Erro ao carregar dados do pedido';
+      erro.value = 'Pedido não encontrado';
     }
   } catch (err) {
     console.error('Erro ao carregar dados:', err);
@@ -294,7 +300,7 @@ const carregarDados = async (): Promise<void> => {
   }
 };
 
-// Enviar avaliação
+// Enviar avaliação usando o store
 const enviarAvaliacao = async (): Promise<void> => {
   if (avaliacao.nota === 0) {
     $q.notify({
@@ -305,7 +311,7 @@ const enviarAvaliacao = async (): Promise<void> => {
     return;
   }
 
-  if (!servico.value?.prestador_id) {
+  if (!servico.value?.prestadorId) {
     $q.notify({
       type: 'negative',
       message: 'Erro: Prestador não identificado',
@@ -314,21 +320,19 @@ const enviarAvaliacao = async (): Promise<void> => {
     return;
   }
 
+  const pedidoId = route.params.id as string;
+
   submitting.value = true;
 
   try {
-    const payload = {
-      pedido_id: route.params.id,
-      prestador_id: servico.value.prestador_id,
+    const result = await pedidosStore.criarAvaliacao({
+      prestador_id: servico.value.prestadorId,
+      pedido_id: Number(pedidoId),
       nota: avaliacao.nota,
-      comentario: avaliacao.comentario,
-      categorias: getCategoriasArray(),
-      recomenda: avaliacao.recomenda
-    };
+      comentario: avaliacao.comentario
+    });
 
-    const response = await api.post(CLIENTE_ENDPOINTS.CRIAR_AVALIACAO, payload);
-
-    if (response.data.success) {
+    if (result) {
       $q.notify({
         type: 'positive',
         message: 'Avaliação enviada com sucesso! Obrigado pelo seu feedback.',
@@ -341,16 +345,15 @@ const enviarAvaliacao = async (): Promise<void> => {
     } else {
       $q.notify({
         type: 'negative',
-        message: response.data.error || 'Erro ao enviar avaliação',
+        message: 'Erro ao enviar avaliação',
         position: 'top'
       });
     }
   } catch (err) {
-    const error = err as { response?: { data?: { error?: string } }; message?: string };
-    console.error('Erro ao enviar avaliação:', error);
+    console.error('Erro ao enviar avaliação:', err);
     $q.notify({
       type: 'negative',
-      message: error.response?.data?.error || error.message || 'Erro ao enviar avaliação',
+      message: 'Erro ao enviar avaliação',
       position: 'top'
     });
   } finally {
@@ -358,7 +361,6 @@ const enviarAvaliacao = async (): Promise<void> => {
   }
 };
 
-// Carregar dados ao montar
 onMounted(() => {
   if (!authStore.isAuthenticated) {
     $q.notify({
@@ -383,7 +385,6 @@ onMounted(() => {
   void carregarDados();
 });
 </script>
-
 <style scoped lang="scss">
 .avaliacao-page {
   background: white;
@@ -552,7 +553,7 @@ onMounted(() => {
 .w-80 { width: 80%; }
 
 /* ========================================== */
-/* ESTILOS ORIGINAIS (mantidos sem alterações) */
+/* ESTILOS ORIGINAIS */
 /* ========================================== */
 
 .header {

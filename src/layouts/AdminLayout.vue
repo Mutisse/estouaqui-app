@@ -48,14 +48,12 @@
         </div>
       </div>
     </div>
-
-   
   </div>
 
   <!-- Layout real -->
   <q-layout v-else view="hHh LpR fFf" class="admin-layout">
-    <!-- Header Responsivo -->
-    <q-header elevated class="admin-header text-white">
+    <!-- Header -->
+    <q-header elevated class="ea-admin-header text-white">
       <q-toolbar class="q-px-sm q-px-md-sm q-px-lg-md">
         <q-btn
           flat
@@ -63,36 +61,27 @@
           dense
           icon="menu"
           @click="leftDrawerOpen = !leftDrawerOpen"
-          class="menu-btn"
+          class="ea-menu-btn"
         />
 
         <q-toolbar-title class="row items-center">
-          <div class="logo-wrapper">
-            <span class="text-bold">Estou</span>
-            <span class="text-bold text-primary">Aqui</span>
+          <div class="ea-logo" @click="goToHome">
+            <span class="ea-logo__dot"></span>
+            <span class="ea-logo__text">estou<strong>aqui</strong></span>
           </div>
           <span class="admin-badge q-ml-sm q-ml-md-md" :class="{ 'root-badge': isRoot }">
             {{ isRoot ? 'Root' : 'Admin' }}
           </span>
         </q-toolbar-title>
 
-        <!-- Info do admin - Responsivo -->
+        <!-- Info do admin -->
         <div class="row items-center q-gutter-sm q-gutter-md-md">
-          <q-chip
-            dense
-            class="bg-white text-primary notification-chip"
-            :class="{ 'lt-sm': $q.screen.lt.sm }"
-            icon="notifications"
-          >
-            {{ unreadNotificationsCount }}
-          </q-chip>
-
           <q-btn
             flat
             round
             dense
             icon="notifications"
-            class="notification-btn"
+            class="ea-notification-btn"
             @click="openNotifications"
           >
             <q-badge
@@ -126,17 +115,15 @@
                   <div v-if="loadingNotificacoes" class="text-center q-pa-md">
                     <q-spinner color="primary" size="32px" />
                   </div>
-
                   <div
-                    v-else-if="notificacoes.length === 0"
+                    v-else-if="notificacoesList.length === 0"
                     class="text-center q-pa-md text-grey-6"
                   >
                     <q-icon name="notifications_none" size="48px" />
                     <div>Sem notificações</div>
                   </div>
-
                   <q-item
-                    v-for="notif in notificacoes"
+                    v-for="notif in notificacoesList"
                     :key="notif.id"
                     clickable
                     v-close-popup
@@ -150,15 +137,15 @@
                       </q-avatar>
                     </q-item-section>
                     <q-item-section>
-                      <q-item-label lines="1" class="text-weight-medium text-body2">
-                        {{ notif.titulo }}
-                      </q-item-label>
-                      <q-item-label caption lines="2" class="text-caption">
-                        {{ notif.mensagem }}
-                      </q-item-label>
-                      <q-item-label caption class="text-grey-6 text-caption">
-                        {{ formatarData(notif.created_at) }}
-                      </q-item-label>
+                      <q-item-label lines="1" class="text-weight-medium text-body2">{{
+                        notif.titulo
+                      }}</q-item-label>
+                      <q-item-label caption lines="2" class="text-caption">{{
+                        notif.mensagem
+                      }}</q-item-label>
+                      <q-item-label caption class="text-grey-6 text-caption">{{
+                        formatarData(notif.created_at)
+                      }}</q-item-label>
                     </q-item-section>
                     <q-item-section side v-if="!notif.lida">
                       <q-badge color="primary" rounded>Nova</q-badge>
@@ -169,21 +156,18 @@
             </q-menu>
           </q-btn>
 
-          <q-btn flat round dense icon="more_vert">
+          <q-btn flat round dense icon="more_vert" class="ea-more-btn">
             <q-menu>
               <q-list style="min-width: 200px">
                 <q-item clickable v-close-popup to="/admin/perfil">
-                  <q-item-section avatar>
-                    <q-icon name="person" size="18px" />
-                  </q-item-section>
+                  <q-item-section avatar><q-icon name="person" size="18px" /></q-item-section>
                   <q-item-section>Meu Perfil</q-item-section>
                 </q-item>
-
                 <q-separator />
                 <q-item clickable v-close-popup @click="logout">
-                  <q-item-section avatar>
-                    <q-icon name="logout" size="18px" color="negative" />
-                  </q-item-section>
+                  <q-item-section avatar
+                    ><q-icon name="logout" size="18px" color="negative"
+                  /></q-item-section>
                   <q-item-section class="text-negative">Sair</q-item-section>
                 </q-item>
               </q-list>
@@ -193,14 +177,14 @@
       </q-toolbar>
     </q-header>
 
-    <!-- Drawer Responsivo -->
+    <!-- Drawer -->
     <q-drawer
       v-model="leftDrawerOpen"
       :show-if-above="windowWidth > 768"
       :width="drawerWidth"
       :breakpoint="768"
       bordered
-      class="admin-drawer"
+      class="ea-admin-drawer"
     >
       <q-scroll-area class="fit">
         <!-- Perfil resumido no drawer -->
@@ -219,12 +203,8 @@
         </div>
 
         <q-list padding class="menu-list">
-          <!-- ========================================== -->
-          <!-- PRINCIPAL - AMBOS VEEM -->
-          <!-- ========================================== -->
-          <q-item-label header class="text-grey-7 text-uppercase menu-header">
-            PRINCIPAL
-          </q-item-label>
+          <!-- PRINCIPAL -->
+          <q-item-label header class="menu-header">PRINCIPAL</q-item-label>
 
           <q-item
             clickable
@@ -234,26 +214,20 @@
             active-class="menu-item-active"
             class="menu-item"
           >
-            <q-item-section avatar>
-              <q-icon
+            <q-item-section avatar
+              ><q-icon
                 name="dashboard"
                 :color="isActive('/admin/dashboard') ? 'primary' : 'grey-7'"
                 :size="menuIconSize"
-              />
-            </q-item-section>
+            /></q-item-section>
             <q-item-section class="menu-item-text">Dashboard</q-item-section>
           </q-item>
 
           <q-separator class="q-my-sm" />
 
-          <!-- ========================================== -->
           <!-- GESTÃO -->
-          <!-- ========================================== -->
-          <q-item-label header class="text-grey-7 text-uppercase menu-header">
-            GESTÃO
-          </q-item-label>
+          <q-item-label header class="menu-header">GESTÃO</q-item-label>
 
-          <!-- UTILIZADORES - APENAS ROOT -->
           <q-item
             v-if="isRoot"
             clickable
@@ -263,17 +237,15 @@
             active-class="menu-item-active"
             class="menu-item"
           >
-            <q-item-section avatar>
-              <q-icon
+            <q-item-section avatar
+              ><q-icon
                 name="people"
                 :color="isActive('/admin/utilizadores') ? 'primary' : 'grey-7'"
                 :size="menuIconSize"
-              />
-            </q-item-section>
+            /></q-item-section>
             <q-item-section class="menu-item-text">Utilizadores</q-item-section>
           </q-item>
 
-          <!-- PRESTADORES - AMBOS VEEM (com badge consulta para admin normal) -->
           <q-item
             clickable
             v-ripple
@@ -282,20 +254,18 @@
             active-class="menu-item-active"
             class="menu-item"
           >
-            <q-item-section avatar>
-              <q-icon
+            <q-item-section avatar
+              ><q-icon
                 name="handyman"
                 :color="isActive('/admin/prestadores') ? 'primary' : 'grey-7'"
                 :size="menuIconSize"
-              />
-            </q-item-section>
+            /></q-item-section>
             <q-item-section class="menu-item-text">Prestadores</q-item-section>
-            <q-item-section side v-if="!isRoot">
-              <q-badge color="info" class="text-caption">consulta</q-badge>
-            </q-item-section>
+            <q-item-section side v-if="!isRoot"
+              ><q-badge color="info" class="text-caption">consulta</q-badge></q-item-section
+            >
           </q-item>
 
-          <!-- CATEGORIAS - AMBOS VEEM -->
           <q-item
             clickable
             v-ripple
@@ -304,17 +274,15 @@
             active-class="menu-item-active"
             class="menu-item"
           >
-            <q-item-section avatar>
-              <q-icon
+            <q-item-section avatar
+              ><q-icon
                 name="category"
                 :color="isActive('/admin/categorias') ? 'primary' : 'grey-7'"
                 :size="menuIconSize"
-              />
-            </q-item-section>
+            /></q-item-section>
             <q-item-section class="menu-item-text">Categorias</q-item-section>
           </q-item>
 
-          <!-- SERVIÇOS - AMBOS VEEM -->
           <q-item
             clickable
             v-ripple
@@ -323,24 +291,19 @@
             active-class="menu-item-active"
             class="menu-item"
           >
-            <q-item-section avatar>
-              <q-icon
+            <q-item-section avatar
+              ><q-icon
                 name="assignment"
                 :color="isActive('/admin/servicos') ? 'primary' : 'grey-7'"
                 :size="menuIconSize"
-              />
-            </q-item-section>
+            /></q-item-section>
             <q-item-section class="menu-item-text">Serviços</q-item-section>
           </q-item>
 
           <q-separator class="q-my-sm" />
 
-          <!-- ========================================== -->
-          <!-- RELATÓRIOS - AMBOS VEEM -->
-          <!-- ========================================== -->
-          <q-item-label header class="text-grey-7 text-uppercase menu-header">
-            RELATÓRIOS
-          </q-item-label>
+          <!-- RELATÓRIOS -->
+          <q-item-label header class="menu-header">RELATÓRIOS</q-item-label>
 
           <q-item
             clickable
@@ -350,13 +313,12 @@
             active-class="menu-item-active"
             class="menu-item"
           >
-            <q-item-section avatar>
-              <q-icon
+            <q-item-section avatar
+              ><q-icon
                 name="bar_chart"
                 :color="isActive('/admin/estatisticas') ? 'primary' : 'grey-7'"
                 :size="menuIconSize"
-              />
-            </q-item-section>
+            /></q-item-section>
             <q-item-section class="menu-item-text">Estatísticas</q-item-section>
           </q-item>
 
@@ -368,24 +330,19 @@
             active-class="menu-item-active"
             class="menu-item"
           >
-            <q-item-section avatar>
-              <q-icon
+            <q-item-section avatar
+              ><q-icon
                 name="assessment"
                 :color="isActive('/admin/relatorios') ? 'primary' : 'grey-7'"
                 :size="menuIconSize"
-              />
-            </q-item-section>
+            /></q-item-section>
             <q-item-section class="menu-item-text">Relatórios</q-item-section>
           </q-item>
 
           <q-separator class="q-my-sm" />
 
-          <!-- ========================================== -->
-          <!-- FINANCEIRO - AMBOS VEEM (com badges diferentes) -->
-          <!-- ========================================== -->
-          <q-item-label header class="text-grey-7 text-uppercase menu-header">
-            FINANCEIRO
-          </q-item-label>
+          <!-- FINANCEIRO -->
+          <q-item-label header class="menu-header">FINANCEIRO</q-item-label>
 
           <q-item
             clickable
@@ -395,13 +352,12 @@
             active-class="menu-item-active"
             class="menu-item"
           >
-            <q-item-section avatar>
-              <q-icon
+            <q-item-section avatar
+              ><q-icon
                 name="payments"
                 :color="isActive('/admin/financeiro') ? 'primary' : 'grey-7'"
                 :size="menuIconSize"
-              />
-            </q-item-section>
+            /></q-item-section>
             <q-item-section class="menu-item-text">Financeiro</q-item-section>
             <q-item-section side>
               <q-badge v-if="isRoot" color="positive" class="text-caption">gestão total</q-badge>
@@ -411,13 +367,9 @@
 
           <q-separator class="q-my-sm" />
 
-          <!-- ========================================== -->
-          <!-- SISTEMA - APENAS ROOT VÊ -->
-          <!-- ========================================== -->
+          <!-- SISTEMA - APENAS ROOT -->
           <template v-if="isRoot">
-            <q-item-label header class="text-grey-7 text-uppercase menu-header">
-              SISTEMA
-            </q-item-label>
+            <q-item-label header class="menu-header">SISTEMA</q-item-label>
 
             <q-item
               clickable
@@ -427,13 +379,12 @@
               active-class="menu-item-active"
               class="menu-item"
             >
-              <q-item-section avatar>
-                <q-icon
+              <q-item-section avatar
+                ><q-icon
                   name="monitor_heart"
                   :color="isActive('/admin/monitoring') ? 'primary' : 'grey-7'"
                   :size="menuIconSize"
-                />
-              </q-item-section>
+              /></q-item-section>
               <q-item-section class="menu-item-text">Monitoramento</q-item-section>
             </q-item>
 
@@ -445,13 +396,12 @@
               active-class="menu-item-active"
               class="menu-item"
             >
-              <q-item-section avatar>
-                <q-icon
+              <q-item-section avatar
+                ><q-icon
                   name="settings"
                   :color="isActive('/admin/configuracoes') ? 'primary' : 'grey-7'"
                   :size="menuIconSize"
-                />
-              </q-item-section>
+              /></q-item-section>
               <q-item-section class="menu-item-text">Configurações</q-item-section>
             </q-item>
           </template>
@@ -475,66 +425,51 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
-import { useAdminStore, type NotificacaoData } from 'src/stores/admin-store';
+// ✅ IMPORT CORRETO - usando dashboardStore
+import { useAdminDashboardStore, type NotificacaoData } from 'src/stores/admin/admin-dashboard-store';
 import { useQuasar } from 'quasar';
 
-defineOptions({
-  name: 'AdminLayout',
-});
+defineOptions({ name: 'AdminLayout' });
 
 const router = useRouter();
 const route = useRoute();
 const $q = useQuasar();
 const authStore = useAuthStore();
-const adminStore = useAdminStore();
+// ✅ USANDO O STORE CORRETO
+const dashboardStore = useAdminDashboardStore();
 
-// Estado de loading do skeleton
 const isLoading = ref(true);
-
-// DETECTAR SE É ROOT (super admin)
-const isRoot = computed(() => {
-  return authStore.user?.email === 'root@estouaqui.com';
-});
-
-// Responsividade - largura da janela
 const windowWidth = ref(window.innerWidth);
-
-const updateWindowWidth = () => {
-  windowWidth.value = window.innerWidth;
-};
-
-const drawerWidth = computed(() => {
-  if (windowWidth.value < 400) return 260;
-  if (windowWidth.value < 600) return 280;
-  return 280;
-});
-
-const drawerAvatarSize = computed(() => {
-  if (windowWidth.value < 400) return '48px';
-  return '56px';
-});
-
-const menuIconSize = computed(() => {
-  if (windowWidth.value < 400) return '20px';
-  return '24px';
-});
-
-const userNome = computed(() => authStore.user?.nome || 'Administrador');
-const userAvatar = computed(
-  () =>
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(userNome.value)}&background=667eea&color=fff&size=56`,
-);
-
 const leftDrawerOpen = ref(true);
 const globalLoading = ref(false);
 const loadingNotificacoes = ref(false);
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-const notificacoes = computed(() => adminStore.notificacoesAdmin);
+const isRoot = computed(() => authStore.user?.email === 'root@estouaqui.com');
+const userNome = computed(() => authStore.user?.nome || 'Administrador');
+const userAvatar = computed(
+  () =>
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(userNome.value)}&background=5B4BF5&color=fff&size=56`,
+);
+
+const drawerWidth = computed(() => (windowWidth.value < 400 ? 260 : 280));
+const drawerAvatarSize = computed(() => (windowWidth.value < 400 ? '48px' : '56px'));
+const menuIconSize = computed(() => (windowWidth.value < 400 ? '20px' : '24px'));
+
+// ✅ Notificações vêm do dashboardStore
+const notificacoesList = computed(() => dashboardStore.notificacoesAdmin);
 const unreadNotificationsCount = computed(() => {
-  const notifs = notificacoes.value;
-  return Array.isArray(notifs) ? notifs.filter((n) => !n.lida).length : 0;
+  const notifs = notificacoesList.value;
+  return Array.isArray(notifs) ? notifs.filter((n: NotificacaoData) => !n.lida).length : 0;
 });
+
+const updateWindowWidth = () => {
+  windowWidth.value = window.innerWidth;
+};
+
+const goToHome = () => {
+  void router.push('/');
+};
 
 const getNotificacaoIcone = (notif: NotificacaoData) => {
   const tipo = notif.tipo || 'default';
@@ -575,17 +510,14 @@ const formatarData = (dataString: string) => {
   } else if (diffHours < 48) {
     return 'Ontem';
   } else {
-    return date.toLocaleDateString('pt-PT', {
-      day: '2-digit',
-      month: '2-digit',
-    });
+    return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
   }
 };
 
 const carregarNotificacoes = async () => {
   loadingNotificacoes.value = true;
   try {
-    await adminStore.fetchNotificacoesAdmin();
+    await dashboardStore.fetchNotificacoesAdmin();
   } catch (error) {
     console.error('Erro ao carregar notificações:', error);
   } finally {
@@ -595,15 +527,15 @@ const carregarNotificacoes = async () => {
 
 const marcarNotificacaoLida = async (id: string) => {
   try {
-    await adminStore.marcarNotificacaoLida(id);
+    await dashboardStore.marcarNotificacaoLida(id);
   } catch (error) {
-    console.error('Erro ao marcar notificação como lida:', error);
+    console.error('Erro ao marcar notificação:', error);
   }
 };
 
 const marcarTodasComoLidas = async () => {
   try {
-    const success = await adminStore.marcarTodasNotificacoesLidas();
+    const success = await dashboardStore.marcarTodasNotificacoesLidas();
     if (success) {
       $q.notify({
         type: 'positive',
@@ -614,11 +546,7 @@ const marcarTodasComoLidas = async () => {
     }
   } catch (error) {
     console.error('Erro ao marcar todas notificações:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao marcar notificações',
-      position: 'top',
-    });
+    $q.notify({ type: 'negative', message: 'Erro ao marcar notificações', position: 'top' });
   }
 };
 
@@ -628,10 +556,9 @@ const openNotifications = () => {
 
 const iniciarPolling = () => {
   if (pollingInterval) clearInterval(pollingInterval);
-
   pollingInterval = setInterval(() => {
     if (document.hasFocus()) {
-      void adminStore.fetchNotificacoesAdmin();
+      void dashboardStore.fetchNotificacoesAdmin();
     }
   }, 30000);
 };
@@ -643,9 +570,8 @@ const pararPolling = () => {
   }
 };
 
-const isActive = (path: string): boolean => {
-  return route.path === path || route.path.startsWith(path + '/');
-};
+const isActive = (path: string): boolean =>
+  route.path === path || route.path.startsWith(path + '/');
 
 const logout = (): void => {
   $q.dialog({
@@ -682,22 +608,18 @@ const logout = (): void => {
   });
 };
 
-// Carregar dados iniciais com skeleton
 const carregarDadosIniciais = async () => {
   isLoading.value = true;
-
   try {
     if (!authStore.isAuthenticated || !authStore.isAdmin) {
       await router.push('/admin/login');
       isLoading.value = false;
       return;
     }
-
     await Promise.all([carregarNotificacoes()]);
   } catch (error) {
     console.error('Erro ao carregar dados iniciais:', error);
   } finally {
-    // Tempo mínimo para o skeleton aparecer (evita flicker)
     setTimeout(() => {
       isLoading.value = false;
     }, 600);
@@ -706,7 +628,6 @@ const carregarDadosIniciais = async () => {
 
 onMounted(() => {
   window.addEventListener('resize', updateWindowWidth);
-
   if (!authStore.isAuthenticated || !authStore.isAdmin) {
     void router.push('/admin/login');
     isLoading.value = false;
@@ -722,10 +643,10 @@ onUnmounted(() => {
 });
 
 watch(
-  () => adminStore.notificacoesAdmin,
+  () => dashboardStore.notificacoesAdmin,
   (newVal) => {
     if (!Array.isArray(newVal)) {
-      adminStore.notificacoesAdmin = [];
+      // Se não for array, mantém o valor atual
     }
   },
   { immediate: true },
@@ -733,29 +654,24 @@ watch(
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
+// ... (styles mantidos iguais ao original)
+$ink: #0a0a0f;
+$accent: #5b4bf5;
+$gold: #f59e0b;
 $gray-50: #fafafa;
 $gray-100: #f5f5f5;
 $gray-200: #eeeeee;
 $gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
 $gray-600: #757575;
-$gray-700: #616161;
 $gray-800: #424242;
-$gray-900: #212121;
 
 // ==========================================
 // SKELETON LOADING STYLES
 // ==========================================
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .skeleton-admin-layout {
@@ -763,55 +679,38 @@ $gray-900: #212121;
   min-height: 100vh;
   display: flex;
 }
-
 .skeleton-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   height: 60px;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  background: $ink;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   z-index: 2000;
 }
-
-.skeleton-menu-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.skeleton-logo {
-  width: 120px;
-  height: 24px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.skeleton-header-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.skeleton-notification {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-}
-
+.skeleton-menu-btn,
+.skeleton-notification,
 .skeleton-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.2);
 }
-
+.skeleton-logo {
+  width: 120px;
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.skeleton-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
 .skeleton-drawer {
   position: fixed;
   top: 60px;
@@ -822,16 +721,14 @@ $gray-900: #212121;
   border-right: 1px solid $gray-200;
   z-index: 1999;
 }
-
 .skeleton-profile {
   padding: 16px;
-  background: linear-gradient(135deg, $gray-100 0%, $gray-200 100%);
+  background: $gray-100;
   border-bottom: 1px solid $gray-300;
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
 .skeleton-profile-avatar {
   width: 56px;
   height: 56px;
@@ -840,15 +737,12 @@ $gray-900: #212121;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .skeleton-profile-info {
   flex: 1;
 }
-
 .skeleton-menu {
   padding: 16px;
 }
-
 .skeleton-menu-item {
   display: flex;
   align-items: center;
@@ -857,7 +751,6 @@ $gray-900: #212121;
   margin: 4px 0;
   border-radius: 10px;
 }
-
 .skeleton-icon {
   width: 24px;
   height: 24px;
@@ -866,21 +759,18 @@ $gray-900: #212121;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .skeleton-content {
   flex: 1;
   margin-left: 280px;
   margin-top: 60px;
   padding: 24px;
 }
-
 .skeleton-stats {
   display: flex;
   gap: 20px;
   margin-bottom: 24px;
   flex-wrap: wrap;
 }
-
 .skeleton-stat-card {
   flex: 1;
   min-width: 200px;
@@ -892,7 +782,6 @@ $gray-900: #212121;
   gap: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
-
 .skeleton-stat-icon {
   width: 48px;
   height: 48px;
@@ -901,11 +790,9 @@ $gray-900: #212121;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .skeleton-stat-info {
   flex: 1;
 }
-
 .skeleton-line {
   height: 14px;
   border-radius: 7px;
@@ -914,7 +801,6 @@ $gray-900: #212121;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .w-15 { width: 15%; }
 .w-30 { width: 30%; }
 .w-40 { width: 40%; }
@@ -922,14 +808,12 @@ $gray-900: #212121;
 .w-60 { width: 60%; }
 .w-70 { width: 70%; }
 .w-80 { width: 80%; }
-
 .skeleton-table {
   background: white;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
-
 .skeleton-table-header {
   display: flex;
   gap: 16px;
@@ -937,25 +821,11 @@ $gray-900: #212121;
   background: $gray-100;
   border-bottom: 1px solid $gray-200;
 }
-
 .skeleton-table-row {
   display: flex;
   gap: 16px;
   padding: 16px;
   border-bottom: 1px solid $gray-200;
-}
-
-.skeleton-spinner {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 20px 30px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 10000;
 }
 
 @media (max-width: 768px) {
@@ -975,86 +845,79 @@ $gray-900: #212121;
   background: $gray-50;
 }
 
-.admin-header {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+.ea-admin-header {
+  background: $ink !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 2000;
 
-  .menu-btn {
-    transition: all 0.3s ease;
-
-    @media (max-width: 400px) {
-      padding: 6px;
-    }
-
+  .ea-menu-btn,
+  .ea-notification-btn,
+  .ea-more-btn {
+    color: rgba(255, 255, 255, 0.8);
+    transition: all 0.2s;
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
     }
-  }
-
-  .logo-wrapper {
-    font-size: 1.3rem;
-
-    @media (max-width: 500px) {
-      font-size: 1.1rem;
-    }
-
-    .text-primary {
-      color: $purple-primary !important;
-    }
-  }
-
-  .admin-badge {
-    background: rgba($purple-primary, 0.2);
-    padding: 4px 8px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-
-    @media (max-width: 500px) {
-      display: none;
-    }
-
-    &.root-badge {
-      background: rgba(76, 175, 80, 0.2);
-      color: #4caf50;
-    }
-  }
-
-  .notification-btn {
-    transition: all 0.3s ease;
-
-    @media (max-width: 400px) {
-      padding: 6px;
-    }
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
-  }
-
-  .notification-chip {
-    @media (max-width: 600px) {
-      display: none;
-    }
-  }
-
-  .notification-badge-mobile {
-    top: 2px;
-    right: 2px;
-    font-size: 10px;
-    min-width: 18px;
-    height: 18px;
-    line-height: 18px;
   }
 }
 
-.admin-drawer {
-  background: white;
-  border-right: 1px solid $gray-200;
+.ea-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $accent;
+    box-shadow: 0 0 8px rgba(91, 75, 245, 0.8);
+  }
+  &__text {
+    font-size: 1.1rem;
+    color: #fff;
+    font-weight: 400;
+    strong {
+      font-weight: 800;
+      background: linear-gradient(135deg, $accent 0%, #a78bfa 50%, $gold 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  }
+}
+
+.admin-badge {
+  background: rgba($accent, 0.2);
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  &.root-badge {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+  }
+  @media (max-width: 500px) {
+    display: none;
+  }
+}
+
+.notification-badge-mobile {
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+}
+
+.ea-admin-drawer {
+  background: $ink !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   position: fixed;
   top: 60px;
   left: 0;
@@ -1062,38 +925,22 @@ $gray-900: #212121;
   z-index: 1999;
 
   .drawer-profile {
-    background: linear-gradient(135deg, $gray-100 0%, $gray-200 100%);
-    border-bottom: 1px solid $gray-300;
-
-    @media (max-width: 400px) {
-      padding: 12px;
-    }
-
+    background: rgba(91, 75, 245, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     &.root-profile {
-      background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(102, 126, 234, 0.2) 100%);
+      background: rgba(76, 175, 80, 0.1);
     }
-
     .profile-name {
       font-weight: 600;
-      color: $gray-800;
-
-      @media (max-width: 400px) {
-        font-size: 0.9rem;
-      }
+      color: #fff;
     }
-
     .profile-role {
       font-size: 0.8rem;
-      color: $gray-600;
-
-      @media (max-width: 400px) {
-        font-size: 0.7rem;
-      }
+      color: rgba(255, 255, 255, 0.5);
     }
-
     .profile-avatar {
-      border: 2px solid white;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      border: 2px solid $accent;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
       flex-shrink: 0;
     }
   }
@@ -1103,45 +950,25 @@ $gray-900: #212121;
       font-size: 0.7rem;
       letter-spacing: 0.5px;
       padding: 12px 16px 4px;
-      color: $gray-600;
-
-      @media (max-width: 400px) {
-        font-size: 0.65rem;
-        padding: 8px 12px 4px;
-      }
+      color: rgba(255, 255, 255, 0.4);
     }
-
     .menu-item {
       margin: 4px 8px;
       border-radius: 10px;
       transition: all 0.3s ease;
-
-      @media (max-width: 400px) {
-        margin: 2px 4px;
-        border-radius: 8px;
-      }
-
+      color: rgba(255, 255, 255, 0.7);
       &:hover {
-        background: $gray-100;
+        background: rgba(255, 255, 255, 0.05);
         transform: translateX(5px);
-
-        @media (max-width: 400px) {
-          transform: translateX(3px);
-        }
       }
-
       &.menu-item-active {
-        background: rgba($purple-primary, 0.1);
+        background: rgba($accent, 0.1);
       }
-
       &.menu-item-active .q-icon {
-        color: $purple-primary !important;
+        color: $accent !important;
       }
-
       .menu-item-text {
-        @media (max-width: 400px) {
-          font-size: 0.85rem;
-        }
+        color: rgba(255, 255, 255, 0.7);
       }
     }
   }
@@ -1151,39 +978,26 @@ $gray-900: #212121;
   margin-top: 60px;
   min-height: calc(100vh - 60px);
   background: $gray-50;
-
-  @media (max-width: 768px) {
-    margin-left: 0 !important;
-  }
 }
 
 .notification-unread {
-  background: rgba(102, 126, 234, 0.05);
-  border-left: 3px solid $purple-primary;
-}
-
-.notification-item {
-  @media (max-width: 400px) {
-    padding: 8px;
-  }
+  background: rgba($accent, 0.05);
+  border-left: 3px solid $accent;
 }
 
 @media (max-width: 768px) {
-  .admin-drawer {
+  .ea-admin-drawer {
     width: 280px !important;
   }
-
   .q-page-container {
     margin-left: 0 !important;
   }
 }
-
 @media (max-width: 400px) {
-  .admin-drawer {
+  .ea-admin-drawer {
     width: 260px !important;
   }
 }
-
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .q-page-container {
     padding-bottom: env(safe-area-inset-bottom);

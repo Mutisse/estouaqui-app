@@ -24,14 +24,13 @@
           color="grey-7"
           outline
           @click="carregarDados"
-          :loading="adminStore.loading"
+          :loading="dashboardStore.loading"
         />
       </div>
     </div>
 
-    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
-    <div v-if="adminStore.loading" class="skeleton-container">
-      <!-- KPI Cards skeleton -->
+    <!-- Skeleton Loading -->
+    <div v-if="dashboardStore.loading" class="skeleton-container">
       <div class="row q-col-gutter-lg">
         <div v-for="i in 4" :key="i" class="col-12 col-sm-6 col-md-3">
           <div class="skeleton-kpi-card">
@@ -45,7 +44,6 @@
         </div>
       </div>
 
-      <!-- Gráficos skeleton -->
       <div class="row q-col-gutter-lg q-mt-lg">
         <div class="col-12 col-md-6">
           <div class="skeleton-stats-card">
@@ -86,7 +84,6 @@
         </div>
       </div>
 
-      <!-- Resumo Financeiro skeleton -->
       <div class="row q-col-gutter-lg q-mt-lg">
         <div class="col-12">
           <div class="skeleton-stats-card">
@@ -108,7 +105,6 @@
         </div>
       </div>
 
-      <!-- Tabela Serviços Recentes skeleton -->
       <div class="row q-col-gutter-lg q-mt-lg">
         <div class="col-12">
           <div class="skeleton-stats-card">
@@ -129,14 +125,12 @@
         </div>
       </div>
 
-      <!-- Shimmer animation -->
       <div class="skeleton-shimmer"></div>
     </div>
 
-    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <!-- Conteúdo real -->
     <template v-else>
       <div class="row q-col-gutter-lg">
-        <!-- Cards de KPIs -->
         <div class="col-12 col-sm-6 col-md-3">
           <div class="kpi-card">
             <div class="kpi-icon" style="background: rgba(25, 118, 210, 0.1)">
@@ -144,7 +138,7 @@
             </div>
             <div class="kpi-content">
               <div class="kpi-label">Total Utilizadores</div>
-              <div class="kpi-value">{{ formatNumber(adminStore.dashboard.total_users) }}</div>
+              <div class="kpi-value">{{ formatNumber(dashboardStore.dashboard.total_users) }}</div>
               <div class="kpi-trend trend-up">
                 <q-icon name="trending_up" size="14px" />
                 +{{ calculoTrend.totalUsers }}% este período
@@ -160,7 +154,7 @@
             </div>
             <div class="kpi-content">
               <div class="kpi-label">Prestadores</div>
-              <div class="kpi-value">{{ formatNumber(adminStore.dashboard.total_prestadores) }}</div>
+              <div class="kpi-value">{{ formatNumber(dashboardStore.dashboard.total_prestadores) }}</div>
               <div class="kpi-trend trend-up">
                 <q-icon name="trending_up" size="14px" />
                 +{{ calculoTrend.prestadores }}% este período
@@ -176,7 +170,7 @@
             </div>
             <div class="kpi-content">
               <div class="kpi-label">Serviços Realizados</div>
-              <div class="kpi-value">{{ formatNumber(adminStore.estatisticas.total_pedidos) }}</div>
+              <div class="kpi-value">{{ formatNumber(dashboardStore.estatisticas.total_pedidos) }}</div>
               <div class="kpi-trend trend-up">
                 <q-icon name="trending_up" size="14px" />
                 +{{ calculoTrend.servicos }}% este período
@@ -192,7 +186,7 @@
             </div>
             <div class="kpi-content">
               <div class="kpi-label">Avaliação Média</div>
-              <div class="kpi-value">{{ adminStore.dashboard.avaliacao_media.toFixed(1) }}</div>
+              <div class="kpi-value">{{ dashboardStore.dashboard.avaliacao_media.toFixed(1) }}</div>
               <div class="kpi-trend trend-up">
                 <q-icon name="star" size="14px" />
                 de 5.0
@@ -203,7 +197,6 @@
       </div>
 
       <div class="row q-col-gutter-lg q-mt-lg">
-        <!-- Gráfico de Utilizadores por Mês -->
         <div class="col-12 col-md-6">
           <q-card class="stats-card">
             <q-card-section>
@@ -242,7 +235,6 @@
           </q-card>
         </div>
 
-        <!-- Gráfico de Serviços por Categoria -->
         <div class="col-12 col-md-6">
           <q-card class="stats-card">
             <q-card-section>
@@ -284,7 +276,6 @@
           </q-card>
         </div>
 
-        <!-- Resumo Financeiro -->
         <div class="col-12">
           <q-card class="stats-card">
             <q-card-section>
@@ -302,7 +293,7 @@
                     </div>
                     <div class="financial-content">
                       <div class="financial-label">Receita Total</div>
-                      <div class="financial-value">{{ formatMoney(adminStore.estatisticas.receita_total) }}</div>
+                      <div class="financial-value">{{ formatMoney(dashboardStore.estatisticas.receita_total) }}</div>
                     </div>
                   </div>
                 </div>
@@ -313,7 +304,7 @@
                     </div>
                     <div class="financial-content">
                       <div class="financial-label">Comissões</div>
-                      <div class="financial-value">{{ formatMoney(adminStore.resumoFinanceiro.comissoes) }}</div>
+                      <div class="financial-value">{{ formatMoney(financeiroStore.resumoFinanceiro.comissoes) }}</div>
                     </div>
                   </div>
                 </div>
@@ -344,7 +335,6 @@
           </q-card>
         </div>
 
-        <!-- Serviços Recentes -->
         <div class="col-12">
           <q-card class="stats-card">
             <q-card-section>
@@ -355,10 +345,10 @@
             </q-card-section>
             <q-card-section>
               <q-table
-                :rows="adminStore.servicosRecentes"
+                :rows="conteudoStore.servicosRecentes"
                 :columns="servicosColumns"
                 row-key="id"
-                :loading="adminStore.loading"
+                :loading="dashboardStore.loading"
                 :rows-per-page-options="[5, 10]"
                 flat
                 bordered
@@ -392,102 +382,109 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useQuasar, type QTableColumn } from 'quasar'
-import { useAdminStore } from 'src/stores/admin-store'
+import { ref, computed, onMounted } from 'vue';
+import { useQuasar, type QTableColumn } from 'quasar';
+// ✅ IMPORTS CORRETOS - Stores separados
+import { useAdminDashboardStore } from 'src/stores/admin/admin-dashboard-store';
+import { useAdminFinanceiroStore } from 'src/stores/admin/admin-financeiro-store';
+import { useAdminConteudoStore } from 'src/stores/admin/admin-conteudo-store';
+import type { CategoriaData } from 'src/stores/admin/admin-conteudo-store';
 
 defineOptions({
-  name: 'AdminEstatisticas'
-})
+  name: 'AdminEstatisticas',
+});
 
-const $q = useQuasar()
-const adminStore = useAdminStore()
+const $q = useQuasar();
+// ✅ USANDO OS STORES CORRETOS
+const dashboardStore = useAdminDashboardStore();
+const financeiroStore = useAdminFinanceiroStore();
+const conteudoStore = useAdminConteudoStore();
 
 // Estados
-const periodoSelecionado = ref('6meses')
+const periodoSelecionado = ref('6meses');
 
 // Opções de período
 const periodos = [
   { label: 'Últimos 6 meses', value: '6meses' },
   { label: 'Últimos 12 meses', value: '12meses' },
-  { label: 'Ano atual', value: 'ano' }
-]
+  { label: 'Ano atual', value: 'ano' },
+];
 
 // Computed para o período atual
 const periodoAtual = computed(() => {
-  const periodo = periodos.find(p => p.value === periodoSelecionado.value)
-  return periodo?.label || 'Últimos 6 meses'
-})
+  const periodo = periodos.find(p => p.value === periodoSelecionado.value);
+  return periodo?.label || 'Últimos 6 meses';
+});
 
 // Ticket médio
 const ticketMedio = computed(() => {
-  const totalServicos = adminStore.estatisticas.total_pedidos
-  const receitaTotal = adminStore.estatisticas.receita_total
-  if (totalServicos === 0) return 0
-  return receitaTotal / totalServicos
-})
+  const totalServicos = dashboardStore.estatisticas.total_pedidos;
+  const receitaTotal = dashboardStore.estatisticas.receita_total;
+  if (totalServicos === 0) return 0;
+  return receitaTotal / totalServicos;
+});
 
 // Cálculo de tendências
 const calculoTrend = computed(() => {
-  const totalUsers = adminStore.dashboard.total_users
-  const totalPrestadores = adminStore.dashboard.total_prestadores
-  const totalPedidos = adminStore.estatisticas.total_pedidos
-  const receitaTotal = adminStore.estatisticas.receita_total
+  const totalUsers = dashboardStore.dashboard.total_users;
+  const totalPrestadores = dashboardStore.dashboard.total_prestadores;
+  const totalPedidos = dashboardStore.estatisticas.total_pedidos;
+  const receitaTotal = dashboardStore.estatisticas.receita_total;
 
   return {
     totalUsers: Math.min(Math.round((totalUsers / 100) * 12), 25),
     prestadores: Math.min(Math.round((totalPrestadores / 100) * 8), 20),
     servicos: Math.min(Math.round((totalPedidos / 100) * 15), 30),
-    receita: Math.min(Math.round((receitaTotal / 1000) * 18), 25)
-  }
-})
+    receita: Math.min(Math.round((receitaTotal / 1000) * 18), 25),
+  };
+});
 
 // Dados de usuários por mês
 const dadosUsuariosPorMes = computed(() => {
-  const totalUsers = adminStore.dashboard.total_users
-  const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+  const totalUsers = dashboardStore.dashboard.total_users;
+  const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
   const valores = meses.map((_, index) => {
-    const percentual = (index + 1) / meses.length
-    return Math.floor(totalUsers * percentual)
-  })
+    const percentual = (index + 1) / meses.length;
+    return Math.floor(totalUsers * percentual);
+  });
 
-  const maxValor = Math.max(...valores, 1)
+  const maxValor = Math.max(...valores, 1);
 
-  const mesesCount = periodoSelecionado.value === '6meses' ? 6 :
-                     periodoSelecionado.value === '12meses' ? 12 :
-                     new Date().getMonth() + 1
+  const mesesCount = periodoSelecionado.value === '6meses' ? 6
+    : periodoSelecionado.value === '12meses' ? 12
+    : new Date().getMonth() + 1;
 
-  const ultimosMeses = []
-  const inicio = Math.max(0, meses.length - mesesCount)
+  const ultimosMeses = [];
+  const inicio = Math.max(0, meses.length - mesesCount);
   for (let i = inicio; i < meses.length; i++) {
-    const valor = valores[i] ?? 0
+    const valor = valores[i] ?? 0;
     ultimosMeses.push({
       mes: meses[i] ?? '',
       valor: valor,
-      percentual: valor / maxValor
-    })
+      percentual: valor / maxValor,
+    });
   }
-  return ultimosMeses
-})
+  return ultimosMeses;
+});
 
-// Dados de serviços por categoria
+// ✅ Dados de serviços por categoria (usando conteudoStore com tipagem correta)
 const dadosServicosPorCategoria = computed(() => {
-  const categorias = adminStore.categorias
-    .filter(c => c.servicos_count > 0)
-    .sort((a, b) => b.servicos_count - a.servicos_count)
-    .slice(0, 5)
+  const categorias: CategoriaData[] = [...conteudoStore.categorias]
+    .filter((c: CategoriaData) => c.servicos_count > 0)
+    .sort((a: CategoriaData, b: CategoriaData) => b.servicos_count - a.servicos_count)
+    .slice(0, 5);
 
-  const maxValor = categorias.length > 0 ? Math.max(...categorias.map(c => c.servicos_count)) : 1
+  const maxValor = categorias.length > 0 ? Math.max(...categorias.map((c: CategoriaData) => c.servicos_count)) : 1;
 
-  return categorias.map(cat => ({
+  return categorias.map((cat: CategoriaData) => ({
     categoria: cat.nome,
     valor: cat.servicos_count,
     percentual: cat.servicos_count / maxValor,
     icone: cat.icone || 'category',
-    cor: cat.cor || 'primary'
-  }))
-})
+    cor: cat.cor || 'primary',
+  }));
+});
 
 // Colunas para a tabela de serviços recentes
 const servicosColumns: QTableColumn[] = [
@@ -495,46 +492,46 @@ const servicosColumns: QTableColumn[] = [
   { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'left', sortable: true },
   { name: 'prestador', label: 'Prestador', field: 'prestador', align: 'left', sortable: true },
   { name: 'valor', label: 'Valor', field: 'valor', align: 'center', sortable: true },
-  { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: false }
-]
+  { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: false },
+];
 
 // Funções auxiliares
 const formatNumber = (value: number): string => {
-  return new Intl.NumberFormat('pt-PT').format(value)
-}
+  return new Intl.NumberFormat('pt-PT').format(value);
+};
 
 const formatMoney = (value: number): string => {
   return new Intl.NumberFormat('pt-PT', {
     style: 'currency',
     currency: 'MZN',
-    minimumFractionDigits: 0
-  }).format(value)
-}
+    minimumFractionDigits: 0,
+  }).format(value);
+};
 
-// Carregar dados
+// ✅ Carregar dados
 const carregarDados = async (): Promise<void> => {
   try {
     await Promise.all([
-      adminStore.fetchDashboard(),
-      adminStore.fetchStats(),
-      adminStore.fetchResumoFinanceiro(),
-      adminStore.fetchCategorias(),
-      adminStore.fetchServicosRecentes(10)
-    ])
+      dashboardStore.fetchDashboard(),
+      dashboardStore.fetchStats(),
+      financeiroStore.fetchResumoFinanceiro(),
+      conteudoStore.fetchCategorias(),
+      conteudoStore.fetchServicosRecentes(10),
+    ]);
   } catch (error) {
-    console.error('Erro ao carregar dados:', error)
+    console.error('Erro ao carregar dados:', error);
     $q.notify({
       type: 'negative',
       message: 'Erro ao carregar dados estatísticos',
-      position: 'top'
-    })
+      position: 'top',
+    });
   }
-}
+};
 
 // Carregar dados ao montar
 onMounted(() => {
-  void carregarDados()
-})
+  void carregarDados();
+});
 </script>
 
 <style scoped lang="scss">
@@ -576,10 +573,7 @@ onMounted(() => {
   }
 }
 
-// ==========================================
-// SKELETON LOADING (Facebook/Instagram style)
-// ==========================================
-
+// Skeleton Loading
 .skeleton-container {
   position: relative;
   overflow: hidden;
@@ -802,10 +796,7 @@ onMounted(() => {
   100% { transform: translateX(100%); }
 }
 
-// ==========================================
-// ESTILOS PRINCIPAIS
-// ==========================================
-
+// Estilos principais
 .kpi-card {
   background: white;
   border-radius: 20px;
@@ -854,7 +845,6 @@ onMounted(() => {
     align-items: center;
     gap: 2px;
     margin-top: 4px;
-
     &.trend-up { color: #2e7d32; }
   }
 }
@@ -874,10 +864,7 @@ onMounted(() => {
 .stats-list {
   .stats-item {
     margin-bottom: 20px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
+    &:last-child { margin-bottom: 0; }
   }
 
   .stats-label {
@@ -971,24 +958,16 @@ onMounted(() => {
   .admin-estatisticas {
     padding: 16px;
   }
-
   .page-header {
     flex-direction: column;
     align-items: flex-start;
   }
-
-  .kpi-card {
-    .kpi-value {
-      font-size: 1.3rem;
-    }
+  .kpi-card .kpi-value {
+    font-size: 1.3rem;
   }
-
-  .financial-card {
-    .financial-value {
-      font-size: 1rem;
-    }
+  .financial-card .financial-value {
+    font-size: 1rem;
   }
-
   .stats-progress .progress-value {
     font-size: 0.6rem;
     right: 8px;

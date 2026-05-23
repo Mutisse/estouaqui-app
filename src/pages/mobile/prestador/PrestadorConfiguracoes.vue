@@ -1,403 +1,477 @@
 <template>
-  <q-page class="prestador-configuracoes bg-grey-1">
-    <!-- Skeleton Loading (enquanto carrega) -->
-    <div v-if="carregamentoInicial" class="skeleton-loading">
+  <div class="prestador-configuracoes">
+
+    <!-- ===== CABEÇALHO ===== -->
+    <div class="page-header">
+      <button class="back-btn" @click="() => void router.back()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+      <h1 class="page-title">Configurações</h1>
+      <button class="menu-btn" @click="opcoes">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="1"/>
+          <circle cx="12" cy="5" r="1"/>
+          <circle cx="12" cy="19" r="1"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ===== SKELETON LOADING ===== -->
+    <div v-if="carregamentoInicial" class="skeleton-container">
       <div class="skeleton-header">
-        <div class="skeleton-back-btn"></div>
+        <div class="skeleton-back"></div>
         <div class="skeleton-title"></div>
-        <div class="skeleton-menu-btn"></div>
+        <div class="skeleton-menu"></div>
       </div>
       <div class="skeleton-list">
-        <div class="skeleton-section-header"></div>
+        <div class="skeleton-section"></div>
         <div v-for="i in 3" :key="i" class="skeleton-item">
           <div class="skeleton-icon"></div>
-          <div class="skeleton-item-info">
+          <div class="skeleton-info">
             <div class="skeleton-line w-50"></div>
             <div class="skeleton-line w-30"></div>
           </div>
           <div class="skeleton-toggle"></div>
         </div>
-        <div class="skeleton-section-header"></div>
+        <div class="skeleton-section"></div>
         <div v-for="i in 2" :key="i" class="skeleton-item">
           <div class="skeleton-icon"></div>
-          <div class="skeleton-item-info">
+          <div class="skeleton-info">
             <div class="skeleton-line w-50"></div>
             <div class="skeleton-line w-40"></div>
           </div>
           <div class="skeleton-toggle"></div>
         </div>
-        <div class="skeleton-section-header"></div>
+        <div class="skeleton-section"></div>
         <div v-for="i in 2" :key="i" class="skeleton-item-clickable">
           <div class="skeleton-icon"></div>
-          <div class="skeleton-item-info">
+          <div class="skeleton-info">
             <div class="skeleton-line w-50"></div>
             <div class="skeleton-line w-30"></div>
           </div>
           <div class="skeleton-badge"></div>
         </div>
-        <div class="skeleton-section-header"></div>
+        <div class="skeleton-section"></div>
         <div class="skeleton-item">
           <div class="skeleton-icon"></div>
-          <div class="skeleton-item-info">
+          <div class="skeleton-info">
             <div class="skeleton-line w-40"></div>
           </div>
           <div class="skeleton-select"></div>
         </div>
-        <div class="skeleton-section-header"></div>
-        <div class="skeleton-item-clickable">
+        <div class="skeleton-section"></div>
+        <div v-for="i in 3" :key="i" class="skeleton-item-clickable">
           <div class="skeleton-icon"></div>
-          <div class="skeleton-item-info">
+          <div class="skeleton-info">
             <div class="skeleton-line w-50"></div>
           </div>
           <div class="skeleton-chevron"></div>
-        </div>
-        <div class="skeleton-item-clickable">
-          <div class="skeleton-icon"></div>
-          <div class="skeleton-item-info">
-            <div class="skeleton-line w-50"></div>
-          </div>
-          <div class="skeleton-chevron"></div>
-        </div>
-        <div class="skeleton-item-clickable">
-          <div class="skeleton-icon"></div>
-          <div class="skeleton-item-info">
-            <div class="skeleton-line w-50"></div>
-            <div class="skeleton-line w-20"></div>
-          </div>
         </div>
       </div>
-      <div class="skeleton-save-btn"></div>
+      <div class="skeleton-save"></div>
     </div>
 
-    <!-- Conteúdo original -->
+    <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
-      <!-- Cabeçalho -->
-      <div class="page-header q-pa-md">
-        <q-btn flat round icon="arrow_back" @click="router.back()" />
-        <div class="text-h5 text-bold">Configurações</div>
-        <q-btn flat round icon="more_vert" @click="opcoes" />
-      </div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="loading-state">
-        <q-spinner color="primary" size="48px" />
-        <div class="text-grey-6 q-mt-md">Carregando configurações...</div>
+      <!-- Loading overlay -->
+      <div v-if="loading" class="loading-overlay">
+        <div class="loader"></div>
+        <p>Carregando configurações...</p>
       </div>
 
       <template v-else>
-        <!-- Lista de configurações -->
-        <q-list bordered separator class="config-list q-ma-md">
-          <!-- Notificações -->
-          <q-item-label header class="config-header">Notificações</q-item-label>
 
-          <q-item>
-            <q-item-section avatar>
-              <q-icon name="notifications" color="primary" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Notificações push</q-item-label>
-              <q-item-label caption>Receber alertas de novos pedidos</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-toggle v-model="config.notificacoesPush" color="primary" @update:model-value="configuracaoAlterada" />
-            </q-item-section>
-          </q-item>
+        <!-- ===== SEÇÃO: NOTIFICAÇÕES ===== -->
+        <div class="config-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <h2>Notificações</h2>
+          </div>
 
-          <q-item>
-            <q-item-section avatar>
-              <q-icon name="sms" color="primary" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Notificações por SMS</q-item-label>
-              <q-item-label caption>Receber alertas via mensagem</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-toggle v-model="config.notificacoesSMS" color="primary" @update:model-value="configuracaoAlterada" />
-            </q-item-section>
-          </q-item>
+          <div class="config-item">
+            <div class="config-icon primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Notificações push</div>
+              <div class="config-desc">Receber alertas de novos pedidos</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="config.notificacoesPush" @change="configuracaoAlterada">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
 
-          <q-item>
-            <q-item-section avatar>
-              <q-icon name="email" color="primary" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Notificações por email</q-item-label>
-              <q-item-label caption>Receber resumos semanais</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-toggle v-model="config.notificacoesEmail" color="primary" @update:model-value="configuracaoAlterada" />
-            </q-item-section>
-          </q-item>
+          <div class="config-item">
+            <div class="config-icon primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 2L15 9M22 2l-7 7M22 2v6M22 2h-6"/>
+                <rect x="2" y="8" width="16" height="13" rx="2"/>
+                <line x1="10" y1="8" x2="10" y2="21"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Notificações por SMS</div>
+              <div class="config-desc">Receber alertas via mensagem</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="config.notificacoesSMS" @change="configuracaoAlterada">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
 
-          <!-- Disponibilidade -->
-          <q-item-label header class="config-header">Disponibilidade</q-item-label>
+          <div class="config-item">
+            <div class="config-icon primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="M22 7l-10 7L2 7"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Notificações por email</div>
+              <div class="config-desc">Receber resumos semanais</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="config.notificacoesEmail" @change="configuracaoAlterada">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
 
-          <q-item>
-            <q-item-section avatar>
-              <q-icon name="schedule" color="secondary" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Aceitar pedidos automaticamente</q-item-label>
-              <q-item-label caption>Novos pedidos são aceitos automaticamente</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-toggle v-model="config.aceitarAutomatico" color="secondary" @update:model-value="configuracaoAlterada" />
-            </q-item-section>
-          </q-item>
+        <!-- ===== SEÇÃO: DISPONIBILIDADE ===== -->
+        <div class="config-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <h2>Disponibilidade</h2>
+          </div>
 
-          <q-item>
-            <q-item-section avatar>
-              <q-icon name="do_not_disturb" color="secondary" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Modo não perturbe</q-item-label>
-              <q-item-label caption>Não receber novos pedidos</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-toggle v-model="config.modoNaoPerturbe" color="secondary" @update:model-value="configuracaoAlterada" />
-            </q-item-section>
-          </q-item>
+          <div class="config-item">
+            <div class="config-icon secondary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="8" y1="13" x2="16" y2="13"/>
+                <line x1="8" y1="17" x2="16" y2="17"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Aceitar pedidos automaticamente</div>
+              <div class="config-desc">Novos pedidos são aceitos automaticamente</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="config.aceitarAutomatico" @change="configuracaoAlterada">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
 
-          <!-- Privacidade -->
-          <q-item-label header class="config-header">Privacidade</q-item-label>
+          <div class="config-item">
+            <div class="config-icon secondary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="18" y1="6" x2="6" y2="18"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Modo não perturbe</div>
+              <div class="config-desc">Não receber novos pedidos</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="config.modoNaoPerturbe" @change="configuracaoAlterada">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
 
-          <q-item>
-            <q-item-section avatar>
-              <q-icon name="public" color="info" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Perfil público</q-item-label>
-              <q-item-label caption>Aparecer nas buscas de clientes</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-toggle v-model="config.perfilPublico" color="info" @update:model-value="configuracaoAlterada" />
-            </q-item-section>
-          </q-item>
+        <!-- ===== SEÇÃO: PRIVACIDADE ===== -->
+        <div class="config-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <h2>Privacidade</h2>
+          </div>
 
-          <q-item>
-            <q-item-section avatar>
-              <q-icon name="location_on" color="info" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Mostrar localização exata</q-item-label>
-              <q-item-label caption>Apenas após aceitar pedido</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-toggle v-model="config.mostrarLocalizacao" color="info" @update:model-value="configuracaoAlterada" />
-            </q-item-section>
-          </q-item>
+          <div class="config-item">
+            <div class="config-icon info">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.03.03A10 10 0 0 0 12 17.66a10 10 0 0 0 6.37-2.63z"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Perfil público</div>
+              <div class="config-desc">Aparecer nas buscas de clientes</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="config.perfilPublico" @change="configuracaoAlterada">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
 
-          <!-- Pagamentos -->
-          <q-item-label header class="config-header">Pagamentos</q-item-label>
+          <div class="config-item">
+            <div class="config-icon info">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Mostrar localização exata</div>
+              <div class="config-desc">Apenas após aceitar pedido</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="config.mostrarLocalizacao" @change="configuracaoAlterada">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
 
-          <q-item clickable v-ripple @click="configurarMPesa">
-            <q-item-section avatar>
-              <q-icon name="phone_android" color="positive" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>M-Pesa</q-item-label>
-              <q-item-label caption>Configurar número para saques</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-badge v-if="config.mpesaConfigurado" color="positive">Configurado</q-badge>
-              <q-badge v-else color="grey">Não configurado</q-badge>
-            </q-item-section>
-          </q-item>
+        <!-- ===== SEÇÃO: PAGAMENTOS ===== -->
+        <div class="config-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="6" width="20" height="12" rx="2"/>
+              <line x1="2" y1="10" x2="22" y2="10"/>
+            </svg>
+            <h2>Pagamentos</h2>
+          </div>
 
-          <q-item clickable v-ripple @click="configurarConta">
-            <q-item-section avatar>
-              <q-icon name="account_balance" color="positive" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Conta bancária</q-item-label>
-              <q-item-label caption>Dados para transferência</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-badge v-if="config.contaConfigurada" color="positive">Configurado</q-badge>
-              <q-badge v-else color="grey">Não configurado</q-badge>
-            </q-item-section>
-          </q-item>
+          <div class="config-item clickable" @click="configurarMPesa">
+            <div class="config-icon success">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                <line x1="12" y1="18" x2="12.01" y2="18"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">M-Pesa</div>
+              <div class="config-desc">Configurar número para saques</div>
+            </div>
+            <div class="config-badge" :class="config.mpesaConfigurado ? 'success' : 'grey'">
+              {{ config.mpesaConfigurado ? 'Configurado' : 'Não configurado' }}
+            </div>
+            <svg class="config-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
 
-          <!-- Idioma -->
-          <q-item-label header class="config-header">Idioma</q-item-label>
+          <div class="config-item clickable" @click="configurarConta">
+            <div class="config-icon success">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <line x1="2" y1="10" x2="22" y2="10"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Conta bancária</div>
+              <div class="config-desc">Dados para transferência</div>
+            </div>
+            <div class="config-badge" :class="config.contaConfigurada ? 'success' : 'grey'">
+              {{ config.contaConfigurada ? 'Configurado' : 'Não configurado' }}
+            </div>
+            <svg class="config-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
+        </div>
 
-          <q-item>
-            <q-item-section avatar>
-              <q-icon name="language" color="warning" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Idioma do app</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-select
-                v-model="config.idioma"
-                :options="idiomas"
-                dense
-                borderless
-                options-dense
-                emit-value
-                map-options
-                @update:model-value="configuracaoAlterada"
-              />
-            </q-item-section>
-          </q-item>
+        <!-- ===== SEÇÃO: IDIOMA ===== -->
+        <div class="config-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <h2>Idioma</h2>
+          </div>
 
-          <!-- Sobre -->
-          <q-item-label header class="config-header">Sobre</q-item-label>
+          <div class="config-item">
+            <div class="config-icon warning">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4-3-9s1.34-9 3-9"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Idioma do app</div>
+            </div>
+            <select class="config-select" v-model="config.idioma" @change="configuracaoAlterada">
+              <option value="pt">Português</option>
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+            </select>
+          </div>
+        </div>
 
-          <q-item clickable v-ripple @click="termosUso">
-            <q-item-section avatar>
-              <q-icon name="description" color="grey-7" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Termos de Uso</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-icon name="chevron_right" />
-            </q-item-section>
-          </q-item>
+        <!-- ===== SEÇÃO: SOBRE ===== -->
+        <div class="config-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <circle cx="12" cy="8" r="0.5" fill="currentColor" stroke="none"/>
+            </svg>
+            <h2>Sobre</h2>
+          </div>
 
-          <q-item clickable v-ripple @click="politicaPrivacidade">
-            <q-item-section avatar>
-              <q-icon name="privacy_tip" color="grey-7" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Política de Privacidade</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-icon name="chevron_right" />
-            </q-item-section>
-          </q-item>
+          <div class="config-item clickable" @click="termosUso">
+            <div class="config-icon grey">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Termos de Uso</div>
+            </div>
+            <svg class="config-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
 
-          <q-item clickable v-ripple @click="versao">
-            <q-item-section avatar>
-              <q-icon name="info" color="grey-7" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Versão do app</q-item-label>
-              <q-item-label caption>1.0.0</q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>
+          <div class="config-item clickable" @click="politicaPrivacidade">
+            <div class="config-icon grey">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Política de Privacidade</div>
+            </div>
+            <svg class="config-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
 
-        <!-- Botão salvar -->
-        <div class="q-pa-md">
-          <q-btn
-            unelevated
-            color="primary"
-            label="Salvar configurações"
-            class="full-width"
-            size="lg"
-            @click="salvarConfiguracoes"
-            :loading="salvando"
-            no-caps
-          />
+          <div class="config-item" @click="versao">
+            <div class="config-icon grey">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title">Versão do app</div>
+              <div class="config-desc">1.0.0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== BOTÃO SALVAR ===== -->
+        <div class="save-container">
+          <button class="save-btn" @click="salvarConfiguracoes" :disabled="salvando || !hasChanges">
+            <div v-if="salvando" class="btn-spinner"></div>
+            <span v-else>Salvar configurações</span>
+          </button>
         </div>
       </template>
     </template>
 
-    <!-- Dialog para configuração de M-Pesa -->
-    <q-dialog v-model="showMpesaDialog">
-      <q-card style="min-width: 350px">
-        <q-card-section class="bg-primary text-white">
-          <div class="text-h6">Configurar M-Pesa</div>
-        </q-card-section>
+    <!-- ===== MODAL M-PESA ===== -->
+    <div class="modal-overlay" v-if="showMpesaDialog" @click="showMpesaDialog = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Configurar M-Pesa</h3>
+          <button class="modal-close" @click="showMpesaDialog = false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="input-group">
+            <label class="input-label">Número do M-Pesa</label>
+            <div class="phone-input">
+              <span class="phone-prefix">+258</span>
+              <input type="tel" v-model="mpesaNumero" placeholder="84 123 4567" class="phone-number" />
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Nome do titular</label>
+            <input type="text" v-model="mpesaNome" placeholder="Como aparece no documento" class="text-input" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showMpesaDialog = false">Cancelar</button>
+          <button class="btn-save" @click="salvarMpesa" :disabled="salvandoMpesa">
+            <div v-if="salvandoMpesa" class="btn-spinner"></div>
+            <span v-else>Salvar</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
-        <q-card-section class="q-gutter-md">
-          <q-input
-            v-model="mpesaNumero"
-            label="Número do M-Pesa"
-            prefix="+258"
-            mask="## ### ####"
-            unmasked-value
-            outlined
-            dense
-            :rules="[(val) => !!val || 'Número é obrigatório']"
-          />
-          <q-input
-            v-model="mpesaNome"
-            label="Nome do titular"
-            outlined
-            dense
-          />
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat label="Cancelar" color="grey-7" v-close-popup />
-          <q-btn
-            unelevated
-            label="Salvar"
-            color="primary"
-            @click="salvarMpesa"
-            :loading="salvandoMpesa"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- Dialog para configuração de Conta Bancária -->
-    <q-dialog v-model="showContaDialog">
-      <q-card style="min-width: 350px">
-        <q-card-section class="bg-primary text-white">
-          <div class="text-h6">Configurar Conta Bancária</div>
-        </q-card-section>
-
-        <q-card-section class="q-gutter-md">
-          <q-input
-            v-model="contaBanco"
-            label="Banco"
-            outlined
-            dense
-            :rules="[(val) => !!val || 'Banco é obrigatório']"
-          />
-          <q-input
-            v-model="contaNumero"
-            label="Número da conta"
-            outlined
-            dense
-            :rules="[(val) => !!val || 'Número da conta é obrigatório']"
-          />
-          <q-input
-            v-model="contaTitular"
-            label="Nome do titular"
-            outlined
-            dense
-            :rules="[(val) => !!val || 'Nome do titular é obrigatório']"
-          />
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat label="Cancelar" color="grey-7" v-close-popup />
-          <q-btn
-            unelevated
-            label="Salvar"
-            color="primary"
-            @click="salvarConta"
-            :loading="salvandoConta"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-  </q-page>
+    <!-- ===== MODAL CONTA BANCÁRIA ===== -->
+    <div class="modal-overlay" v-if="showContaDialog" @click="showContaDialog = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Configurar Conta Bancária</h3>
+          <button class="modal-close" @click="showContaDialog = false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="input-group">
+            <label class="input-label">Banco</label>
+            <input type="text" v-model="contaBanco" placeholder="Nome do banco" class="text-input" />
+          </div>
+          <div class="input-group">
+            <label class="input-label">Número da conta</label>
+            <input type="text" v-model="contaNumero" placeholder="Número da conta" class="text-input" />
+          </div>
+          <div class="input-group">
+            <label class="input-label">Nome do titular</label>
+            <input type="text" v-model="contaTitular" placeholder="Como aparece no documento" class="text-input" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showContaDialog = false">Cancelar</button>
+          <button class="btn-save" @click="salvarConta" :disabled="salvandoConta">
+            <div v-if="salvandoConta" class="btn-spinner"></div>
+            <span v-else>Salvar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorStore } from 'src/stores/prestador-store';
+import { usePrestadorPerfilStore } from 'src/stores/prestador/prestador-perfil-store';
+import type { DisponibilidadeConfig } from 'src/stores/prestador/prestador-perfil-store';
 import { api } from 'src/boot/axios';
-import type { ConfiguracoesDisponibilidade } from 'src/stores/prestador-store';
 
-defineOptions({
-  name: 'PrestadorConfiguracoes'
-});
+defineOptions({ name: 'PrestadorConfiguracoes' });
 
 const router = useRouter();
 const $q = useQuasar();
-const prestadorStore = usePrestadorStore();
+const perfilStore = usePrestadorPerfilStore();
 
-// Estados
 const carregamentoInicial = ref(true);
 const loading = ref(true);
 const salvando = ref(false);
@@ -407,16 +481,13 @@ const showMpesaDialog = ref(false);
 const showContaDialog = ref(false);
 const configuracaoModificada = ref(false);
 
-// Campos M-Pesa
 const mpesaNumero = ref('');
 const mpesaNome = ref('');
 
-// Campos conta bancária
 const contaBanco = ref('');
 const contaNumero = ref('');
 const contaTitular = ref('');
 
-// Configurações
 const config = ref({
   notificacoesPush: true,
   notificacoesSMS: false,
@@ -427,14 +498,8 @@ const config = ref({
   mostrarLocalizacao: true,
   mpesaConfigurado: false,
   contaConfigurada: false,
-  idioma: 'pt'
+  idioma: 'pt',
 });
-
-const idiomas = [
-  { label: 'Português', value: 'pt' },
-  { label: 'English', value: 'en' },
-  { label: 'Français', value: 'fr' }
-];
 
 const hasChanges = computed(() => configuracaoModificada.value);
 
@@ -448,7 +513,6 @@ const carregarConfiguracoes = async () => {
     const response = await api.get('/preferences');
     if (response.data.success && response.data.data) {
       const prefs = response.data.data;
-
       config.value = {
         notificacoesPush: prefs.notificacoes_push ?? true,
         notificacoesSMS: prefs.notificacoes_sms ?? false,
@@ -459,15 +523,14 @@ const carregarConfiguracoes = async () => {
         mostrarLocalizacao: prefs.mostrar_localizacao ?? true,
         mpesaConfigurado: prefs.mpesa_configurado ?? false,
         contaConfigurada: prefs.conta_configurada ?? false,
-        idioma: prefs.idioma ?? 'pt'
+        idioma: prefs.idioma ?? 'pt',
       };
     }
 
-    await prestadorStore.fetchDisponibilidade();
-    if (prestadorStore.disponibilidade) {
-      config.value.aceitarAutomatico = prestadorStore.disponibilidade.configuracoes?.aceitar_agendamento_automatico ?? false;
+    await perfilStore.fetchDisponibilidade();
+    if (perfilStore.disponibilidade) {
+      config.value.aceitarAutomatico = perfilStore.disponibilidade.configuracoes?.aceitar_agendamento_automatico ?? false;
     }
-
   } catch (error) {
     console.error('Erro ao carregar configurações:', error);
   } finally {
@@ -477,11 +540,7 @@ const carregarConfiguracoes = async () => {
 
 const salvarConfiguracoes = async () => {
   if (!hasChanges.value) {
-    $q.notify({
-      type: 'info',
-      message: 'Nenhuma alteração para salvar',
-      position: 'top'
-    });
+    $q.notify({ type: 'info', message: 'Nenhuma alteração para salvar', position: 'top' });
     return;
   }
 
@@ -495,36 +554,25 @@ const salvarConfiguracoes = async () => {
       modo_nao_perturbe: config.value.modoNaoPerturbe,
       perfil_publico: config.value.perfilPublico,
       mostrar_localizacao: config.value.mostrarLocalizacao,
-      idioma: config.value.idioma
+      idioma: config.value.idioma,
     });
 
-    const configuracoesAtuais = prestadorStore.disponibilidade?.configuracoes;
-    const configuracoesCompletas: ConfiguracoesDisponibilidade = {
+    const configuracoesAtuais = perfilStore.disponibilidade?.configuracoes;
+    const configuracoesCompletas: DisponibilidadeConfig = {
       tempo_minimo_agendamento: configuracoesAtuais?.tempo_minimo_agendamento ?? 60,
       tempo_entre_servicos: configuracoesAtuais?.tempo_entre_servicos ?? 15,
       notificar_antes: configuracoesAtuais?.notificar_antes ?? 30,
       aceitar_agendamento_automatico: config.value.aceitarAutomatico,
-      dias_antecedencia: configuracoesAtuais?.dias_antecedencia ?? 30
+      dias_antecedencia: configuracoesAtuais?.dias_antecedencia ?? 30,
     };
 
-    await prestadorStore.updateDisponibilidade({
-      configuracoes: configuracoesCompletas
-    });
+    await perfilStore.updateDisponibilidade({ configuracoes: configuracoesCompletas });
 
     configuracaoModificada.value = false;
-
-    $q.notify({
-      type: 'positive',
-      message: 'Configurações salvas com sucesso!',
-      position: 'top'
-    });
+    $q.notify({ type: 'positive', message: 'Configurações salvas com sucesso!', position: 'top' });
   } catch (error) {
     console.error('Erro ao salvar configurações:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao salvar configurações',
-      position: 'top'
-    });
+    $q.notify({ type: 'negative', message: 'Erro ao salvar configurações', position: 'top' });
   } finally {
     salvando.value = false;
   }
@@ -538,11 +586,7 @@ const configurarMPesa = () => {
 
 const salvarMpesa = async () => {
   if (!mpesaNumero.value) {
-    $q.notify({
-      type: 'warning',
-      message: 'Preencha o número do M-Pesa',
-      position: 'top'
-    });
+    $q.notify({ type: 'warning', message: 'Preencha o número do M-Pesa', position: 'top' });
     return;
   }
 
@@ -551,25 +595,16 @@ const salvarMpesa = async () => {
     await api.put('/preferences', {
       mpesa_numero: mpesaNumero.value,
       mpesa_nome: mpesaNome.value,
-      mpesa_configurado: true
+      mpesa_configurado: true,
     });
 
     config.value.mpesaConfigurado = true;
     configuracaoModificada.value = true;
     showMpesaDialog.value = false;
-
-    $q.notify({
-      type: 'positive',
-      message: 'M-Pesa configurado com sucesso!',
-      position: 'top'
-    });
+    $q.notify({ type: 'positive', message: 'M-Pesa configurado com sucesso!', position: 'top' });
   } catch (error) {
     console.error('Erro ao salvar M-Pesa:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao configurar M-Pesa',
-      position: 'top'
-    });
+    $q.notify({ type: 'negative', message: 'Erro ao configurar M-Pesa', position: 'top' });
   } finally {
     salvandoMpesa.value = false;
   }
@@ -584,11 +619,7 @@ const configurarConta = () => {
 
 const salvarConta = async () => {
   if (!contaBanco.value || !contaNumero.value || !contaTitular.value) {
-    $q.notify({
-      type: 'warning',
-      message: 'Preencha todos os campos',
-      position: 'top'
-    });
+    $q.notify({ type: 'warning', message: 'Preencha todos os campos', position: 'top' });
     return;
   }
 
@@ -598,275 +629,537 @@ const salvarConta = async () => {
       conta_banco: contaBanco.value,
       conta_numero: contaNumero.value,
       conta_titular: contaTitular.value,
-      conta_configurada: true
+      conta_configurada: true,
     });
 
     config.value.contaConfigurada = true;
     configuracaoModificada.value = true;
     showContaDialog.value = false;
-
-    $q.notify({
-      type: 'positive',
-      message: 'Conta bancária configurada com sucesso!',
-      position: 'top'
-    });
+    $q.notify({ type: 'positive', message: 'Conta bancária configurada com sucesso!', position: 'top' });
   } catch (error) {
     console.error('Erro ao salvar conta:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao configurar conta',
-      position: 'top'
-    });
+    $q.notify({ type: 'negative', message: 'Erro ao configurar conta', position: 'top' });
   } finally {
     salvandoConta.value = false;
   }
 };
 
 const opcoes = () => {
-  $q.notify({
-    type: 'info',
-    message: 'Opções em breve',
-    position: 'top'
-  });
+  $q.notify({ type: 'info', message: 'Opções em breve', position: 'top' });
 };
 
 const termosUso = () => {
-  $q.notify({
-    type: 'info',
-    message: 'Termos de Uso em breve',
-    position: 'top'
-  });
+  $q.notify({ type: 'info', message: 'Termos de Uso em breve', position: 'top' });
 };
 
 const politicaPrivacidade = () => {
-  $q.notify({
-    type: 'info',
-    message: 'Política de Privacidade em breve',
-    position: 'top'
-  });
+  $q.notify({ type: 'info', message: 'Política de Privacidade em breve', position: 'top' });
 };
 
 const versao = () => {
-  $q.notify({
-    type: 'info',
-    message: 'Versão 1.0.0',
-    position: 'top'
-  });
+  $q.notify({ type: 'info', message: 'Versão 1.0.0', position: 'top' });
 };
 
-// Inicialização
 onMounted(async () => {
   carregamentoInicial.value = true;
   try {
     await carregarConfiguracoes();
   } finally {
-    setTimeout(() => {
-      carregamentoInicial.value = false;
-    }, 500);
+    setTimeout(() => { carregamentoInicial.value = false; }, 500);
   }
 });
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
-$gray-50: #fafafa;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-$gray-700: #616161;
-$gray-800: #424242;
-$gray-900: #212121;
-
-/* ========================================== */
-/* SKELETON LOADING STYLES */
-/* ========================================== */
+$accent: #5B4BF5;
+$accent-light: rgba(91, 75, 245, 0.1);
+$success: #10B981;
+$success-light: rgba(16, 185, 129, 0.1);
+$warning: #F59E0B;
+$warning-light: rgba(245, 158, 11, 0.1);
+$danger: #EF4444;
+$info: #3B82F6;
+$info-light: rgba(59, 130, 246, 0.1);
+$dark: #0A0A0F;
+$gray: #6B7280;
+$gray-light: #F3F4F6;
+$border: #E5E7EB;
+$white: #FFFFFF;
+$bg: #F4F4F8;
+$radius: 16px;
+$radius-sm: 12px;
+$radius-xs: 8px;
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-.skeleton-loading {
-  background: $gray-100;
-  min-height: 100vh;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
-
-.skeleton-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: white;
-  padding: 16px;
-  border-bottom: 1px solid $gray-200;
-}
-
-.skeleton-back-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-title {
-  width: 120px;
-  height: 24px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-menu-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-list {
-  margin: 16px;
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid $gray-200;
-}
-
-.skeleton-section-header {
-  height: 40px;
-  background: $gray-100;
-  border-bottom: 1px solid $gray-200;
-}
-
-.skeleton-item {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid $gray-200;
-}
-
-.skeleton-item-clickable {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid $gray-200;
-}
-
-.skeleton-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  margin-right: 16px;
-}
-
-.skeleton-item-info {
-  flex: 1;
-}
-
-.skeleton-line {
-  height: 14px;
-  border-radius: 7px;
-  margin: 4px 0;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-toggle {
-  width: 40px;
-  height: 24px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-badge {
-  width: 80px;
-  height: 24px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-select {
-  width: 100px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-chevron {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-save-btn {
-  margin: 16px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.w-20 { width: 20%; }
-.w-30 { width: 30%; }
-.w-40 { width: 40%; }
-.w-50 { width: 50%; }
-.w-60 { width: 60%; }
-
-/* ========================================== */
-/* ESTILOS ORIGINAIS (mantidos sem alterações) */
-/* ========================================== */
 
 .prestador-configuracoes {
+  background: $bg;
   min-height: 100vh;
+  padding-bottom: 100px;
 }
 
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
-  border-bottom: 1px solid $gray-200;
+  background: $white;
+  padding: 12px 16px;
+  border-bottom: 1px solid $border;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  .back-btn, .menu-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-light;
+    border: none;
+    cursor: pointer;
+    color: $gray;
+    transition: all 0.2s;
+    &:hover { background: $accent-light; color: $accent; }
+  }
+
+  .page-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $dark;
+    margin: 0;
+  }
 }
 
-.loading-state {
+.loading-overlay {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 50vh;
+
+  .loader {
+    width: 48px;
+    height: 48px;
+    border: 3px solid $border;
+    border-top-color: $accent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  p {
+    margin-top: 16px;
+    color: $gray;
+    font-size: 0.85rem;
+  }
 }
 
-.config-list {
-  border-radius: 16px;
+// =====================
+// SKELETON
+// =====================
+.skeleton-container {
+  .skeleton-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: $white;
+    padding: 12px 16px;
+    border-bottom: 1px solid $border;
+
+    .skeleton-back, .skeleton-menu {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: $gray-light;
+    }
+
+    .skeleton-title {
+      width: 100px;
+      height: 24px;
+      background: $gray-light;
+      border-radius: $radius-xs;
+    }
+  }
+
+  .skeleton-list {
+    margin: 16px;
+    background: $white;
+    border-radius: $radius;
+    overflow: hidden;
+    border: 1px solid $border;
+  }
+
+  .skeleton-section {
+    height: 40px;
+    background: $gray-light;
+    border-bottom: 1px solid $border;
+  }
+
+  .skeleton-item, .skeleton-item-clickable {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid $border;
+  }
+
+  .skeleton-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: $gray-light;
+    margin-right: 16px;
+  }
+
+  .skeleton-info { flex: 1; }
+
+  .skeleton-line {
+    height: 14px;
+    background: $gray-light;
+    border-radius: 7px;
+    margin: 4px 0;
+
+    &.w-20 { width: 20%; }
+    &.w-30 { width: 30%; }
+    &.w-40 { width: 40%; }
+    &.w-50 { width: 50%; }
+  }
+
+  .skeleton-toggle, .skeleton-badge, .skeleton-select, .skeleton-chevron {
+    background: $gray-light;
+    border-radius: 12px;
+  }
+
+  .skeleton-toggle { width: 40px; height: 24px; }
+  .skeleton-badge { width: 80px; height: 24px; }
+  .skeleton-select { width: 100px; height: 32px; border-radius: 8px; }
+  .skeleton-chevron { width: 20px; height: 20px; border-radius: 4px; }
+
+  .skeleton-save {
+    margin: 16px;
+    height: 48px;
+    background: $gray-light;
+    border-radius: $radius-sm;
+  }
+}
+
+// =====================
+// CONFIG SECTIONS
+// =====================
+.config-section {
+  background: $white;
+  margin: 16px;
+  border-radius: $radius;
+  border: 1px solid $border;
   overflow: hidden;
 }
 
-.config-header {
-  background: $gray-100;
-  color: $gray-700;
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: $gray-light;
+  border-bottom: 1px solid $border;
+
+  svg { color: $accent; }
+  h2 { font-size: 0.85rem; font-weight: 600; color: $dark; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid $border;
+  transition: background 0.2s;
+
+  &:last-child { border-bottom: none; }
+
+  &.clickable {
+    cursor: pointer;
+    &:hover { background: $gray-light; }
+  }
+}
+
+.config-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  flex-shrink: 0;
+
+  &.primary { background: $accent-light; color: $accent; }
+  &.secondary { background: rgba($success, 0.1); color: $success; }
+  &.info { background: $info-light; color: $info; }
+  &.success { background: $success-light; color: $success; }
+  &.warning { background: $warning-light; color: $warning; }
+  &.grey { background: rgba($gray, 0.1); color: $gray; }
+}
+
+.config-info {
+  flex: 1;
+
+  .config-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: $dark;
+    margin-bottom: 2px;
+  }
+
+  .config-desc {
+    font-size: 0.75rem;
+    color: $gray;
+  }
+}
+
+.config-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  margin-right: 8px;
+
+  &.success { background: $success-light; color: $success; }
+  &.grey { background: rgba($gray, 0.1); color: $gray; }
+}
+
+.config-chevron { color: $gray; flex-shrink: 0; }
+
+.config-select {
+  padding: 8px 12px;
+  border: 1px solid $border;
+  border-radius: $radius-xs;
+  font-size: 0.85rem;
+  background: $white;
+  color: $dark;
+  cursor: pointer;
+  outline: none;
+  &:focus { border-color: $accent; }
+}
+
+// =====================
+// TOGGLE SWITCH
+// =====================
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+  flex-shrink: 0;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+
+    &:checked + .toggle-slider {
+      background-color: $accent;
+
+      &:before {
+        transform: translateX(24px);
+      }
+    }
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: $border;
+    transition: 0.3s;
+    border-radius: 34px;
+
+    &:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+  }
+}
+
+// =====================
+// SAVE BUTTON
+// =====================
+.save-container {
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 14px;
+  background: $accent;
+  border: none;
+  border-radius: $radius-sm;
+  font-size: 1rem;
   font-weight: 600;
-  text-transform: uppercase;
+  color: $white;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: lighten($accent, 6%);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  margin: 0 auto;
+  animation: spin 0.6s linear infinite;
+}
+
+// =====================
+// MODAL
+// =====================
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: $white;
+  border-radius: $radius;
+  width: 90%;
+  max-width: 380px;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid $border;
+
+  h3 { font-size: 1rem; font-weight: 600; margin: 0; }
+
+  .modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-light;
+    border: none;
+    cursor: pointer;
+    color: $gray;
+    &:hover { background: $border; }
+  }
+}
+
+.modal-body { padding: 20px; }
+
+.input-group { margin-bottom: 16px; }
+
+.input-label {
+  display: block;
   font-size: 0.8rem;
-  letter-spacing: 0.5px;
+  font-weight: 500;
+  color: $dark;
+  margin-bottom: 6px;
+}
+
+.phone-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid $border;
+  border-radius: $radius-xs;
+  overflow: hidden;
+
+  .phone-prefix {
+    padding: 12px;
+    background: $gray-light;
+    color: $gray;
+    border-right: 1px solid $border;
+  }
+
+  .phone-number {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    outline: none;
+    font-size: 0.9rem;
+    &:focus { background: $accent-light; }
+  }
+}
+
+.text-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid $border;
+  border-radius: $radius-xs;
+  font-size: 0.9rem;
+  outline: none;
+  &:focus { border-color: $accent; }
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid $border;
+
+  .btn-cancel {
+    padding: 8px 20px;
+    background: transparent;
+    border: none;
+    font-size: 0.85rem;
+    color: $gray;
+    cursor: pointer;
+    &:hover { color: $dark; }
+  }
+
+  .btn-save {
+    min-width: 80px;
+    padding: 8px 20px;
+    background: $accent;
+    border: none;
+    border-radius: $radius-xs;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: $white;
+    cursor: pointer;
+    &:hover:not(:disabled) { background: lighten($accent, 6%); }
+    &:disabled { opacity: 0.5; }
+  }
 }
 </style>

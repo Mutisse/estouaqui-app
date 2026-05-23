@@ -1,210 +1,104 @@
 <!-- pages/ComoFuncionaPage.vue -->
 <template>
-  <q-page class="como-funciona-page">
-    <!-- Hero Section -->
-    <section class="page-hero">
-      <div class="hero-bg">
-        <div class="hero-overlay"></div>
+  <q-page class="cf-page">
+
+    <!-- ===== HERO ===== -->
+    <section class="cf-hero">
+      <div class="cf-hero__bg">
+        <div class="cf-hero__orb cf-hero__orb--1"></div>
+        <div class="cf-hero__orb cf-hero__orb--2"></div>
+        <div class="cf-hero__grid"></div>
       </div>
-      <div class="hero-content container">
-        <div class="text-center">
-          <q-chip class="hero-chip" icon="help_outline" text-color="white" label="Guia Rápido" />
-          <h1 class="hero-title">Como funciona<br>o EstouAqui?</h1>
-          <p class="hero-subtitle">Descubra como é fácil encontrar ou oferecer serviços na nossa plataforma</p>
+
+      <div class="cf-hero__content cf-container">
+        <div class="cf-hero__badge">
+          <span class="cf-badge__dot"></span>
+          Guia Rápido
+        </div>
+
+        <h1 class="cf-hero__heading">
+          Como funciona<br>
+          <span class="cf-heading-accent">o EstouAqui?</span>
+        </h1>
+
+        <p class="cf-hero__sub">
+          Descubra como é fácil encontrar ou oferecer serviços na nossa plataforma
+        </p>
+
+        <div class="cf-hero__actions">
+          <router-link to="/auth/register-cliente" class="cf-cta-primary">
+            <span>Sou Cliente</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </router-link>
+          <router-link to="/auth/register-prestador" class="cf-cta-ghost">
+            Sou Prestador
+          </router-link>
+        </div>
+      </div>
+
+      <!-- Hero stats -->
+      <div class="cf-hero__stats cf-container">
+        <div v-for="(stat, i) in heroStats" :key="i" class="cf-stat">
+          <span class="cf-stat__val">{{ stat.value }}</span>
+          <span class="cf-stat__label">{{ stat.label }}</span>
         </div>
       </div>
     </section>
 
-    <!-- Visão Geral -->
-    <section class="overview-section q-py-xl">
-      <div class="container">
-        <div class="row items-center">
-          <div class="col-12 col-md-6">
-            <div class="section-tag">Processo Simples</div>
-            <h2 class="section-title">Conectamos clientes e prestadores em 3 passos</h2>
-            <p class="section-subtitle">Uma plataforma intuitiva e segura para encontrar os melhores profissionais perto de si</p>
+    <!-- ===== VISÃO GERAL / 3 PASSOS ===== -->
+    <section class="cf-section cf-overview">
+      <div class="cf-container">
+        <div class="cf-section-header">
+          <div class="cf-section-label">Processo Simples</div>
+          <h2 class="cf-section-title">Conectamos clientes e prestadores em 3 passos</h2>
+          <p class="cf-section-sub">Uma plataforma intuitiva e segura para encontrar os melhores profissionais perto de si</p>
+        </div>
 
-            <div class="overview-stats row q-mt-lg">
-              <div v-for="(step, index) in overviewSteps" :key="index" class="col-4">
-                <div class="stat-circle">
-                  <span class="stat-number">{{ step.number }}</span>
-                </div>
-                <div class="stat-label">{{ step.label }}</div>
-              </div>
+        <div class="cf-steps-preview">
+          <div v-for="(step, i) in overviewSteps" :key="i" class="cf-step-preview">
+            <div class="cf-step-preview__circle">
+              <span class="cf-step-preview__num">{{ step.number }}</span>
             </div>
-
-            <!-- Botões de ação -->
-            <div class="row q-gutter-md q-mt-xl">
-              <q-btn
-                unelevated
-                color="primary"
-                label="Sou Cliente"
-                icon="person"
-                to="/auth/register-cliente"
-                no-caps
-              />
-              <q-btn
-                outline
-                color="primary"
-                label="Sou Prestador"
-                icon="handyman"
-                to="/auth/register-prestador"
-                no-caps
-              />
-            </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="video-wrapper">
-              <q-video
-                :ratio="16/9"
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ?si=example"
-                class="rounded-video"
-              />
-              <div class="video-decoration"></div>
-            </div>
+            <div class="cf-step-preview__label">{{ step.label }}</div>
+            <div v-if="i < overviewSteps.length - 1" class="cf-step-preview__line"></div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Passo a Passo Detalhado -->
-    <section class="steps-detailed-section q-py-xl">
-      <div class="container">
-        <div class="text-center q-mb-xl">
-          <div class="section-tag">Passo a Passo</div>
-          <h2 class="section-title">Como utilizar a plataforma</h2>
-          <p class="section-subtitle">Siga estes passos simples para começar</p>
+    <!-- ===== PASSO A PASSO DETALHADO ===== -->
+    <section class="cf-section cf-timeline">
+      <div class="cf-container">
+        <div class="cf-section-header">
+          <div class="cf-section-label">Passo a Passo</div>
+          <h2 class="cf-section-title">Como utilizar a plataforma</h2>
+          <p class="cf-section-sub">Siga estes passos simples para começar</p>
         </div>
 
-        <div class="steps-timeline">
-          <div v-for="(step, index) in detailedSteps" :key="index"
-               class="step-item"
-               :class="{ 'step-reverse': index % 2 !== 0 }">
-            <div class="row items-center">
-              <div class="col-12 col-md-6" :class="{ 'order-md-2': index % 2 !== 0 }">
-                <div class="step-content">
-                  <div class="step-number-badge">{{ step.number }}</div>
-                  <h3 class="step-title">{{ step.title }}</h3>
-                  <p class="step-description">{{ step.description }}</p>
-
-                  <div class="step-features">
-                    <div v-for="(item, i) in step.items" :key="i" class="step-feature-item">
-                      <q-icon :name="step.icons[i]" :color="step.iconColor" size="20px" class="q-mr-sm" />
-                      <span>{{ item }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-md-6" :class="{ 'order-md-1': index % 2 !== 0 }">
-                <div class="step-image-wrapper">
-                  <q-img
-                    :src="step.image"
-                    :alt="step.title"
-                    class="step-image"
-                    ratio="4/3"
-                  />
-                  <div class="step-image-decoration"></div>
+        <div class="cf-timeline__list">
+          <div
+            v-for="(step, i) in detailedSteps"
+            :key="i"
+            class="cf-timeline-item"
+            :class="{ 'cf-timeline-item--reverse': i % 2 !== 0 }"
+          >
+            <div class="cf-timeline-item__content">
+              <div class="cf-step-badge">{{ step.number }}</div>
+              <h3 class="cf-timeline-item__title">{{ step.title }}</h3>
+              <p class="cf-timeline-item__desc">{{ step.description }}</p>
+              <div class="cf-timeline-item__features">
+                <div v-for="(item, j) in step.items" :key="j" class="cf-feature-check">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span>{{ item }}</span>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Benefícios -->
-    <section class="benefits-section q-py-xl">
-      <div class="container">
-        <div class="text-center q-mb-xl">
-          <div class="section-tag">Vantagens</div>
-          <h2 class="section-title">Porquê escolher o EstouAqui?</h2>
-        </div>
-
-        <div class="row q-col-gutter-lg">
-          <div v-for="(benefit, index) in benefits" :key="index" class="col-12 col-md-4">
-            <div class="benefit-card">
-              <div class="benefit-icon-wrapper">
-                <q-icon :name="benefit.icon" size="40px" :color="benefit.color" />
-              </div>
-              <h4 class="benefit-title">{{ benefit.title }}</h4>
-              <p class="benefit-description">{{ benefit.description }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Para Clientes vs Para Prestadores -->
-    <section class="comparison-section q-py-xl">
-      <div class="container">
-        <div class="text-center q-mb-xl">
-          <div class="section-tag">Dois Lados</div>
-          <h2 class="section-title">Escolha o seu perfil</h2>
-        </div>
-
-        <div class="row q-col-gutter-xl">
-          <!-- Card Cliente -->
-          <div class="col-12 col-md-6">
-            <div class="profile-card client-card">
-              <div class="profile-header">
-                <div class="profile-icon">
-                  <q-icon name="person_search" size="48px" color="white" />
-                </div>
-                <h3 class="profile-title">Sou Cliente</h3>
-                <p class="profile-subtitle">Preciso de um serviço</p>
-              </div>
-
-              <div class="profile-features">
-                <div v-for="(feature, index) in clientFeatures" :key="index" class="feature-item">
-                  <q-icon name="check_circle" color="positive" size="20px" />
-                  <span>{{ feature }}</span>
-                </div>
-              </div>
-
-              <div class="text-center q-mt-lg">
-                <q-btn
-                  unelevated
-                  color="white"
-                  text-color="primary"
-                  label="Criar Conta de Cliente"
-                  to="/auth/register-cliente"
-                  size="lg"
-                  class="profile-btn"
-                  no-caps
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Card Prestador -->
-          <div class="col-12 col-md-6">
-            <div class="profile-card provider-card">
-              <div class="profile-header">
-                <div class="profile-icon">
-                  <q-icon name="handyman" size="48px" color="white" />
-                </div>
-                <h3 class="profile-title">Sou Prestador</h3>
-                <p class="profile-subtitle">Quero oferecer serviços</p>
-              </div>
-
-              <div class="profile-features">
-                <div v-for="(feature, index) in providerFeatures" :key="index" class="feature-item">
-                  <q-icon name="check_circle" color="positive" size="20px" />
-                  <span>{{ feature }}</span>
-                </div>
-              </div>
-
-              <div class="text-center q-mt-lg">
-                <q-btn
-                  unelevated
-                  color="white"
-                  text-color="secondary"
-                  label="Registar como Prestador"
-                  to="/auth/register-prestador"
-                  size="lg"
-                  class="profile-btn"
-                  no-caps
-                />
+            <div class="cf-timeline-item__image">
+              <div class="cf-timeline-img-wrapper">
+                <q-img :src="step.image" :ratio="4/3" class="cf-timeline-img" />
+                <div class="cf-timeline-img__decor"></div>
               </div>
             </div>
           </div>
@@ -212,92 +106,150 @@
       </div>
     </section>
 
-    <!-- Estatísticas -->
-    <section class="stats-highlight-section q-py-xl">
-      <div class="container">
-        <div class="stats-grid">
-          <div v-for="(stat, index) in statistics" :key="index" class="stat-highlight-item">
-            <div class="stat-highlight-value">{{ stat.value }}</div>
-            <div class="stat-highlight-label">{{ stat.label }}</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Perguntas Frequentes -->
-    <section class="faq-section q-py-xl">
-      <div class="container">
-        <div class="text-center q-mb-xl">
-          <div class="section-tag">Dúvidas</div>
-          <h2 class="section-title">Perguntas Frequentes</h2>
-          <p class="section-subtitle">Tire as suas dúvidas sobre a plataforma</p>
+    <!-- ===== BENEFÍCIOS ===== -->
+    <section class="cf-section cf-benefits">
+      <div class="cf-container">
+        <div class="cf-section-header">
+          <div class="cf-section-label">Vantagens</div>
+          <h2 class="cf-section-title">Porquê escolher o EstouAqui?</h2>
         </div>
 
-        <div class="row justify-center">
-          <div class="col-12 col-md-8">
-            <q-expansion-item
-              v-for="(faq, index) in faqs"
-              :key="index"
-              group="faq"
-              icon="help"
-              :label="faq.pergunta"
-              header-class="faq-header"
-              class="q-mb-md"
-            >
-              <q-card class="faq-content">
-                <q-card-section>
-                  {{ faq.resposta }}
-                </q-card-section>
-              </q-card>
-            </q-expansion-item>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Call to Action -->
-    <section class="cta-section q-py-xl">
-      <div class="container">
-        <div class="cta-card">
-          <div class="row items-center justify-between">
-            <div class="col-12 col-md-7">
-              <h3 class="cta-title">Pronto para começar?</h3>
-              <p class="cta-text">Junte-se a milhares de moçambicanos que já utilizam a plataforma</p>
+        <div class="cf-benefits__grid">
+          <div v-for="(benefit, i) in benefits" :key="i" class="cf-benefit-card">
+            <div class="cf-benefit-card__icon" :style="`background: ${benefit.bg}`">
+              <span>{{ benefit.emoji }}</span>
             </div>
-            <div class="col-12 col-md-5 text-right">
-              <q-btn
-                unelevated
-                color="primary"
-                label="Criar Conta Grátis"
-                icon="person_add"
-                size="lg"
-                to="/auth/register-cliente"
-                class="cta-button"
-                no-caps
-              />
+            <h4 class="cf-benefit-card__title">{{ benefit.title }}</h4>
+            <p class="cf-benefit-card__desc">{{ benefit.description }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PERFIS: CLIENTE vs PRESTADOR ===== -->
+    <section class="cf-section cf-profiles">
+      <div class="cf-container">
+        <div class="cf-section-header">
+          <div class="cf-section-label">Dois Lados</div>
+          <h2 class="cf-section-title">Escolha o seu perfil</h2>
+        </div>
+
+        <div class="cf-profiles__grid">
+          <!-- Cliente -->
+          <div class="cf-profile-card cf-profile-card--client">
+            <div class="cf-profile-card__header">
+              <div class="cf-profile-card__icon">🔍</div>
+              <h3 class="cf-profile-card__title">Sou Cliente</h3>
+              <p class="cf-profile-card__sub">Preciso de um serviço</p>
+            </div>
+            <div class="cf-profile-card__features">
+              <div v-for="(feature, i) in clientFeatures" :key="i" class="cf-profile-feature">
+                <span class="cf-profile-feature__check">✓</span>
+                <span>{{ feature }}</span>
+              </div>
+            </div>
+            <router-link to="/auth/register-cliente" class="cf-profile-card__btn cf-profile-card__btn--light">
+              Criar conta de cliente
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </router-link>
+          </div>
+
+          <!-- Prestador -->
+          <div class="cf-profile-card cf-profile-card--provider">
+            <div class="cf-profile-card__header">
+              <div class="cf-profile-card__icon">🔧</div>
+              <h3 class="cf-profile-card__title">Sou Prestador</h3>
+              <p class="cf-profile-card__sub">Quero oferecer serviços</p>
+            </div>
+            <div class="cf-profile-card__features">
+              <div v-for="(feature, i) in providerFeatures" :key="i" class="cf-profile-feature">
+                <span class="cf-profile-feature__check">✓</span>
+                <span>{{ feature }}</span>
+              </div>
+            </div>
+            <router-link to="/auth/register-prestador" class="cf-profile-card__btn cf-profile-card__btn--dark">
+              Registar como prestador
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </router-link>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FAQ ===== -->
+    <section class="cf-section cf-faq">
+      <div class="cf-container">
+        <div class="cf-section-header">
+          <div class="cf-section-label">Dúvidas</div>
+          <h2 class="cf-section-title">Perguntas Frequentes</h2>
+          <p class="cf-section-sub">Tire as suas dúvidas sobre a plataforma</p>
+        </div>
+
+        <div class="cf-faq__list">
+          <div
+            v-for="(faq, i) in faqs"
+            :key="i"
+            class="cf-faq-item"
+            :class="{ 'cf-faq-item--open': openFaq === i }"
+            @click="openFaq = openFaq === i ? -1 : i"
+          >
+            <div class="cf-faq-item__q">
+              <span>{{ faq.pergunta }}</span>
+              <span class="cf-faq-item__chevron">{{ openFaq === i ? '−' : '+' }}</span>
+            </div>
+            <div class="cf-faq-item__a" v-show="openFaq === i">
+              {{ faq.resposta }}
             </div>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- ===== CTA FINAL ===== -->
+    <section class="cf-cta-section">
+      <div class="cf-cta-section__bg">
+        <div class="cf-cta__orb cf-cta__orb--1"></div>
+        <div class="cf-cta__orb cf-cta__orb--2"></div>
+      </div>
+      <div class="cf-container cf-cta__inner">
+        <div class="cf-cta__label">Comece hoje</div>
+        <h2 class="cf-cta__title">Pronto para<br>começar?</h2>
+        <p class="cf-cta__sub">Junte-se a milhares de moçambicanos que já utilizam a plataforma</p>
+        <div class="cf-cta__btns">
+          <router-link to="/auth/register-cliente" class="cf-cta-white">
+            Criar conta grátis
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </router-link>
+          <router-link to="/auth/register-prestador" class="cf-cta-outline-white">
+            Sou prestador
+          </router-link>
+        </div>
+      </div>
+    </section>
+
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 
-defineOptions({
-  name: 'ComoFuncionaPage'
-})
+defineOptions({ name: 'ComoFuncionaPage' })
 
-// Overview steps
+const openFaq = ref(-1)
+
+const heroStats = [
+  { value: '1.2k+', label: 'Prestadores' },
+  { value: '5k+', label: 'Serviços Realizados' },
+  { value: '98%', label: 'Satisfação' },
+  { value: '30+', label: 'Categorias' },
+]
+
 const overviewSteps = [
   { number: '1', label: 'Encontre' },
   { number: '2', label: 'Conecte' },
-  { number: '3', label: 'Avalie' }
+  { number: '3', label: 'Avalie' },
 ]
 
-// Dados detalhados dos passos
 const detailedSteps = [
   {
     number: '01',
@@ -307,11 +259,9 @@ const detailedSteps = [
       'Pesquise por categoria de serviço',
       'Filtre por localização e avaliação',
       'Veja perfis com fotos e portfólio',
-      'Compare preços e disponibilidade'
+      'Compare preços e disponibilidade',
     ],
-    icons: ['search', 'location_on', 'photo_library', 'compare_arrows'],
-    iconColor: 'primary',
-    image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+    image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d9?auto=format&fit=crop&w=800&q=80',
   },
   {
     number: '02',
@@ -321,11 +271,9 @@ const detailedSteps = [
       'Chat integrado e seguro',
       'Combine preço e horário',
       'Partilhe fotos e localização',
-      'Receba orçamentos personalizados'
+      'Receba orçamentos personalizados',
     ],
-    icons: ['chat', 'attach_money', 'share', 'request_quote'],
-    iconColor: 'secondary',
-    image: 'https://images.unsplash.com/photo-1577563908411-5077b6dc7624?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+    image: 'https://images.unsplash.com/photo-1577563908411-5077b6dc7624?auto=format&fit=crop&w=800&q=80',
   },
   {
     number: '03',
@@ -335,594 +283,828 @@ const detailedSteps = [
       'Avalie o profissional',
       'Deixe um comentário detalhado',
       'Ajude outros clientes',
-      'Construa uma comunidade de confiança'
+      'Construa uma comunidade de confiança',
     ],
-    icons: ['star', 'rate_review', 'people', 'verified'],
-    iconColor: 'positive',
-    image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-  }
+    image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80',
+  },
 ]
 
-// Benefícios
 const benefits = [
-  {
-    icon: 'security',
-    color: 'primary',
-    title: 'Segurança',
-    description: 'Verificamos todos os prestadores para garantir a sua tranquilidade.'
-  },
-  {
-    icon: 'speed',
-    color: 'secondary',
-    title: 'Rapidez',
-    description: 'Encontre profissionais próximos em poucos cliques.'
-  },
-  {
-    icon: 'support_agent',
-    color: 'positive',
-    title: 'Suporte 24/7',
-    description: 'Equipa dedicada para ajudar em qualquer situação.'
-  },
-  {
-    icon: 'payments',
-    color: 'warning',
-    title: 'Pagamento Seguro',
-    description: 'Múltiplas opções de pagamento com garantia de devolução.'
-  },
-  {
-    icon: 'star',
-    color: 'accent',
-    title: 'Qualidade',
-    description: 'Avaliações reais de clientes para ajudar na escolha.'
-  },
-  {
-    icon: 'location_on',
-    color: 'info',
-    title: 'Geolocalização',
-    description: 'Encontre profissionais perto de si ou em qualquer região.'
-  }
+  { emoji: '🔒', bg: '#EDE9FE', title: 'Segurança', description: 'Verificamos todos os prestadores para garantir a sua tranquilidade.' },
+  { emoji: '⚡', bg: '#FEF3C7', title: 'Rapidez', description: 'Encontre profissionais próximos em poucos cliques.' },
+  { emoji: '💬', bg: '#DBEAFE', title: 'Suporte 24/7', description: 'Equipa dedicada para ajudar em qualquer situação.' },
+  { emoji: '💰', bg: '#D1FAE5', title: 'Pagamento Seguro', description: 'Múltiplas opções de pagamento com garantia de devolução.' },
+  { emoji: '⭐', bg: '#FCE7F3', title: 'Qualidade', description: 'Avaliações reais de clientes para ajudar na escolha.' },
+  { emoji: '📍', bg: '#CCFBF1', title: 'Geolocalização', description: 'Encontre profissionais perto de si ou em qualquer região.' },
 ]
 
-// Features para clientes
 const clientFeatures = [
   'Encontre profissionais perto de si',
   'Veja avaliações reais de outros clientes',
   'Compare preços e orçamentos',
   'Comunique diretamente pelo chat',
-  'Serviço garantido ou dinheiro de volta'
+  'Serviço garantido ou dinheiro de volta',
 ]
 
-// Features para prestadores
 const providerFeatures = [
   'Aumente sua visibilidade local',
   'Receba clientes qualificados',
   'Gerencie sua agenda',
   'Construa sua reputação',
-  'Receba pagamentos seguros'
+  'Receba pagamentos seguros',
 ]
 
-// Estatísticas
-const statistics = [
-  { value: '1.2k+', label: 'Prestadores' },
-  { value: '5k+', label: 'Serviços Realizados' },
-  { value: '98%', label: 'Satisfação' },
-  { value: '30+', label: 'Categorias' }
+const faqs = [
+  { pergunta: 'O serviço é gratuito?', resposta: 'Sim! O registo é completamente gratuito tanto para clientes como para prestadores. Apenas cobramos uma pequena comissão sobre os serviços realizados através da plataforma.' },
+  { pergunta: 'Como garantir a qualidade dos prestadores?', resposta: 'Todos os prestadores passam por um processo de verificação de identidade e documentos. Além disso, o sistema de avaliações garante transparência e qualidade.' },
+  { pergunta: 'Posso cancelar um serviço?', resposta: 'Sim, pode cancelar até 24 horas antes sem custos. Cancelamentos em cima da hora podem estar sujeitos a uma taxa de compensação para o prestador.' },
+  { pergunta: 'Como funciona o pagamento?', resposta: 'Pode pagar em dinheiro diretamente ao prestador ou através do nosso sistema de pagamento online seguro com cartão ou transferência.' },
+  { pergunta: 'E se houver algum problema?', resposta: 'A nossa equipa de suporte está disponível 24/7 para ajudar a resolver qualquer questão. Temos uma política de satisfação garantida.' },
 ]
-
-// FAQs
-const faqs = ref([
-  {
-    pergunta: 'O serviço é gratuito?',
-    resposta: 'Sim! O registo é completamente gratuito tanto para clientes como para prestadores. Apenas cobramos uma pequena comissão sobre os serviços realizados através da plataforma.'
-  },
-  {
-    pergunta: 'Como garantir a qualidade dos prestadores?',
-    resposta: 'Todos os prestadores passam por um processo de verificação de identidade e documentos. Além disso, o sistema de avaliações garante transparência e qualidade.'
-  },
-  {
-    pergunta: 'Posso cancelar um serviço?',
-    resposta: 'Sim, pode cancelar até 24 horas antes sem custos. Cancelamentos em cima da hora podem estar sujeitos a uma taxa de compensação para o prestador.'
-  },
-  {
-    pergunta: 'Como funciona o pagamento?',
-    resposta: 'Pode pagar em dinheiro diretamente ao prestador ou através do nosso sistema de pagamento online seguro com cartão ou transferência.'
-  },
-  {
-    pergunta: 'E se houver algum problema?',
-    resposta: 'A nossa equipa de suporte está disponível 24/7 para ajudar a resolver qualquer questão. Temos uma política de satisfação garantida.'
-  }
-])
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
-$purple-secondary: #764ba2;
-$purple-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+// =====================
+//  TOKENS (mesmo padrão das outras páginas)
+// =====================
+$ink: #0A0A0F;
+$ink-2: #3D3D4E;
+$ink-3: #7B7B8E;
+$surface: #FFFFFF;
+$surface-2: #F7F7FA;
+$surface-3: #EDEDF2;
+$accent: #5B4BF5;
+$accent-lt: #EDE9FE;
+$radius-sm: 8px;
+$radius-md: 14px;
+$radius-lg: 20px;
+$radius-xl: 28px;
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+// =====================
+//  BASE
+// =====================
+.cf-page {
+  font-family: 'DM Sans', 'Nunito', sans-serif;
+  background: $surface;
+  color: $ink;
+  overflow-x: hidden;
 }
 
-// Hero Section
-.page-hero {
+.cf-container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
+}
+
+// =====================
+//  HERO
+// =====================
+.cf-hero {
   position: relative;
-  min-height: 50vh;
-  display: flex;
-  align-items: center;
-  background: $purple-gradient;
+  background: $ink;
   overflow: hidden;
+  padding: 120px 0 0;
 
-  .hero-bg {
+  &__bg {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
-    background-size: cover;
-    background-position: center;
-    opacity: 0.1;
+    inset: 0;
+    pointer-events: none;
   }
 
-  .hero-overlay {
+  &__grid {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.3);
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
   }
 
-  .hero-content {
+  &__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+
+    &--1 {
+      width: 500px; height: 500px;
+      top: -150px; right: -80px;
+      background: radial-gradient(circle, rgba(91,75,245,0.4) 0%, transparent 70%);
+    }
+    &--2 {
+      width: 350px; height: 350px;
+      bottom: 0; left: -60px;
+      background: radial-gradient(circle, rgba(124,58,237,0.25) 0%, transparent 70%);
+    }
+  }
+
+  &__content {
     position: relative;
     z-index: 2;
-    width: 100%;
-    color: white;
+    padding-bottom: 60px;
   }
 
-  .hero-chip {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    margin-bottom: 1rem;
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.8);
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: 100px;
+    margin-bottom: 24px;
+    width: fit-content;
   }
 
-  .hero-title {
-    font-size: 3.5rem;
+  &__heading {
+    font-size: clamp(2.6rem, 5.5vw, 4.8rem);
     font-weight: 800;
-    margin-bottom: 1rem;
-    text-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    color: #fff;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin: 0 0 20px;
   }
 
-  .hero-subtitle {
-    font-size: 1.2rem;
-    opacity: 0.9;
-    max-width: 600px;
-    margin: 0 auto;
-  }
-}
-
-// Section Styles
-.section-tag {
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: $purple-primary;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.section-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 0.5rem;
-}
-
-.section-subtitle {
-  font-size: 1.1rem;
-  color: #666;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-// Overview Section
-.overview-section {
-  background: white;
-  padding: 80px 0;
-
-  .overview-stats {
-    text-align: center;
-
-    .stat-circle {
-      width: 70px;
-      height: 70px;
-      background: $purple-gradient;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 15px;
-      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-
-      .stat-number {
-        color: white;
-        font-size: 1.8rem;
-        font-weight: bold;
-      }
-    }
-
-    .stat-label {
-      font-weight: 600;
-      color: #333;
-      font-size: 1.1rem;
-    }
-  }
-
-  .video-wrapper {
-    position: relative;
-    padding-left: 30px;
-
-    .rounded-video {
-      border-radius: 20px;
-      box-shadow: 0 30px 60px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-
-    .video-decoration {
-      position: absolute;
-      top: -20px;
-      left: 10px;
-      width: 100%;
-      height: 100%;
-      border: 2px solid $purple-primary;
-      border-radius: 30px;
-      z-index: -1;
-    }
-  }
-}
-
-// Steps Timeline
-.steps-detailed-section {
-  background: #f8f9fa;
-  padding: 80px 0;
-
-  .step-item {
-    margin-bottom: 100px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  .step-number-badge {
-    font-size: 4rem;
-    font-weight: 800;
-    color: rgba(102, 126, 234, 0.1);
-    line-height: 1;
-    margin-bottom: 10px;
-  }
-
-  .step-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 15px;
-  }
-
-  .step-description {
+  &__sub {
     font-size: 1.1rem;
-    color: #666;
-    margin-bottom: 25px;
+    color: rgba(255,255,255,0.55);
+    margin: 0 0 40px;
+    max-width: 520px;
     line-height: 1.6;
   }
 
-  .step-features {
+  &__actions {
     display: flex;
-    flex-direction: column;
-    gap: 15px;
+    gap: 16px;
+    flex-wrap: wrap;
   }
 
-  .step-feature-item {
-    display: flex;
-    align-items: center;
-    font-size: 1rem;
-    color: #555;
-  }
-
-  .step-image-wrapper {
+  &__stats {
     position: relative;
-    padding: 20px;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin-top: 40px;
 
-    .step-image {
-      border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    }
-
-    .step-image-decoration {
-      position: absolute;
-      bottom: -10px;
-      right: -10px;
-      width: 80%;
-      height: 80%;
-      border: 2px solid $purple-primary;
-      border-radius: 20px;
-      z-index: -1;
-    }
+    @media (max-width: 640px) { grid-template-columns: repeat(2, 1fr); }
   }
 }
 
-// Benefits Section
-.benefits-section {
-  background: white;
-  padding: 80px 0;
+.cf-badge__dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #4ADE80;
+  box-shadow: 0 0 6px #4ADE80;
+  flex-shrink: 0;
+}
 
-  .benefit-card {
-    background: #f8f9fa;
-    padding: 40px 30px;
-    border-radius: 20px;
-    text-align: center;
-    height: 100%;
-    transition: all 0.3s ease;
+.cf-heading-accent {
+  background: linear-gradient(135deg, $accent 0%, #A78BFA 50%, #F59E0B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-    &:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 20px 40px rgba(102, 126, 234, 0.1);
+.cf-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: $accent;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 12px 28px;
+  border-radius: 100px;
+  text-decoration: none;
+  transition: all 0.25s;
 
-      .benefit-icon-wrapper {
-        transform: scale(1.1);
-      }
-    }
+  &:hover {
+    background: lighten($accent, 6%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(91,75,245,0.35);
+  }
+}
+
+.cf-cta-ghost {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(255,255,255,0.7);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 12px 24px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 100px;
+  text-decoration: none;
+  background: rgba(255,255,255,0.05);
+  transition: all 0.25s;
+
+  &:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.3);
+  }
+}
+
+.cf-stat {
+  padding: 28px 20px;
+  text-align: center;
+  border-right: 1px solid rgba(255,255,255,0.06);
+
+  &:last-child { border-right: none; }
+
+  &__val {
+    display: block;
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.03em;
   }
 
-  .benefit-icon-wrapper {
+  &__label {
+    display: block;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.35);
+    margin-top: 4px;
+  }
+}
+
+// =====================
+//  SECTIONS SHARED
+// =====================
+.cf-section {
+  padding: 96px 0;
+}
+
+.cf-section-header {
+  text-align: center;
+  margin-bottom: 52px;
+}
+
+.cf-section-label {
+  display: inline-block;
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $accent;
+  background: $accent-lt;
+  padding: 4px 12px;
+  border-radius: 100px;
+  margin-bottom: 14px;
+}
+
+.cf-section-title {
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  font-weight: 800;
+  color: $ink;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 12px;
+}
+
+.cf-section-sub {
+  font-size: 1rem;
+  color: $ink-3;
+  max-width: 440px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+// =====================
+//  OVERVIEW / 3 PASSOS
+// =====================
+.cf-overview {
+  background: $surface-2;
+}
+
+.cf-steps-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+
+  @media (max-width: 560px) {
+    gap: 20px;
+  }
+}
+
+.cf-step-preview {
+  text-align: center;
+  position: relative;
+
+  &__circle {
     width: 80px;
     height: 80px;
-    background: white;
+    background: $accent;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 20px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-    transition: all 0.3s ease;
+    margin: 0 auto 16px;
+    box-shadow: 0 12px 24px rgba(91,75,245,0.25);
   }
 
-  .benefit-title {
-    font-size: 1.3rem;
+  &__num {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  &__label {
+    font-size: 1rem;
     font-weight: 600;
-    color: #333;
-    margin-bottom: 10px;
+    color: $ink;
   }
 
-  .benefit-description {
-    color: #666;
+  &__line {
+    position: absolute;
+    top: 40px;
+    right: -40px;
+    width: 40px;
+    height: 2px;
+    background: $surface-3;
+
+    @media (max-width: 560px) {
+      display: none;
+    }
+  }
+}
+
+// =====================
+//  TIMELINE
+// =====================
+.cf-timeline {
+  background: $surface;
+}
+
+.cf-timeline__list {
+  display: flex;
+  flex-direction: column;
+  gap: 80px;
+}
+
+.cf-timeline-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  &--reverse {
+    .cf-timeline-item__image {
+      order: 1;
+    }
+    .cf-timeline-item__content {
+      order: 2;
+    }
+    @media (max-width: 768px) {
+      .cf-timeline-item__image { order: 2; }
+      .cf-timeline-item__content { order: 1; }
+    }
+  }
+
+  &__content {
+    padding: 0 20px;
+  }
+
+  &__title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: $ink;
+    margin: 16px 0 12px;
+  }
+
+  &__desc {
+    font-size: 1rem;
+    color: $ink-3;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  &__features {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__image {
+    position: relative;
+  }
+}
+
+.cf-step-badge {
+  font-size: 4rem;
+  font-weight: 800;
+  color: rgba(91,75,245,0.12);
+  line-height: 1;
+}
+
+.cf-feature-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: $ink-2;
+
+  svg {
+    color: $accent;
+    flex-shrink: 0;
+  }
+}
+
+.cf-timeline-img-wrapper {
+  position: relative;
+  padding: 20px;
+}
+
+.cf-timeline-img {
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.1);
+}
+
+.cf-timeline-img__decor {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 70%;
+  height: 70%;
+  border: 2px solid rgba(91,75,245,0.2);
+  border-radius: $radius-lg;
+  z-index: -1;
+}
+
+// =====================
+//  BENEFITS
+// =====================
+.cf-benefits {
+  background: $surface-2;
+}
+
+.cf-benefits__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cf-benefit-card {
+  background: $surface;
+  border: 1.5px solid $surface-3;
+  border-radius: $radius-lg;
+  padding: 32px 24px;
+  text-align: center;
+  transition: all 0.25s;
+
+  &:hover {
+    transform: translateY(-6px);
+    border-color: rgba(91,75,245,0.2);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+  }
+
+  &__icon {
+    width: 64px;
+    height: 64px;
+    border-radius: $radius-sm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin: 0 auto 20px;
+  }
+
+  &__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: $ink;
+    margin-bottom: 8px;
+  }
+
+  &__desc {
+    font-size: 0.85rem;
+    color: $ink-3;
     line-height: 1.6;
     margin: 0;
   }
 }
 
-// Comparison Section
-.comparison-section {
-  background: #f8f9fa;
-  padding: 80px 0;
+// =====================
+//  PROFILES
+// =====================
+.cf-profiles {
+  background: $surface;
+}
 
-  .profile-card {
-    background: white;
-    border-radius: 30px;
-    overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.05);
-    transition: all 0.3s ease;
-    height: 100%;
+.cf-profiles__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
 
-    &:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 30px 60px rgba(102, 126, 234, 0.15);
-    }
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
 
-    .profile-header {
-      padding: 40px;
-      text-align: center;
-      color: white;
-    }
+.cf-profile-card {
+  border-radius: $radius-xl;
+  overflow: hidden;
+  transition: all 0.3s;
 
-    .profile-icon {
-      width: 80px;
-      height: 80px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      backdrop-filter: blur(10px);
-    }
-
-    .profile-title {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-
-    .profile-subtitle {
-      font-size: 1rem;
-      opacity: 0.9;
-    }
-
-    .profile-features {
-      padding: 40px;
-    }
-
-    .feature-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 15px;
-      font-size: 1rem;
-      color: #333;
-    }
-
-    .profile-btn {
-      margin: 0 40px 40px;
-      width: calc(100% - 80px);
-      border-radius: 50px;
-      padding: 15px;
-    }
+  &:hover {
+    transform: translateY(-8px);
   }
 
-  .client-card {
+  &--client {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-
-    .profile-header {
-      background: rgba(0, 0, 0, 0.1);
-    }
   }
 
-  .provider-card {
+  &--provider {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-
-    .profile-header {
-      background: rgba(0, 0, 0, 0.1);
-    }
   }
-}
 
-// Stats Highlight
-.stats-highlight-section {
-  background: white;
-  padding: 60px 0;
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 30px;
+  &__header {
+    padding: 48px 32px 32px;
     text-align: center;
+    color: #fff;
   }
 
-  .stat-highlight-item {
-    padding: 20px;
+  &__icon {
+    font-size: 3rem;
+    background: rgba(255,255,255,0.15);
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    backdrop-filter: blur(8px);
   }
 
-  .stat-highlight-value {
-    font-size: 2.5rem;
+  &__title {
+    font-size: 1.8rem;
     font-weight: 700;
-    color: $purple-primary;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
   }
 
-  .stat-highlight-label {
-    font-size: 1rem;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-}
-
-// FAQ Section
-.faq-section {
-  background: #f8f9fa;
-  padding: 80px 0;
-
-  .faq-header {
-    background: white;
-    border-radius: 12px;
-    font-weight: 500;
-    color: #333;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  &__sub {
+    font-size: 0.9rem;
+    opacity: 0.85;
   }
 
-  .faq-content {
-    background: white;
-    border: 1px solid #eee;
-    border-radius: 0 0 12px 12px;
-    margin-top: 2px;
-  }
-}
-
-// CTA Section
-.cta-section {
-  padding: 60px 0;
-
-  .cta-card {
-    background: white;
-    padding: 60px;
-    border-radius: 30px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.05);
-    border: 2px solid #f0f0f0;
+  &__features {
+    background: $surface;
+    padding: 32px;
   }
 
-  .cta-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 10px;
-  }
-
-  .cta-text {
-    font-size: 1.1rem;
-    color: #666;
-  }
-
-  .cta-button {
-    padding: 15px 40px;
-    border-radius: 50px;
+  &__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 32px 40px;
+    padding: 14px 24px;
+    border-radius: 100px;
     font-weight: 600;
-    font-size: 1.1rem;
+    text-decoration: none;
+    transition: all 0.25s;
+
+    &--light {
+      background: #fff;
+      color: #667eea;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255,255,255,0.3);
+      }
+    }
+
+    &--dark {
+      background: rgba(0,0,0,0.3);
+      color: #fff;
+      backdrop-filter: blur(8px);
+
+      &:hover {
+        background: rgba(0,0,0,0.4);
+        transform: translateY(-2px);
+      }
+    }
   }
 }
 
-// Responsividade
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 2.5rem !important;
+.cf-profile-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 0.9rem;
+  color: $ink-2;
+  border-bottom: 1px solid $surface-3;
+
+  &:last-child {
+    border-bottom: none;
   }
 
-  .section-title {
-    font-size: 2rem;
+  &__check {
+    width: 22px;
+    height: 22px;
+    background: #D1FAE5;
+    color: #065F46;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+}
+
+// =====================
+//  FAQ
+// =====================
+.cf-faq {
+  background: $surface-2;
+}
+
+.cf-faq__list {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cf-faq-item {
+  background: $surface;
+  border: 1.5px solid $surface-3;
+  border-radius: $radius-md;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s;
+
+  &--open {
+    border-color: rgba(91,75,245,0.3);
+    .cf-faq-item__q { color: $accent; }
   }
 
-  .step-item {
-    margin-bottom: 60px;
-
-    .step-title {
-      font-size: 1.5rem;
-    }
+  &__q {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: $ink;
+    gap: 12px;
+    user-select: none;
   }
 
-  .step-reverse {
-    .order-md-2 {
-      order: 1;
-    }
-    .order-md-1 {
-      order: 2;
-    }
+  &__chevron {
+    font-size: 1.3rem;
+    font-weight: 400;
+    color: $ink-3;
+    flex-shrink: 0;
   }
 
-  .video-wrapper {
-    padding-left: 0 !important;
-    margin-top: 30px;
+  &__a {
+    padding: 0 22px 18px;
+    font-size: 0.88rem;
+    color: $ink-3;
+    line-height: 1.7;
+    border-top: 1px solid $surface-3;
+    padding-top: 14px;
   }
+}
 
-  .cta-card {
-    padding: 30px !important;
-    text-align: center;
+// =====================
+//  CTA FINAL
+// =====================
+.cf-cta-section {
+  position: relative;
+  background: $ink;
+  overflow: hidden;
+  padding: 100px 0;
+}
 
-    .text-right {
-      text-align: center !important;
-      margin-top: 20px;
-    }
+.cf-cta-section__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cf-cta__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+
+  &--1 {
+    width: 450px; height: 450px;
+    top: -150px; left: -80px;
+    background: radial-gradient(circle, rgba(91,75,245,0.4) 0%, transparent 70%);
   }
-
-  .stats-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 20px;
+  &--2 {
+    width: 350px; height: 350px;
+    bottom: -100px; right: -60px;
+    background: radial-gradient(circle, rgba(245,158,11,0.18) 0%, transparent 70%);
   }
+}
 
-  .profile-btn {
-    margin: 0 20px 30px !important;
-    width: calc(100% - 40px) !important;
+.cf-cta__inner {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+.cf-cta__label {
+  display: inline-block;
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $accent;
+  background: rgba(91,75,245,0.15);
+  border: 1px solid rgba(91,75,245,0.3);
+  padding: 4px 12px;
+  border-radius: 100px;
+  margin-bottom: 18px;
+}
+
+.cf-cta__title {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0 0 16px;
+}
+
+.cf-cta__sub {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.6;
+  margin: 0 0 32px;
+}
+
+.cf-cta__btns {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cf-cta-white {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  color: $ink;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 14px 28px;
+  border-radius: 100px;
+  text-decoration: none;
+  transition: all 0.25s;
+
+  &:hover {
+    background: $accent-lt;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(255,255,255,0.15);
+  }
+}
+
+.cf-cta-outline-white {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(255,255,255,0.55);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 14px 28px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 100px;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s;
+
+  &:hover {
+    color: #fff;
+    border-color: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.06);
   }
 }
 </style>

@@ -20,9 +20,9 @@ const routes: RouteRecordRaw[] = [
     path: '/auth',
     component: () => import('layouts/AuthLayout.vue'),
     children: [
-      { path: 'login', component: () => import('pages/auth/Login.vue') },
-      { path: 'register-cliente', component: () => import('pages/auth/RegisterCliente.vue') },
-      { path: 'register-prestador', component: () => import('pages/auth/RegisterPrestador.vue') },
+      { path: 'login', component: () => import('components/auth/Login.vue') },
+      { path: 'register-cliente', component: () => import('components/auth/RegisterCliente.vue') },
+      { path: 'register-prestador', component: () => import('components/auth/RegisterPrestador.vue') },
     ],
   },
 

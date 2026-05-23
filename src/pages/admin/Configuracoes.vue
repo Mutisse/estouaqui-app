@@ -14,12 +14,12 @@
         color="grey-7"
         outline
         @click="carregarConfiguracoes"
-        :loading="adminStore.loading"
+        :loading="financeiroStore.loading"
       />
     </div>
 
-    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
-    <div v-if="adminStore.loading" class="skeleton-container">
+    <!-- Skeleton Loading -->
+    <div v-if="financeiroStore.loading" class="skeleton-container">
       <div class="skeleton-card">
         <div class="skeleton-tabs">
           <div v-for="i in 4" :key="i" class="skeleton-tab"></div>
@@ -40,7 +40,7 @@
       <div class="skeleton-shimmer"></div>
     </div>
 
-    <!-- Conteúdo real (apenas quando não está carregando) -->
+    <!-- Conteúdo real -->
     <template v-else>
       <q-card class="config-card">
         <q-tabs v-model="tab" class="config-tabs" dense>
@@ -286,39 +286,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useQuasar } from 'quasar'
-import { useAdminStore } from 'src/stores/admin-store'
-import type { ConfiguracoesData } from 'src/stores/admin-store'
+import { ref, reactive, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
+// ✅ IMPORT CORRETO - usando financeiroStore
+import { useAdminFinanceiroStore, type ConfiguracoesData } from 'src/stores/admin/admin-financeiro-store';
 
 defineOptions({
-  name: 'AdminConfiguracoes'
-})
+  name: 'AdminConfiguracoes',
+});
 
-const $q = useQuasar()
-const adminStore = useAdminStore()
+const $q = useQuasar();
+// ✅ USANDO O STORE CORRETO
+const financeiroStore = useAdminFinanceiroStore();
 
 // Estados
-const tab = ref('geral')
-const salvando = ref(false)
-const showMpesa = ref(false)
-const showMaps = ref(false)
-const showSms = ref(false)
+const tab = ref('geral');
+const salvando = ref(false);
+const showMpesa = ref(false);
+const showMaps = ref(false);
+const showSms = ref(false);
 
 // Tipos de comissão
-const tipoComissaoOptions = ['Porcentagem', 'Valor fixo']
+const tipoComissaoOptions = ['Porcentagem', 'Valor fixo'];
 
-// Formulário de configurações (estendido com campos extras)
+// Formulário de configurações
 const configForm = reactive({
-  // Campos base do store
   nome: '',
   email: '',
   telefone: '',
   endereco: '',
   comissao_padrao: 0,
   tipo_comissao: '',
-
-  // Campos extras
   comissao_prestador: true,
   comissao_cliente: false,
   notif_email: true,
@@ -327,100 +325,94 @@ const configForm = reactive({
   email_notificacao: '',
   api_mpesa: '',
   api_maps: '',
-  api_sms: ''
-})
+  api_sms: '',
+});
 
-// Carregar configurações
+// ✅ Carregar configurações usando financeiroStore
 const carregarConfiguracoes = async (): Promise<void> => {
   try {
-    const data = await adminStore.fetchConfiguracoes()
+    const data = await financeiroStore.fetchConfiguracoes();
     if (data) {
-      configForm.nome = data.nome || ''
-      configForm.email = data.email || ''
-      configForm.telefone = data.telefone || ''
-      configForm.endereco = data.endereco || ''
-      configForm.comissao_padrao = data.comissao_padrao || 0
-      configForm.tipo_comissao = data.tipo_comissao || 'Porcentagem'
-
-      // Carregar dados extras do localStorage (ou API)
-      carregarConfiguracoesExtras()
+      configForm.nome = data.nome || '';
+      configForm.email = data.email || '';
+      configForm.telefone = data.telefone || '';
+      configForm.endereco = data.endereco || '';
+      configForm.comissao_padrao = data.comissao_padrao || 0;
+      configForm.tipo_comissao = data.tipo_comissao || 'Porcentagem';
     }
+    carregarConfiguracoesExtras();
   } catch (error) {
-    console.error('Erro ao carregar configurações:', error)
+    console.error('Erro ao carregar configurações:', error);
     $q.notify({
       type: 'negative',
       message: 'Erro ao carregar configurações',
-      position: 'top'
-    })
+      position: 'top',
+    });
   }
-}
+};
 
-// Carregar configurações extras (mock - substituir por API real)
+// Carregar configurações extras
 const carregarConfiguracoesExtras = (): void => {
-  // Valores padrão
-  configForm.comissao_prestador = true
-  configForm.comissao_cliente = false
-  configForm.notif_email = true
-  configForm.notif_sms = false
-  configForm.notif_push = true
-  configForm.email_notificacao = 'notificacoes@estouaqui.co.mz'
-  configForm.api_mpesa = '********'
-  configForm.api_maps = '********'
-  configForm.api_sms = '********'
-}
+  configForm.comissao_prestador = true;
+  configForm.comissao_cliente = false;
+  configForm.notif_email = true;
+  configForm.notif_sms = false;
+  configForm.notif_push = true;
+  configForm.email_notificacao = 'notificacoes@estouaqui.co.mz';
+  configForm.api_mpesa = '********';
+  configForm.api_maps = '********';
+  configForm.api_sms = '********';
+};
 
 // Resetar formulário
 const resetarFormulario = (): void => {
-  void carregarConfiguracoes()
+  void carregarConfiguracoes();
   $q.notify({
     type: 'info',
     message: 'Alterações canceladas',
-    position: 'top'
-  })
-}
+    position: 'top',
+  });
+};
 
-// Salvar configurações
+// ✅ Salvar configurações usando financeiroStore
 const salvarConfiguracoes = async (): Promise<void> => {
-  salvando.value = true
+  salvando.value = true;
 
   try {
-    // Dados principais a serem salvos no store
     const dadosPrincipais: Partial<ConfiguracoesData> = {
       nome: configForm.nome,
       email: configForm.email,
       telefone: configForm.telefone,
       endereco: configForm.endereco,
       comissao_padrao: configForm.comissao_padrao,
-      tipo_comissao: configForm.tipo_comissao
-    }
+      tipo_comissao: configForm.tipo_comissao,
+    };
 
-    const result = await adminStore.updateConfiguracoes(dadosPrincipais)
+    const result = await financeiroStore.updateConfiguracoes(dadosPrincipais);
 
-    if (result && result.success) {
-      // Salvar dados extras (mock - substituir por chamada API real)
-      salvarConfiguracoesExtras()
-
+    if (result) {
+      salvarConfiguracoesExtras();
       $q.notify({
         type: 'positive',
         message: 'Configurações salvas com sucesso!',
-        position: 'top'
-      })
+        position: 'top',
+      });
     } else {
-      throw new Error('Erro ao salvar')
+      throw new Error('Erro ao salvar');
     }
   } catch (error) {
-    console.error('Erro ao salvar configurações:', error)
+    console.error('Erro ao salvar configurações:', error);
     $q.notify({
       type: 'negative',
       message: 'Erro ao salvar configurações',
-      position: 'top'
-    })
+      position: 'top',
+    });
   } finally {
-    salvando.value = false
+    salvando.value = false;
   }
-}
+};
 
-// Salvar configurações extras (mock - substituir por API real)
+// Salvar configurações extras
 const salvarConfiguracoesExtras = (): void => {
   console.log('Configurações extras salvas:', {
     comissao_prestador: configForm.comissao_prestador,
@@ -428,14 +420,14 @@ const salvarConfiguracoesExtras = (): void => {
     notif_email: configForm.notif_email,
     notif_sms: configForm.notif_sms,
     notif_push: configForm.notif_push,
-    email_notificacao: configForm.email_notificacao
-  })
-}
+    email_notificacao: configForm.email_notificacao,
+  });
+};
 
 // Carregar dados ao montar
 onMounted(() => {
-  void carregarConfiguracoes()
-})
+  void carregarConfiguracoes();
+});
 </script>
 
 <style scoped lang="scss">
@@ -463,7 +455,6 @@ onMounted(() => {
       display: flex;
       align-items: center;
     }
-
     .page-subtitle {
       font-size: 0.875rem;
       color: #6c757d;
@@ -472,10 +463,7 @@ onMounted(() => {
   }
 }
 
-// ==========================================
-// SKELETON LOADING (Facebook/Instagram style)
-// ==========================================
-
+// Skeleton Loading
 .skeleton-container {
   position: relative;
   overflow: hidden;
@@ -511,17 +499,15 @@ onMounted(() => {
   padding: 24px;
 }
 
-.skeleton-form {
-  .skeleton-field {
-    margin-bottom: 20px;
-  }
+.skeleton-form .skeleton-field {
+  margin-bottom: 20px;
+}
 
-  .skeleton-input {
-    height: 48px;
-    background: #e0e0e0;
-    border-radius: 8px;
-    width: 100%;
-  }
+.skeleton-input {
+  height: 48px;
+  background: #e0e0e0;
+  border-radius: 8px;
+  width: 100%;
 }
 
 .skeleton-actions {
@@ -562,10 +548,7 @@ onMounted(() => {
   100% { transform: translateX(100%); }
 }
 
-// ==========================================
-// ESTILOS PRINCIPAIS
-// ==========================================
-
+// Estilos principais
 .config-card {
   border-radius: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -573,14 +556,11 @@ onMounted(() => {
 
   .config-tabs {
     background: #f8f9fa;
-
     :deep(.q-tab) {
       font-size: 0.9rem;
       padding: 12px 24px;
-
       &.q-tab--active {
         color: #1976d2;
-
         .q-tab__indicator {
           background-color: #1976d2;
         }
@@ -605,33 +585,25 @@ onMounted(() => {
   }
 }
 
-// Responsivo
 @media (max-width: 768px) {
   .admin-configuracoes {
     padding: 16px;
   }
-
   .page-header {
     flex-direction: column;
     align-items: flex-start;
   }
-
-  .config-card {
-    .config-tabs :deep(.q-tab) {
-      padding: 8px 12px;
-      font-size: 0.8rem;
-    }
-
-    :deep(.q-tab-panel) {
-      padding: 16px;
-    }
+  .config-card .config-tabs :deep(.q-tab) {
+    padding: 8px 12px;
+    font-size: 0.8rem;
   }
-
+  .config-card :deep(.q-tab-panel) {
+    padding: 16px;
+  }
   .skeleton-tab {
     width: 80px;
     height: 32px;
   }
-
   .skeleton-button-cancel,
   .skeleton-button-save {
     width: 80px;

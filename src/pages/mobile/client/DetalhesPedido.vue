@@ -1,6 +1,6 @@
 <template>
-  <q-page class="bg-grey-1">
-    <!-- Skeleton Loading (enquanto carrega) -->
+  <div class="bg-grey-1">
+    <!-- Skeleton Loading (sem spinner) -->
     <div v-if="carregamentoInicial" class="skeleton-loading">
       <div class="skeleton-header">
         <div class="skeleton-back-btn"></div>
@@ -32,12 +32,9 @@
         <div class="skeleton-card-header"></div>
         <div class="skeleton-line w-70"></div>
       </div>
-      <div class="skeleton-spinner">
-        <q-spinner color="primary" size="40px" />
-      </div>
     </div>
 
-    <!-- Conteúdo original (sem loading com texto) -->
+    <!-- Conteúdo original -->
     <template v-else>
       <div v-if="pedido" class="pedido-detalhes">
         <!-- Header -->
@@ -168,7 +165,7 @@
         <div class="text-h6 text-grey-7 q-mt-md">Pedido não encontrado</div>
       </div>
     </template>
-  </q-page>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -177,23 +174,28 @@ import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { api } from 'src/boot/axios';
 import { useAuthStore } from 'src/stores/auth-store';
+import { useClientePedidosStore, type PedidoData } from 'src/stores/client/cliente-pedidos-store';
+import { usePrestadorServicosStore, type SolicitacaoData } from 'src/stores/prestador/prestador-servicos-store';
 
-// Interfaces
-interface ClienteData {
+// ==========================================
+// INTERFACES LOCAIS
+// ==========================================
+
+interface ClienteInfo {
   id: number;
   nome: string;
   foto: string | null;
   telefone: string;
 }
 
-interface CategoriaData {
+interface CategoriaInfo {
   id: number;
   nome: string;
   icone: string;
   cor: string;
 }
 
-interface PrestadorData {
+interface PrestadorInfo {
   id: number;
   nome: string;
   foto: string | null;
@@ -212,15 +214,29 @@ interface PedidoDetalhesData {
   observacoes: string | null;
   valor: number | null;
   created_at: string;
-  cliente?: ClienteData;
-  categoria?: CategoriaData;
-  prestador?: PrestadorData;
+  cliente?: ClienteInfo;
+  categoria?: CategoriaInfo;
+  prestador?: PrestadorInfo;
 }
+
+// ✅ Tipo para acessar propriedades opcionais sem usar 'any'
+type DadosComIds = (PedidoData | SolicitacaoData) & {
+  cliente_id?: number;
+  prestador_id?: number;
+  categoria_id?: number;
+};
+
+// ==========================================
+// SETUP
+// ==========================================
 
 const route = useRoute();
 const router = useRouter();
 const $q = useQuasar();
 const authStore = useAuthStore();
+
+const clientePedidosStore = useClientePedidosStore();
+const prestadorServicosStore = usePrestadorServicosStore();
 
 const carregamentoInicial = ref(true);
 const pedido = ref<PedidoDetalhesData | null>(null);
@@ -269,6 +285,66 @@ const irParaChat = () => {
   }
 };
 
+// ==========================================
+// BUSCAR DADOS ADICIONAIS
+// ==========================================
+
+const buscarClienteInfo = async (clienteId: number): Promise<ClienteInfo | undefined> => {
+  try {
+    const response = await api.get(`/users/${clienteId}`);
+    if (response.data.success && response.data.data) {
+      return {
+        id: response.data.data.id,
+        nome: response.data.data.nome,
+        foto: response.data.data.foto || null,
+        telefone: response.data.data.telefone || '',
+      };
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const buscarPrestadorInfo = async (prestadorId: number): Promise<PrestadorInfo | undefined> => {
+  try {
+    const response = await api.get(`/prestadores/${prestadorId}`);
+    if (response.data.success && response.data.data) {
+      return {
+        id: response.data.data.id,
+        nome: response.data.data.nome,
+        foto: response.data.data.foto || null,
+        telefone: response.data.data.telefone || '',
+        media_avaliacao: response.data.data.media_avaliacao,
+      };
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const buscarCategoriaInfo = async (categoriaId: number): Promise<CategoriaInfo | undefined> => {
+  try {
+    const response = await api.get(`/categorias/${categoriaId}`);
+    if (response.data.success && response.data.data) {
+      return {
+        id: response.data.data.id,
+        nome: response.data.data.nome,
+        icone: response.data.data.icone || 'category',
+        cor: response.data.data.cor || 'primary',
+      };
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+// ==========================================
+// CARREGAR PEDIDO
+// ==========================================
+
 const carregarPedido = async () => {
   const idParam = route.params.id;
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
@@ -278,14 +354,62 @@ const carregarPedido = async () => {
     return;
   }
 
-  try {
-    const url = authStore.isPrestador
-      ? `/prestador/solicitacoes/${id}`
-      : `/cliente/pedidos/${id}`;
+  const pedidoId = Number(id);
 
-    const response = await api.get(url);
-    if (response.data.success) {
-      pedido.value = response.data.data;
+  try {
+    let dados: PedidoData | SolicitacaoData | null = null;
+
+    if (authStore.isPrestador) {
+      await prestadorServicosStore.fetchSolicitacoes();
+      dados = prestadorServicosStore.solicitacoes.find(
+        (s: SolicitacaoData) => s.id === pedidoId
+      ) || null;
+    } else {
+      await clientePedidosStore.fetchMeusPedidos();
+      dados = clientePedidosStore.pedidos.find(
+        (p: PedidoData) => p.id === pedidoId
+      ) || null;
+    }
+
+    if (dados) {
+      // ✅ Sem 'any' - usando o tipo DadosComIds
+      const dadosComIds = dados as DadosComIds;
+
+      const detalhes: PedidoDetalhesData = {
+        id: dados.id,
+        numero: dados.numero,
+        status: dados.status,
+        descricao: 'descricao' in dados ? (dados.descricao || null) : null,
+        foto: 'foto' in dados ? (dados.foto || null) : null,
+        data: dados.data,
+        endereco: dados.endereco,
+        observacoes: 'observacoes' in dados ? (dados.observacoes || null) : null,
+        valor: dados.valor,
+        created_at: dados.created_at,
+      };
+
+      // Buscar cliente
+      const clienteId = dadosComIds.cliente_id;
+      if (clienteId) {
+        const clienteInfo = await buscarClienteInfo(clienteId);
+        if (clienteInfo) detalhes.cliente = clienteInfo;
+      }
+
+      // Buscar prestador
+      const prestadorId = dadosComIds.prestador_id;
+      if (prestadorId) {
+        const prestadorInfo = await buscarPrestadorInfo(prestadorId);
+        if (prestadorInfo) detalhes.prestador = prestadorInfo;
+      }
+
+      // Buscar categoria
+      const categoriaId = dadosComIds.categoria_id;
+      if (categoriaId) {
+        const categoriaInfo = await buscarCategoriaInfo(categoriaId);
+        if (categoriaInfo) detalhes.categoria = categoriaInfo;
+      }
+
+      pedido.value = detalhes;
     } else {
       pedido.value = null;
     }
@@ -403,18 +527,6 @@ onMounted(() => {
   animation: shimmer 1.5s infinite;
 }
 
-.skeleton-spinner {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 10000;
-}
-
 .w-30 { width: 30%; }
 .w-40 { width: 40%; }
 .w-50 { width: 50%; }
@@ -423,7 +535,7 @@ onMounted(() => {
 .w-80 { width: 80%; }
 
 /* ========================================== */
-/* ESTILOS ORIGINAIS (mantidos sem alterações) */
+/* ESTILOS ORIGINAIS */
 /* ========================================== */
 
 .header-gradient {

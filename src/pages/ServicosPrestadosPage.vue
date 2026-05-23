@@ -1,77 +1,85 @@
 <!-- pages/ServicosPrestadosPage.vue -->
 <template>
-  <q-page class="servicos-prestados-page">
-    <!-- Hero Section -->
-    <section class="page-hero">
-      <div class="hero-bg">
-        <div class="hero-overlay"></div>
+  <div class="ea-servicos-page">
+
+    <!-- ===== HERO BG (mesmo padrão) ===== -->
+    <section class="ea-servicos-hero">
+      <div class="ea-servicos-hero__bg">
+        <div class="ea-servicos-hero__noise"></div>
+        <div class="ea-servicos-hero__orb ea-servicos-hero__orb--1"></div>
+        <div class="ea-servicos-hero__orb ea-servicos-hero__orb--2"></div>
+        <div class="ea-servicos-hero__orb ea-servicos-hero__orb--3"></div>
+        <div class="ea-servicos-hero__grid"></div>
       </div>
-      <div class="hero-content container">
-        <div class="text-center">
-          <q-chip
-            class="hero-chip"
-            icon="assignment_turned_in"
-            text-color="white"
-            label="Serviços Realizados"
-          />
-          <h1 class="hero-title">Serviços prestados<br />pela plataforma</h1>
-          <p class="hero-subtitle">
+
+      <div class="ea-servicos-hero__container">
+
+        <!-- CONTEÚDO CENTRALIZADO -->
+        <div class="ea-servicos-hero__content">
+
+          <!-- Badge -->
+          <div class="ea-servicos-badge">
+            <span class="ea-badge__dot"></span>
+            Serviços Realizados
+          </div>
+
+          <!-- Título -->
+          <h1 class="ea-servicos-title">
+            Serviços prestados<br>
+            <span class="ea-title-accent">pela plataforma</span>
+          </h1>
+
+          <p class="ea-servicos-subtitle">
             Confira os serviços já realizados através do EstouAqui
           </p>
+
         </div>
       </div>
     </section>
 
-    <!-- Estatísticas -->
-    <section class="stats-section q-py-lg">
-      <div class="container">
-        <div class="row justify-center">
-          <div class="col-12 col-md-10">
-            <div class="stats-grid">
-              <div class="stat-item">
-                <div class="stat-value">{{ stats.total_servicos }}</div>
-                <div class="stat-label">Total de serviços</div>
-              </div>
-              <div class="stat-divider"></div>
-              <div class="stat-item">
-                <div class="stat-value">{{ stats.prestadores_ativos }}</div>
-                <div class="stat-label">Prestadores ativos</div>
-              </div>
-              <div class="stat-divider"></div>
-              <div class="stat-item">
-                <div class="stat-value">{{ stats.clientes_atendidos }}+</div>
-                <div class="stat-label">Clientes atendidos</div>
-              </div>
-              <div class="stat-divider"></div>
-              <div class="stat-item">
-                <div class="stat-value">{{ stats.media_avaliacao }}</div>
-                <div class="stat-label">Avaliação média</div>
-              </div>
-            </div>
-          </div>
+    <!-- ===== STATS BAR ===== -->
+    <section class="ea-stats-bar">
+      <div class="ea-container ea-stats-bar__inner">
+        <div class="ea-stat">
+          <div class="ea-stat__value">{{ stats.total_servicos.toLocaleString() }}</div>
+          <div class="ea-stat__label">Total de serviços</div>
+        </div>
+        <div class="ea-stat">
+          <div class="ea-stat__value">{{ stats.prestadores_ativos.toLocaleString() }}</div>
+          <div class="ea-stat__label">Prestadores ativos</div>
+        </div>
+        <div class="ea-stat">
+          <div class="ea-stat__value">{{ stats.clientes_atendidos.toLocaleString() }}+</div>
+          <div class="ea-stat__label">Clientes atendidos</div>
+        </div>
+        <div class="ea-stat">
+          <div class="ea-stat__value">{{ stats.media_avaliacao }}★</div>
+          <div class="ea-stat__label">Avaliação média</div>
         </div>
       </div>
     </section>
 
-    <!-- Filtros e Busca -->
-    <section class="filters-section q-py-md">
-      <div class="container">
-        <div class="row q-col-gutter-md items-center">
-          <div class="col-12 col-md-4">
+    <!-- ===== FILTROS ===== -->
+    <section class="ea-filters-section">
+      <div class="ea-container">
+        <div class="ea-filters-grid">
+          <div class="ea-filter-item">
             <q-input
               v-model="filtros.search"
               outlined
               dense
               placeholder="Pesquisar serviço..."
               bg-color="white"
+              class="ea-search-input"
               @update:model-value="handleSearch"
             >
-              <template v-slot:append>
-                <q-icon name="search" />
+              <template v-slot:prepend>
+                <q-icon name="search" color="primary" />
               </template>
             </q-input>
           </div>
-          <div class="col-12 col-md-3">
+
+          <div class="ea-filter-item">
             <q-select
               v-model="filtros.categoria"
               :options="categorias"
@@ -84,10 +92,12 @@
               clearable
               placeholder="Categoria"
               bg-color="white"
+              class="ea-filter-select"
               @update:model-value="carregarServicos(true)"
             />
           </div>
-          <div class="col-12 col-md-3">
+
+          <div class="ea-filter-item">
             <q-select
               v-model="filtros.ordenar_por"
               :options="ordenacaoOptions"
@@ -97,10 +107,12 @@
               bg-color="white"
               emit-value
               map-options
+              class="ea-filter-select"
               @update:model-value="carregarServicos(true)"
             />
           </div>
-          <div class="col-12 col-md-2">
+
+          <div class="ea-filter-item">
             <q-btn
               flat
               color="primary"
@@ -108,132 +120,132 @@
               icon="clear"
               @click="limparFiltros"
               no-caps
-              class="full-width"
+              class="ea-clear-btn"
             />
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Lista de Serviços -->
-    <section class="servicos-section q-py-xl">
-      <div class="container">
+    <!-- ===== SERVIÇOS ===== -->
+    <section class="ea-servicos-section">
+      <div class="ea-container">
+
         <!-- Loading -->
-        <div v-if="loading" class="text-center q-pa-xl">
+        <div v-if="loading" class="ea-loading">
           <q-spinner color="primary" size="50px" />
-          <p class="q-mt-md text-grey-7">A carregar serviços...</p>
+          <p>A carregar serviços...</p>
         </div>
 
         <!-- Sem resultados -->
-        <div v-else-if="servicos.length === 0" class="text-center q-pa-xl">
-          <q-icon name="receipt" size="64px" color="grey-5" />
-          <p class="text-h6 text-grey-7 q-mt-md">Nenhum serviço encontrado</p>
-          <p class="text-grey-6">Tente ajustar os filtros ou pesquisar por outro termo</p>
+        <div v-else-if="servicos.length === 0" class="ea-empty">
+          <q-icon name="receipt" size="64px" />
+          <h3>Nenhum serviço encontrado</h3>
+          <p>Tente ajustar os filtros ou pesquisar por outro termo</p>
         </div>
 
         <!-- Grid de Serviços -->
-        <div v-else class="row q-col-gutter-lg">
+        <div v-else class="ea-servicos-grid">
           <div
             v-for="servico in servicos"
             :key="servico.id"
-            class="col-12 col-md-6 col-lg-4"
+            class="ea-servico-card"
           >
-            <div class="servico-card">
-              <div class="servico-header">
-                <div class="servico-icon">
-                  <q-icon :name="servico.icone || 'work'" size="32px" color="primary" />
-                </div>
-                <div>
-                  <div class="servico-titulo">{{ servico.titulo }}</div>
-                  <div class="servico-categoria">{{ servico.categoria_nome }}</div>
-                </div>
-                <q-badge
-                  :color="servico.status === 'concluido' ? 'positive' : 'grey'"
-                  class="q-ml-auto"
-                >
-                  {{ servico.status === 'concluido' ? 'Concluído' : 'Em andamento' }}
-                </q-badge>
+            <div class="ea-servico-card__header">
+              <div class="ea-servico-card__icon">
+                <q-icon :name="servico.icone || 'work'" size="28px" />
               </div>
-
-              <div class="servico-info">
-                <div class="info-item">
-                  <q-icon name="person" size="16px" color="grey-6" />
-                  <span>{{ servico.prestador_nome }}</span>
-                </div>
-                <div class="info-item">
-                  <q-icon name="calendar_today" size="16px" color="grey-6" />
-                  <span>{{ formatarData(servico.data_realizacao) }}</span>
-                </div>
-                <div class="info-item">
-                  <q-icon name="location_on" size="16px" color="grey-6" />
-                  <span>{{ servico.localizacao }}</span>
-                </div>
+              <div class="ea-servico-card__info">
+                <div class="ea-servico-card__title">{{ servico.titulo }}</div>
+                <div class="ea-servico-card__category">{{ servico.categoria_nome }}</div>
               </div>
+              <q-badge
+                :color="servico.status === 'concluido' ? 'positive' : 'warning'"
+                class="ea-servico-card__status"
+              >
+                {{ servico.status === 'concluido' ? 'Concluído' : 'Em andamento' }}
+              </q-badge>
+            </div>
 
-              <p class="servico-descricao">{{ servico.descricao }}</p>
+            <div class="ea-servico-card__details">
+              <div class="ea-detail-item">
+                <q-icon name="person" size="16px" />
+                <span>{{ servico.prestador_nome }}</span>
+              </div>
+              <div class="ea-detail-item">
+                <q-icon name="calendar_today" size="16px" />
+                <span>{{ formatarData(servico.data_realizacao) }}</span>
+              </div>
+              <div class="ea-detail-item">
+                <q-icon name="location_on" size="16px" />
+                <span>{{ servico.localizacao }}</span>
+              </div>
+            </div>
 
-              <div class="servico-footer">
-                <div>
-                  <span class="preco-label">Valor:</span>
-                  <span class="preco-valor">{{ servico.valor }} MZN</span>
-                </div>
-                <div class="servico-avaliacao">
-                  <q-icon
-                    v-for="n in 5"
-                    :key="n"
-                    :name="n <= servico.avaliacao ? 'star' : 'star_border'"
-                    :color="n <= servico.avaliacao ? 'yellow-8' : 'grey-4'"
-                    size="16px"
-                  />
-                  <span class="avaliacao-count" v-if="servico.total_avaliacoes > 1">
-                    ({{ servico.total_avaliacoes }})
-                  </span>
-                </div>
+            <p class="ea-servico-card__description">{{ servico.descricao }}</p>
+
+            <div class="ea-servico-card__footer">
+              <div class="ea-servico-card__price">
+                <span class="price-label">Valor:</span>
+                <span class="price-value">{{ servico.valor.toLocaleString() }} MZN</span>
+              </div>
+              <div class="ea-servico-card__rating">
+                <q-rating
+                  v-model="servico.avaliacao"
+                  readonly
+                  size="16px"
+                  color="amber"
+                  icon="star"
+                  icon-selected="star"
+                />
+                <span v-if="servico.total_avaliacoes > 0" class="rating-count">
+                  ({{ servico.total_avaliacoes }})
+                </span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Paginação -->
-        <div v-if="pagination.total_pages > 1" class="text-center q-mt-xl">
+        <div v-if="pagination.total_pages > 1" class="ea-pagination">
           <q-pagination
             v-model="pagination.current_page"
             :max="pagination.total_pages"
             :max-pages="6"
             boundary-numbers
             direction-links
+            color="primary"
             @update:model-value="mudarPagina"
           />
         </div>
       </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="cta-section q-py-xl">
-      <div class="container">
-        <div class="cta-card">
-          <div class="row items-center justify-between">
-            <div class="col-12 col-md-7">
-              <h3 class="cta-title">Precisa de um serviço?</h3>
-              <p class="cta-text">Encontre profissionais qualificados perto de si</p>
-            </div>
-            <div class="col-12 col-md-5 text-right">
-              <q-btn
-                unelevated
-                color="primary"
-                label="Ver Prestadores"
-                icon="person_search"
-                size="lg"
-                to="/mobile/lista-prestadores"
-                class="cta-button"
-                no-caps
-              />
-            </div>
-          </div>
+    <!-- ===== CTA FINAL ===== -->
+    <section class="ea-cta-section">
+      <div class="ea-cta-section__bg">
+        <div class="ea-cta__orb ea-cta__orb--1"></div>
+        <div class="ea-cta__orb ea-cta__orb--2"></div>
+      </div>
+      <div class="ea-container ea-cta__inner">
+        <div class="ea-cta__label">Precisa de um serviço?</div>
+        <h2 class="ea-cta__title">Encontre profissionais<br>qualificados perto de si</h2>
+        <div class="ea-cta__btns">
+          <q-btn
+            unelevated
+            color="primary"
+            label="Ver Prestadores"
+            icon="person_search"
+            size="lg"
+            to="/mobile/lista-prestadores"
+            class="ea-cta-white"
+            no-caps
+          />
         </div>
       </div>
     </section>
-  </q-page>
+
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -241,9 +253,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { api } from 'src/boot/axios';
 
-defineOptions({
-  name: 'ServicosPrestadosPage'
-});
+defineOptions({ name: 'ServicosPrestadosPage' });
 
 const $q = useQuasar();
 
@@ -287,13 +297,17 @@ interface Pagination {
   per_page: number;
 }
 
-// Tipos para parâmetros da API
 interface ServicosParams {
   page: number;
   limit: number;
   search?: string;
   categoria_id?: number | null;
   ordenar_por: string;
+}
+
+interface OrdenacaoOption {
+  label: string;
+  value: string;
 }
 
 // Estados
@@ -322,11 +336,6 @@ const filtros = reactive({
 });
 
 // Options
-interface OrdenacaoOption {
-  label: string;
-  value: string;
-}
-
 const ordenacaoOptions: OrdenacaoOption[] = [
   { label: 'Mais recentes', value: 'recentes' },
   { label: 'Mais antigos', value: 'antigos' },
@@ -335,7 +344,6 @@ const ordenacaoOptions: OrdenacaoOption[] = [
   { label: 'Menor valor', value: 'menor_valor' }
 ];
 
-// Declaração para o timeout da pesquisa
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Métodos para API
@@ -382,12 +390,10 @@ const carregarServicos = async (resetPage = true): Promise<void> => {
 
     servicos.value = response.data.data || response.data;
 
-    // Atualizar paginação
     if (response.data.pagination) {
       pagination.total_pages = response.data.pagination.last_page;
       pagination.total_items = response.data.pagination.total;
     }
-
   } catch (error) {
     console.error('Erro ao carregar serviços:', error);
     $q.notify({
@@ -400,14 +406,10 @@ const carregarServicos = async (resetPage = true): Promise<void> => {
   }
 };
 
-// Handlers
 const handleSearch = (): void => {
-  // Limpar timeout anterior se existir
   if (searchTimeout) {
     clearTimeout(searchTimeout);
   }
-
-  // Criar novo timeout
   searchTimeout = setTimeout(() => {
     void carregarServicos(true);
     searchTimeout = null;
@@ -426,33 +428,22 @@ const mudarPagina = (page: number): void => {
   void carregarServicos(false);
 };
 
-// Utils - Função manual para formatar data sem dependências
 const formatarData = (data: string): string => {
   try {
     const date = new Date(data);
-
-    // Verificar se a data é válida
-    if (isNaN(date.getTime())) {
-      return data;
-    }
+    if (isNaN(date.getTime())) return data;
 
     const dia = date.getDate().toString().padStart(2, '0');
     const mes = (date.getMonth() + 1).toString().padStart(2, '0');
     const ano = date.getFullYear();
-
     return `${dia}/${mes}/${ano}`;
   } catch {
     return data;
   }
 };
 
-// Lifecycle
 onMounted(async () => {
-  $q.loading.show({
-    message: 'A carregar serviços...',
-    delay: 400
-  });
-
+  $q.loading.show({ message: 'A carregar serviços...', delay: 400 });
   try {
     await Promise.all([
       carregarCategorias(),
@@ -466,310 +457,449 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
-$purple-secondary: #764ba2;
-$purple-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$ink: #0A0A0F;
+$accent: #5B4BF5;
+$gold: #F59E0B;
+$radius-md: 16px;
+$radius-lg: 24px;
+$radius-xl: 32px;
 
-.container {
+.ea-servicos-page {
+  font-family: 'DM Sans', 'Nunito', sans-serif;
+  background: #F7F7FA;
+  min-height: 100vh;
+}
+
+.ea-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
 }
 
-// Hero Section
-.page-hero {
+// =====================
+// HERO
+// =====================
+.ea-servicos-hero {
   position: relative;
-  min-height: 40vh;
-  display: flex;
-  align-items: center;
-  background: $purple-gradient;
+  background: $ink;
   overflow: hidden;
+  padding: 80px 0;
 
-  .hero-bg {
+  &__bg {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
-    background-size: cover;
-    background-position: center;
-    opacity: 0.1;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
   }
 
-  .hero-overlay {
+  &__noise {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.3);
+    inset: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 200px;
   }
 
-  .hero-content {
+  &__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  &__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+
+    &--1 {
+      width: 500px; height: 500px;
+      top: -200px; left: -150px;
+      background: radial-gradient(circle, rgba(91,75,245,0.3) 0%, transparent 70%);
+    }
+    &--2 {
+      width: 400px; height: 400px;
+      bottom: -100px; right: -100px;
+      background: radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%);
+    }
+    &--3 {
+      width: 300px; height: 300px;
+      top: 50%; right: 30%;
+      background: radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%);
+    }
+  }
+
+  &__container {
     position: relative;
     z-index: 2;
-    width: 100%;
-    color: white;
+    display: flex;
+    justify-content: center;
+    text-align: center;
   }
 
-  .hero-chip {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    margin-bottom: 1rem;
-  }
-
-  .hero-title {
-    font-size: 3rem;
-    font-weight: 800;
-    margin-bottom: 1rem;
-    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  }
-
-  .hero-subtitle {
-    font-size: 1.2rem;
-    opacity: 0.9;
-    max-width: 600px;
-    margin: 0 auto;
+  &__content {
+    max-width: 700px;
   }
 }
 
-// Stats Section
-.stats-section {
-  background: white;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  position: relative;
-  z-index: 10;
-  margin-top: -40px;
-  border-radius: 20px;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 1000px;
+.ea-servicos-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(91, 75, 245, 0.15);
+  border: 1px solid rgba(91, 75, 245, 0.3);
+  color: $accent;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 100px;
+  margin-bottom: 24px;
+}
 
-  .stats-grid {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 30px;
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(102, 126, 234, 0.1);
-    flex-wrap: wrap;
-    gap: 20px;
-  }
+.ea-badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ADE80;
+  box-shadow: 0 0 8px #4ADE80;
+}
 
-  .stat-item {
-    text-align: center;
-    flex: 1;
-    min-width: 120px;
-  }
+.ea-servicos-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  margin: 0 0 16px;
+}
 
-  .stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: $purple-primary;
-    line-height: 1.2;
-  }
+.ea-title-accent {
+  background: linear-gradient(135deg, $accent 0%, #A78BFA 50%, $gold 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-  .stat-label {
-    color: #666;
-    font-size: 0.9rem;
-  }
+.ea-servicos-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.6;
+}
 
-  .stat-divider {
-    width: 1px;
-    height: 40px;
-    background: #e0e0e0;
+// =====================
+// STATS BAR
+// =====================
+.ea-stats-bar {
+  background: $ink;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 32px 0;
 
-    @media (max-width: 768px) {
-      display: none;
+  &__inner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+
+    @media (max-width: 600px) {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px 0;
     }
   }
 }
 
-// Filters Section
-.filters-section {
-  background: #f8f9fa;
-  border-bottom: 1px solid #e0e0e0;
+.ea-stat {
+  text-align: center;
+  padding: 0 20px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+
+  &:last-child { border-right: none; }
+
+  &__value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.03em;
+  }
+
+  &__label {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.4);
+    margin-top: 4px;
+  }
 }
 
-// Serviços Section
-.servicos-section {
-  background: #f8f9fa;
+// =====================
+// FILTROS
+// =====================
+.ea-filters-section {
+  background: #fff;
+  padding: 24px 0;
+  border-bottom: 1px solid #EDEDF2;
+}
+
+.ea-filters-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 0.8fr;
+  gap: 16px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.ea-search-input,
+.ea-filter-select {
+  width: 100%;
+}
+
+.ea-clear-btn {
+  width: 100%;
+  height: 40px;
+}
+
+// =====================
+// SERVIÇOS
+// =====================
+.ea-servicos-section {
+  background: #F7F7FA;
+  padding: 60px 0;
   min-height: 60vh;
 }
 
-.servico-card {
-  background: white;
-  border-radius: 16px;
+.ea-servicos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ea-servico-card {
+  background: #fff;
+  border-radius: $radius-lg;
   padding: 24px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.03);
-  transition: all 0.3s ease;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 30px rgba(102, 126, 234, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
   }
 
-  .servico-header {
+  &__header {
     display: flex;
     align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-
-    .servico-icon {
-      width: 50px;
-      height: 50px;
-      background: rgba(102, 126, 234, 0.1);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .servico-titulo {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: #333;
-      line-height: 1.3;
-    }
-
-    .servico-categoria {
-      font-size: 0.9rem;
-      color: $purple-primary;
-    }
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
-  .servico-info {
+  &__icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(91, 75, 245, 0.1);
+    border-radius: $radius-md;
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 15px;
-
-    .info-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #666;
-      font-size: 0.9rem;
-
-      .q-icon {
-        font-size: 16px;
-      }
-    }
+    align-items: center;
+    justify-content: center;
+    color: $accent;
   }
 
-  .servico-descricao {
-    color: #666;
-    line-height: 1.6;
-    margin-bottom: 20px;
+  &__info {
     flex: 1;
   }
 
-  .servico-footer {
+  &__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0A0A0F;
+    margin-bottom: 4px;
+  }
+
+  &__category {
+    font-size: 0.75rem;
+    color: $accent;
+  }
+
+  &__status {
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
+
+  &__details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  &__description {
+    font-size: 0.85rem;
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+
+  &__footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 15px;
-    border-top: 1px solid #f0f0f0;
+    padding-top: 12px;
+    border-top: 1px solid #EDEDF2;
+  }
 
-    .preco-label {
-      font-size: 0.8rem;
+  &__price {
+    .price-label {
+      font-size: 0.7rem;
       color: #999;
       display: block;
     }
-
-    .preco-valor {
-      font-size: 1.2rem;
+    .price-value {
+      font-size: 1rem;
       font-weight: 700;
-      color: $purple-primary;
+      color: $accent;
     }
+  }
 
-    .servico-avaliacao {
-      display: flex;
-      align-items: center;
-      gap: 2px;
+  &__rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 
-      .avaliacao-count {
-        margin-left: 4px;
-        font-size: 0.8rem;
-        color: #999;
-      }
+    .rating-count {
+      font-size: 0.7rem;
+      color: #999;
     }
   }
 }
 
-// CTA Section
-.cta-section {
-  background: white;
-  padding: 60px 0;
+.ea-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #666;
 
-  .cta-card {
-    background: $purple-gradient;
-    padding: 60px;
-    border-radius: 30px;
-    box-shadow: 0 30px 60px rgba(102, 126, 234, 0.3);
+  .q-icon {
+    color: $accent;
+  }
+}
+
+// =====================
+// LOADING & EMPTY
+// =====================
+.ea-loading,
+.ea-empty {
+  text-align: center;
+  padding: 60px 20px;
+
+  .q-icon {
+    color: #ccc;
+    margin-bottom: 16px;
   }
 
-  .cta-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 10px;
-  }
-
-  .cta-text {
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .cta-button {
-    padding: 15px 40px;
-    border-radius: 50px;
+  h3 {
+    font-size: 1.3rem;
     font-weight: 600;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    color: #333;
+    margin-bottom: 8px;
+  }
 
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    }
+  p {
+    color: #999;
   }
 }
 
-// Responsividade
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 2.2rem !important;
+// =====================
+// PAGINAÇÃO
+// =====================
+.ea-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 48px;
+}
+
+// =====================
+// CTA FINAL
+// =====================
+.ea-cta-section {
+  position: relative;
+  background: $ink;
+  overflow: hidden;
+  padding: 80px 0;
+  text-align: center;
+}
+
+.ea-cta-section__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ea-cta__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+
+  &--1 {
+    width: 500px; height: 500px;
+    top: -200px; left: -100px;
+    background: radial-gradient(circle, rgba(91,75,245,0.4) 0%, transparent 70%);
   }
-
-  .stats-section {
-    margin-top: 20px;
-    margin-left: 20px;
-    margin-right: 20px;
-
-    .stats-grid {
-      flex-direction: column;
-      gap: 20px;
-    }
+  &--2 {
+    width: 400px; height: 400px;
+    bottom: -150px; right: -50px;
+    background: radial-gradient(circle, rgba(245,158,11,0.2) 0%, transparent 70%);
   }
+}
 
-  .cta-card {
-    padding: 30px !important;
-    text-align: center;
+.ea-cta__inner {
+  position: relative;
+  z-index: 2;
+}
 
-    .text-right {
-      text-align: center !important;
-      margin-top: 20px;
-    }
-  }
+.ea-cta__label {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $accent;
+  background: rgba(91,75,245,0.15);
+  border: 1px solid rgba(91,75,245,0.3);
+  padding: 5px 14px;
+  border-radius: 100px;
+  margin-bottom: 24px;
+}
 
-  .filters-section {
-    .col-12 {
-      margin-bottom: 10px;
-    }
+.ea-cta__title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+  margin: 0 0 32px;
+}
+
+.ea-cta-white {
+  background: #fff;
+  color: $ink;
+  padding: 14px 32px;
+  border-radius: 100px;
+  font-weight: 600;
+  transition: all 0.25s;
+
+  &:hover {
+    background: #f0effe;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255,255,255,0.15);
   }
 }
 </style>

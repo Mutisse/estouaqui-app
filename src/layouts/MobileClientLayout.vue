@@ -1,20 +1,22 @@
 <template>
-  <q-layout view="hHh lpR fFf" class="bg-grey-1 mobile-client-layout">
-    <!-- Header compacto para mobile -->
-    <q-header elevated class="header-custom">
-      <q-toolbar class="toolbar-compact">
-        <q-btn flat round dense icon="menu" class="menu-btn" @click="leftDrawerOpen = !leftDrawerOpen" />
+  <q-layout view="hHh lpR fFf" class="mobile-client-layout">
+
+    <!-- ===== HEADER ===== -->
+    <q-header class="ea-header" :class="{ 'ea-header--scrolled': scrolled }">
+      <q-toolbar class="ea-toolbar">
+        <q-btn flat round dense class="ea-menu-btn" @click="leftDrawerOpen = !leftDrawerOpen">
+          <q-icon name="menu" size="22px" />
+        </q-btn>
+
         <q-toolbar-title class="text-center">
-          <div class="logo-mini">
-            <q-icon name="location_on" size="16px" class="logo-icon" />
-            <span class="logo-text">
-              <span class="text-light">estou</span>
-              <span class="text-bold">aqui</span>
-            </span>
+          <div class="ea-logo" @click="goToHome">
+            <span class="ea-logo__dot"></span>
+            <span class="ea-logo__text">estou<strong>aqui</strong></span>
           </div>
         </q-toolbar-title>
-        <q-btn flat round dense class="notification-btn" @click="openNotifications">
-          <q-icon name="notifications" size="20px" />
+
+        <q-btn flat round dense class="ea-notification-btn" @click="openNotifications">
+          <q-icon name="notifications" size="22px" />
           <q-badge v-if="unreadCount > 0" color="red" floating class="notification-badge">
             {{ unreadCount > 99 ? '99+' : unreadCount }}
           </q-badge>
@@ -22,29 +24,42 @@
       </q-toolbar>
     </q-header>
 
-    <!-- Drawer lateral -->
-    <q-drawer v-model="leftDrawerOpen" side="left" :width="280" overlay elevated class="drawer-custom">
+    <!-- ===== DRAWER LATERAL (ESCURO - PADRÃO DO SISTEMA) ===== -->
+    <q-drawer
+      v-model="leftDrawerOpen"
+      side="left"
+      :width="280"
+      overlay
+      elevated
+      class="ea-drawer"
+      :breakpoint="0"
+    >
       <q-scroll-area class="fit">
-        <div class="drawer-header">
-          <q-avatar size="70px" class="drawer-avatar">
+        <div class="ea-drawer__header">
+          <q-avatar size="70px" class="ea-drawer__avatar">
             <img :src="userAvatar" alt="Avatar" />
           </q-avatar>
-          <div class="drawer-user-info">
+          <div class="ea-drawer__user-info">
             <div class="user-name">{{ userName || 'Cliente' }}</div>
             <div class="user-type">Cliente</div>
           </div>
         </div>
 
-        <q-list padding class="drawer-menu">
-          <q-item-label header class="menu-header"><q-icon name="menu" size="16px" /> Navegação</q-item-label>
+        <q-list padding class="ea-drawer__menu">
+          <q-item-label header class="menu-header">
+            <q-icon name="menu" size="16px" /> Navegação
+          </q-item-label>
+
           <q-item clickable v-ripple to="/mobile/inicio" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
             <q-item-section avatar><q-icon name="home" class="menu-icon" /></q-item-section>
             <q-item-section>Início</q-item-section>
           </q-item>
+
           <q-item clickable v-ripple to="/mobile/mapa" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
             <q-item-section avatar><q-icon name="map" class="menu-icon" /></q-item-section>
             <q-item-section>Mapa</q-item-section>
           </q-item>
+
           <q-item clickable v-ripple to="/mobile/lista-prestadores" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
             <q-item-section avatar><q-icon name="list" class="menu-icon" /></q-item-section>
             <q-item-section>Prestadores</q-item-section>
@@ -52,21 +67,27 @@
 
           <q-separator spaced class="menu-separator" />
 
-          <q-item-label header class="menu-header"><q-icon name="person" size="16px" /> Minha Conta</q-item-label>
+          <q-item-label header class="menu-header">
+            <q-icon name="person" size="16px" /> Minha Conta
+          </q-item-label>
+
           <q-item clickable v-ripple to="/mobile/perfil" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
             <q-item-section avatar><q-icon name="person" class="menu-icon" /></q-item-section>
             <q-item-section>Meu Perfil</q-item-section>
           </q-item>
+
           <q-item clickable v-ripple to="/mobile/meus-pedidos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
             <q-item-section avatar><q-icon name="assignment" class="menu-icon" /></q-item-section>
             <q-item-section>Meus Pedidos</q-item-section>
           </q-item>
+
           <q-item clickable v-ripple to="/mobile/favoritos" class="menu-item" active-class="menu-item-active" @click="leftDrawerOpen = false">
             <q-item-section avatar><q-icon name="favorite" class="menu-icon" /></q-item-section>
             <q-item-section>Favoritos</q-item-section>
           </q-item>
 
           <q-separator spaced class="menu-separator" />
+
           <q-item clickable v-ripple @click="confirmLogout" class="menu-item logout-item">
             <q-item-section avatar><q-icon name="logout" class="menu-icon" /></q-item-section>
             <q-item-section>Sair</q-item-section>
@@ -75,86 +96,24 @@
       </q-scroll-area>
     </q-drawer>
 
-    <!-- Conteúdo principal COM SKELETON LOADING (sem texto) -->
+    <!-- ===== PAGE CONTAINER ===== -->
     <q-page-container class="page-container">
-      <!-- Skeleton Loading enquanto carrega - SEM TEXTO -->
-      <div v-if="loadingGlobal" class="skeleton-container q-pa-md">
-        <!-- Skeleton do Header -->
-        <div class="skeleton-header q-mb-md">
-          <q-skeleton type="circle" size="48px" />
-          <div class="skeleton-header-text">
-            <q-skeleton type="text" width="120px" height="20px" />
-            <q-skeleton type="text" width="80px" height="14px" class="q-mt-sm" />
-          </div>
-        </div>
-
-        <!-- Skeleton das Categorias -->
-        <div class="skeleton-section">
-          <div class="skeleton-section-header">
-            <q-skeleton type="text" width="100px" height="20px" />
-            <q-skeleton type="text" width="60px" height="16px" />
-          </div>
-          <div class="skeleton-categorias">
-            <div v-for="i in 6" :key="i" class="skeleton-categoria-item">
-              <q-skeleton type="circle" size="50px" />
-              <q-skeleton type="text" width="60px" height="12px" class="q-mt-sm" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Skeleton do Dashboard -->
-        <div class="skeleton-section">
-          <q-skeleton type="text" width="80px" height="20px" class="q-mb-md" />
-          <div class="skeleton-stats-grid">
-            <div v-for="i in 4" :key="i">
-              <q-skeleton type="rect" height="70px" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Skeleton dos Pedidos -->
-        <div class="skeleton-section">
-          <div class="skeleton-section-header">
-            <q-skeleton type="text" width="120px" height="20px" />
-            <q-skeleton type="text" width="60px" height="16px" />
-          </div>
-          <div v-for="i in 2" :key="i" class="skeleton-pedido-item">
-            <q-skeleton type="rect" height="80px" />
-          </div>
-        </div>
-
-        <!-- Skeleton dos Prestadores -->
-        <div class="skeleton-section">
-          <div class="skeleton-section-header">
-            <q-skeleton type="text" width="120px" height="20px" />
-            <q-skeleton type="text" width="60px" height="16px" />
-          </div>
-          <div class="skeleton-prestadores">
-            <div v-for="i in 4" :key="i" class="skeleton-prestador-item">
-              <q-skeleton type="circle" size="60px" />
-              <q-skeleton type="text" width="70px" height="14px" class="q-mt-sm" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Conteúdo REAL após carregar -->
-      <router-view v-else />
+      <router-view />
     </q-page-container>
 
-    <!-- Rodapé com 4 ícones -->
-    <q-footer class="footer-custom">
-      <q-tabs class="tabs-custom" indicator-color="transparent" active-color="black" active-bg-color="rgba(0,0,0,0.05)" narrow-indicator stretch>
-        <q-route-tab to="/mobile/inicio" icon="home" label="Início" class="tab-item" active-class="tab-active" />
-        <q-route-tab to="/mobile/mapa" icon="map" label="Mapa" class="tab-item" active-class="tab-active" />
-        <q-route-tab to="/mobile/lista-prestadores" icon="list" label="Prestadores" class="tab-item" active-class="tab-active" />
-        <q-route-tab to="/mobile/perfil" icon="person" label="Perfil" class="tab-item" active-class="tab-active" />
+    <!-- ===== RODAPÉ COM TABS ===== -->
+    <q-footer class="ea-footer-tabs">
+      <q-tabs class="ea-tabs" indicator-color="transparent" active-color="white" narrow-indicator stretch>
+        <q-route-tab to="/mobile/inicio" icon="home" label="Início" class="ea-tab-item" active-class="ea-tab-active" />
+        <q-route-tab to="/mobile/mapa" icon="map" label="Mapa" class="ea-tab-item" active-class="ea-tab-active" />
+        <q-route-tab to="/mobile/lista-prestadores" icon="list" label="Prestadores" class="ea-tab-item" active-class="ea-tab-active" />
+        <q-route-tab to="/mobile/perfil" icon="person" label="Perfil" class="ea-tab-item" active-class="ea-tab-active" />
       </q-tabs>
     </q-footer>
 
-    <!-- Modal de Notificações -->
+    <!-- ===== MODAL DE NOTIFICAÇÕES ===== -->
     <q-dialog v-model="notificationsDialog" position="top" class="notifications-dialog">
-      <q-card style="min-width: 350px; max-width: 500px">
+      <q-card class="notifications-card">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Notificações</div>
           <q-space />
@@ -200,60 +159,60 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
-import { useClienteStore, type NotificacaoData } from 'src/stores/cliente-store';
+import { useClienteComunicacaoStore, type NotificacaoData } from 'src/stores/client/cliente-comunicacao-store';
+import { useClientePedidosStore } from 'src/stores/client/cliente-pedidos-store';
+import { useClientePublicStore } from 'src/stores/client/cliente-public-store';
 import { useQuasar } from 'quasar';
 
 const router = useRouter();
 const authStore = useAuthStore();
-const clienteStore = useClienteStore();
+const comunicacaoStore = useClienteComunicacaoStore();
+const pedidosStore = useClientePedidosStore();
+const publicStore = useClientePublicStore();
 const $q = useQuasar();
 
 const leftDrawerOpen = ref(false);
 const notificationsDialog = ref(false);
 const loadingNotificacoes = ref(false);
 const loadingGlobal = ref(true);
+const scrolled = ref(false);
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-// Computed
 const userName = computed(() => authStore.user?.nome || 'Cliente');
 const userAvatar = computed(() => authStore.user?.foto || 'https://cdn.quasar.dev/img/avatar.png');
 
 const notificacoesLista = computed<NotificacaoData[]>(() => {
-  if (Array.isArray(clienteStore.notificacoes)) {
-    return clienteStore.notificacoes;
+  if (Array.isArray(comunicacaoStore.notificacoes)) {
+    return comunicacaoStore.notificacoes;
   }
   return [];
 });
 
 const unreadCount = computed(() => {
-  if (!Array.isArray(clienteStore.notificacoes)) return 0;
-  return clienteStore.notificacoes.filter((n: NotificacaoData) => !n.lida).length;
+  if (!Array.isArray(comunicacaoStore.notificacoes)) return 0;
+  return comunicacaoStore.notificacoes.filter((n: NotificacaoData) => !n.lida).length;
 });
 
-// ==========================================
-// CARREGAMENTO EM BACKGROUND (SEM TOASTS)
-// ==========================================
+function goToHome() { void router.push('/'); }
+function onScroll() { scrolled.value = window.scrollY > 40; }
+
 const carregarDadosEmBackground = async () => {
   try {
     await Promise.all([
-      clienteStore.fetchNotificacoes(),
-      clienteStore.fetchDashboard(),
-      clienteStore.fetchMeusPedidos(),
-      clienteStore.fetchFavoritos(),
-      clienteStore.fetchCategorias(),
-      clienteStore.fetchPrestadoresDestaque(),
+      comunicacaoStore.fetchNotificacoes(),
+      pedidosStore.fetchDashboard(),
+      pedidosStore.fetchMeusPedidos(),
+      comunicacaoStore.fetchFavoritos(),
+      publicStore.fetchCategorias(),
+      publicStore.fetchPrestadoresDestaque(),
     ]);
   } catch (error) {
     console.error('Erro ao carregar dados:', error);
   } finally {
-    // Pequeno delay para o skeleton ser visível (evita flicker)
-    setTimeout(() => {
-      loadingGlobal.value = false;
-    }, 500);
+    setTimeout(() => { loadingGlobal.value = false; }, 500);
   }
 };
 
-// Funções auxiliares
 const getNotificacaoIcone = (notif: NotificacaoData) => {
   const tipo = notif.tipo || notif.type || 'default';
   const icones: Record<string, string> = {
@@ -291,7 +250,6 @@ const formatarData = (dataString: string) => {
   }
 };
 
-// Abrir notificação
 const abrirNotificacao = async (notificacao: NotificacaoData) => {
   notificationsDialog.value = false;
   const tipo = notificacao.tipo || notificacao.type || '';
@@ -343,31 +301,17 @@ const abrirNotificacao = async (notificacao: NotificacaoData) => {
   }
 
   if (tipo === 'nova_transacao' || tipo === 'transacao_status') {
-    if (authStore.isPrestador) {
-      void router.push('/mobile/prestador/ganhos');
-    } else {
-      void router.push('/mobile/perfil');
-    }
-    return;
-  }
-
-  if (tipo === 'prestador_aprovado' || tipo === 'prestador_reprovado') {
-    if (authStore.isPrestador) {
-      void router.push('/mobile/prestador/perfil');
-    } else {
-      void router.push('/mobile/perfil');
-    }
+    void router.push('/mobile/perfil');
     return;
   }
 
   console.log('Notificação sem destino definido:', tipo);
 };
 
-// Ações de notificações
 const carregarNotificacoes = async () => {
   loadingNotificacoes.value = true;
   try {
-    await clienteStore.fetchNotificacoes();
+    await comunicacaoStore.fetchNotificacoes();
   } catch (error) {
     console.error('Erro ao carregar notificações:', error);
   } finally {
@@ -377,7 +321,7 @@ const carregarNotificacoes = async () => {
 
 const marcarNotificacaoLida = async (id: number): Promise<boolean> => {
   try {
-    const success = await clienteStore.marcarNotificacaoLida(id);
+    const success = await comunicacaoStore.marcarNotificacaoLida(id);
     if (success) {
       await carregarNotificacoes();
     }
@@ -390,7 +334,7 @@ const marcarNotificacaoLida = async (id: number): Promise<boolean> => {
 
 const marcarTodasComoLidas = async () => {
   try {
-    const success = await clienteStore.marcarTodasNotificacoesLidas();
+    const success = await comunicacaoStore.marcarTodasNotificacoesLidas();
     if (success) {
       await carregarNotificacoes();
       $q.notify({ type: 'positive', message: 'Todas notificações marcadas como lidas', position: 'top', timeout: 2000 });
@@ -406,12 +350,11 @@ const openNotifications = async () => {
   await carregarNotificacoes();
 };
 
-// Polling
 const iniciarPolling = () => {
   if (pollingInterval) clearInterval(pollingInterval);
   pollingInterval = setInterval(() => {
     if (document.hasFocus()) {
-      void carregarNotificacoes();
+      void comunicacaoStore.fetchNotificacoes();
     }
   }, 30000);
 };
@@ -423,7 +366,6 @@ const pararPolling = () => {
   }
 };
 
-// Logout
 const confirmLogout = () => {
   $q.dialog({
     title: 'Confirmar saída',
@@ -443,77 +385,111 @@ const confirmLogout = () => {
   });
 };
 
-// Lifecycle
 onMounted(() => {
   void carregarDadosEmBackground();
   iniciarPolling();
+  window.addEventListener('scroll', onScroll, { passive: true });
 });
 
 onUnmounted(() => {
   pararPolling();
+  window.removeEventListener('scroll', onScroll);
 });
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
-$purple-secondary: #764ba2;
-$purple-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-$gray-50: #fafafa;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-$gray-700: #616161;
-$gray-800: #424242;
-$gray-900: #212121;
+// =====================
+// TOKENS DO SISTEMA
+// =====================
+$ink: #0A0A0F;
+$accent: #5B4BF5;
+$accent-light: rgba(91, 75, 245, 0.08);
+$accent-mid: rgba(91, 75, 245, 0.15);
+$gold: #F59E0B;
+$green: #10B981;
+$surface: #FFFFFF;
+$bg: #F4F4F8;
+$line: rgba(0, 0, 0, 0.06);
+$muted: #9898A8;
+$radius: 16px;
+$radius-sm: 10px;
+$radius-xs: 8px;
 
+// =====================
+// LAYOUT PRINCIPAL
+// =====================
 .mobile-client-layout {
   max-width: 100%;
   margin: 0 auto;
   height: 100vh;
   display: flex;
   flex-direction: column;
+  background: $bg;
 }
 
-.header-custom {
-  background: $purple-gradient !important;
-  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
-}
+// =====================
+// HEADER (PADRÃO ESCURO)
+// =====================
+.ea-header {
+  background: $ink !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+  transition: background 0.35s ease, box-shadow 0.35s ease;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
 
-.toolbar-compact {
-  min-height: 56px;
-  padding: 0 12px;
-}
-
-.menu-btn {
-  color: white;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-  padding: 8px;
-  &:hover { background: rgba(255, 255, 255, 0.2); }
-  &:active { transform: scale(0.95); }
-}
-
-.logo-mini {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  .logo-icon { color: #ffd700; font-size: 16px; }
-  .logo-text {
-    font-size: 0.95rem;
-    .text-light { font-weight: 300; color: rgba(255, 255, 255, 0.9); }
-    .text-bold { font-weight: 700; color: white; }
+  &--scrolled {
+    background: rgba(10, 10, 15, 0.88) !important;
+    backdrop-filter: blur(20px);
   }
 }
 
-.notification-btn {
-  color: white;
-  position: relative;
+.ea-toolbar {
+  min-height: 56px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ea-menu-btn, .ea-notification-btn {
+  color: rgba(255,255,255,0.8);
+  border-radius: 50%;
+  transition: all 0.2s;
   padding: 8px;
-  &:hover { background: rgba(255, 255, 255, 0.2); }
-  &:active { transform: scale(0.95); }
+
+  &:hover {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+  }
+}
+
+// Logo
+.ea-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $accent;
+    box-shadow: 0 0 8px rgba(91,75,245,0.8);
+  }
+
+  &__text {
+    font-size: 1rem;
+    color: #fff;
+    font-weight: 400;
+
+    strong {
+      font-weight: 800;
+      background: linear-gradient(135deg, $accent 0%, #A78BFA 50%, $gold 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  }
 }
 
 .notification-badge {
@@ -522,129 +498,127 @@ $gray-900: #212121;
   right: 4px;
 }
 
-/* ========================================== */
-/* SKELETON LOADING STYLES (SEM TEXTO) */
-/* ========================================== */
-.skeleton-container {
-  background: #f6f8fa;
-  min-height: 100%;
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
 }
 
-.skeleton-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-  .skeleton-header-text { flex: 1; }
-}
+// =====================
+// DRAWER (ESCURO - PADRÃO DO SISTEMA) - CORRIGIDO
+// =====================
+.ea-drawer {
+  background: $ink !important;
 
-.skeleton-section {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.skeleton-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.skeleton-categorias {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  .skeleton-categoria-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 60px;
+  .q-drawer__content {
+    background: $ink !important;
   }
 }
 
-.skeleton-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.skeleton-pedido-item {
-  margin-bottom: 12px;
-}
-
-.skeleton-prestadores {
-  display: flex;
-  gap: 16px;
-  justify-content: space-around;
-  .skeleton-prestador-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
-  }
-}
-
-/* Drawer */
-.drawer-custom { background: white; }
-
-.drawer-header {
+// Forçar fundo escuro em todos os elementos do drawer
+.ea-drawer__header {
   padding: 24px 16px;
-  background: $purple-gradient;
+  background: $ink;
   text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
-.drawer-avatar {
-  border: 2px solid white;
+.ea-drawer__avatar {
+  border: 2px solid $accent;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   margin-bottom: 12px;
 }
 
-.drawer-user-info {
-  .user-name { font-size: 1rem; font-weight: 700; color: white; margin-bottom: 4px; }
-  .user-type { font-size: 0.8rem; color: rgba(255, 255, 255, 0.9); }
+.ea-drawer__user-info {
+  .user-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .user-type {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.6);
+  }
 }
 
-.drawer-menu { padding: 16px; }
+.ea-drawer__menu {
+  padding: 16px;
+  background: $ink !important;
 
-.menu-header {
-  color: $gray-600;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 12px 0 4px;
-  .q-icon { margin-right: 6px; font-size: 14px; }
+  .menu-header {
+    color: rgba(255,255,255,0.4);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 0 4px;
+    background: transparent !important;
+
+    .q-icon {
+      margin-right: 6px;
+      font-size: 14px;
+    }
+  }
+
+  .menu-separator {
+    background: rgba(255,255,255,0.08);
+    margin: 12px 0;
+  }
+
+  .menu-item {
+    border-radius: 10px;
+    margin: 2px 0;
+    min-height: 48px;
+    color: rgba(255,255,255,0.7);
+    background: transparent !important;
+
+    &:hover {
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+    }
+
+    .menu-icon {
+      color: rgba(255,255,255,0.5);
+      font-size: 20px;
+    }
+  }
+
+  .menu-item-active {
+    background: $accent-mid;
+
+    .menu-icon {
+      color: $accent;
+    }
+
+    .q-item__section {
+      color: #fff;
+      font-weight: 500;
+    }
+  }
+
+  .logout-item:hover {
+    background: rgba(244, 67, 54, 0.1);
+
+    .menu-icon {
+      color: #f44336;
+    }
+  }
 }
 
-.menu-separator { background: $gray-200; margin: 12px 0; }
-
-.menu-item {
-  border-radius: 10px;
-  margin: 2px 0;
-  min-height: 48px;
-  &:hover { background: rgba(102, 126, 234, 0.05); }
-  &:active { background: rgba(102, 126, 234, 0.15); transform: scale(0.98); }
-  .menu-icon { color: $gray-600; font-size: 20px; }
+// =====================
+// PAGE CONTAINER
+// =====================
+.page-container {
+  padding-bottom: 70px;
+  flex: 1;
+  margin-top: 56px;
 }
 
-.menu-item-active {
-  background: rgba(102, 126, 234, 0.1);
-  .menu-icon { color: $purple-primary; }
-  .q-item__section { color: $purple-primary; font-weight: 500; }
-}
-
-.logout-item:hover { background: rgba(244, 67, 54, 0.05);
-  .menu-icon { color: #f44336; }
-}
-
-.page-container { padding-bottom: 70px; flex: 1; }
-
-.footer-custom {
-  background: white !important;
-  border-top: 1px solid $gray-200;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+// =====================
+// FOOTER TABS (ESCURO)
+// =====================
+.ea-footer-tabs {
+  background: $ink !important;
+  border-top: 1px solid rgba(255,255,255,0.06);
   position: fixed;
   bottom: 0;
   left: 0;
@@ -652,44 +626,105 @@ $gray-900: #212121;
   z-index: 1000;
 }
 
-.tabs-custom {
-  background: white;
-  color: $gray-600;
+.ea-tabs {
+  background: $ink;
+  color: rgba(255,255,255,0.6);
   height: 60px;
 }
 
-.tab-item {
+.ea-tab-item {
   min-height: 60px;
   transition: all 0.2s ease;
-  color: $gray-600;
-  :deep(.q-tab__icon) { font-size: 22px; margin-bottom: 2px; color: $gray-500; }
-  :deep(.q-tab__label) { font-size: 11px; font-weight: 500; color: $gray-600; }
-  &:active { transform: scale(0.95); }
+  color: rgba(255,255,255,0.6);
+
+  :deep(.q-tab__icon) {
+    font-size: 22px;
+    margin-bottom: 2px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  :deep(.q-tab__label) {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.5);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
-.tab-active {
-  color: $gray-900 !important;
-  background: rgba(0, 0, 0, 0.05);
-  :deep(.q-tab__icon) { color: $gray-800 !important; }
-  :deep(.q-tab__label) { color: $gray-900 !important; font-weight: 600; }
+.ea-tab-active {
+  color: $accent !important;
+
+  :deep(.q-tab__icon) {
+    color: $accent !important;
+  }
+
+  :deep(.q-tab__label) {
+    color: $accent !important;
+    font-weight: 600;
+  }
 }
 
-.notifications-dialog :deep(.q-dialog__inner) { margin-top: 56px; }
-.notification-unread { background: rgba(102, 126, 234, 0.05); border-left: 3px solid $purple-primary; }
+// =====================
+// NOTIFICAÇÕES
+// =====================
+.notifications-dialog :deep(.q-dialog__inner) {
+  margin-top: 56px;
+}
 
+.notifications-card {
+  background: $ink;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.notification-unread {
+  background: rgba($accent, 0.1);
+  border-left: 3px solid $accent;
+}
+
+// =====================
+// SAFE AREA
+// =====================
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .footer-custom { padding-bottom: env(safe-area-inset-bottom); }
-  .page-container { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+  .ea-footer-tabs {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .page-container {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+  }
 }
 
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+// =====================
+// RESPONSIVIDADE - GARANTIR DRAWER ESCURO EM TODOS OS TAMANHOS
+// =====================
+@media (max-width: 768px) {
+  .ea-drawer {
+    background: $ink !important;
+
+    .q-drawer__content {
+      background: $ink !important;
+    }
+  }
+
+  .ea-drawer__menu {
+    background: $ink !important;
+  }
 }
 
 @media (max-width: 360px) {
-  .logo-mini .logo-text { font-size: 0.85rem; }
-  .tab-item :deep(.q-tab__icon) { font-size: 20px; }
-  .tab-item :deep(.q-tab__label) { font-size: 10px; }
+  .ea-logo__text {
+    font-size: 0.85rem;
+  }
+
+  .ea-tab-item :deep(.q-tab__icon) {
+    font-size: 20px;
+  }
+
+  .ea-tab-item :deep(.q-tab__label) {
+    font-size: 10px;
+  }
 }
 </style>

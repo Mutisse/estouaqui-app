@@ -1,1035 +1,1171 @@
 <template>
-  <q-page class="prestador-agenda bg-grey-1">
-    <!-- Skeleton Loading (enquanto carrega) -->
-    <div v-if="carregamentoInicial" class="skeleton-loading">
+  <div class="prestador-agenda">
+
+    <!-- ===== CABEÇALHO ===== -->
+    <div class="page-header">
+      <button class="back-btn" @click="() => void router.back()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+      <h1 class="page-title">Minha Agenda</h1>
+      <button class="help-btn" @click="ajuda">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ===== SKELETON LOADING ===== -->
+    <div v-if="carregamentoInicial" class="skeleton-container">
       <div class="skeleton-header">
-        <div class="skeleton-back-btn"></div>
         <div class="skeleton-title"></div>
-        <div class="skeleton-add-btn"></div>
+        <div class="skeleton-subtitle"></div>
       </div>
       <div class="skeleton-week-selector">
-        <div class="skeleton-nav-btn"></div>
-        <div class="skeleton-week-text"></div>
-        <div class="skeleton-nav-btn"></div>
+        <div class="skeleton-btn"></div>
+        <div class="skeleton-range"></div>
+        <div class="skeleton-btn"></div>
       </div>
-      <div class="skeleton-days-grid">
-        <div v-for="i in 7" :key="i" class="skeleton-day-card"></div>
-      </div>
-      <div class="skeleton-section-header">
-        <div class="skeleton-line w-40"></div>
-        <div class="skeleton-btn-small"></div>
-      </div>
-      <div class="skeleton-horarios-grid">
-        <div v-for="i in 6" :key="i" class="skeleton-horario-card"></div>
-      </div>
-      <div class="skeleton-section-header">
-        <div class="skeleton-line w-40"></div>
-        <div class="skeleton-btn-small"></div>
-      </div>
-      <div class="skeleton-intervalos-list">
-        <div v-for="i in 2" :key="i" class="skeleton-intervalo-item">
-          <div class="skeleton-intervalo-info">
-            <div class="skeleton-line w-50"></div>
-            <div class="skeleton-line w-30"></div>
-          </div>
-          <div class="skeleton-intervalo-actions">
-            <div class="skeleton-icon-btn"></div>
-            <div class="skeleton-icon-btn"></div>
-          </div>
+      <div class="skeleton-grid">
+        <div class="skeleton-grid-header"></div>
+        <div v-for="i in 10" :key="i" class="skeleton-row">
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
+          <div class="skeleton-cell"></div>
         </div>
-      </div>
-      <div class="skeleton-save-btn"></div>
-      <div class="skeleton-spinner">
-        <q-spinner color="primary" size="40px" />
       </div>
     </div>
 
-    <!-- Conteúdo original -->
+    <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
-      <!-- Cabeçalho -->
-      <div class="page-header q-pa-md">
-        <q-btn flat round icon="arrow_back" @click="router.back()" />
-        <div class="text-h5 text-bold">Minha Agenda</div>
-        <q-btn flat round icon="add" @click="adicionarDisponibilidade" />
+
+      <!-- ===== SELECTOR DE SEMANA ===== -->
+      <div class="week-selector">
+        <button class="week-nav" @click="semanaAnterior">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <div class="week-range">{{ semanaRange }}</div>
+        <button class="week-nav" @click="proximaSemana">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+        <button class="today-btn" @click="irParaHoje">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Hoje
+        </button>
       </div>
 
-      <!-- Seletor de semana -->
-      <div class="week-selector q-px-md q-mb-md">
-        <div class="row items-center justify-between">
-          <q-btn flat round icon="chevron_left" @click="semanaAnterior" />
-          <div class="text-subtitle1">{{ semanaAtual }}</div>
-          <q-btn flat round icon="chevron_right" @click="proximaSemana" />
+      <!-- ===== LEGENDA ===== -->
+      <div class="legenda">
+        <div class="legenda-item">
+          <div class="legenda-cor disponivel"></div>
+          <span>Disponível</span>
+        </div>
+        <div class="legenda-item">
+          <div class="legenda-cor ocupado"></div>
+          <span>Ocupado</span>
+        </div>
+        <div class="legenda-item">
+          <div class="legenda-cor bloqueado"></div>
+          <span>Bloqueado</span>
         </div>
       </div>
 
-      <!-- Dias da semana -->
-      <div class="days-grid q-px-md q-mb-md">
-        <div class="row q-col-gutter-sm">
-          <div v-for="dia in diasSemana" :key="dia.nome" class="col">
-            <q-card
-              class="day-card"
-              :class="{ today: dia.hoje, selected: dia.selecionado }"
-              flat
-              bordered
-              @click="selecionarDia(dia)"
-            >
-              <q-card-section class="text-center q-pa-sm">
-                <div class="day-name">{{ dia.nomeCurto }}</div>
-                <div class="day-number">{{ dia.numero }}</div>
-                <div class="day-month">{{ dia.mes }}</div>
-              </q-card-section>
-            </q-card>
+      <!-- ===== GRID DA AGENDA ===== -->
+      <div class="agenda-grid">
+        <!-- Cabeçalho dos dias -->
+        <div class="grid-header">
+          <div class="header-cell hora-header"></div>
+          <div v-for="dia in diasDaSemana" :key="dia.data" class="header-cell">
+            <div class="dia-semana">{{ dia.nomeCurto }}</div>
+            <div class="dia-mes">{{ dia.diaMes }}</div>
+          </div>
+        </div>
+
+        <!-- Linhas de horários -->
+        <div
+          v-for="horario in horariosDoDia"
+          :key="horario.horario"
+          class="grid-row"
+        >
+          <div class="hora-label">{{ horario.horario }}</div>
+          <div
+            v-for="dia in diasDaSemana"
+            :key="dia.data"
+            class="grid-cell"
+            :class="{
+              'cell-disponivel': getHorarioStatus(dia.data, horario.horario).disponivel && !getHorarioStatus(dia.data, horario.horario).ocupado,
+              'cell-ocupado': getHorarioStatus(dia.data, horario.horario).ocupado,
+              'cell-bloqueado': getHorarioStatus(dia.data, horario.horario).bloqueado,
+            }"
+            @click="toggleHorario(dia.data, horario.horario)"
+          >
+            <svg v-if="getHorarioStatus(dia.data, horario.horario).bloqueado" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="18" y1="6" x2="6" y2="18"/>
+            </svg>
+            <svg v-else-if="getHorarioStatus(dia.data, horario.horario).ocupado" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
           </div>
         </div>
       </div>
 
-      <!-- Horários do dia selecionado -->
-      <div class="horarios-section q-px-md q-mb-md">
-        <div class="section-header">
-          <div class="section-title">Horários para {{ diaSelecionado }}</div>
-          <q-btn flat dense label="Adicionar" icon="add" @click="adicionarHorario" />
-        </div>
-
-        <div v-if="carregandoHorarios" class="text-center q-py-md">
-          <q-spinner size="32px" />
-        </div>
-
-        <div v-else class="horarios-grid">
-          <div v-for="horario in horariosDoDia" :key="horario.id" class="horario-item">
-            <q-card
-              class="horario-card"
-              :class="{ disponivel: horario.disponivel, ocupado: !horario.disponivel }"
-              flat
-              bordered
-              @click="toggleHorario(horario)"
-            >
-              <q-card-section class="text-center">
-                <div class="horario-tempo">{{ horario.horario }}</div>
-                <div class="horario-status">
-                  {{ horario.disponivel ? 'Disponível' : 'Ocupado' }}
-                </div>
-              </q-card-section>
-            </q-card>
-          </div>
-        </div>
-      </div>
-
-      <!-- Intervalos de horário -->
-      <div class="intervalos-section q-px-md q-mb-md">
-        <div class="section-header">
-          <div class="section-title">Intervalos configurados</div>
-          <q-btn flat dense label="Configurar" icon="settings" @click="configurarIntervalos" />
-        </div>
-
-        <div v-if="carregandoIntervalos" class="text-center q-py-md">
-          <q-spinner size="32px" />
-        </div>
-
-        <div v-else-if="intervalos.length === 0" class="empty-state q-pa-md text-center">
-          <q-icon name="schedule" size="48px" color="grey-4" />
-          <div class="text-grey-6 q-mt-sm">Nenhum intervalo configurado</div>
-        </div>
-
-        <q-list v-else bordered separator>
-          <q-item v-for="intervalo in intervalos" :key="intervalo.id">
-            <q-item-section>
-              <q-item-label>{{ getDiasTexto(intervalo.dias) }}</q-item-label>
-              <q-item-label caption>{{ intervalo.inicio }} - {{ intervalo.fim }}</q-item-label>
-              <q-item-label v-if="intervalo.descricao" caption class="text-grey-6">
-                {{ intervalo.descricao }}
-              </q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-btn flat round icon="edit" size="sm" @click="editarIntervalo(intervalo)" />
-              <q-btn
-                flat
-                round
-                icon="delete"
-                size="sm"
-                color="negative"
-                @click="removerIntervalo(intervalo)"
-              />
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </div>
-
-      <!-- Botão salvar -->
-      <div class="q-pa-md">
-        <q-btn
-          unelevated
-          color="primary"
-          label="Salvar alterações"
-          class="full-width"
-          size="lg"
-          @click="salvarAlteracoes"
-          :loading="salvando"
-          no-caps
-        />
+      <!-- ===== BOTÕES DE AÇÃO ===== -->
+      <div class="acoes">
+        <button class="btn-outline" @click="abrirModalIntervalos">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          Intervalos
+        </button>
+        <button class="btn-primary" @click="salvarAlteracoes" :disabled="salvando">
+          <svg v-if="!salvando" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          <div v-else class="btn-spinner-small"></div>
+          <span>Salvar Alterações</span>
+        </button>
       </div>
     </template>
 
-    <!-- Dialog para adicionar/editar horário -->
-    <q-dialog v-model="showHorarioDialog">
-      <q-card style="min-width: 300px">
-        <q-card-section class="bg-primary text-white">
-          <div class="text-h6">{{ editandoHorario ? 'Editar' : 'Adicionar' }} Horário</div>
-        </q-card-section>
+    <!-- ===== MODAL DE INTERVALOS ===== -->
+    <div class="modal-overlay" v-if="modalIntervalos.visivel" @click="modalIntervalos.visivel = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Intervalos de Disponibilidade</h3>
+          <button class="modal-close" @click="modalIntervalos.visivel = false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">Configure períodos em que não estará disponível</p>
 
-        <q-card-section class="q-gutter-md">
-          <q-select
-            v-model="novoHorario.horario"
-            :options="horariosOptions"
-            label="Horário"
-            outlined
-            dense
-            option-label="label"
-            option-value="value"
-            map-options
-            emit-value
-            :rules="[(val) => !!val || 'Horário é obrigatório']"
-          />
-          <q-toggle v-model="novoHorario.disponivel" label="Disponível" color="positive" />
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat label="Cancelar" color="grey-7" v-close-popup />
-          <q-btn
-            unelevated
-            label="Salvar"
-            color="primary"
-            @click="salvarHorario"
-            :loading="salvandoHorario"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- Dialog para adicionar/editar intervalo -->
-    <q-dialog v-model="showIntervaloDialog">
-      <q-card style="min-width: 350px">
-        <q-card-section class="bg-primary text-white">
-          <div class="text-h6">{{ editandoIntervalo ? 'Editar' : 'Adicionar' }} Intervalo</div>
-        </q-card-section>
-
-        <q-card-section class="q-gutter-md">
-          <q-select
-            v-model="novoIntervalo.dias"
-            :options="diasOptions"
-            label="Dias da semana"
-            outlined
-            dense
-            multiple
-            use-chips
-            stack-label
-            option-label="label"
-            option-value="value"
-            map-options
-            emit-value
-            :rules="[(val) => val.length > 0 || 'Selecione pelo menos um dia']"
-          />
-          <div class="row q-col-gutter-sm">
-            <div class="col-6">
-              <q-select
-                v-model="novoIntervalo.inicio"
-                :options="horariosOptions"
-                label="Início"
-                outlined
-                dense
-                option-label="label"
-                option-value="value"
-                map-options
-                emit-value
-              />
+          <div v-for="(intervalo, idx) in intervalosList" :key="intervalo.id || idx" class="intervalo-item">
+            <div class="intervalo-inputs">
+              <select v-model="intervalo.diasSelecionados" class="intervalo-select" multiple>
+                <option v-for="dia in diasOptionsList" :key="dia.value" :value="dia.value">
+                  {{ dia.label }}
+                </option>
+              </select>
+              <input type="time" v-model="intervalo.inicio" class="intervalo-time" placeholder="Início" />
+              <input type="time" v-model="intervalo.fim" class="intervalo-time" placeholder="Fim" />
+              <input type="text" v-model="intervalo.descricao" class="intervalo-desc" placeholder="Descrição (opcional)" />
             </div>
-            <div class="col-6">
-              <q-select
-                v-model="novoIntervalo.fim"
-                :options="horariosOptions"
-                label="Fim"
-                outlined
-                dense
-                option-label="label"
-                option-value="value"
-                map-options
-                emit-value
-              />
-            </div>
+            <button class="intervalo-remove" @click="removerIntervalo(intervalo.id || 0, idx)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </button>
           </div>
-          <q-input
-            v-model="novoIntervalo.descricao"
-            label="Descrição (opcional)"
-            outlined
-            dense
-            placeholder="Ex: Horário de almoço"
-          />
-        </q-card-section>
 
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat label="Cancelar" color="grey-7" v-close-popup />
-          <q-btn
-            unelevated
-            label="Salvar"
-            color="primary"
-            @click="salvarIntervalo"
-            :loading="salvandoIntervalo"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-  </q-page>
+          <button class="btn-add" @click="adicionarIntervalo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Adicionar Intervalo
+          </button>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="modalIntervalos.visivel = false">Cancelar</button>
+          <button class="btn-save" @click="salvarIntervalos" :disabled="salvandoIntervalos">
+            <div v-if="salvandoIntervalos" class="btn-spinner-small"></div>
+            <span v-else>Salvar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorStore } from 'src/stores/prestador-store';
-import type { IntervaloData } from 'src/stores/prestador-store';
+import { useAuthStore } from 'src/stores/auth-store';
+import { usePrestadorServicosStore } from 'src/stores/prestador/prestador-servicos-store';
+import { usePrestadorPerfilStore } from 'src/stores/prestador/prestador-perfil-store';
 
-defineOptions({
-  name: 'PrestadorAgenda',
-});
+defineOptions({ name: 'PrestadorAgenda' });
 
-interface DiaSemana {
-  nome: string;
-  nomeCurto: string;
-  numero: number;
-  mes: string;
-  data: Date;
-  hoje: boolean;
-  selecionado: boolean;
-}
+// ==========================================
+// INTERFACES LOCAIS
+// ==========================================
 
-interface HorarioLocal {
-  id: number;
+interface HorarioItem {
   horario: string;
-  disponivel: boolean;
 }
+
+interface DiaDaSemana {
+  data: string;
+  nomeCurto: string;
+  diaMes: string;
+}
+
+interface HorarioStatus {
+  disponivel: boolean;
+  ocupado: boolean;
+  bloqueado: boolean;
+}
+
+interface IntervaloLocal {
+  id: number;
+  diasSelecionados: string[];
+  inicio: string;
+  fim: string;
+  descricao: string;
+  ativo: boolean;
+}
+
+// Interface estendida para AgendaData com ocupado
+interface AgendaDataExtended {
+  id: number;
+  data: string;
+  horario_inicio: string;
+  horario_fim: string;
+  bloqueado: boolean;
+  motivo?: string;
+  ocupado?: boolean;
+}
+
+// ==========================================
+// SETUP
+// ==========================================
 
 const router = useRouter();
 const $q = useQuasar();
-const prestadorStore = usePrestadorStore();
+const authStore = useAuthStore();
 
-// Estados
+const servicosStore = usePrestadorServicosStore();
+const perfilStore = usePrestadorPerfilStore();
+
 const carregamentoInicial = ref(true);
-const loading = ref(true);
 const salvando = ref(false);
-const carregandoHorarios = ref(false);
-const carregandoIntervalos = ref(false);
-const salvandoHorario = ref(false);
-const salvandoIntervalo = ref(false);
-const showHorarioDialog = ref(false);
-const showIntervaloDialog = ref(false);
-const editandoHorario = ref(false);
-const editandoIntervalo = ref(false);
-const horarioEditandoId = ref<number | null>(null);
-const intervaloEditandoId = ref<number | null>(null);
-const semanaOffset = ref(0);
-let pollingInterval: ReturnType<typeof setInterval> | null = null;
+const salvandoIntervalos = ref(false);
+const agendaData = ref<AgendaDataExtended[]>([]);
+const intervalosList = ref<IntervaloLocal[]>([]);
+const currentWeekOffset = ref(0);
 
-// Dados locais
-const diasSemana = ref<DiaSemana[]>([]);
-const horariosDoDia = ref<HorarioLocal[]>([]);
-const diaSelecionado = ref('');
+const horariosDoDia = ref<HorarioItem[]>([
+  { horario: '08:00' }, { horario: '09:00' }, { horario: '10:00' },
+  { horario: '11:00' }, { horario: '12:00' }, { horario: '13:00' },
+  { horario: '14:00' }, { horario: '15:00' }, { horario: '16:00' },
+  { horario: '17:00' }, { horario: '18:00' }, { horario: '19:00' },
+]);
 
-// Formulários
-const novoHorario = ref({
-  horario: '',
-  disponivel: true,
+const modalIntervalos = reactive({
+  visivel: false,
 });
 
-const novoIntervalo = ref({
-  dias: [] as string[],
-  inicio: '12:00',
-  fim: '14:00',
-  descricao: '',
-});
+const diasOptionsList = [
+  { label: 'Segunda', value: 'SEGUNDA' },
+  { label: 'Terça', value: 'TERCA' },
+  { label: 'Quarta', value: 'QUARTA' },
+  { label: 'Quinta', value: 'QUINTA' },
+  { label: 'Sexta', value: 'SEXTA' },
+  { label: 'Sábado', value: 'SABADO' },
+  { label: 'Domingo', value: 'DOMINGO' },
+];
 
-// Computed do store
-const diasOptions = computed(() => prestadorStore.diasOptions);
-const horariosOptions = computed(() => prestadorStore.horariosOptions);
-const intervalos = computed(() => prestadorStore.intervalos);
-const agendaData = computed(() => prestadorStore.agenda);
-const diasSemanaData = computed(() => prestadorStore.diasSemana);
+// ==========================================
+// FUNÇÕES AUXILIARES
+// ==========================================
 
-// Computed da semana
-const semanaAtual = computed(() => {
-  if (diasSemana.value.length === 0) return '';
-  const inicio = diasSemana.value[0];
-  const fim = diasSemana.value[6];
-  if (!inicio || !fim) return '';
-  return `${inicio.numero} ${inicio.mes} - ${fim.numero} ${fim.mes} ${fim.data.getFullYear()}`;
-});
+function obterNomeDiaCurto(dia: number): string {
+  const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  return dias[dia] || '---';
+}
 
-const diasTextoCache = new Map<string, string>();
-const getDiasTexto = (dias: string[]): string => {
-  const key = dias.sort().join(',');
-  if (diasTextoCache.has(key)) {
-    return diasTextoCache.get(key)!;
-  }
-  const map: Record<string, string> = {};
-  diasSemanaData.value.forEach((dia) => {
-    map[dia.nome_curto.toLowerCase()] = dia.nome;
-    map[dia.nome_curto] = dia.nome;
-    map[dia.nome.toLowerCase()] = dia.nome;
-  });
-  const result = dias.map((d) => map[d] || d).join(', ');
-  diasTextoCache.set(key, result);
-  return result;
-};
+function obterNomeMesCurto(mes: number): string {
+  const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  return meses[mes - 1] || '---';
+}
 
-const formatarDataParaAPI = (date: Date): string => {
-  if (!date) return '';
-  return date.toISOString().split('T')[0] || '';
-};
+function formatarDataParaAPI(data: Date): string {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
 
-const carregarAgenda = async () => {
-  loading.value = true;
-  try {
-    await prestadorStore.fetchAgenda({ semana: semanaOffset.value });
-    await gerarDiasSemana();
-  } catch (error) {
-    console.error('Erro ao carregar agenda:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar agenda',
-      position: 'top',
-    });
-  } finally {
-    loading.value = false;
-  }
-};
+// ==========================================
+// COMPUTEDS
+// ==========================================
 
-const gerarDiasSemana = async () => {
+const diasDaSemana = computed<DiaDaSemana[]>(() => {
   const hoje = new Date();
   const inicioSemana = new Date(hoje);
-  inicioSemana.setDate(hoje.getDate() + semanaOffset.value * 7 - hoje.getDay() + 1);
+  const diaSemanaAtual = hoje.getDay();
+  const offset = diaSemanaAtual === 0 ? 6 : diaSemanaAtual - 1;
+  inicioSemana.setDate(hoje.getDate() - offset + currentWeekOffset.value * 7);
 
-  const dias: DiaSemana[] = [];
-
-  const [mesesMap, diasInfo] = await Promise.all([
-    prestadorStore.fetchMeses(),
-    prestadorStore.fetchDiasSemana(),
-  ]);
-  const meses = mesesMap.map((m) => m.nome_curto);
-  const diasOrdenados = [...diasInfo].sort((a, b) => a.ordem - b.ordem);
-
+  const dias: DiaDaSemana[] = [];
   for (let i = 0; i < 7; i++) {
     const data = new Date(inicioSemana);
     data.setDate(inicioSemana.getDate() + i);
-
-    const diaInfo = diasOrdenados[i % 7];
-    if (!diaInfo) continue;
-
+    const diaSemana = data.getDay();
+    const diaMesNum = data.getDate();
+    const mesNum = data.getMonth() + 1;
+    const dataStr = formatarDataParaAPI(data);
     dias.push({
-      nome: diaInfo.nome,
-      nomeCurto: diaInfo.nome_curto,
-      numero: data.getDate(),
-      mes: meses[data.getMonth()] || '',
-      data: data,
-      hoje: data.toDateString() === hoje.toDateString(),
-      selecionado: i === 0,
+      data: dataStr,
+      nomeCurto: obterNomeDiaCurto(diaSemana),
+      diaMes: `${diaMesNum} ${obterNomeMesCurto(mesNum)}`,
     });
   }
+  return dias;
+});
 
-  diasSemana.value = dias;
-  if (dias[0]) {
-    diaSelecionado.value = `${dias[0].nome}, ${dias[0].numero} ${dias[0].mes}`;
-    carregarHorariosDoDia(dias[0].data);
+const semanaRange = computed(() => {
+  if (diasDaSemana.value.length === 0) return '';
+  const primeiro = diasDaSemana.value[0];
+  const ultimo = diasDaSemana.value[6];
+  if (!primeiro || !ultimo) return '';
+  const [ano1, mes1, dia1] = primeiro.data.split('-').map(Number);
+  const [ano2, mes2, dia2] = ultimo.data.split('-').map(Number);
+  if (mes1 === mes2) {
+    return `${dia1} - ${dia2}/${mes1}/${ano1}`;
   }
-  await prestadorStore.fetchIntervalos();
-};
+  return `${dia1}/${mes1} - ${dia2}/${mes2}/${ano2}`;
+});
 
-const carregarHorariosDoDia = (data: Date) => {
-  carregandoHorarios.value = true;
-  try {
-    const dataStr = formatarDataParaAPI(data);
-    const horarios = agendaData.value.filter((h) => h.data === dataStr);
+// ==========================================
+// FUNÇÕES DE AGENDA
+// ==========================================
 
-    if (horarios.length > 0) {
-      horariosDoDia.value = horarios.map((h) => ({
-        id: h.id,
-        horario: h.horario_inicio,
-        disponivel: !h.bloqueado,
-      }));
-    } else {
-      horariosDoDia.value = [];
+function getHorarioStatus(data: string, horario: string): HorarioStatus {
+  const encontrado = agendaData.value.find((h) => h.data === data && h.horario_inicio === horario);
+  if (encontrado) {
+    return {
+      disponivel: !encontrado.bloqueado && !encontrado.ocupado,
+      ocupado: encontrado.ocupado === true,
+      bloqueado: encontrado.bloqueado === true,
+    };
+  }
+  return { disponivel: true, ocupado: false, bloqueado: false };
+}
+
+function toggleHorario(data: string, horario: string): void {
+  const status = getHorarioStatus(data, horario);
+  const existingIndex = agendaData.value.findIndex(
+    (h) => h.data === data && h.horario_inicio === horario
+  );
+
+  if (status.bloqueado) {
+    // Se está bloqueado, desbloquear
+    if (existingIndex !== -1 && agendaData.value[existingIndex]) {
+      agendaData.value[existingIndex].bloqueado = false;
+      agendaData.value[existingIndex].ocupado = false;
     }
-  } catch (error) {
-    console.error('Erro ao carregar horários:', error);
-  } finally {
-    carregandoHorarios.value = false;
-  }
-};
-
-const semanaAnterior = () => {
-  semanaOffset.value--;
-  void carregarAgenda();
-};
-
-const proximaSemana = () => {
-  semanaOffset.value++;
-  void carregarAgenda();
-};
-
-const selecionarDia = (dia: DiaSemana) => {
-  diasSemana.value.forEach((d) => (d.selecionado = false));
-  dia.selecionado = true;
-  diaSelecionado.value = `${dia.nome}, ${dia.numero} ${dia.mes}`;
-  carregarHorariosDoDia(dia.data);
-};
-
-const adicionarHorario = () => {
-  editandoHorario.value = false;
-  horarioEditandoId.value = null;
-  novoHorario.value = {
-    horario: '09:00',
-    disponivel: true,
-  };
-  showHorarioDialog.value = true;
-};
-
-const editarHorario = (horario: HorarioLocal) => {
-  editandoHorario.value = true;
-  horarioEditandoId.value = horario.id;
-  novoHorario.value = {
-    horario: horario.horario,
-    disponivel: horario.disponivel,
-  };
-  showHorarioDialog.value = true;
-};
-
-const salvarHorario = async () => {
-  if (!novoHorario.value.horario) {
-    $q.notify({ type: 'warning', message: 'Preencha o horário', position: 'top' });
-    return;
-  }
-
-  salvandoHorario.value = true;
-
-  const diaSelecionadoObj = diasSemana.value.find((d) => d.selecionado);
-  if (!diaSelecionadoObj) {
-    salvandoHorario.value = false;
-    return;
-  }
-
-  const dataStr = formatarDataParaAPI(diaSelecionadoObj.data);
-  const horaParts = novoHorario.value.horario.split(':');
-  const hora = parseInt(horaParts[0] || '0');
-  const horaFim = `${hora + 1}:00`;
-
-  const horarioData: {
-    data: string;
-    horario_inicio: string;
-    horario_fim: string;
-    motivo?: string;
-  } = {
-    data: dataStr,
-    horario_inicio: novoHorario.value.horario,
-    horario_fim: horaFim,
-  };
-
-  if (!novoHorario.value.disponivel) {
-    horarioData.motivo = 'Bloqueado';
-  }
-
-  try {
-    if (editandoHorario.value && horarioEditandoId.value) {
-      await prestadorStore.bloquearHorario(horarioData);
-      $q.notify({ type: 'positive', message: 'Horário atualizado', position: 'top' });
+  } else if (status.ocupado) {
+    // Se está ocupado, não pode alterar (pedido já agendado)
+    $q.notify({
+      type: 'warning',
+      message: 'Este horário já possui um serviço agendado',
+      position: 'top',
+    });
+  } else if (status.disponivel) {
+    // Se está disponível, bloquear
+    if (existingIndex !== -1 && agendaData.value[existingIndex]) {
+      agendaData.value[existingIndex].bloqueado = true;
     } else {
-      await prestadorStore.bloquearHorario(horarioData);
-      $q.notify({ type: 'positive', message: 'Horário adicionado', position: 'top' });
-    }
-
-    showHorarioDialog.value = false;
-    await carregarAgenda();
-  } catch (error) {
-    console.error('Erro ao salvar horário:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao salvar horário', position: 'top' });
-  } finally {
-    salvandoHorario.value = false;
-  }
-};
-
-const toggleHorario = (horario: HorarioLocal) => {
-  editarHorario(horario);
-};
-
-const adicionarDisponibilidade = () => {
-  editandoIntervalo.value = false;
-  intervaloEditandoId.value = null;
-  novoIntervalo.value = {
-    dias: [],
-    inicio: '12:00',
-    fim: '14:00',
-    descricao: '',
-  };
-  showIntervaloDialog.value = true;
-};
-
-const configurarIntervalos = () => {
-  adicionarDisponibilidade();
-};
-
-const editarIntervalo = (intervalo: IntervaloData) => {
-  editandoIntervalo.value = true;
-  intervaloEditandoId.value = intervalo.id;
-  novoIntervalo.value = {
-    dias: [...intervalo.dias],
-    inicio: intervalo.inicio,
-    fim: intervalo.fim,
-    descricao: intervalo.descricao || '',
-  };
-  showIntervaloDialog.value = true;
-};
-
-const salvarIntervalo = async () => {
-  if (novoIntervalo.value.dias.length === 0) {
-    $q.notify({ type: 'warning', message: 'Selecione pelo menos um dia', position: 'top' });
-    return;
-  }
-
-  salvandoIntervalo.value = true;
-
-  const intervaloData: { dias: string[]; inicio: string; fim: string; descricao?: string } = {
-    dias: novoIntervalo.value.dias,
-    inicio: novoIntervalo.value.inicio,
-    fim: novoIntervalo.value.fim,
-  };
-
-  if (novoIntervalo.value.descricao.trim()) {
-    intervaloData.descricao = novoIntervalo.value.descricao;
-  }
-
-  try {
-    if (editandoIntervalo.value && intervaloEditandoId.value) {
-      await prestadorStore.atualizarIntervalo(intervaloEditandoId.value, intervaloData);
-      $q.notify({ type: 'positive', message: 'Intervalo atualizado', position: 'top' });
-    } else {
-      await prestadorStore.criarIntervalo(intervaloData);
-      $q.notify({ type: 'positive', message: 'Intervalo salvo', position: 'top' });
-    }
-
-    showIntervaloDialog.value = false;
-    await prestadorStore.fetchIntervalos();
-  } catch (error) {
-    console.error('Erro ao salvar intervalo:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao salvar intervalo', position: 'top' });
-  } finally {
-    salvandoIntervalo.value = false;
-  }
-};
-
-const removerIntervalo = (intervalo: IntervaloData) => {
-  $q.dialog({
-    title: 'Confirmar',
-    message: `Remover este intervalo?`,
-    cancel: true,
-    persistent: true,
-  }).onOk(() => {
-    prestadorStore
-      .deletarIntervalo(intervalo.id)
-      .then(() => {
-        $q.notify({ type: 'positive', message: 'Intervalo removido', position: 'top' });
-      })
-      .catch((error) => {
-        console.error('Erro ao remover intervalo:', error);
-        $q.notify({ type: 'negative', message: 'Erro ao remover intervalo', position: 'top' });
+      agendaData.value.push({
+        id: Date.now(),
+        data,
+        horario_inicio: horario,
+        horario_fim: horario,
+        bloqueado: true,
+        ocupado: false,
+        motivo: 'Bloqueio manual',
       });
-  });
-};
+    }
+  }
+}
 
-const salvarAlteracoes = async () => {
+// ==========================================
+// CARREGAR DADOS
+// ==========================================
+
+async function carregarAgenda(): Promise<void> {
+  try {
+    await servicosStore.fetchAgenda({ semana: currentWeekOffset.value });
+    // Mapear para adicionar campo ocupado (padrão false)
+    agendaData.value = servicosStore.agenda.map((item) => {
+      const base: AgendaDataExtended = {
+        id: item.id,
+        data: item.data,
+        horario_inicio: item.horario_inicio,
+        horario_fim: item.horario_fim,
+        bloqueado: item.bloqueado,
+        ocupado: false,
+      };
+      // Só adicionar motivo se existir
+      if (item.motivo) {
+        base.motivo = item.motivo;
+      }
+      return base;
+    });
+  } catch (error) {
+    console.error('Erro ao carregar agenda:', error);
+    $q.notify({ type: 'negative', message: 'Erro ao carregar agenda', position: 'top' });
+  }
+}
+
+async function carregarIntervalos(): Promise<void> {
+  try {
+    await perfilStore.fetchIntervalos();
+    intervalosList.value = perfilStore.intervalos.map((i) => ({
+      id: i.id,
+      diasSelecionados: i.dias || [],
+      inicio: i.inicio || '',
+      fim: i.fim || '',
+      descricao: i.descricao || '',
+      ativo: i.ativo,
+    }));
+  } catch (error) {
+    console.error('Erro ao carregar intervalos:', error);
+  }
+}
+
+// ==========================================
+// NAVEGAÇÃO
+// ==========================================
+
+function semanaAnterior(): void {
+  currentWeekOffset.value--;
+  void carregarAgenda();
+}
+
+function proximaSemana(): void {
+  currentWeekOffset.value++;
+  void carregarAgenda();
+}
+
+function irParaHoje(): void {
+  currentWeekOffset.value = 0;
+  void carregarAgenda();
+}
+
+// ==========================================
+// SALVAR ALTERAÇÕES
+// ==========================================
+
+async function salvarAlteracoes(): Promise<void> {
   salvando.value = true;
   try {
+    const bloqueiosParaSalvar = agendaData.value.filter((h) => h.bloqueado && h.id && h.id > 0);
+    const novosBloqueios = agendaData.value.filter((h) => h.bloqueado && (!h.id || h.id === 0));
+
+    for (const bloqueio of bloqueiosParaSalvar) {
+      await servicosStore.desbloquearHorario(bloqueio.id);
+    }
+
+    for (const bloqueio of novosBloqueios) {
+      await servicosStore.bloquearHorario({
+        data: bloqueio.data,
+        horario_inicio: bloqueio.horario_inicio,
+        horario_fim: bloqueio.horario_fim,
+        motivo: 'Bloqueio manual',
+      });
+    }
+
+    $q.notify({ type: 'positive', message: 'Alterações salvas com sucesso!', position: 'top' });
     await carregarAgenda();
-    $q.notify({ type: 'positive', message: 'Alterações salvas', position: 'top' });
   } catch (error) {
     console.error('Erro ao salvar alterações:', error);
     $q.notify({ type: 'negative', message: 'Erro ao salvar alterações', position: 'top' });
   } finally {
     salvando.value = false;
   }
-};
+}
 
-const iniciarPolling = () => {
-  if (pollingInterval) clearInterval(pollingInterval);
+// ==========================================
+// GERENCIAR INTERVALOS
+// ==========================================
 
-  pollingInterval = setInterval(() => {
-    if (document.hasFocus()) {
-      void prestadorStore.fetchAgenda({ semana: semanaOffset.value });
-    }
-  }, 60000);
-};
+function abrirModalIntervalos(): void {
+  modalIntervalos.visivel = true;
+}
 
-const pararPolling = () => {
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    pollingInterval = null;
+function adicionarIntervalo(): void {
+  intervalosList.value.push({
+    id: 0,
+    diasSelecionados: [],
+    inicio: '09:00',
+    fim: '17:00',
+    descricao: '',
+    ativo: true,
+  });
+}
+
+// Função para confirmar e executar remoção
+function removerIntervalo(id: number, idx: number): void {
+  if (id === 0) {
+    intervalosList.value.splice(idx, 1);
+    return;
   }
-};
 
-let dadosAuxiliaresCarregados = false;
-const carregarDadosAuxiliares = async () => {
-  if (dadosAuxiliaresCarregados) return;
-  await Promise.all([
-    prestadorStore.fetchDiasSemana(),
-    prestadorStore.fetchMeses(),
-    prestadorStore.fetchHorariosOptions(),
-    prestadorStore.fetchDiasOptions(),
-  ]);
-  dadosAuxiliaresCarregados = true;
-};
+  $q.dialog({
+    title: 'Confirmar',
+    message: 'Tem certeza que deseja remover este intervalo?',
+    cancel: { label: 'Cancelar', flat: true },
+    ok: { label: 'Remover', color: 'negative', unelevated: true },
+  }).onOk(() => {
+    // Chamar a função async separadamente
+    void (async () => {
+      try {
+        await perfilStore.deletarIntervalo(id);
+        intervalosList.value = intervalosList.value.filter((i) => i.id !== id);
+        $q.notify({ type: 'positive', message: 'Intervalo removido', position: 'top' });
+      } catch (error) {
+        console.error('Erro ao remover intervalo:', error);
+        $q.notify({ type: 'negative', message: 'Erro ao remover intervalo', position: 'top' });
+      }
+    })();
+  });
+}
 
-// Inicialização
+async function salvarIntervalos(): Promise<void> {
+  salvandoIntervalos.value = true;
+  try {
+    for (const intervalo of intervalosList.value) {
+      // Construir payload corretamente - descricao opcional
+      const payload: { dias: string[]; inicio: string; fim: string; descricao?: string } = {
+        dias: intervalo.diasSelecionados,
+        inicio: intervalo.inicio,
+        fim: intervalo.fim,
+      };
+
+      // Só adicionar descricao se tiver valor
+      if (intervalo.descricao && intervalo.descricao.trim() !== '') {
+        payload.descricao = intervalo.descricao.trim();
+      }
+
+      if (intervalo.id === 0) {
+        await perfilStore.criarIntervalo(payload);
+      } else {
+        await perfilStore.atualizarIntervalo(intervalo.id, payload);
+      }
+    }
+    $q.notify({ type: 'positive', message: 'Intervalos salvos com sucesso!', position: 'top' });
+    modalIntervalos.visivel = false;
+    await carregarIntervalos();
+  } catch (error) {
+    console.error('Erro ao salvar intervalos:', error);
+    $q.notify({ type: 'negative', message: 'Erro ao salvar intervalos', position: 'top' });
+  } finally {
+    salvandoIntervalos.value = false;
+  }
+}
+
+function ajuda(): void {
+  $q.dialog({
+    title: 'Ajuda - Agenda',
+    message: `
+      <ul style="margin: 0; padding-left: 20px;">
+        <li><strong>Disponível (verde)</strong> - Horário livre para agendamentos</li>
+        <li><strong>Ocupado (laranja)</strong> - Horário com serviço agendado</li>
+        <li><strong>Bloqueado (vermelho)</strong> - Horário bloqueado por você</li>
+        <li>Clique em um horário disponível para bloqueá-lo</li>
+        <li>Use "Intervalos" para bloquear períodos recorrentes</li>
+      </ul>
+    `,
+    html: true,
+    ok: { label: 'Entendi', flat: true },
+  });
+}
+
+// ==========================================
+// INICIALIZAÇÃO
+// ==========================================
+
 onMounted(async () => {
+  if (!authStore.isAuthenticated) {
+    await router.push('/auth/login');
+    return;
+  }
+  if (!authStore.isPrestador) {
+    await router.push('/mobile/prestador/dashboard');
+    return;
+  }
+
   carregamentoInicial.value = true;
   try {
-    await carregarDadosAuxiliares();
-    await carregarAgenda();
-    iniciarPolling();
+    await Promise.all([carregarAgenda(), carregarIntervalos()]);
+  } catch (error) {
+    console.error('Erro na inicialização:', error);
   } finally {
     setTimeout(() => {
       carregamentoInicial.value = false;
     }, 500);
   }
 });
-
-onUnmounted(() => {
-  pararPolling();
-});
 </script>
 
 <style scoped lang="scss">
-$purple-primary: #667eea;
-$gray-50: #fafafa;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-$gray-700: #616161;
-$gray-800: #424242;
-$gray-900: #212121;
+// =====================
+// VARIABLES
+// =====================
+$accent: #5B4BF5;
+$accent-light: rgba(91, 75, 245, 0.1);
+$success: #10B981;
+$success-light: rgba(16, 185, 129, 0.15);
+$warning: #F59E0B;
+$warning-light: rgba(245, 158, 11, 0.15);
+$danger: #EF4444;
+$danger-light: rgba(239, 68, 68, 0.15);
+$dark: #0A0A0F;
+$gray: #6B7280;
+$gray-light: #F3F4F6;
+$border: #E5E7EB;
+$white: #FFFFFF;
+$bg: #F4F4F8;
+$radius: 16px;
+$radius-sm: 12px;
+$radius-xs: 8px;
 
-/* ========================================== */
-/* SKELETON LOADING STYLES */
-/* ========================================== */
-
+// =====================
+// SKELETON LOADING
+// =====================
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-.skeleton-loading {
-  background: $gray-100;
-  min-height: 100vh;
+.skeleton-container {
+  padding: 16px;
 }
 
 .skeleton-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: white;
-  padding: 16px;
-  border-bottom: 1px solid $gray-200;
-}
+  margin-bottom: 20px;
 
-.skeleton-back-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
+  .skeleton-title {
+    width: 150px;
+    height: 24px;
+    background: $gray-light;
+    border-radius: $radius-xs;
+    margin-bottom: 8px;
+  }
 
-.skeleton-title {
-  width: 120px;
-  height: 24px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-add-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  .skeleton-subtitle {
+    width: 200px;
+    height: 14px;
+    background: $gray-light;
+    border-radius: $radius-xs;
+  }
 }
 
 .skeleton-week-selector {
-  background: white;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+
+  .skeleton-btn {
+    width: 40px;
+    height: 40px;
+    background: $gray-light;
+    border-radius: 50%;
+  }
+
+  .skeleton-range {
+    width: 200px;
+    height: 20px;
+    background: $gray-light;
+    border-radius: $radius-xs;
+  }
 }
 
-.skeleton-nav-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+.skeleton-grid {
+  background: $white;
+  border-radius: $radius;
+  overflow: hidden;
+  border: 1px solid $border;
+
+  .skeleton-grid-header {
+    height: 60px;
+    background: $gray-light;
+  }
+
+  .skeleton-row {
+    display: flex;
+    border-bottom: 1px solid $border;
+
+    .skeleton-cell {
+      flex: 1;
+      height: 50px;
+      background: $white;
+      border-right: 1px solid $border;
+
+      &:first-child { width: 60px; flex: none; background: $gray-light; }
+    }
+  }
 }
 
-.skeleton-week-text {
-  width: 150px;
-  height: 20px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-days-grid {
-  display: flex;
-  gap: 8px;
-  padding: 0 16px;
-  margin-bottom: 16px;
-}
-
-.skeleton-day-card {
-  flex: 1;
-  height: 70px;
-  background: white;
-  border-radius: 12px;
-  border: 1px solid $gray-200;
-}
-
-.skeleton-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 16px;
-  margin-bottom: 12px;
-}
-
-.skeleton-line {
-  height: 14px;
-  border-radius: 7px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-btn-small {
-  width: 80px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-horarios-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 8px;
-  padding: 0 16px;
-  margin-bottom: 24px;
-}
-
-.skeleton-horario-card {
-  height: 70px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid $gray-200;
-}
-
-.skeleton-intervalos-list {
-  padding: 0 16px;
-}
-
-.skeleton-intervalo-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background: white;
-  border-radius: 12px;
-  margin-bottom: 8px;
-  border: 1px solid $gray-200;
-}
-
-.skeleton-intervalo-info {
-  flex: 1;
-}
-
-.skeleton-intervalo-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.skeleton-icon-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-save-btn {
-  margin: 16px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-spinner {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 10000;
-}
-
-.w-30 { width: 30%; }
-.w-40 { width: 40%; }
-.w-50 { width: 50%; }
-
-/* ========================================== */
-/* ESTILOS ORIGINAIS (mantidos sem alterações) */
-/* ========================================== */
-
+// =====================
+// LAYOUT PRINCIPAL
+// =====================
 .prestador-agenda {
+  background: $bg;
   min-height: 100vh;
+  padding-bottom: 80px;
 }
 
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
-  border-bottom: 1px solid $gray-200;
+  background: $white;
+  padding: 12px 16px;
+  border-bottom: 1px solid $border;
+
+  .back-btn, .help-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-light;
+    border: none;
+    cursor: pointer;
+    color: $gray;
+    transition: all 0.2s;
+    &:hover { background: $accent-light; color: $accent; }
+  }
+
+  .page-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $dark;
+    margin: 0;
+  }
 }
 
-.loading-state {
+// =====================
+// WEEK SELECTOR
+// =====================
+.week-selector {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 50vh;
-}
+  gap: 16px;
+  background: $white;
+  padding: 12px 16px;
+  margin: 16px;
+  border-radius: $radius;
+  border: 1px solid $border;
 
-.empty-state {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid $gray-200;
-}
-
-.week-selector {
-  background: white;
-  padding: 12px 0;
-}
-
-.day-card {
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &.today {
-    border-color: $purple-primary;
-    background: rgba(102, 126, 234, 0.05);
+  .week-nav {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-light;
+    border: none;
+    cursor: pointer;
+    color: $gray;
+    transition: all 0.2s;
+    &:hover { background: $accent-light; color: $accent; }
   }
 
-  &.selected {
-    background: $purple-primary;
-    border-color: $purple-primary;
-
-    .day-name,
-    .day-number,
-    .day-month {
-      color: white;
-    }
-  }
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  }
-
-  .day-name {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: $gray-600;
-  }
-
-  .day-number {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: $gray-800;
-  }
-
-  .day-month {
-    font-size: 0.7rem;
-    color: $gray-500;
-  }
-}
-
-.horarios-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.horario-card {
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &.disponivel {
-    background: white;
-
-    &:hover {
-      background: rgba(102, 126, 234, 0.1);
-    }
-  }
-
-  &.ocupado {
-    background: $gray-100;
-    opacity: 0.7;
-  }
-
-  .horario-tempo {
+  .week-range {
     font-size: 0.9rem;
-    font-weight: 600;
-    color: $gray-800;
+    font-weight: 500;
+    color: $dark;
+    min-width: 180px;
+    text-align: center;
   }
 
-  .horario-status {
-    font-size: 0.7rem;
-    color: $gray-600;
+  .today-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: $gray-light;
+    border: none;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: $gray;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover { background: $accent-light; color: $accent; }
   }
 }
 
-.section-header {
+// =====================
+// LEGENDA
+// =====================
+.legenda {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: 0 16px 16px;
+  padding: 12px;
+  background: $white;
+  border-radius: $radius;
+  border: 1px solid $border;
+
+  .legenda-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: $gray;
+
+    .legenda-cor {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+
+      &.disponivel { background: $success; }
+      &.ocupado { background: $warning; }
+      &.bloqueado { background: $danger; }
+    }
+  }
+}
+
+// =====================
+// AGENDA GRID
+// =====================
+.agenda-grid {
+  background: $white;
+  margin: 0 16px;
+  border-radius: $radius;
+  overflow-x: auto;
+  border: 1px solid $border;
+
+  .grid-header {
+    display: flex;
+    background: $gray-light;
+    border-bottom: 1px solid $border;
+
+    .header-cell {
+      flex: 1;
+      text-align: center;
+      padding: 12px 4px;
+      border-right: 1px solid $border;
+
+      &:last-child { border-right: none; }
+
+      &.hora-header {
+        flex: none;
+        width: 70px;
+        background: $gray-light;
+      }
+
+      .dia-semana {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: $dark;
+      }
+
+      .dia-mes {
+        font-size: 0.7rem;
+        color: $gray;
+      }
+    }
+  }
+
+  .grid-row {
+    display: flex;
+    border-bottom: 1px solid $border;
+
+    &:last-child { border-bottom: none; }
+
+    .hora-label {
+      width: 70px;
+      flex: none;
+      text-align: center;
+      padding: 12px 4px;
+      font-size: 0.7rem;
+      color: $gray;
+      background: $gray-light;
+      border-right: 1px solid $border;
+    }
+
+    .grid-cell {
+      flex: 1;
+      min-height: 55px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid $border;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:last-child { border-right: none; }
+
+      &.cell-disponivel {
+        background: $success-light;
+        &:hover { background: rgba($success, 0.25); }
+      }
+
+      &.cell-ocupado {
+        background: $warning-light;
+        cursor: not-allowed;
+        &:hover { background: rgba($warning, 0.25); }
+      }
+
+      &.cell-bloqueado {
+        background: $danger-light;
+        &:hover { background: rgba($danger, 0.3); }
+      }
+    }
+  }
+}
+
+// =====================
+// BOTÕES DE AÇÃO
+// =====================
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px;
+  margin: 0 16px;
+
+  .btn-outline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid $border;
+    border-radius: $radius-sm;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: $gray;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover { background: $gray-light; border-color: $gray; }
+  }
+
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    background: $accent;
+    border: none;
+    border-radius: $radius-sm;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: $white;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover:not(:disabled) { background: lighten($accent, 6%); transform: translateY(-1px); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+}
+
+.btn-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// =====================
+// MODAL
+// =====================
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: $white;
+  border-radius: $radius;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid $border;
 
-  .section-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: $gray-800;
+  h3 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+
+  .modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-light;
+    border: none;
+    cursor: pointer;
+    color: $gray;
+    &:hover { background: $border; }
+  }
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+
+  .modal-subtitle {
+    font-size: 0.8rem;
+    color: $gray;
+    margin-bottom: 20px;
+  }
+}
+
+.intervalo-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: $gray-light;
+  border-radius: $radius-sm;
+
+  .intervalo-inputs {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .intervalo-select {
+    min-width: 140px;
+    padding: 10px;
+    border: 1px solid $border;
+    border-radius: $radius-xs;
+    font-size: 0.8rem;
+    background: $white;
+  }
+
+  .intervalo-time {
+    width: 100px;
+    padding: 10px;
+    border: 1px solid $border;
+    border-radius: $radius-xs;
+    font-size: 0.8rem;
+  }
+
+  .intervalo-desc {
+    flex: 1;
+    min-width: 150px;
+    padding: 10px;
+    border: 1px solid $border;
+    border-radius: $radius-xs;
+    font-size: 0.8rem;
+  }
+
+  .intervalo-remove {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: $danger;
+    &:hover { background: $danger-light; }
+  }
+}
+
+.btn-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px dashed $border;
+  border-radius: $radius-sm;
+  font-size: 0.8rem;
+  color: $accent;
+  cursor: pointer;
+  margin-top: 8px;
+  &:hover { background: $accent-light; border-color: $accent; }
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid $border;
+
+  .btn-cancel {
+    padding: 8px 20px;
+    background: transparent;
+    border: none;
+    font-size: 0.85rem;
+    color: $gray;
+    cursor: pointer;
+    &:hover { color: $dark; }
+  }
+
+  .btn-save {
+    padding: 8px 24px;
+    background: $accent;
+    border: none;
+    border-radius: $radius-sm;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: $white;
+    cursor: pointer;
+    &:hover:not(:disabled) { background: lighten($accent, 6%); }
+    &:disabled { opacity: 0.5; }
   }
 }
 </style>
