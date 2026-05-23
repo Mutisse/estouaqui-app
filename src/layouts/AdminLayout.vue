@@ -74,7 +74,7 @@
           </span>
         </q-toolbar-title>
 
-        <!-- Info do admin -->
+        <!-- Info do admin - esconder texto em mobile -->
         <div class="row items-center q-gutter-sm q-gutter-md-md">
           <q-btn
             flat
@@ -193,7 +193,7 @@
             <q-avatar :size="drawerAvatarSize" class="profile-avatar">
               <img :src="userAvatar" :alt="userNome" />
             </q-avatar>
-            <div class="q-ml-sm q-ml-md-md">
+            <div class="q-ml-sm q-ml-md-md user-info-text">
               <div class="profile-name text-body1 text-h6-sm">{{ userNome }}</div>
               <div class="profile-role text-caption">
                 {{ isRoot ? 'Root Administrator' : 'Administrador' }}
@@ -425,7 +425,6 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth-store';
-// ✅ IMPORT CORRETO - usando dashboardStore
 import { useAdminDashboardStore, type NotificacaoData } from 'src/stores/admin/admin-dashboard-store';
 import { useQuasar } from 'quasar';
 
@@ -435,7 +434,6 @@ const router = useRouter();
 const route = useRoute();
 const $q = useQuasar();
 const authStore = useAuthStore();
-// ✅ USANDO O STORE CORRETO
 const dashboardStore = useAdminDashboardStore();
 
 const isLoading = ref(true);
@@ -456,7 +454,6 @@ const drawerWidth = computed(() => (windowWidth.value < 400 ? 260 : 280));
 const drawerAvatarSize = computed(() => (windowWidth.value < 400 ? '48px' : '56px'));
 const menuIconSize = computed(() => (windowWidth.value < 400 ? '20px' : '24px'));
 
-// ✅ Notificações vêm do dashboardStore
 const notificacoesList = computed(() => dashboardStore.notificacoesAdmin);
 const unreadNotificationsCount = computed(() => {
   const notifs = notificacoesList.value;
@@ -644,38 +641,39 @@ onUnmounted(() => {
 
 watch(
   () => dashboardStore.notificacoesAdmin,
-  (newVal) => {
-    if (!Array.isArray(newVal)) {
-      // Se não for array, mantém o valor atual
-    }
-  },
+  () => {},
   { immediate: true },
 );
 </script>
 
 <style scoped lang="scss">
-// ... (styles mantidos iguais ao original)
-$ink: #0a0a0f;
-$accent: #5b4bf5;
-$gold: #f59e0b;
-$gray-50: #fafafa;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-600: #757575;
-$gray-800: #424242;
+// ==========================================
+// VARIÁVEIS DO SISTEMA (CORES PADRÃO)
+// ==========================================
+$system-primary: #5B4BF5;
+$system-primary-dark: #4a3ad4;
+$system-success: #10B981;
+$system-warning: #F59E0B;
+$system-danger: #EF4444;
+$system-dark: #0A0A0F;
+$system-dark-light: #1A1A2E;
+$system-gray: #6B7280;
+$system-gray-light: #F3F4F6;
+$system-border: #E5E7EB;
+$system-white: #FFFFFF;
+$system-bg: #F4F4F8;
+$system-radius: 12px;
 
 // ==========================================
-// SKELETON LOADING STYLES
+// SKELETON LOADING
 // ==========================================
-
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
 .skeleton-admin-layout {
-  background: $gray-50;
+  background: $system-bg;
   min-height: 100vh;
   display: flex;
 }
@@ -685,7 +683,7 @@ $gray-800: #424242;
   left: 0;
   right: 0;
   height: 60px;
-  background: $ink;
+  background: $system-dark;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -717,14 +715,14 @@ $gray-800: #424242;
   left: 0;
   width: 280px;
   height: calc(100vh - 60px);
-  background: white;
-  border-right: 1px solid $gray-200;
+  background: $system-white;
+  border-right: 1px solid $system-border;
   z-index: 1999;
 }
 .skeleton-profile {
   padding: 16px;
-  background: $gray-100;
-  border-bottom: 1px solid $gray-300;
+  background: $system-gray-light;
+  border-bottom: 1px solid $system-border;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -774,8 +772,8 @@ $gray-800: #424242;
 .skeleton-stat-card {
   flex: 1;
   min-width: 200px;
-  background: white;
-  border-radius: 12px;
+  background: $system-white;
+  border-radius: $system-radius;
   padding: 20px;
   display: flex;
   align-items: center;
@@ -785,7 +783,7 @@ $gray-800: #424242;
 .skeleton-stat-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: $system-radius;
   background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -809,8 +807,8 @@ $gray-800: #424242;
 .w-70 { width: 70%; }
 .w-80 { width: 80%; }
 .skeleton-table {
-  background: white;
-  border-radius: 12px;
+  background: $system-white;
+  border-radius: $system-radius;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -818,16 +816,19 @@ $gray-800: #424242;
   display: flex;
   gap: 16px;
   padding: 16px;
-  background: $gray-100;
-  border-bottom: 1px solid $gray-200;
+  background: $system-gray-light;
+  border-bottom: 1px solid $system-border;
 }
 .skeleton-table-row {
   display: flex;
   gap: 16px;
   padding: 16px;
-  border-bottom: 1px solid $gray-200;
+  border-bottom: 1px solid $system-border;
 }
 
+// ==========================================
+// MEDIA QUERIES PARA SKELETON
+// ==========================================
 @media (max-width: 768px) {
   .skeleton-drawer {
     width: 260px;
@@ -838,15 +839,17 @@ $gray-800: #424242;
 }
 
 // ==========================================
-// LAYOUT REAL STYLES
+// LAYOUT REAL - ADMIN
 // ==========================================
-
 .admin-layout {
-  background: $gray-50;
+  background: $system-bg;
 }
 
+// ==========================================
+// HEADER
+// ==========================================
 .ea-admin-header {
-  background: $ink !important;
+  background: $system-dark !important;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
   position: fixed;
   top: 0;
@@ -866,25 +869,29 @@ $gray-800: #424242;
   }
 }
 
+// Logo
 .ea-logo {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
+
   &__dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: $accent;
-    box-shadow: 0 0 8px rgba(91, 75, 245, 0.8);
+    background: $system-primary;
+    box-shadow: 0 0 8px rgba($system-primary, 0.8);
   }
+
   &__text {
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: #fff;
     font-weight: 400;
+
     strong {
       font-weight: 800;
-      background: linear-gradient(135deg, $accent 0%, #a78bfa 50%, $gold 100%);
+      background: linear-gradient(135deg, $system-primary 0%, #a78bfa 50%, $system-warning 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -892,31 +899,34 @@ $gray-800: #424242;
   }
 }
 
+// Admin Badge
 .admin-badge {
-  background: rgba($accent, 0.2);
+  background: rgba($system-primary, 0.2);
   padding: 4px 8px;
   border-radius: 20px;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
+
   &.root-badge {
-    background: rgba(76, 175, 80, 0.2);
-    color: #4caf50;
-  }
-  @media (max-width: 500px) {
-    display: none;
+    background: rgba($system-success, 0.2);
+    color: $system-success;
   }
 }
 
+// Notification Badge mobile
 .notification-badge-mobile {
   top: 2px;
   right: 2px;
-  font-size: 10px;
-  min-width: 18px;
-  height: 18px;
-  line-height: 18px;
+  font-size: 9px;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
 }
 
+// ==========================================
+// DRAWER (MENU LATERAL)
+// ==========================================
 .ea-admin-drawer {
-  background: $ink !important;
+  background: $system-dark !important;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   position: fixed;
   top: 60px;
@@ -924,80 +934,147 @@ $gray-800: #424242;
   height: calc(100vh - 60px);
   z-index: 1999;
 
+  // Profile Section
   .drawer-profile {
-    background: rgba(91, 75, 245, 0.05);
+    background: rgba($system-primary, 0.05);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
     &.root-profile {
-      background: rgba(76, 175, 80, 0.1);
+      background: rgba($system-success, 0.08);
     }
-    .profile-name {
-      font-weight: 600;
-      color: #fff;
-    }
-    .profile-role {
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.5);
-    }
+
     .profile-avatar {
-      border: 2px solid $accent;
+      border: 2px solid $system-primary;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
       flex-shrink: 0;
     }
+
+    .profile-name {
+      font-weight: 600;
+      color: #fff;
+      font-size: 0.9rem;
+    }
+
+    .profile-role {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.5);
+    }
   }
 
+  // Menu List
   .menu-list {
     .menu-header {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       letter-spacing: 0.5px;
       padding: 12px 16px 4px;
       color: rgba(255, 255, 255, 0.4);
     }
+
     .menu-item {
       margin: 4px 8px;
       border-radius: 10px;
       transition: all 0.3s ease;
       color: rgba(255, 255, 255, 0.7);
+
       &:hover {
         background: rgba(255, 255, 255, 0.05);
-        transform: translateX(5px);
+        transform: translateX(4px);
       }
+
       &.menu-item-active {
-        background: rgba($accent, 0.1);
+        background: rgba($system-primary, 0.12);
+
+        .menu-item-text {
+          color: $system-primary;
+          font-weight: 500;
+        }
       }
-      &.menu-item-active .q-icon {
-        color: $accent !important;
-      }
+
       .menu-item-text {
         color: rgba(255, 255, 255, 0.7);
+        font-size: 0.85rem;
       }
     }
   }
 }
 
+// Page Container
 .q-page-container {
   margin-top: 60px;
   min-height: calc(100vh - 60px);
-  background: $gray-50;
+  background: $system-bg;
 }
 
+// Notification unread
 .notification-unread {
-  background: rgba($accent, 0.05);
-  border-left: 3px solid $accent;
+  background: rgba($system-primary, 0.05);
+  border-left: 3px solid $system-primary;
 }
 
+// ==========================================
+// MEDIA QUERIES PARA DISPOSITIVOS MÓVEIS
+// ==========================================
 @media (max-width: 768px) {
   .ea-admin-drawer {
     width: 280px !important;
   }
+
   .q-page-container {
     margin-left: 0 !important;
   }
+
+  .drawer-profile {
+    .user-info-text {
+      .profile-name {
+        font-size: 0.85rem !important;
+      }
+    }
+  }
+
+  .menu-item-text {
+    font-size: 0.8rem !important;
+  }
+
+  .ea-logo__text {
+    font-size: 0.9rem;
+  }
+
+  .admin-badge {
+    display: none;
+  }
 }
-@media (max-width: 400px) {
+
+@media (max-width: 480px) {
   .ea-admin-drawer {
     width: 260px !important;
   }
+
+  .drawer-profile {
+    padding: 12px !important;
+
+    .profile-avatar {
+      width: 44px !important;
+      height: 44px !important;
+    }
+  }
+
+  .menu-item {
+    margin: 2px 6px !important;
+
+    .q-icon {
+      font-size: 20px !important;
+    }
+  }
+
+  .menu-header {
+    font-size: 0.6rem !important;
+    padding: 8px 12px 2px !important;
+  }
 }
+
+// ==========================================
+// SUPORTE PARA NOTCH E SAFE AREA
+// ==========================================
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .q-page-container {
     padding-bottom: env(safe-area-inset-bottom);
