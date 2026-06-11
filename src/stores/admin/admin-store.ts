@@ -18,7 +18,7 @@ export interface DashboardStats {
   tickets_abertos: number;
   notificacoes_nao_lidas: number;
   alertas_ativos: number;
-  avaliacoes_pendentes: number;  // ✅ ADICIONAR ESTA LINHA
+  avaliacoes_pendentes: number;
 }
 
 export const useAdminStore = defineStore('admin', () => {
@@ -43,7 +43,7 @@ export const useAdminStore = defineStore('admin', () => {
     tickets_abertos: 0,
     notificacoes_nao_lidas: 0,
     alertas_ativos: 0,
-    avaliacoes_pendentes: 0,  // ✅ ADICIONAR ESTA LINHA
+    avaliacoes_pendentes: 0,
   });
 
   const atividadeSemanal = ref([]);
@@ -68,7 +68,7 @@ export const useAdminStore = defineStore('admin', () => {
     { title: 'Pedidos Pendentes', value: dashboard.value.pedidos_pendentes, icon: 'pending_actions', colorKey: 'gold' },
     { title: 'Prestadores Pendentes', value: dashboard.value.prestadores_pendentes, icon: 'verified_user', colorKey: 'red' },
     { title: 'Tickets Abertos', value: dashboard.value.tickets_abertos, icon: 'support_agent', colorKey: 'slate' },
-    { title: 'Avaliações Pendentes', value: dashboard.value.avaliacoes_pendentes, icon: 'star_outline', colorKey: 'orange' }, // ✅ ADICIONAR
+    { title: 'Avaliações Pendentes', value: dashboard.value.avaliacoes_pendentes, icon: 'star_outline', colorKey: 'orange' },
   ]);
 
   const atividadeFormatada = computed(() => atividadeSemanal.value);
@@ -79,6 +79,7 @@ export const useAdminStore = defineStore('admin', () => {
 
     isLoading.value = true;
     try {
+      // ✅ ROTA CORRETA: /admin/dashboard/stats
       const response = await api.get('/admin/dashboard/stats');
       if (response.data?.success && response.data.data) {
         const data = response.data.data;
@@ -95,8 +96,10 @@ export const useAdminStore = defineStore('admin', () => {
           tickets_abertos: data.tickets_abertos || 0,
           notificacoes_nao_lidas: data.notificacoes_nao_lidas || 0,
           alertas_ativos: data.alertas_ativos || 0,
-          avaliacoes_pendentes: data.avaliacoes_pendentes || 0,  // ✅ ADICIONAR
+          avaliacoes_pendentes: data.avaliacoes_pendentes || 0,
         };
+        dadosCarregados.value = true;
+        ultimaAtualizacao.value = new Date();
       }
     } catch (err) {
       console.error('Erro ao carregar dashboard:', err);
@@ -106,6 +109,7 @@ export const useAdminStore = defineStore('admin', () => {
   };
 
   const recarregarDados = async (): Promise<void> => {
+    dadosCarregados.value = false;
     await carregarDashboard(true);
   };
 

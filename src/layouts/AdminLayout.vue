@@ -121,7 +121,7 @@
             <span>Logs do Sistema</span>
           </router-link>
 
-          <router-link to="/admin/monitoramento" class="nav-item" active-class="active">
+          <router-link to="/admin/monitoring" class="nav-item" active-class="active">
             <i class="material-icons nav-icon">monitor_heart</i>
             <span>Monitoramento</span>
             <span v-if="alertasAtivos > 0" class="nav-badge warning">{{ alertasAtivos }}</span>
@@ -175,18 +175,24 @@
             <span class="tb-shortcut">⌘K</span>
           </div>
 
-          <!-- DROPDOWN DE NOTIFICAÇÕES -->
+          <!-- DROPDOWN DE NOTIFICAÇÕES COM EFEITO DE ROTAÇÃO -->
           <q-btn-dropdown
             flat
             round
             class="tb-btn notification-dropdown"
-            :class="{ 'has-notification': notificacoesNaoLidas > 0 }"
-            :dropdown-icon="notificacoesNaoLidas > 0 ? 'notifications_active' : 'notifications_none'"
+            :class="{ 'has-notification': notificacoesNaoLidas > 0, 'dropdown-open': dropdownAberto }"
             no-caps
-            auto-close
+            @before-show="dropdownAberto = true"
+            @before-hide="dropdownAberto = false"
           >
             <template v-slot:label>
-              <i class="material-icons" style="font-size: 20px;">notifications</i>
+              <i
+                class="material-icons notification-icon-animated"
+                :class="{ 'icon-rotated': dropdownAberto }"
+                style="font-size: 20px;"
+              >
+                {{ notificacoesNaoLidas > 0 ? 'notifications_active' : 'notifications_none' }}
+              </i>
               <span v-if="notificacoesNaoLidas > 0" class="notification-badge">{{ notificacoesNaoLidas }}</span>
             </template>
 
@@ -282,6 +288,9 @@ const route = useRoute();
 const authStore = useAuthStore();
 const adminStore = useAdminStore();
 const $q = useQuasar();
+
+// ===================== ESTADO DO DROPDOWN =====================
+const dropdownAberto = ref(false);
 
 // ===================== FOTO DO PERFIL =====================
 const fotoTimestamp = ref(Date.now());
@@ -514,6 +523,16 @@ $bg: #f2f2f7;
 $sidebar: #16163a;
 $r: 12px;
 $rs: 8px;
+
+// ─── ANIMAÇÃO DO ÍCONE (VIRAR DE CABEÇA PARA BAIXO) ───────────────────────
+.notification-icon-animated {
+  transition: transform 0.3s ease-in-out;
+  display: inline-block;
+}
+
+.notification-icon-animated.icon-rotated {
+  transform: rotate(180deg);
+}
 
 // ─── SHIMMER ──────────────────────────────────────────────────────────────
 @keyframes shimmer {
