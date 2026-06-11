@@ -1,7 +1,15 @@
 <template>
   <div class="admin-shell">
+    <!-- Botão para abrir sidebar em mobile -->
+    <div class="mobile-menu-btn" @click="sidebarAberta = !sidebarAberta">
+      <i class="material-icons">menu</i>
+    </div>
+
+    <!-- Overlay para fechar sidebar em mobile -->
+    <div class="sidebar-overlay" :class="{ active: sidebarAberta }" @click="sidebarAberta = false"></div>
+
     <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <aside class="sidebar" :class="{ mobile: sidebarAberta }">
       <div class="sidebar-brand">
         <div class="brand-logo">
           <div class="brand-icon">EA</div>
@@ -10,6 +18,9 @@
             <div class="brand-tag">{{ isRoot ? 'Root Admin' : 'Gestor' }}</div>
           </div>
         </div>
+        <div class="sidebar-close" @click="sidebarAberta = false">
+          <i class="material-icons">close</i>
+        </div>
       </div>
 
       <nav class="sidebar-nav">
@@ -17,29 +28,29 @@
         <div class="nav-section">
           <div class="nav-section-label">Principal</div>
 
-          <router-link to="/admin/dashboard" class="nav-item" active-class="active">
+          <router-link to="/admin/dashboard" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">dashboard</i>
             <span>Dashboard</span>
           </router-link>
 
-          <router-link to="/admin/pedidos" class="nav-item" active-class="active">
+          <router-link to="/admin/pedidos" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">receipt_long</i>
             <span>Pedidos</span>
             <span v-if="pedidosPendentes > 0" class="nav-badge">{{ pedidosPendentes }}</span>
           </router-link>
 
-          <router-link to="/admin/prestadores" class="nav-item" active-class="active">
+          <router-link to="/admin/prestadores" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">handyman</i>
             <span>Prestadores</span>
             <span v-if="pendentesVerificacao > 0" class="nav-badge">{{ pendentesVerificacao }}</span>
           </router-link>
 
-          <router-link to="/admin/utilizadores" class="nav-item" active-class="active">
+          <router-link to="/admin/utilizadores" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">group</i>
             <span>Clientes</span>
           </router-link>
 
-          <router-link to="/admin/servicos" class="nav-item" active-class="active">
+          <router-link to="/admin/servicos" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">miscellaneous_services</i>
             <span>Serviços</span>
           </router-link>
@@ -49,33 +60,33 @@
         <div class="nav-section">
           <div class="nav-section-label">Gestão</div>
 
-          <router-link to="/admin/categorias" class="nav-item" active-class="active">
+          <router-link to="/admin/categorias" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">category</i>
             <span>Categorias</span>
           </router-link>
 
-          <router-link to="/admin/promocoes" class="nav-item" active-class="active">
+          <router-link to="/admin/promocoes" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">local_offer</i>
             <span>Promoções</span>
           </router-link>
 
-          <router-link to="/admin/avaliacoes" class="nav-item" active-class="active">
+          <router-link to="/admin/avaliacoes" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">star_outline</i>
             <span>Avaliações</span>
             <span v-if="avaliacoesPendentes > 0" class="nav-badge">{{ avaliacoesPendentes }}</span>
           </router-link>
 
-          <router-link to="/admin/financeiro" class="nav-item" active-class="active">
+          <router-link to="/admin/financeiro" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">money</i>
             <span>Financeiro</span>
           </router-link>
 
-          <router-link to="/admin/relatorios" class="nav-item" active-class="active">
+          <router-link to="/admin/relatorios" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">bar_chart</i>
             <span>Relatórios</span>
           </router-link>
 
-          <router-link to="/admin/estatisticas" class="nav-item" active-class="active">
+          <router-link to="/admin/estatisticas" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">pie_chart</i>
             <span>Estatísticas</span>
           </router-link>
@@ -85,13 +96,13 @@
         <div class="nav-section">
           <div class="nav-section-label">Suporte</div>
 
-          <router-link to="/admin/suporte" class="nav-item" active-class="active">
+          <router-link to="/admin/suporte" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">support_agent</i>
             <span>Tickets</span>
             <span v-if="ticketsAbertos > 0" class="nav-badge">{{ ticketsAbertos }}</span>
           </router-link>
 
-          <router-link to="/admin/notificacoes" class="nav-item" active-class="active">
+          <router-link to="/admin/notificacoes" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">notifications_none</i>
             <span>Notificações</span>
           </router-link>
@@ -101,33 +112,33 @@
         <div v-if="isRoot" class="nav-section">
           <div class="nav-section-label">Sistema</div>
 
-          <router-link to="/admin/configuracoes" class="nav-item" active-class="active">
+          <router-link to="/admin/configuracoes" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">settings</i>
             <span>Configurações</span>
           </router-link>
 
-          <router-link to="/admin/permissoes" class="nav-item" active-class="active">
+          <router-link to="/admin/permissoes" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">security</i>
             <span>Permissões</span>
           </router-link>
 
-          <router-link to="/admin/backups" class="nav-item" active-class="active">
+          <router-link to="/admin/backups" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">backup</i>
             <span>Backups</span>
           </router-link>
 
-          <router-link to="/admin/logs" class="nav-item" active-class="active">
+          <router-link to="/admin/logs" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">history</i>
             <span>Logs do Sistema</span>
           </router-link>
 
-          <router-link to="/admin/monitoring" class="nav-item" active-class="active">
+          <router-link to="/admin/monitoring" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">monitor_heart</i>
             <span>Monitoramento</span>
             <span v-if="alertasAtivos > 0" class="nav-badge warning">{{ alertasAtivos }}</span>
           </router-link>
 
-          <router-link to="/admin/performance" class="nav-item" active-class="active">
+          <router-link to="/admin/performance" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">speed</i>
             <span>Performance</span>
           </router-link>
@@ -137,7 +148,7 @@
         <div class="nav-section">
           <div class="nav-section-label">Conta</div>
 
-          <router-link to="/admin/perfil" class="nav-item" active-class="active">
+          <router-link to="/admin/perfil" class="nav-item" active-class="active" @click="sidebarAberta = false">
             <i class="material-icons nav-icon">person</i>
             <span>Meu Perfil</span>
           </router-link>
@@ -288,6 +299,19 @@ const route = useRoute();
 const authStore = useAuthStore();
 const adminStore = useAdminStore();
 const $q = useQuasar();
+
+// ==================== RESPONSIVIDADE =====================
+const sidebarAberta = ref(false);
+const isMobile = ref(window.innerWidth <= 768);
+
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 768;
+  if (!isMobile.value) {
+    sidebarAberta.value = false;
+  }
+};
+
+window.addEventListener('resize', handleResize);
 
 // ===================== ESTADO DO DROPDOWN =====================
 const dropdownAberto = ref(false);
@@ -493,6 +517,7 @@ onUnmounted(() => {
   if (intervalo) {
     clearInterval(intervalo);
   }
+  window.removeEventListener('resize', handleResize);
 });
 </script>
 
@@ -553,6 +578,48 @@ $rs: 8px;
   grid-template-columns: 220px 1fr;
   min-height: 100vh;
   background: $bg;
+  position: relative;
+}
+
+// ─── MOBILE MENU BUTTON ───────────────────────────────────────────────────
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1001;
+  width: 40px;
+  height: 40px;
+  background: $a;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  i {
+    color: white;
+    font-size: 24px;
+  }
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+
+  &.active {
+    opacity: 1;
+    visibility: visible;
+  }
 }
 
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────
@@ -564,8 +631,9 @@ $rs: 8px;
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  z-index: 100;
+  z-index: 1002;
   scrollbar-width: none;
+  transition: transform 0.3s ease;
   &::-webkit-scrollbar { display: none; }
 }
 
@@ -573,6 +641,25 @@ $rs: 8px;
   padding: 22px 18px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-close {
+  display: none;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.1);
+
+  i {
+    color: white;
+    font-size: 18px;
+  }
 }
 
 .brand-logo {
@@ -1029,20 +1116,97 @@ $rs: 8px;
   flex: 1;
 }
 
-// Responsivo
+// ==================== RESPONSIVO (TELAS MENORES) ====================
 @media (max-width: 768px) {
   .admin-shell {
     grid-template-columns: 1fr;
   }
-  .sidebar {
-    display: none;
+
+  .mobile-menu-btn {
+    display: flex;
   }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    transform: translateX(-100%);
+    z-index: 1002;
+    height: 100vh;
+
+    &.mobile {
+      transform: translateX(0);
+    }
+  }
+
+  .sidebar-close {
+    display: flex;
+  }
+
+  .content-area {
+    margin-left: 0;
+    width: 100%;
+  }
+
   .main-content {
     padding: 16px;
   }
 
+  .topbar {
+    padding: 0 16px;
+    height: 52px;
+  }
+
+  .topbar-title {
+    font-size: 16px;
+  }
+
+  .topbar-sub {
+    font-size: 10px;
+  }
+
+  .tb-search {
+    min-width: auto;
+    padding: 6px 10px;
+
+    span:not(.tb-shortcut) {
+      display: none;
+    }
+  }
+
   .notification-dropdown-content {
     width: 95vw;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 12px;
+  }
+
+  .topbar {
+    padding: 0 12px;
+  }
+
+  .topbar-title {
+    font-size: 14px;
+  }
+
+  .topbar-sub {
+    display: none;
+  }
+
+  .tb-btn {
+    width: 32px;
+    height: 32px;
   }
 }
 </style>
