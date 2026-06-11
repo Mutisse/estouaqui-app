@@ -1,460 +1,436 @@
-// src/stores/admin/admin-financeiro-store.ts
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { useQuasar } from 'quasar';
 import { api } from 'src/boot/axios';
-import { ADMIN_ENDPOINTS } from 'src/router/Api/admin-endpoints';
-import { useAuthStore } from '../auth-store';
-import { useAdminCacheStore, ADMIN_CACHE_TTL } from './admin-cache-store';
-import type { AxiosError } from 'axios';
+import { Notify } from 'quasar';
 
-export interface TransacaoData {
+// Interfaces
+export interface ResumoFinanceiro {
+  total_ganhos: number;
+  pendentes: number;
+  pagos: number;
+  total_saques: number;
+  total_receitas: number;
+  total_despesas: number;
+}
+
+export interface Transacao {
   id: number;
-  numero: string;
-  user_id: number;
-  tipo: string;
-  status: string;
-  valor: number;
   descricao: string;
-  metodo: string;
-  created_at: string;
-  user?: { id: number; nome: string };
-}
-
-export interface ResumoFinanceiroData {
-  saldo_atual: number;
-  pendente: number;
-  processado_mes: number;
-  comissoes: number;
-}
-
-export interface RelatorioServicosData {
-  periodo: string;
-  total_servicos: number;
-  receita_total: number;
-  servicos_por_status: {
-    pendente: number;
-    aceito: number;
-    em_andamento: number;
-    concluido: number;
-    cancelado: number;
-  };
-}
-
-export interface RelatorioPrestadoresData {
-  total: number;
-  verificados: number;
-  nao_verificados: number;
-  ativos: number;
-  bloqueados: number;
-  media_avaliacao_geral: number;
-  top_prestadores: { id: number; nome: string; media_avaliacao: number; total_servicos: number }[];
-  periodo: string;
-}
-
-export interface RelatorioFinanceiroData {
-  periodo: string;
-  entradas: number;
-  saidas: number;
-  saldo: number;
-  comissoes: number;
-}
-
-export interface RelatorioUsuariosData {
-  total_usuarios: number;
-  novos_usuarios: number;
-  usuarios_ativos: number;
-  usuarios_inativos: number;
-  usuarios_por_tipo: {
-    clientes: number;
-    prestadores: number;
-    admins: number;
-  };
-  usuarios_por_status: {
-    ativos: number;
-    bloqueados: number;
-    pendentes: number;
-  };
-  crescimento_mensal: Array<{
-    mes: string;
-    total: number;
-    novos: number;
-  }>;
-}
-
-export interface ConfiguracoesData {
-  nome: string;
-  email: string;
-  telefone: string;
-  endereco: string;
-  comissao_padrao: number;
-  tipo_comissao: string;
-}
-
-export interface CreateTransacaoData {
-  user_id: number;
   valor: number;
-  tipo: 'entrada' | 'saida' | 'comissao';
-  status: 'pendente' | 'concluido' | 'cancelado';
-  descricao?: string;
-  metodo?: string;
+  tipo: 'receita' | 'despesa';
+  status: 'pago' | 'pendente' | 'cancelado';
+  data: string;
+  created_at: string;
+  usuario_id?: number;
+  usuario_nome?: string;
+  prestador_id?: number;
+  prestador_nome?: string;
+  servico_id?: number;
+  servico_descricao?: string;
 }
 
-export const useAdminFinanceiroStore = defineStore('adminFinanceiro', () => {
-  const $q = useQuasar();
-  const authStore = useAuthStore();
-  const cacheStore = useAdminCacheStore();
+export interface GanhosPorMes {
+  mes: string;
+  total: number;
+  ano: number;
+  mes_numero: number;
+}
 
-  // ==========================================
-  // STATE
-  // ==========================================
+export interface Saque {
+  id: number;
+  prestador_id: number;
+  prestador_nome: string;
+  valor: number;
+  status: 'pendente' | 'aprovado' | 'concluido' | 'recusado';
+  data_solicitacao: string;
+  data_aprovacao?: string;
+  data_pagamento?: string;
+  observacao?: string;
+}
 
-  const loading = ref(false);
-  const transacoes = ref<TransacaoData[]>([]);
-  const transacaoDetalhes = ref<TransacaoData | null>(null);
-  const resumoFinanceiro = ref<ResumoFinanceiroData>({
-    saldo_atual: 0,
-    pendente: 0,
-    processado_mes: 0,
-    comissoes: 0,
-  });
-  const relatorioServicos = ref<RelatorioServicosData | null>(null);
-  const relatorioPrestadores = ref<RelatorioPrestadoresData | null>(null);
-  const relatorioFinanceiro = ref<RelatorioFinanceiroData | null>(null);
-  const relatorioUsuarios = ref<RelatorioUsuariosData | null>(null);
-  const configuracoes = ref<ConfiguracoesData>({
-    nome: '',
-    email: '',
-    telefone: '',
-    endereco: '',
-    comissao_padrao: 0,
-    tipo_comissao: '',
-  });
+export interface FinanceiroData {
+  resumo: ResumoFinanceiro;
+  transacoes: Transacao[];
+  ganhos_por_mes: GanhosPorMes[];
+  saques_pendentes: Saque[];
+  ultimos_saques: Saque[];
+}
 
-  // ==========================================
-  // AUXILIARES
-  // ==========================================
-
-  function getCurrentAdminId(): number {
-    return authStore.user?.id || 0;
-  }
-
-  function initializeCache(): void {
-    const adminId = getCurrentAdminId();
-    if (adminId) {
-      cacheStore.setAdminId(adminId);
-    }
-  }
-
-  function extractDataFromResponse<T>(response: unknown): T {
-    if (!response) return [] as T;
-    if (Array.isArray(response)) return response as T;
-    if (typeof response === 'object' && response !== null) {
-      const obj = response as Record<string, unknown>;
-      if (obj.success === true && obj.data !== undefined) {
-        return obj.data as T;
-      }
-      if (obj.data !== undefined) {
-        return obj.data as T;
-      }
-    }
-    return [] as T;
-  }
-
-  function showError(error: unknown): void {
-    const err = error as AxiosError<{ error?: string; message?: string }>;
-    const message =
-      err.response?.data?.error ||
-      err.response?.data?.message ||
-      err.message ||
-      'Erro ao carregar dados';
-    $q.notify({ type: 'negative', message, position: 'top', timeout: 3000 });
-  }
-
-  // ==========================================
-  // CONFIGURAÇÕES
-  // ==========================================
-
-  async function fetchConfiguracoes(forceRefresh: boolean = false): Promise<ConfiguracoesData | null> {
-    initializeCache();
-
-    const data = await cacheStore.fetchWithCache<ConfiguracoesData | null>(
-      'configuracoes',
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.CONFIGURACOES);
-          const result = extractDataFromResponse<ConfiguracoesData>(response.data);
-          configuracoes.value = result;
-          return result;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.VERY_LONG,
-      forceRefresh
-    );
-    return data;
-  }
-
-  async function updateConfiguracoes(data: Partial<ConfiguracoesData>): Promise<boolean> {
-    loading.value = true;
-    try {
-      const response = await api.put(ADMIN_ENDPOINTS.UPDATE_CONFIGURACOES, data);
-      if (response.data.success) {
-        cacheStore.invalidate('configuracoes');
-        return true;
-      }
-      return false;
-    } catch {
-      showError({} as Error);
-      return false;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  // ==========================================
-  // FINANCEIRO
-  // ==========================================
-
-  async function fetchResumoFinanceiro(forceRefresh: boolean = false): Promise<ResumoFinanceiroData | null> {
-    initializeCache();
-
-    const data = await cacheStore.fetchWithCache<ResumoFinanceiroData | null>(
-      'resumo_financeiro',
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.RESUMO_FINANCEIRO);
-          const result = extractDataFromResponse<ResumoFinanceiroData>(response.data);
-          resumoFinanceiro.value = result;
-          return result;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.MEDIUM,
-      forceRefresh
-    );
-    return data;
-  }
-
-  async function fetchTransacoes(params?: {
-    tipo?: string;
-    status?: string;
-    per_page?: number;
-  }, forceRefresh: boolean = false): Promise<{ data: TransacaoData[]; total: number; last_page: number; current_page: number } | null> {
-    initializeCache();
-    const cacheKey = `transacoes_${JSON.stringify(params)}`;
-
-    const data = await cacheStore.fetchWithCache<{ data: TransacaoData[]; total: number; last_page: number; current_page: number } | null>(
-      cacheKey,
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.TRANSACOES, { params });
-          const result = response.data.data;
-          transacoes.value = result.data || [];
-          return result;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.MEDIUM,
-      forceRefresh
-    );
-    return data;
-  }
-
-  async function fetchTransacaoDetalhes(id: number, forceRefresh: boolean = false): Promise<TransacaoData | null> {
-    initializeCache();
-    const cacheKey = `transacao_${id}`;
-
-    const data = await cacheStore.fetchWithCache<TransacaoData | null>(
-      cacheKey,
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.TRANSACAO_DETAILS(id));
-          const result = extractDataFromResponse<TransacaoData>(response.data);
-          transacaoDetalhes.value = result;
-          return result;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.LONG,
-      forceRefresh
-    );
-    return data;
-  }
-
-  async function createTransacao(data: CreateTransacaoData): Promise<TransacaoData | null> {
-    loading.value = true;
-    try {
-      const response = await api.post(ADMIN_ENDPOINTS.CREATE_TRANSACAO, data);
-      if (response.data.success) {
-        cacheStore.invalidatePattern('transacoes');
-        cacheStore.invalidate('resumo_financeiro');
-        return extractDataFromResponse<TransacaoData>(response.data);
-      }
-      return null;
-    } catch {
-      showError({} as Error);
-      return null;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function updateTransacaoStatus(id: number, status: string): Promise<boolean> {
-    loading.value = true;
-    try {
-      const response = await api.put(ADMIN_ENDPOINTS.UPDATE_TRANSACAO_STATUS(id), { status });
-      if (response.data.success) {
-        cacheStore.invalidatePattern('transacoes');
-        cacheStore.invalidate('resumo_financeiro');
-        cacheStore.invalidate(`transacao_${id}`);
-        return true;
-      }
-      return false;
-    } catch {
-      showError({} as Error);
-      return false;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  // ==========================================
-  // RELATÓRIOS
-  // ==========================================
-
-  async function fetchRelatorioServicos(periodo: string = 'mes', forceRefresh: boolean = false): Promise<RelatorioServicosData | null> {
-    initializeCache();
-    const cacheKey = `relatorio_servicos_${periodo}`;
-
-    const data = await cacheStore.fetchWithCache<RelatorioServicosData | null>(
-      cacheKey,
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_SERVICOS(periodo));
-          const result = extractDataFromResponse<RelatorioServicosData>(response.data);
-          relatorioServicos.value = result;
-          return result;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.LONG,
-      forceRefresh
-    );
-    return data;
-  }
-
-  async function fetchRelatorioPrestadores(forceRefresh: boolean = false): Promise<RelatorioPrestadoresData | null> {
-    initializeCache();
-
-    const data = await cacheStore.fetchWithCache<RelatorioPrestadoresData | null>(
-      'relatorio_prestadores',
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_PRESTADORES);
-          const result = extractDataFromResponse<RelatorioPrestadoresData>(response.data);
-          relatorioPrestadores.value = result;
-          return result;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.LONG,
-      forceRefresh
-    );
-    return data;
-  }
-
-  async function fetchRelatorioFinanceiro(periodo: string = 'mes', forceRefresh: boolean = false): Promise<RelatorioFinanceiroData | null> {
-    initializeCache();
-    const cacheKey = `relatorio_financeiro_${periodo}`;
-
-    const data = await cacheStore.fetchWithCache<RelatorioFinanceiroData | null>(
-      cacheKey,
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_FINANCEIRO(periodo));
-          const result = extractDataFromResponse<RelatorioFinanceiroData>(response.data);
-          relatorioFinanceiro.value = result;
-          return result;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.LONG,
-      forceRefresh
-    );
-    return data;
-  }
-
-  async function fetchRelatorioUsuarios(forceRefresh: boolean = false): Promise<RelatorioUsuariosData | null> {
-    initializeCache();
-
-    const data = await cacheStore.fetchWithCache<RelatorioUsuariosData | null>(
-      'relatorio_usuarios',
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.RELATORIO_USUARIOS);
-          const result = extractDataFromResponse<RelatorioUsuariosData>(response.data);
-          relatorioUsuarios.value = result;
-          return result;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.LONG,
-      forceRefresh
-    );
-    return data;
-  }
-
-  // ==========================================
-  // RETORNO
-  // ==========================================
-
-  return {
-    // State
-    loading,
-    transacoes,
-    transacaoDetalhes,
-    resumoFinanceiro,
-    relatorioServicos,
-    relatorioPrestadores,
-    relatorioFinanceiro,
-    relatorioUsuarios,
-    configuracoes,
-
-    // Actions - Configurações
-    fetchConfiguracoes,
-    updateConfiguracoes,
-
-    // Actions - Financeiro
-    fetchResumoFinanceiro,
-    fetchTransacoes,
-    fetchTransacaoDetalhes,
-    createTransacao,
-    updateTransacaoStatus,
-
-    // Actions - Relatórios
-    fetchRelatorioServicos,
-    fetchRelatorioPrestadores,
-    fetchRelatorioFinanceiro,
-    fetchRelatorioUsuarios,
-
-    // Utilitários
-    showError,
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
   };
+  message?: string;
+}
+
+export const useAdminFinanceiroStore = defineStore('adminFinanceiro', {
+  state: () => ({
+    isLoading: false,
+    isExporting: false,
+    data: null as FinanceiroData | null,
+    error: null as string | null,
+    currentPeriodo: 'mes' as 'mes' | 'trimestre' | 'ano' | 'todos',
+  }),
+
+  getters: {
+    // Resumo financeiro
+    resumo(): ResumoFinanceiro {
+      return (
+        this.data?.resumo || {
+          total_ganhos: 0,
+          pendentes: 0,
+          pagos: 0,
+          total_saques: 0,
+          total_receitas: 0,
+          total_despesas: 0,
+        }
+      );
+    },
+
+    // Lista de transações
+    transacoes(): Transacao[] {
+      return this.data?.transacoes || [];
+    },
+
+    // Ganhos por mês (para o gráfico)
+    ganhosPorMes(): GanhosPorMes[] {
+      return this.data?.ganhos_por_mes || [];
+    },
+
+    // Saques pendentes
+    saquesPendentes(): Saque[] {
+      return this.data?.saques_pendentes || [];
+    },
+
+    // Últimos saques
+    ultimosSaques(): Saque[] {
+      return this.data?.ultimos_saques || [];
+    },
+
+    // Total de saques pendentes
+    totalSaquesPendentes(): number {
+      return this.saquesPendentes.reduce((total, saque) => total + saque.valor, 0);
+    },
+
+    // Média de ganhos diários
+    mediaGanhosDiarios(): number {
+      if (!this.ganhosPorMes.length) return 0;
+      const total = this.ganhosPorMes.reduce((sum, item) => sum + item.total, 0);
+      return total / this.ganhosPorMes.length / 30;
+    },
+  },
+
+  actions: {
+    // Limpar erro
+    clearError() {
+      this.error = null;
+    },
+
+    // Helper para extrair mensagem de erro
+    getErrorMessage(error: unknown): string {
+      const apiError = error as ApiError;
+      return apiError.response?.data?.message || apiError.message || 'Erro desconhecido';
+    },
+
+    // Definir período
+    setPeriodo(periodo: 'mes' | 'trimestre' | 'ano' | 'todos') {
+      this.currentPeriodo = periodo;
+    },
+
+    // Carregar todos os dados financeiros
+    async carregarFinanceiro(periodo?: string): Promise<boolean> {
+      this.isLoading = true;
+      this.clearError();
+
+      const periodoParam = periodo || this.currentPeriodo;
+
+      try {
+        const response = await api.get(`/admin/financeiro?periodo=${periodoParam}`);
+        this.data = response.data;
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        Notify.create({
+          type: 'negative',
+          message: this.error,
+          position: 'top',
+        });
+        return false;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    // Carregar apenas resumo
+    async carregarResumo(periodo?: string): Promise<boolean> {
+      const periodoParam = periodo || this.currentPeriodo;
+
+      try {
+        const response = await api.get(`/admin/financeiro/resumo?periodo=${periodoParam}`);
+        if (this.data) {
+          this.data.resumo = response.data;
+        } else {
+          this.data = {
+            resumo: response.data,
+            transacoes: [],
+            ganhos_por_mes: [],
+            saques_pendentes: [],
+            ultimos_saques: [],
+          };
+        }
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        return false;
+      }
+    },
+
+    // Carregar transações
+    async carregarTransacoes(filtros?: {
+      tipo?: 'receita' | 'despesa';
+      status?: 'pago' | 'pendente' | 'cancelado';
+      data_inicio?: string;
+      data_fim?: string;
+    }): Promise<boolean> {
+      try {
+        const params = new URLSearchParams();
+        if (filtros?.tipo) params.append('tipo', filtros.tipo);
+        if (filtros?.status) params.append('status', filtros.status);
+        if (filtros?.data_inicio) params.append('data_inicio', filtros.data_inicio);
+        if (filtros?.data_fim) params.append('data_fim', filtros.data_fim);
+
+        const response = await api.get(`/admin/financeiro/transacoes?${params.toString()}`);
+        if (this.data) {
+          this.data.transacoes = response.data;
+        }
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        return false;
+      }
+    },
+
+    // Carregar ganhos por mês
+    async carregarGanhosPorMes(periodo?: string): Promise<boolean> {
+      const periodoParam = periodo || this.currentPeriodo;
+
+      try {
+        const response = await api.get(`/admin/financeiro/ganhos-por-mes?periodo=${periodoParam}`);
+        if (this.data) {
+          this.data.ganhos_por_mes = response.data;
+        }
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        return false;
+      }
+    },
+
+    // Carregar saques pendentes
+    async carregarSaquesPendentes(): Promise<boolean> {
+      try {
+        const response = await api.get('/admin/financeiro/saques/pendentes');
+        if (this.data) {
+          this.data.saques_pendentes = response.data;
+        }
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        return false;
+      }
+    },
+
+    // Carregar últimos saques
+    async carregarUltimosSaques(limite: number = 10): Promise<boolean> {
+      try {
+        const response = await api.get(`/admin/financeiro/saques/ultimos?limite=${limite}`);
+        if (this.data) {
+          this.data.ultimos_saques = response.data;
+        }
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        return false;
+      }
+    },
+
+    // Aprovar saque
+    async aprovarSaque(id: number): Promise<boolean> {
+      try {
+        await api.post(`/admin/financeiro/saques/${id}/aprovar`);
+        Notify.create({
+          type: 'positive',
+          message: 'Saque aprovado com sucesso!',
+          position: 'top',
+        });
+        await this.carregarSaquesPendentes();
+        await this.carregarUltimosSaques();
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        Notify.create({
+          type: 'negative',
+          message: this.error,
+          position: 'top',
+        });
+        return false;
+      }
+    },
+
+    // Concluir saque (pagamento realizado)
+    async concluirSaque(id: number): Promise<boolean> {
+      try {
+        await api.post(`/admin/financeiro/saques/${id}/concluir`);
+        Notify.create({
+          type: 'positive',
+          message: 'Pagamento do saque concluído!',
+          position: 'top',
+        });
+        await this.carregarSaquesPendentes();
+        await this.carregarUltimosSaques();
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        Notify.create({
+          type: 'negative',
+          message: this.error,
+          position: 'top',
+        });
+        return false;
+      }
+    },
+
+    // Recusar saque
+    async recusarSaque(id: number, observacao?: string): Promise<boolean> {
+      try {
+        await api.post(`/admin/financeiro/saques/${id}/recusar`, { observacao });
+        Notify.create({
+          type: 'positive',
+          message: 'Saque recusado!',
+          position: 'top',
+        });
+        await this.carregarSaquesPendentes();
+        await this.carregarUltimosSaques();
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        Notify.create({
+          type: 'negative',
+          message: this.error,
+          position: 'top',
+        });
+        return false;
+      }
+    },
+
+    // Exportar relatório
+    async exportarRelatorio(periodo?: string, formato: 'csv' | 'excel' = 'csv'): Promise<boolean> {
+      this.isExporting = true;
+      const periodoParam = periodo || this.currentPeriodo;
+
+      try {
+        const response = await api.get(
+          `/admin/financeiro/exportar?periodo=${periodoParam}&formato=${formato}`,
+          {
+            responseType: 'blob',
+          },
+        );
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        const extensao = formato === 'csv' ? 'csv' : 'xlsx';
+        link.href = url;
+        link.setAttribute('download', `financeiro_${periodoParam}.${extensao}`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        Notify.create({
+          type: 'positive',
+          message: `Relatório exportado com sucesso!`,
+          position: 'top',
+        });
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        Notify.create({
+          type: 'negative',
+          message: this.error,
+          position: 'top',
+        });
+        return false;
+      } finally {
+        this.isExporting = false;
+      }
+    },
+
+    // Registrar nova transação
+    async registrarTransacao(transacao: {
+      descricao: string;
+      valor: number;
+      tipo: 'receita' | 'despesa';
+      status: 'pago' | 'pendente';
+      data: string;
+      servico_id?: number;
+      usuario_id?: number;
+    }): Promise<boolean> {
+      try {
+        const response = await api.post('/admin/financeiro/transacoes', transacao);
+        Notify.create({
+          type: 'positive',
+          message: 'Transação registada com sucesso!',
+          position: 'top',
+        });
+        await this.carregarTransacoes();
+        await this.carregarResumo();
+        return response.data.success;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        Notify.create({
+          type: 'negative',
+          message: this.error,
+          position: 'top',
+        });
+        return false;
+      }
+    },
+
+    // Atualizar status de transação
+    async atualizarStatusTransacao(
+      id: number,
+      status: 'pago' | 'pendente' | 'cancelado',
+    ): Promise<boolean> {
+      try {
+        await api.put(`/admin/financeiro/transacoes/${id}/status`, { status });
+        Notify.create({
+          type: 'positive',
+          message: 'Status atualizado com sucesso!',
+          position: 'top',
+        });
+        await this.carregarTransacoes();
+        await this.carregarResumo();
+        return true;
+      } catch (error: unknown) {
+        this.error = this.getErrorMessage(error);
+        Notify.create({
+          type: 'negative',
+          message: this.error,
+          position: 'top',
+        });
+        return false;
+      }
+    },
+
+    // Carregar todos os dados (método principal)
+    async carregarTodosDados(periodo?: string): Promise<void> {
+      await this.carregarFinanceiro(periodo);
+    },
+
+    // Recarregar dados
+    async recarregarDados(): Promise<void> {
+      await this.carregarFinanceiro();
+    },
+  },
 });

@@ -2,7 +2,7 @@
   <div class="favoritos-page">
 
     <!-- ===== SKELETON LOADING ===== -->
-    <div v-if="carregamentoInicial" class="skeleton-loading">
+    <div v-if="store.carregamentoInicial" class="skeleton-loading">
       <div class="skeleton-header">
         <div class="skeleton-title"></div>
       </div>
@@ -24,8 +24,13 @@
 
       <!-- ===== CABEÇALHO ===== -->
       <div class="page-header">
-        <h1 class="page-title">Meus Favoritos</h1>
-        <button v-if="favoritosList.length > 0" class="clear-all-btn" @click="confirmarRemoverTodos">
+        <div>
+          <h1 class="page-title">Meus Favoritos</h1>
+          <div v-if="store.favoritosCount > 0" class="stats-badge">
+            {{ store.favoritosCount }} {{ store.favoritosCount === 1 ? 'prestador' : 'prestadores' }}
+          </div>
+        </div>
+        <button v-if="store.favoritosCount > 0" class="clear-all-btn" @click="confirmarRemoverTodos">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>
           </svg>
@@ -35,7 +40,7 @@
 
       <!-- ===== LISTA DE FAVORITOS ===== -->
       <div class="favoritos-content">
-        <div v-if="favoritosList.length === 0" class="empty-state">
+        <div v-if="store.isEmpty" class="empty-state">
           <div class="empty-icon">❤️</div>
           <h3>Nenhum favorito</h3>
           <p>Adicione prestadores aos favoritos para vê-los aqui</p>
@@ -45,19 +50,20 @@
         </div>
 
         <div v-else class="favoritos-list">
-          <div v-for="favorito in favoritosList" :key="favorito.id" class="favorito-card">
+          <div v-for="favorito in store.favoritosList" :key="favorito.id" class="favorito-card">
             <div class="favorito-card__header">
               <div class="favorito-avatar">
                 <div
                   v-if="!favorito.prestador.foto"
                   class="avatar-placeholder"
-                  :style="getAvatarStyle(favorito.prestador.nome)"
+                  :style="store.getAvatarStyle(favorito.prestador.nome)"
                 >
-                  {{ getInitials(favorito.prestador.nome) }}
+                  {{ store.getInitials(favorito.prestador.nome) }}
                 </div>
                 <q-avatar v-else size="56px">
-                  <img :src="favorito.prestador.foto" :alt="favorito.prestador.nome" />
+                  <img :src="store.getAvatarUrl(favorito.prestador)" :alt="favorito.prestador.nome" />
                 </q-avatar>
+                <div class="status-dot" :class="favorito.prestador.disponivel ? 'online' : 'offline'"></div>
               </div>
               <div class="favorito-info">
                 <div class="favorito-name">
@@ -80,7 +86,7 @@
                   <span class="rating-count">({{ favorito.prestador.total_avaliacoes || 0 }})</span>
                 </div>
               </div>
-              <button class="menu-btn" @click.stop="toggleMenu(favorito.id)">
+              <button class="menu-btn" @click.stop="store.toggleMenu(favorito.id)">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="1"/>
                   <circle cx="12" cy="5" r="1"/>
@@ -89,7 +95,7 @@
               </button>
 
               <!-- Menu flutuante -->
-              <div v-if="activeMenuId === favorito.id" class="floating-menu" @click.stop>
+              <div v-if="store.activeMenuId === favorito.id" class="floating-menu" @click.stop>
                 <div class="floating-menu__item" @click="() => void confirmarRemover(favorito)">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>
@@ -126,73 +132,34 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { useClienteComunicacaoStore, type FavoritoData } from 'src/stores/client/cliente-comunicacao-store';
+import { useFavoritosStore, type FavoritoData } from 'src/stores/client/cliente-favoritos-store';
 
 defineOptions({ name: 'MobileFavoritos' });
 
 const router = useRouter();
 const $q = useQuasar();
-const comunicacaoStore = useClienteComunicacaoStore();
-
-const carregamentoInicial = ref(true);
-const activeMenuId = ref<number | null>(null);
-
-const favoritosList = computed(() => comunicacaoStore.favoritos || []);
-
-const avatarGradients = [
-  'linear-gradient(135deg, #5B4BF5, #9F7AEA)',
-  'linear-gradient(135deg, #10B981, #34D399)',
-  'linear-gradient(135deg, #F59E0B, #FBBF24)',
-  'linear-gradient(135deg, #EF4444, #F87171)',
-  'linear-gradient(135deg, #3B82F6, #60A5FA)',
-  'linear-gradient(135deg, #8B5CF6, #A78BFA)',
-];
-
-const getAvatarStyle = (nome: string) => {
-  const idx = Math.abs((nome?.charCodeAt(0) || 0)) % avatarGradients.length;
-  return { background: avatarGradients[idx] };
-};
-
-const getInitials = (nome: string): string => {
-  if (!nome || nome.trim() === '') return 'U';
-  const partes = nome.trim().split(' ');
-  if (partes.length === 1 && partes[0]) {
-    return partes[0].charAt(0).toUpperCase();
-  }
-  const primeiraLetra = partes[0]?.charAt(0) || '';
-  const ultimaLetra = partes[partes.length - 1]?.charAt(0) || '';
-  if (!primeiraLetra && !ultimaLetra) return 'U';
-  if (!primeiraLetra) return ultimaLetra.toUpperCase();
-  if (!ultimaLetra) return primeiraLetra.toUpperCase();
-  return (primeiraLetra + ultimaLetra).toUpperCase();
-};
-
-const toggleMenu = (id: number) => {
-  activeMenuId.value = activeMenuId.value === id ? null : id;
-  setTimeout(() => {
-    const closeMenu = () => {
-      activeMenuId.value = null;
-      document.removeEventListener('click', closeMenu);
-    };
-    document.addEventListener('click', closeMenu, { once: true });
-  }, 100);
-};
+const store = useFavoritosStore();
 
 const removerFavorito = async (favorito: FavoritoData) => {
   try {
-    const success = await comunicacaoStore.removerFavorito(favorito.prestador.id);
+    const success = await store.removerFavorito(favorito.prestador.id);
     if (success) {
-      activeMenuId.value = null;
+      store.closeMenu();
       $q.notify({
         type: 'positive',
         message: `${favorito.prestador.nome} removido dos favoritos`,
         position: 'top',
         timeout: 2000,
       });
-      await comunicacaoStore.fetchFavoritos();
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: store.erro || 'Erro ao remover favorito',
+        position: 'top',
+      });
     }
   } catch (error) {
     console.error('Erro ao remover favorito:', error);
@@ -201,7 +168,7 @@ const removerFavorito = async (favorito: FavoritoData) => {
 };
 
 const confirmarRemover = (favorito: FavoritoData) => {
-  activeMenuId.value = null;
+  store.closeMenu();
   $q.dialog({
     title: 'Remover favorito',
     message: `Deseja remover ${favorito.prestador.nome} dos favoritos?`,
@@ -214,7 +181,7 @@ const confirmarRemover = (favorito: FavoritoData) => {
 const confirmarRemoverTodos = () => {
   $q.dialog({
     title: 'Limpar favoritos',
-    message: `Deseja remover todos os ${favoritosList.value.length} favoritos?`,
+    message: `Deseja remover todos os ${store.favoritosCount} favoritos?`,
     cancel: { label: 'Cancelar', color: 'grey-7', flat: true },
     ok: { label: 'Remover todos', color: 'negative', unelevated: true },
     persistent: true,
@@ -223,19 +190,20 @@ const confirmarRemoverTodos = () => {
 
 const removerTodosFavoritos = async () => {
   try {
-    let sucessos = 0;
-    for (const favorito of favoritosList.value) {
-      const success = await comunicacaoStore.removerFavorito(favorito.prestador.id);
-      if (success) sucessos++;
-    }
-    if (sucessos > 0) {
+    const success = await store.removerTodosFavoritos();
+    if (success) {
       $q.notify({
         type: 'positive',
-        message: `${sucessos} favorito(s) removido(s)`,
+        message: 'Todos os favoritos foram removidos',
         position: 'top',
         timeout: 2000,
       });
-      await comunicacaoStore.fetchFavoritos();
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: store.erro || 'Erro ao remover favoritos',
+        position: 'top',
+      });
     }
   } catch (error) {
     console.error('Erro ao remover favoritos:', error);
@@ -251,19 +219,12 @@ const agendarServico = (prestadorId: number) => {
   void router.push(`/mobile/agendar/${prestadorId}`);
 };
 
-const carregarFavoritos = async () => {
-  try {
-    await comunicacaoStore.fetchFavoritos();
-  } catch (error) {
-    console.error('Erro ao carregar favoritos:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar favoritos', position: 'top' });
-  } finally {
-    setTimeout(() => { carregamentoInicial.value = false; }, 500);
-  }
-};
-
 onMounted(() => {
-  void carregarFavoritos();
+  void store.carregarFavoritos();
+});
+
+onUnmounted(() => {
+  store.limparStore();
 });
 </script>
 
@@ -335,6 +296,12 @@ $radius-xs: 8px;
     font-weight: 700;
     color: $dark;
     margin: 0;
+  }
+
+  .stats-badge {
+    font-size: 0.7rem;
+    color: $gray;
+    margin-top: 4px;
   }
 
   .clear-all-btn {
@@ -425,7 +392,23 @@ $radius-xs: 8px;
   }
 }
 
-.favorito-avatar { flex-shrink: 0; }
+.favorito-avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.status-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid $white;
+
+  &.online { background: $success; }
+  &.offline { background: $gray; }
+}
 
 .avatar-placeholder {
   width: 56px;

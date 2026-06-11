@@ -1,769 +1,775 @@
 <template>
-  <q-page class="admin-prestadores q-pa-md">
+  <div class="page-container">
     <div class="page-header">
-      <div class="page-title-section">
-        <div class="page-title">
-          <q-icon name="handyman" size="32px" class="q-mr-sm" />
-          Gestão de Prestadores
-        </div>
-        <div class="page-subtitle">Gerencie os prestadores de serviços da plataforma</div>
-      </div>
+      <h1>Prestadores</h1>
       <div class="header-actions">
-        <q-btn
-          label="Atualizar"
-          icon="refresh"
-          color="grey-7"
-          outline
-          @click="carregarPrestadores"
-          :loading="utilizadoresStore.loading"
-        />
+        <q-input
+          v-model="filtros.search"
+          placeholder="Pesquisar por nome, email ou profissão..."
+          dense
+          outlined
+          class="search-input"
+          @update:model-value="onSearchChange"
+        >
+          <template v-slot:append>
+            <q-icon name="search" />
+          </template>
+        </q-input>
       </div>
     </div>
 
-    <!-- Filtros e busca -->
-    <q-card class="filters-card q-mb-md">
-      <q-card-section>
-        <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-4">
-            <q-input
-              v-model="filtros.busca"
-              placeholder="Buscar prestador..."
-              dense
-              outlined
-              @update:model-value="handleBuscaChange"
-              class="search-input"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" color="primary" />
-              </template>
-              <template v-slot:append v-if="filtros.busca">
-                <q-icon name="close" class="cursor-pointer" @click="limparBusca" />
-              </template>
-            </q-input>
+    <!-- Layout: Cards (esquerda) + Donut (direita) -->
+    <div class="dashboard-top">
+      <!-- Cards lado esquerdo - 2 linhas de 3 cards -->
+      <div class="cards-container">
+        <!-- Linha 1: 3 cards -->
+        <div class="cards-row">
+          <div class="stat-card">
+            <div class="stat-icon blue">
+              <q-icon name="handyman" size="28px" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ formatNumber(totalPrestadores) }}</div>
+              <div class="stat-label">Total Prestadores</div>
+              <div class="stat-trend">
+                <q-icon name="trending_up" size="12px" />
+                <span>+12% este mês</span>
+              </div>
+            </div>
           </div>
-          <div class="col-12 col-md-3">
-            <q-select
-              v-model="filtros.status"
-              :options="statusOptions"
-              label="Status"
-              dense
-              outlined
-              clearable
-              @update:model-value="handleFilterChange"
-              class="filter-select"
-            >
-              <template v-slot:prepend>
-                <q-icon name="verified" color="primary" />
-              </template>
-            </q-select>
+
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <q-icon name="verified" size="28px" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ formatNumber(prestadoresVerificados) }}</div>
+              <div class="stat-label">Verificados</div>
+              <div class="stat-trend">
+                <q-icon name="check_circle" size="12px" />
+                <span>{{ calcularPercentualVerificados() }}% do total</span>
+              </div>
+            </div>
           </div>
-          <div class="col-12 col-md-3">
-            <q-select
-              v-model="filtros.categoria"
-              :options="categoriasSelectOptions"
-              label="Categoria"
-              dense
-              outlined
-              clearable
-              @update:model-value="handleFilterChange"
-              class="filter-select"
-            >
-              <template v-slot:prepend>
-                <q-icon name="category" color="primary" />
-              </template>
-            </q-select>
-          </div>
-          <div class="col-12 col-md-2">
-            <q-btn
-              label="Filtrar"
-              icon="filter_list"
-              color="primary"
-              dense
-              @click="abrirFiltros"
-              outline
-              class="full-width"
-            />
+
+          <div class="stat-card">
+            <div class="stat-icon orange">
+              <q-icon name="pending" size="28px" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ formatNumber(prestadoresPendentes) }}</div>
+              <div class="stat-label">Pendentes</div>
+              <div class="stat-trend" v-if="prestadoresPendentes > 0">
+                <q-icon name="schedule" size="12px" />
+                <span>Aguardando</span>
+              </div>
+            </div>
           </div>
         </div>
-      </q-card-section>
-    </q-card>
 
-    <!-- Skeleton Loading -->
-    <div v-if="utilizadoresStore.loading" class="skeleton-container">
-      <div class="skeleton-table-header">
-        <div class="row justify-between items-center">
-          <div class="skeleton-total"></div>
-          <div class="skeleton-pagination"></div>
+        <!-- Linha 2: 3 cards -->
+        <div class="cards-row">
+          <div class="stat-card">
+            <div class="stat-icon purple">
+              <q-icon name="star" size="28px" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ mediaAvaliacaoGlobal.toFixed(1) }}</div>
+              <div class="stat-label">Média Avaliações</div>
+              <div class="stat-trend">
+                <q-icon name="star" size="12px" />
+                <span>{{ formatNumber(totalAvaliacoes) }} avaliações</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon teal">
+              <q-icon name="online_prediction" size="28px" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ formatNumber(prestadoresDisponiveis) }}</div>
+              <div class="stat-label">Disponíveis</div>
+              <div class="stat-trend">
+                <q-icon name="check_circle" size="12px" />
+                <span
+                  >{{ Math.round((prestadoresDisponiveis / totalPrestadores) * 100) || 0 }}%
+                  ativos</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon indigo">
+              <q-icon name="category" size="28px" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ formatNumber(totalProfissoes) }}</div>
+              <div class="stat-label">Profissões</div>
+              <div class="stat-trend">
+                <q-icon name="trending_up" size="12px" />
+                <span>Categorias</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="skeleton-table">
-        <div class="skeleton-table-header-row">
-          <div v-for="i in colunas.length" :key="`header-${i}`" class="skeleton-header-cell"></div>
+      <!-- Donut Chart lado direito -->
+      <div class="donut-card">
+        <div class="donut-header">
+          <h3>📊 Distribuição de Status</h3>
+          <span class="donut-total">{{ totalPrestadores }} prestadores</span>
         </div>
-
-        <div v-for="row in 5" :key="row" class="skeleton-table-row">
-          <div class="skeleton-cell">
-            <div class="skeleton-text"></div>
-            <div class="skeleton-text-short q-mt-xs"></div>
-          </div>
-          <div class="skeleton-cell"><div class="skeleton-text"></div></div>
-          <div class="skeleton-cell"><div class="skeleton-text-short"></div></div>
-          <div class="skeleton-cell"><div class="skeleton-badge"></div></div>
-          <div class="skeleton-cell"><div class="skeleton-rating"></div></div>
-          <div class="skeleton-cell"><div class="skeleton-chips"></div></div>
-          <div class="skeleton-cell"><div class="skeleton-actions"></div></div>
-        </div>
-      </div>
-
-      <div class="skeleton-shimmer"></div>
-    </div>
-
-    <!-- Tabela de prestadores -->
-    <q-card v-else class="prestadores-table-card">
-      <q-card-section class="table-header">
-        <div class="row justify-between items-center">
-          <div class="total-info">
-            <q-icon name="info" size="18px" class="q-mr-xs" />
-            <span class="text-subtitle1">Total: <strong>{{ paginacao.total }}</strong> prestadores</span>
-          </div>
-          <div class="pagination-controls">
-            <q-pagination
-              v-model="paginacao.page"
-              :max="paginacao.lastPage"
-              :max-pages="5"
-              direction-links
-              boundary-links
-              color="primary"
-              @update:model-value="carregarPrestadores"
-              size="sm"
-            />
-          </div>
-        </div>
-      </q-card-section>
-
-      <q-table
-        :rows="utilizadoresStore.prestadores"
-        :columns="colunas"
-        row-key="id"
-        hide-bottom
-        class="prestadores-table"
-        :rows-per-page-options="[0]"
-      >
-        <template v-slot:body-cell-status="props">
-          <q-td :props="props">
-            <q-badge :color="props.row.verificado ? 'positive' : 'warning'" class="status-badge">
-              <q-icon :name="props.row.verificado ? 'verified' : 'pending'" size="12px" class="q-mr-xs" />
-              {{ props.row.verificado ? 'Verificado' : 'Pendente' }}
-            </q-badge>
-          </q-td>
-        </template>
-
-        <template v-slot:body-cell-avaliacao="props">
-          <q-td :props="props">
-            <div class="rating-container">
-              <q-rating
-                :model-value="props.row.media_avaliacao || 0"
-                size="16px"
-                :max="5"
-                color="amber"
-                readonly
-                icon="star"
-                icon-selected="star"
+        <div class="donut-container">
+          <div class="donut-chart">
+            <svg viewBox="0 0 120 120" style="width: 100%; height: 100%">
+              <circle
+                cx="60"
+                cy="60"
+                r="50"
+                fill="transparent"
+                stroke="#E5E7EB"
+                stroke-width="20"
               />
-              <span class="rating-count">({{ props.row.total_avaliacoes || 0 }})</span>
-            </div>
-          </q-td>
-        </template>
-
-        <template v-slot:body-cell-categorias="props">
-          <q-td :props="props">
-            <div class="categorias-container">
-              <q-chip
-                v-for="cat in props.row.categorias"
-                :key="cat.id"
-                size="sm"
-                :color="getCategoriaCor(cat.nome)"
-                text-color="white"
-                dense
+              <circle
+                cx="60"
+                cy="60"
+                r="50"
+                fill="transparent"
+                stroke="#10B981"
+                stroke-width="20"
+                :stroke-dasharray="calcularDashArray(prestadoresVerificados)"
+                :stroke-dashoffset="0"
+                transform="rotate(-90 60 60)"
+              />
+              <circle
+                cx="60"
+                cy="60"
+                r="50"
+                fill="transparent"
+                stroke="#F59E0B"
+                stroke-width="20"
+                :stroke-dasharray="calcularDashArray(prestadoresPendentes)"
+                :stroke-dashoffset="calcularOffset(prestadoresVerificados)"
+                transform="rotate(-90 60 60)"
+              />
+              <circle
+                cx="60"
+                cy="60"
+                r="50"
+                fill="transparent"
+                stroke="#3B82F6"
+                stroke-width="20"
+                :stroke-dasharray="calcularDashArray(prestadoresDisponiveis)"
+                :stroke-dashoffset="calcularOffset(prestadoresVerificados + prestadoresPendentes)"
+                transform="rotate(-90 60 60)"
+              />
+              <text
+                x="60"
+                y="65"
+                text-anchor="middle"
+                fill="#1F2937"
+                font-size="16"
+                font-weight="bold"
               >
-                {{ cat.nome }}
-              </q-chip>
-              <span v-if="!props.row.categorias?.length" class="text-grey">-</span>
-            </div>
-          </q-td>
-        </template>
-
-        <template v-slot:body-cell-acoes="props">
-          <q-td :props="props">
-            <div class="action-buttons">
-              <q-btn
-                flat
-                round
-                icon="visibility"
-                size="sm"
-                color="primary"
-                @click="verPrestador(props.row)"
-              >
-                <q-tooltip>Ver detalhes</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                round
-                icon="edit"
-                size="sm"
-                color="secondary"
-                @click="editarPrestador(props.row)"
-              >
-                <q-tooltip>Editar</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="!props.row.blocked_at"
-                flat
-                round
-                icon="block"
-                size="sm"
-                color="negative"
-                @click="bloquearPrestador(props.row)"
-              >
-                <q-tooltip>Bloquear</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-else
-                flat
-                round
-                icon="lock_open"
-                size="sm"
-                color="positive"
-                @click="desbloquearPrestador(props.row)"
-              >
-                <q-tooltip>Desbloquear</q-tooltip>
-              </q-btn>
-            </div>
-          </q-td>
-        </template>
-
-        <template v-slot:no-data>
-          <div class="text-center q-pa-md">
-            <q-icon name="info" size="32px" color="grey" />
-            <div class="text-subtitle1 q-mt-sm">Nenhum prestador encontrado</div>
-            <div class="text-caption text-grey">Tente ajustar os filtros ou verifique se há prestadores cadastrados</div>
+                {{ totalPrestadores }}
+              </text>
+            </svg>
           </div>
-        </template>
-      </q-table>
+        </div>
+        <div class="donut-legend">
+          <div class="legend-item">
+            <span class="legend-color" style="background: #10b981"></span>
+            <span>Verificados</span>
+            <strong>{{ formatNumber(prestadoresVerificados) }}</strong>
+            <span class="percent">({{ calcularPercentualVerificados() }}%)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #f59e0b"></span>
+            <span>Pendentes</span>
+            <strong>{{ formatNumber(prestadoresPendentes) }}</strong>
+            <span class="percent">({{ calcularPercentualPendentes() }}%)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #3b82f6"></span>
+            <span>Disponíveis</span>
+            <strong>{{ formatNumber(prestadoresDisponiveis) }}</strong>
+            <span class="percent">({{ calcularPercentualDisponiveis() }}%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      <q-card-section v-if="paginacao.total > paginacao.perPage" class="table-footer">
-        <div class="row justify-center">
-          <q-pagination
-            v-model="paginacao.page"
-            :max="paginacao.lastPage"
-            :max-pages="5"
-            direction-links
-            boundary-links
-            color="primary"
-            @update:model-value="carregarPrestadores"
-            size="sm"
+    <!-- 2 gráficos lado a lado: Top Profissões (esquerda) + Distribuição Avaliações (direita) -->
+    <div class="charts-bottom-row">
+      <!-- Top Profissões -->
+      <div class="top-profissoes-card">
+        <div class="card-header">
+          <h3>🏆 Top Profissões</h3>
+          <q-icon name="bar_chart" size="20px" color="primary" />
+        </div>
+        <div class="top-profissoes-list">
+          <div
+            v-for="(profissao, index) in topProfissoes"
+            :key="profissao[0]"
+            class="profissao-item"
+          >
+            <div class="profissao-rank">{{ index + 1 }}º</div>
+            <div class="profissao-name">{{ profissao[0] }}</div>
+            <div class="profissao-bar-container">
+              <div
+                class="profissao-bar"
+                :style="{ width: (profissao[1] / totalPrestadores) * 100 + '%' }"
+              ></div>
+            </div>
+            <div class="profissao-count">{{ formatNumber(profissao[1]) }}</div>
+            <div class="profissao-percent">
+              {{ Math.round((profissao[1] / totalPrestadores) * 100) }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Distribuição de Avaliações -->
+      <div class="rating-card">
+        <div class="card-header">
+          <h3>⭐ Distribuição de Avaliações</h3>
+          <q-icon name="star" size="20px" color="warning" />
+        </div>
+        <div class="rating-stats">
+          <div class="rating-item" v-for="nota in [5, 4, 3, 2, 1]" :key="nota">
+            <span class="rating-stars">
+              <q-icon v-for="n in nota" :key="n" name="star" size="16px" color="amber" />
+            </span>
+            <div class="rating-bar-container">
+              <div
+                class="rating-bar"
+                :style="{
+                  width: getPercentualPorNota(nota) + '%',
+                  background: getCorPorNota(nota),
+                }"
+              ></div>
+            </div>
+            <span class="rating-count">{{ formatNumber(getQuantidadePorNota(nota)) }}</span>
+            <span class="rating-percent">{{ getPercentualPorNota(nota).toFixed(1) }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <q-select
+        v-model="filtros.verificado"
+        :options="verificadoOptions"
+        label="Verificado"
+        dense
+        outlined
+        clearable
+        class="filter-select"
+        @update:model-value="onFiltroChange"
+      />
+      <q-select
+        v-model="filtros.profissao"
+        :options="opcoesProfissao"
+        label="Profissão"
+        dense
+        outlined
+        clearable
+        class="filter-select"
+        @update:model-value="onFiltroChange"
+      />
+      <q-btn flat label="Limpar filtros" @click="handleLimparFiltros" class="clear-btn" />
+    </div>
+
+    <div class="actions-bar">
+      <q-btn flat icon="refresh" label="Atualizar" @click="handleRecarregar" :loading="isLoading" />
+    </div>
+
+    <div v-if="isLoading" class="loading-container">
+      <q-spinner size="40px" color="primary" />
+      <p>Carregando prestadores...</p>
+    </div>
+
+    <q-table v-else :rows="prestadores" :columns="tableColumns" row-key="id" flat bordered>
+      <template v-slot:body-cell-nome="props">
+        <q-td :props="props">
+          <div class="user-cell">
+            <q-avatar size="36px" class="q-mr-sm">
+              <img :src="getAvatarUrl(props.row.nome)" />
+            </q-avatar>
+            <div>
+              <div class="user-name">{{ props.row.nome }}</div>
+              <div class="user-email">{{ props.row.email }}</div>
+            </div>
+          </div>
+        </q-td>
+      </template>
+
+      <!-- ✅ CORRIGIDO: Number() para converter string em número -->
+      <template v-slot:body-cell-media_avaliacao="props">
+        <q-td :props="props">
+          <div class="rating-cell">
+            <q-rating
+              :model-value="Number(props.row.media_avaliacao)"
+              readonly
+              size="16px"
+              max="5"
+            />
+            <span class="rating-count">({{ props.row.total_avaliacoes || 0 }})</span>
+          </div>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-verificado="props">
+        <q-td :props="props">
+          <q-badge :color="props.row.verificado ? 'green' : 'orange'">
+            {{ props.row.verificado ? 'Verificado' : 'Pendente' }}
+          </q-badge>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-disponivel="props">
+        <q-td :props="props">
+          <q-badge :color="props.row.disponivel ? 'green' : 'red'">
+            {{ props.row.disponivel ? 'Disponível' : 'Indisponível' }}
+          </q-badge>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-acoes="props">
+        <q-td :props="props">
+          <div class="acoes-cell">
+            <q-btn
+              flat
+              round
+              icon="visibility"
+              color="info"
+              size="sm"
+              @click="() => handleAbrirPerfil(props.row)"
+              title="Ver"
+            />
+            <q-btn
+              v-if="!props.row.verificado"
+              flat
+              round
+              icon="verified"
+              color="primary"
+              size="sm"
+              @click="() => handleConfirmarVerificacao(props.row)"
+              title="Verificar"
+            />
+            <q-btn
+              flat
+              round
+              icon="delete"
+              color="negative"
+              size="sm"
+              @click="() => handleConfirmarExclusao(props.row)"
+              title="Excluir"
+            />
+          </div>
+        </q-td>
+      </template>
+
+      <template v-slot:bottom>
+        <div class="pagination-container">
+          <q-btn
+            flat
+            icon="chevron_left"
+            :disable="!temPaginaAnterior"
+            @click="() => handleMudarPagina(paginacao.current_page - 1)"
+          />
+          <span class="pagination-info">
+            Página {{ paginacao.current_page }} de {{ paginacao.last_page }} ({{
+              paginacao.total
+            }}
+            registos)
+          </span>
+          <q-btn
+            flat
+            icon="chevron_right"
+            :disable="!temProximaPagina"
+            @click="() => handleMudarPagina(paginacao.current_page + 1)"
           />
         </div>
-      </q-card-section>
-    </q-card>
+      </template>
+    </q-table>
 
-    <!-- Dialog de filtros avançados -->
-    <q-dialog v-model="mostrarFiltros" transition="scale">
-      <q-card style="min-width: 400px" class="filters-dialog">
-        <q-card-section class="dialog-header">
-          <div class="text-h6">
-            <q-icon name="filter_list" class="q-mr-sm" />
-            Filtros Avançados
+    <!-- Modal Mini-Perfil -->
+    <q-dialog v-model="perfilModalVisible" transition-show="scale" transition-hide="scale">
+      <q-card style="min-width: 380px; max-width: 450px; border-radius: 20px">
+        <q-card-section
+          class="perfil-header"
+          :style="{
+            background: `linear-gradient(135deg, ${prestadorPerfil?.verificado ? '#10B981' : '#667EEA'}, #1a1a2e)`,
+          }"
+        >
+          <div class="perfil-avatar">
+            <q-avatar size="80px">
+              <img :src="getAvatarUrl(prestadorPerfil?.nome || '')" />
+            </q-avatar>
+            <q-badge :color="prestadorPerfil?.verificado ? 'green' : 'orange'" class="status-badge">
+              {{ prestadorPerfil?.verificado ? 'Verificado' : 'Pendente' }}
+            </q-badge>
           </div>
-          <q-btn flat round dense icon="close" v-close-popup />
-        </q-card-section>
-
-        <q-card-section class="q-gutter-md">
-          <q-select
-            v-model="filtros.status"
-            :options="statusOptions"
-            label="Status de verificação"
-            outlined
-            dense
-            emit-value
-            map-options
-            clearable
-          />
-
-          <q-select
-            v-model="filtros.categoria"
-            :options="categoriasSelectOptions"
-            label="Categoria"
-            outlined
-            dense
-            emit-value
-            map-options
-            clearable
-          />
-
-          <q-input
-            v-model.number="filtros.avaliacaoMin"
-            label="Avaliação mínima (0-5)"
-            type="number"
-            outlined
-            dense
-            :min="0"
-            :max="5"
-            step="0.5"
-          />
-
-          <q-select
-            v-model="filtros.ordenar"
-            :options="ordenacaoOptions"
-            label="Ordenar por"
-            outlined
-            dense
-            emit-value
-            map-options
-          />
-        </q-card-section>
-
-        <q-card-actions align="right" class="dialog-actions">
-          <q-btn flat label="Limpar tudo" color="grey-7" @click="limparFiltros" />
-          <q-btn unelevated label="Aplicar" color="primary" @click="aplicarFiltros" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- Dialog de detalhes do prestador -->
-    <q-dialog v-model="mostrarDetalhes" maximized transition-show="slide-up" transition-hide="slide-down">
-      <q-card class="details-dialog">
-        <q-card-section class="dialog-header bg-primary text-white">
-          <div class="text-h6">
-            <q-icon name="handyman" class="q-mr-sm" />
-            Detalhes do Prestador
+          <div class="perfil-nome">{{ prestadorPerfil?.nome }}</div>
+          <div class="perfil-profissao">
+            {{ prestadorPerfil?.profissao || 'Profissão não informada' }}
           </div>
-          <q-btn flat round dense icon="close" v-close-popup text-color="white" />
         </q-card-section>
 
-        <q-card-section v-if="prestadorSelecionado" class="details-content">
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-md-4 text-center">
-              <q-avatar size="120px" class="avatar-large">
-                <img :src="prestadorSelecionado.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(prestadorSelecionado.nome)}&background=667eea&color=fff`" />
-              </q-avatar>
-              <div class="text-h6 q-mt-md">{{ prestadorSelecionado.nome }}</div>
-              <div class="text-grey-7">{{ prestadorSelecionado.email }}</div>
-              <div class="text-grey-7">{{ prestadorSelecionado.telefone }}</div>
+        <q-card-section class="perfil-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <q-icon name="email" size="18px" class="info-icon" />
+              <div class="info-content">
+                <div class="info-label">Email</div>
+                <div class="info-value">{{ prestadorPerfil?.email }}</div>
+              </div>
             </div>
-
-            <div class="col-12 col-md-8">
-              <q-list bordered separator class="rounded-borders">
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Status de Verificação</q-item-label>
-                    <q-item-label>
-                      <q-badge :color="prestadorSelecionado.verificado ? 'positive' : 'warning'" class="status-badge-large">
-                        <q-icon :name="prestadorSelecionado.verificado ? 'verified' : 'pending'" size="14px" class="q-mr-xs" />
-                        {{ prestadorSelecionado.verificado ? 'Verificado' : 'Pendente' }}
-                      </q-badge>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Avaliação</q-item-label>
-                    <q-item-label>
-                      <q-rating :model-value="prestadorSelecionado.media_avaliacao || 0" size="20px" :max="5" color="amber" readonly />
-                      <span class="q-ml-sm">({{ prestadorSelecionado.total_avaliacoes || 0 }} avaliações)</span>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Categorias</q-item-label>
-                    <q-item-label>
-                      <q-chip
-                        v-for="cat in prestadorSelecionado.categorias"
-                        :key="cat.id"
-                        size="sm"
-                        :color="getCategoriaCor(cat.nome)"
-                        text-color="white"
-                      >
-                        {{ cat.nome }}
-                      </q-chip>
-                      <span v-if="!prestadorSelecionado.categorias?.length" class="text-grey">Nenhuma categoria</span>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Status da Conta</q-item-label>
-                    <q-item-label>
-                      <q-badge :color="!prestadorSelecionado.blocked_at ? 'positive' : 'negative'">
-                        <q-icon :name="!prestadorSelecionado.blocked_at ? 'check_circle' : 'cancel'" size="12px" class="q-mr-xs" />
-                        {{ !prestadorSelecionado.blocked_at ? 'Ativo' : 'Bloqueado' }}
-                      </q-badge>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Data de Cadastro</q-item-label>
-                    <q-item-label>{{ formatDate(prestadorSelecionado.created_at) }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-
-              <div class="row q-mt-md q-gutter-sm">
-                <q-btn
-                  v-if="!prestadorSelecionado.verificado"
-                  unelevated
-                  color="positive"
-                  icon="verified"
-                  label="Verificar Prestador"
-                  @click="aprovarPrestador(prestadorSelecionado.id)"
-                />
-                <q-btn
-                  v-else
-                  unelevated
-                  color="warning"
-                  icon="warning"
-                  label="Suspender Verificação"
-                  @click="reprovarPrestador(prestadorSelecionado.id)"
-                />
-                <q-btn flat label="Fechar" color="grey-7" v-close-popup />
+            <div class="info-item">
+              <q-icon name="phone" size="18px" class="info-icon" />
+              <div class="info-content">
+                <div class="info-label">Telefone</div>
+                <div class="info-value">{{ prestadorPerfil?.telefone || 'Não informado' }}</div>
+              </div>
+            </div>
+            <div class="info-item">
+              <q-icon name="calendar_today" size="18px" class="info-icon" />
+              <div class="info-content">
+                <div class="info-label">Registo</div>
+                <div class="info-value">{{ formatarData(prestadorPerfil?.created_at) }}</div>
+              </div>
+            </div>
+            <!-- ✅ CORRIGIDO: Number() no rating do modal -->
+            <div class="info-item">
+              <q-icon name="star" size="18px" class="info-icon" />
+              <div class="info-content">
+                <div class="info-label">Avaliação</div>
+                <div class="info-value">
+                  <q-rating
+                    :model-value="Number(avaliacaoTemp)"
+                    readonly
+                    size="16px"
+                    max="5"
+                  />
+                  <span class="rating-count">({{ prestadorPerfil?.total_avaliacoes || 0 }})</span>
+                </div>
               </div>
             </div>
           </div>
         </q-card-section>
+
+        <q-card-actions align="right" class="perfil-actions">
+          <q-btn flat label="Fechar" v-close-popup />
+          <q-btn
+            v-if="!prestadorPerfil?.verificado"
+            flat
+            label="Verificar"
+            color="green"
+            @click="handleConfirmarVerificacaoPerfil"
+          />
+        </q-card-actions>
       </q-card>
     </q-dialog>
-  </q-page>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue';
-import { useQuasar, type QTableColumn } from 'quasar';
-// ✅ IMPORTS CORRETOS
-import { useAdminUtilizadoresStore, type PrestadorData } from 'src/stores/admin/admin-utilizadores-store';
-import { useAdminConteudoStore, type CategoriaData } from 'src/stores/admin/admin-conteudo-store';
+import { ref, computed, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
+import { storeToRefs } from 'pinia';
+import { useAdminPrestadoresStore } from 'src/stores/admin/admin-prestadores-store';
+import type { Prestador } from 'src/stores/admin/admin-prestadores-store';
 
-
-
-defineOptions({
-  name: 'AdminPrestadores',
-});
+defineOptions({ name: 'AdminPrestadores' });
 
 const $q = useQuasar();
-// ✅ USANDO OS STORES CORRETOS
-const utilizadoresStore = useAdminUtilizadoresStore();
-const conteudoStore = useAdminConteudoStore();
+const prestadoresStore = useAdminPrestadoresStore();
 
-// Estados
-const mostrarFiltros = ref(false);
-const mostrarDetalhes = ref(false);
-const prestadorSelecionado = ref<PrestadorData | null>(null);
+const {
+  isLoading,
+  prestadores,
+  paginacao,
+  filtros,
+  opcoesProfissao,
+  temPaginaAnterior,
+  temProximaPagina,
+} = storeToRefs(prestadoresStore);
 
-// Filtros
-const filtros = reactive({
-  busca: '',
-  status: null as string | null,
-  categoria: null as number | null,
-  avaliacaoMin: null as number | null,
-  ordenar: 'nome_asc',
+const {
+  carregarPrestadores,
+  setFiltro,
+  limparFiltros,
+  mudarPagina,
+  buscarPrestador,
+  verificarPrestador,
+  excluirPrestador,
+  carregarOpcoesProfissao,
+  recarregarDados,
+} = prestadoresStore;
+
+// Estados locais
+const perfilModalVisible = ref(false);
+const prestadorPerfil = ref<Prestador | null>(null);
+const avaliacaoTemp = ref(0);
+
+const verificadoOptions = [
+  { label: 'Verificados', value: 'sim' },
+  { label: 'Não verificados', value: 'nao' },
+];
+
+// Computed
+const totalPrestadores = computed(() => prestadores.value.length);
+const prestadoresVerificados = computed(() => prestadores.value.filter((p) => p.verificado).length);
+const prestadoresPendentes = computed(() => prestadores.value.filter((p) => !p.verificado).length);
+const prestadoresDisponiveis = computed(() => prestadores.value.filter((p) => p.disponivel).length);
+const totalAvaliacoes = computed(() =>
+  prestadores.value.reduce((acc, p) => acc + (p.total_avaliacoes || 0), 0),
+);
+const mediaAvaliacaoGlobal = computed(() => {
+  if (totalAvaliacoes.value === 0) return 0;
+  const somaNotas = prestadores.value.reduce(
+    (acc, p) => acc + p.media_avaliacao * (p.total_avaliacoes || 0),
+    0,
+  );
+  return somaNotas / totalAvaliacoes.value;
+});
+const totalProfissoes = computed(() => {
+  const profissoes = new Set(prestadores.value.map((p) => p.profissao).filter(Boolean));
+  return profissoes.size;
 });
 
-// Paginação
-const paginacao = reactive({
-  page: 1,
-  perPage: 20,
-  total: 0,
-  lastPage: 1,
-});
-
-// Opções
-const statusOptions = [
-  { label: 'Verificados', value: 'verificado' },
-  { label: 'Pendentes', value: 'pendente' },
-];
-
-const categoriasSelectOptions = ref<{ label: string; value: number }[]>([]);
-
-const ordenacaoOptions = [
-  { label: 'Nome (A-Z)', value: 'nome_asc' },
-  { label: 'Nome (Z-A)', value: 'nome_desc' },
-  { label: 'Melhor avaliação', value: 'avaliacao_desc' },
-  { label: 'Mais serviços', value: 'servicos_desc' },
-];
-
-// Colunas da tabela
-const colunas: QTableColumn[] = [
-  { name: 'nome', label: 'Nome', field: 'nome', align: 'left', sortable: true },
-  { name: 'email', label: 'Email', field: 'email', align: 'left', sortable: true },
-  { name: 'telefone', label: 'Telefone', field: 'telefone', align: 'center', sortable: false },
-  { name: 'status', label: 'Status', field: 'verificado', align: 'center', sortable: false },
-  { name: 'avaliacao', label: 'Avaliação', field: 'media_avaliacao', align: 'center', sortable: true },
-  { name: 'categorias', label: 'Categorias', field: 'categorias', align: 'left', sortable: false },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center', sortable: false },
-];
-
-// Métodos auxiliares
-const getCategoriaCor = (nome: string) => {
-  const cores: Record<string, string> = {
-    'Eletricista': 'primary',
-    'Canalizador': 'secondary',
-    'Pintor': 'info',
-    'Informático': 'warning',
-    'Limpeza': 'positive',
-  };
-  return cores[nome] || 'grey';
-};
-
-const formatDate = (date?: string) => {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-};
-
-// ✅ Carregar categorias usando conteudoStore
-const carregarCategorias = async () => {
-  try {
-    const cats = await conteudoStore.fetchCategorias();
-    categoriasSelectOptions.value = cats.map((cat: CategoriaData) => ({
-      label: cat.nome,
-      value: cat.id,
-    }));
-  } catch (error) {
-    console.error('Erro ao carregar categorias:', error);
-  }
-};
-
-// ✅ Carregar prestadores usando utilizadoresStore
-const carregarPrestadores = async () => {
-  try {
-    const params: {
-      page: number;
-      per_page: number;
-      busca?: string;
-      verificado?: boolean;
-      categoria?: number;
-      avaliacao_min?: number;
-    } = {
-      page: paginacao.page,
-      per_page: paginacao.perPage,
-    };
-
-    if (filtros.busca) params.busca = filtros.busca;
-    if (filtros.status === 'verificado') params.verificado = true;
-    if (filtros.status === 'pendente') params.verificado = false;
-    if (filtros.categoria) params.categoria = filtros.categoria;
-    if (filtros.avaliacaoMin) params.avaliacao_min = filtros.avaliacaoMin;
-
-    const result = await utilizadoresStore.fetchPrestadores(params);
-
-    if (result) {
-      paginacao.total = result.total;
-      paginacao.lastPage = result.last_page;
-      paginacao.page = result.current_page;
+const topProfissoes = computed(() => {
+  const contagem: Record<string, number> = {};
+  prestadores.value.forEach((p) => {
+    if (p.profissao) {
+      contagem[p.profissao] = (contagem[p.profissao] || 0) + 1;
     }
-  } catch (err) {
-    console.error('Erro ao carregar prestadores:', err);
-  }
+  });
+  return Object.entries(contagem)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+});
+
+const distribuicaoAvaliacoes = computed(() => {
+  const distribuicao = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  prestadores.value.forEach((p) => {
+    const nota = Math.round(p.media_avaliacao);
+    if (nota >= 1 && nota <= 5) {
+      distribuicao[nota as keyof typeof distribuicao]++;
+    }
+  });
+  return distribuicao;
+});
+
+const getQuantidadePorNota = (nota: number): number => {
+  return distribuicaoAvaliacoes.value[nota as keyof typeof distribuicaoAvaliacoes.value] || 0;
+};
+
+const getPercentualPorNota = (nota: number): number => {
+  if (totalPrestadores.value === 0) return 0;
+  return (getQuantidadePorNota(nota) / totalPrestadores.value) * 100;
+};
+
+const getCorPorNota = (nota: number): string => {
+  const cores = { 5: '#10B981', 4: '#3B82F6', 3: '#8B5CF6', 2: '#F59E0B', 1: '#EF4444' };
+  return cores[nota as keyof typeof cores] || '#9CA3AF';
+};
+
+// Donut chart functions
+const circunferencia = 2 * Math.PI * 50;
+const calcularDashArray = (valor: number): string => {
+  if (totalPrestadores.value === 0) return `0 ${circunferencia}`;
+  const percentual = (valor / totalPrestadores.value) * 100;
+  const dashLength = (percentual / 100) * circunferencia;
+  return `${dashLength} ${circunferencia - dashLength}`;
+};
+
+const calcularOffset = (valorAcumulado: number): string => {
+  if (totalPrestadores.value === 0) return '0';
+  const percentualAcumulado = (valorAcumulado / totalPrestadores.value) * 100;
+  const offset = (percentualAcumulado / 100) * circunferencia;
+  return String(-offset);
+};
+
+const calcularPercentualVerificados = (): number => {
+  if (totalPrestadores.value === 0) return 0;
+  return Math.round((prestadoresVerificados.value / totalPrestadores.value) * 100);
+};
+
+const calcularPercentualPendentes = (): number => {
+  if (totalPrestadores.value === 0) return 0;
+  return Math.round((prestadoresPendentes.value / totalPrestadores.value) * 100);
+};
+
+const calcularPercentualDisponiveis = (): number => {
+  if (totalPrestadores.value === 0) return 0;
+  return Math.round((prestadoresDisponiveis.value / totalPrestadores.value) * 100);
+};
+
+const tableColumns = [
+  {
+    name: 'id',
+    label: 'ID',
+    field: 'id',
+    align: 'left' as const,
+    sortable: true,
+    style: 'width: 60px',
+  },
+  {
+    name: 'nome',
+    label: 'Prestador',
+    field: 'nome',
+    align: 'left' as const,
+    style: 'min-width: 200px',
+  },
+  {
+    name: 'profissao',
+    label: 'Profissão',
+    field: 'profissao',
+    align: 'left' as const,
+    style: 'width: 150px',
+  },
+  {
+    name: 'telefone',
+    label: 'Telefone',
+    field: 'telefone',
+    align: 'left' as const,
+    style: 'width: 120px',
+  },
+  {
+    name: 'media_avaliacao',
+    label: 'Avaliação',
+    field: 'media_avaliacao',
+    align: 'center' as const,
+    style: 'width: 120px',
+  },
+  {
+    name: 'verificado',
+    label: 'Status',
+    field: 'verificado',
+    align: 'center' as const,
+    style: 'width: 100px',
+  },
+  {
+    name: 'disponivel',
+    label: 'Disponível',
+    field: 'disponivel',
+    align: 'center' as const,
+    style: 'width: 100px',
+  },
+  {
+    name: 'acoes',
+    label: 'Ações',
+    field: 'acoes',
+    align: 'center' as const,
+    style: 'width: 120px',
+  },
+];
+
+// Helpers
+const formatNumber = (num: number): string => new Intl.NumberFormat('pt-PT').format(num);
+const getAvatarUrl = (nome: string): string =>
+  `https://ui-avatars.com/api/?background=667EEA&color=fff&bold=true&size=120&name=${encodeURIComponent(nome)}`;
+const formatarData = (dataString?: string): string => {
+  if (!dataString) return '—';
+  const date = new Date(dataString);
+  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 // Handlers
-const handleBuscaChange = () => {
-  paginacao.page = 1;
-  void carregarPrestadores();
+const onSearchChange = (value: string | number | null): void =>
+  setFiltro('search', String(value ?? ''));
+const onFiltroChange = (): void => {
+  setFiltro('verificado', filtros.value.verificado);
+  setFiltro('profissao', filtros.value.profissao);
+};
+const handleLimparFiltros = (): void => limparFiltros();
+const handleMudarPagina = (page: number): void => mudarPagina(page);
+const handleRecarregar = (): void => {
+  void recarregarDados();
 };
 
-const handleFilterChange = () => {
-  paginacao.page = 1;
-  void carregarPrestadores();
-};
-
-const limparBusca = () => {
-  filtros.busca = '';
-  handleBuscaChange();
-};
-
-const abrirFiltros = () => {
-  mostrarFiltros.value = true;
-};
-
-const limparFiltros = () => {
-  filtros.status = null;
-  filtros.categoria = null;
-  filtros.avaliacaoMin = null;
-  filtros.ordenar = 'nome_asc';
-};
-
-const aplicarFiltros = () => {
-  mostrarFiltros.value = false;
-  paginacao.page = 1;
-  void carregarPrestadores();
-};
-
-const verPrestador = (prestador: PrestadorData) => {
-  prestadorSelecionado.value = prestador;
-  mostrarDetalhes.value = true;
-};
-
-const editarPrestador = (prestador: PrestadorData) => {
-  $q.notify({
-    type: 'info',
-    message: `Editar ${prestador.nome}`,
-    position: 'top',
+const handleAbrirPerfil = (prestador: Prestador): void => {
+  void buscarPrestador(prestador.id).then((dados) => {
+    if (dados) {
+      prestadorPerfil.value = dados;
+      avaliacaoTemp.value = dados.media_avaliacao || 0;
+      perfilModalVisible.value = true;
+    }
   });
 };
 
-// ✅ Aprovar prestador usando utilizadoresStore
-const aprovarPrestador = (id: number) => {
+const handleConfirmarVerificacao = (prestador: Prestador): void => {
   $q.dialog({
-    title: 'Confirmar',
-    message: 'Tem certeza que deseja aprovar este prestador?',
+    title: 'Verificar prestador',
+    message: `Deseja verificar o prestador "${prestador.nome}"?`,
     cancel: true,
-    persistent: true,
+    ok: { label: 'Verificar', color: 'green' },
   }).onOk(() => {
-    void (async () => {
-      try {
-        const result = await utilizadoresStore.aprovarPrestador(id);
-        if (result) {
-          $q.notify({
-            type: 'positive',
-            message: 'Prestador aprovado com sucesso!',
-          });
-          await carregarPrestadores();
-          mostrarDetalhes.value = false;
+    void verificarPrestador(prestador.id).then((success) => {
+      if (success) {
+        $q.notify({ type: 'positive', message: 'Prestador verificado com sucesso!' });
+        void recarregarDados();
+        if (prestadorPerfil.value && prestadorPerfil.value.id === prestador.id) {
+          prestadorPerfil.value.verificado = true;
         }
-      } catch (err) {
-        console.error('Erro ao aprovar:', err);
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao aprovar prestador',
-        });
+      } else {
+        $q.notify({ type: 'negative', message: 'Erro ao verificar prestador' });
       }
-    })();
+    });
   });
 };
 
-// ✅ Reprovar prestador usando utilizadoresStore
-const reprovarPrestador = (id: number) => {
+const handleConfirmarVerificacaoPerfil = (): void => {
+  if (!prestadorPerfil.value) return;
   $q.dialog({
-    title: 'Confirmar',
-    message: 'Tem certeza que deseja reprovar este prestador?',
+    title: 'Verificar prestador',
+    message: `Deseja verificar o prestador "${prestadorPerfil.value.nome}"?`,
     cancel: true,
-    persistent: true,
+    ok: { label: 'Verificar', color: 'green' },
   }).onOk(() => {
-    void (async () => {
-      try {
-        const result = await utilizadoresStore.reprovarPrestador(id);
-        if (result) {
-          $q.notify({
-            type: 'warning',
-            message: 'Prestador reprovado!',
-          });
-          await carregarPrestadores();
-          mostrarDetalhes.value = false;
-        }
-      } catch (err) {
-        console.error('Erro ao reprovar:', err);
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao reprovar prestador',
-        });
+    void verificarPrestador(prestadorPerfil.value!.id).then((success) => {
+      if (success) {
+        $q.notify({ type: 'positive', message: 'Prestador verificado com sucesso!' });
+        void recarregarDados();
+        if (prestadorPerfil.value) prestadorPerfil.value.verificado = true;
+      } else {
+        $q.notify({ type: 'negative', message: 'Erro ao verificar prestador' });
       }
-    })();
+    });
   });
 };
 
-// ✅ Bloquear prestador usando utilizadoresStore
-const bloquearPrestador = (prestador: PrestadorData) => {
+const handleConfirmarExclusao = (prestador: Prestador): void => {
   $q.dialog({
-    title: 'Confirmar',
-    message: `Tem certeza que deseja bloquear o prestador ${prestador.nome}?`,
+    title: 'Confirmar exclusão',
+    message: `Tem certeza que deseja excluir o prestador "${prestador.nome}"?`,
     cancel: true,
-    persistent: true,
+    ok: { label: 'Excluir', color: 'negative' },
   }).onOk(() => {
-    void (async () => {
-      try {
-        const result = await utilizadoresStore.blockUtilizador(prestador.id);
-        if (result) {
-          $q.notify({
-            type: 'positive',
-            message: 'Prestador bloqueado com sucesso!',
-          });
-          await carregarPrestadores();
-        }
-      } catch (err) {
-        console.error('Erro ao bloquear:', err);
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao bloquear prestador',
-        });
+    void excluirPrestador(prestador.id).then((success) => {
+      if (success) {
+        $q.notify({ type: 'positive', message: 'Prestador excluído!' });
+        if (perfilModalVisible.value) perfilModalVisible.value = false;
+      } else {
+        $q.notify({ type: 'negative', message: 'Erro ao excluir prestador' });
       }
-    })();
+    });
   });
 };
 
-// ✅ Desbloquear prestador usando utilizadoresStore
-const desbloquearPrestador = (prestador: PrestadorData) => {
-  $q.dialog({
-    title: 'Confirmar',
-    message: `Tem certeza que deseja desbloquear o prestador ${prestador.nome}?`,
-    cancel: true,
-    persistent: true,
-  }).onOk(() => {
-    void (async () => {
-      try {
-        const result = await utilizadoresStore.unblockUtilizador(prestador.id);
-        if (result) {
-          $q.notify({
-            type: 'positive',
-            message: 'Prestador desbloqueado com sucesso!',
-          });
-          await carregarPrestadores();
-        }
-      } catch (err) {
-        console.error('Erro ao desbloquear:', err);
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao desbloquear prestador',
-        });
-      }
-    })();
-  });
-};
-
-// Watch
-watch([() => filtros.busca, () => filtros.status, () => filtros.categoria, () => filtros.avaliacaoMin], () => {
-  paginacao.page = 1;
-  void carregarPrestadores();
-});
-
-// Carregar dados ao montar
 onMounted(() => {
-  void carregarCategorias();
   void carregarPrestadores();
+  void carregarOpcoesProfissao();
 });
 </script>
 
 <style scoped lang="scss">
-// ... styles mantidos iguais ao original
-$primary-color: #667eea;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-
-.admin-prestadores {
-  max-width: 1400px;
-  margin: 0 auto;
+.page-container {
   padding: 20px;
   background: #f5f7fa;
   min-height: 100vh;
@@ -777,334 +783,440 @@ $gray-500: #9e9e9e;
   flex-wrap: wrap;
   gap: 16px;
 
-  .page-title-section {
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      display: flex;
-      align-items: center;
-    }
-
-    .page-subtitle {
-      font-size: 0.875rem;
-      color: #6c757d;
-      margin-top: 4px;
-    }
+  h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
-  .header-actions {
-    display: flex;
-    gap: 12px;
+  .header-actions .search-input {
+    width: 300px;
   }
 }
 
-.filters-card,
-.prestadores-table-card {
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+// Dashboard top: cards (esquerda) + donut (direita)
+.dashboard-top {
+  display: flex;
+  gap: 24px;
   margin-bottom: 24px;
-
-  :deep(.q-card__section) {
-    padding: 20px;
-  }
 }
 
-// Skeleton Loading
-.skeleton-container {
+.cards-container {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cards-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.stat-card {
   background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  position: relative;
-  margin-bottom: 24px;
-}
-
-.skeleton-table-header {
+  border-radius: 20px;
   padding: 20px;
-  border-bottom: 1px solid $gray-200;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 
-  .skeleton-total {
-    width: 180px;
-    height: 20px;
-    background: $gray-200;
-    border-radius: 4px;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
   }
 
-  .skeleton-pagination {
-    width: 200px;
-    height: 32px;
-    background: $gray-200;
-    border-radius: 4px;
-  }
-}
-
-.skeleton-table {
-  .skeleton-table-header-row {
-    display: flex;
-    background: $gray-100;
-    padding: 12px 16px;
-    border-bottom: 1px solid $gray-200;
-
-    .skeleton-header-cell {
-      flex: 1;
-      height: 20px;
-      background: $gray-300;
-      border-radius: 4px;
-      margin: 0 8px;
-
-      &:first-child { margin-left: 0; width: 20%; flex: none; }
-      &:nth-child(2) { width: 20%; flex: none; }
-      &:nth-child(3) { width: 15%; flex: none; }
-      &:nth-child(4) { width: 10%; flex: none; }
-      &:nth-child(5) { width: 12%; flex: none; }
-      &:nth-child(6) { width: 15%; flex: none; }
-      &:last-child { margin-right: 0; width: 8%; flex: none; }
-    }
-  }
-
-  .skeleton-table-row {
-    display: flex;
-    padding: 16px;
-    border-bottom: 1px solid $gray-200;
-
-    .skeleton-cell {
-      flex: 1;
-      margin: 0 8px;
-
-      &:first-child { margin-left: 0; width: 20%; flex: none; }
-      &:nth-child(2) { width: 20%; flex: none; }
-      &:nth-child(3) { width: 15%; flex: none; }
-      &:nth-child(4) { width: 10%; flex: none; }
-      &:nth-child(5) { width: 12%; flex: none; }
-      &:nth-child(6) { width: 15%; flex: none; }
-      &:last-child { margin-right: 0; width: 8%; flex: none; }
-
-      .skeleton-text {
-        width: 100%;
-        height: 16px;
-        background: $gray-200;
-        border-radius: 4px;
-      }
-
-      .skeleton-text-short {
-        width: 60%;
-        height: 12px;
-        background: $gray-200;
-        border-radius: 4px;
-      }
-
-      .skeleton-badge {
-        width: 80px;
-        height: 24px;
-        background: $gray-200;
-        border-radius: 12px;
-        margin: 0 auto;
-      }
-
-      .skeleton-rating {
-        display: flex;
-        gap: 4px;
-
-        &::before {
-          content: '★★★★★';
-          color: $gray-200;
-          font-size: 14px;
-          letter-spacing: 2px;
-        }
-      }
-
-      .skeleton-chips {
-        display: flex;
-        gap: 4px;
-
-        &::before {
-          content: 'Chip';
-          color: transparent;
-          background: $gray-200;
-          width: 60px;
-          height: 24px;
-          border-radius: 16px;
-        }
-      }
-
-      .skeleton-actions {
-        display: flex;
-        gap: 8px;
-        justify-content: center;
-
-        &::before, &::after {
-          content: '';
-          width: 28px;
-          height: 28px;
-          background: $gray-200;
-          border-radius: 50%;
-        }
-        &::after {
-          content: '';
-        }
-      }
-    }
-  }
-}
-
-.skeleton-shimmer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  animation: shimmer 1.5s infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-// Estilos principais
-.table-header {
-  border-bottom: 1px solid #e9ecef;
-
-  .total-info {
+  .stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
-    color: #495057;
-    font-size: 0.875rem;
+    justify-content: center;
+
+    &.blue {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+    &.green {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+    &.orange {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+    }
+    &.purple {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: white;
+    }
+    &.teal {
+      background: linear-gradient(135deg, #14b8a6, #0d9488);
+      color: white;
+    }
+    &.indigo {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+    }
+  }
+
+  .stat-info {
+    flex: 1;
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1a1a2e;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .stat-trend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: #10b981;
+      margin-top: 6px;
+    }
   }
 }
 
-.prestadores-table {
-  :deep(.q-table) {
-    thead tr th {
-      background: #f8f9fa;
-      font-weight: 600;
-      color: #495057;
-      border-bottom: 2px solid #e9ecef;
-    }
-
-    tbody tr {
-      transition: background 0.2s ease;
-
-      &:hover {
-        background: #f8f9fa;
-      }
-    }
-
-    td {
-      padding: 12px 16px;
-    }
-  }
-}
-
-.status-badge {
-  padding: 6px 12px;
+// Donut Card
+.donut-card {
+  flex: 1;
+  background: white;
   border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-}
-
-.status-badge-large {
-  padding: 8px 16px;
-  border-radius: 24px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-}
-
-.rating-container {
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
 
-  .rating-count {
-    font-size: 0.75rem;
-    color: #6c757d;
-  }
-}
-
-.categorias-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 4px;
-  justify-content: center;
-
-  .q-btn {
-    &:hover {
-      transform: scale(1.05);
-      transition: transform 0.2s ease;
-    }
-  }
-}
-
-.table-footer {
-  border-top: 1px solid #e9ecef;
-  padding: 16px;
-}
-
-.filters-dialog,
-.details-dialog {
-  border-radius: 16px;
-
-  .dialog-header {
+  .donut-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-    padding: 16px 20px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
 
-    .text-h6 {
-      display: flex;
-      align-items: center;
-      font-size: 1.1rem;
+    h3 {
+      font-size: 16px;
       font-weight: 600;
-      color: #1a1a2e;
+      margin: 0;
+    }
+
+    .donut-total {
+      font-size: 13px;
+      color: #667eea;
+      font-weight: 600;
     }
   }
 
-  .dialog-actions {
-    padding: 12px 20px;
-    border-top: 1px solid #e9ecef;
+  .donut-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+
+    .donut-chart {
+      width: 180px;
+      height: 180px;
+    }
+  }
+
+  .donut-legend {
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      margin-bottom: 8px;
+
+      .legend-color {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+      }
+
+      strong {
+        margin-left: auto;
+      }
+
+      .percent {
+        color: #9ca3af;
+        margin-left: 4px;
+      }
+    }
   }
 }
 
-.details-content {
-  padding: 20px;
+// 2 gráficos lado a lado
+.charts-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
 
-  .avatar-large {
-    border: 3px solid #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+// Top Profissões
+.top-profissoes-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+
+  .top-profissoes-list {
+    .profissao-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+
+      .profissao-rank {
+        width: 32px;
+        font-weight: 700;
+        color: #667eea;
+      }
+
+      .profissao-name {
+        width: 100px;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .profissao-bar-container {
+        flex: 1;
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
+
+        .profissao-bar {
+          height: 100%;
+          background: linear-gradient(90deg, #667eea, #764ba2);
+          border-radius: 4px;
+          transition: width 0.3s ease;
+        }
+      }
+
+      .profissao-count {
+        width: 45px;
+        text-align: right;
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .profissao-percent {
+        width: 40px;
+        text-align: right;
+        color: #6b7280;
+        font-size: 11px;
+      }
+    }
+  }
+}
+
+// Rating Card
+.rating-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+
+  .rating-stats {
+    .rating-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+
+      .rating-stars {
+        width: 70px;
+        display: flex;
+        gap: 2px;
+      }
+
+      .rating-bar-container {
+        flex: 1;
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
+
+        .rating-bar {
+          height: 100%;
+          border-radius: 4px;
+          transition: width 0.3s ease;
+        }
+      }
+
+      .rating-count {
+        width: 45px;
+        text-align: right;
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .rating-percent {
+        width: 45px;
+        text-align: right;
+        color: #6b7280;
+        font-size: 11px;
+      }
+    }
+  }
+}
+
+.filters-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  background: white;
+  padding: 16px 20px;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.actions-bar {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  background: white;
+  border-radius: 20px;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+}
+.user-name {
+  font-weight: 600;
+}
+.user-email {
+  font-size: 12px;
+  color: #9ca3af;
+}
+.rating-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rating-count {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.acoes-cell {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border-radius: 16px;
+  margin-top: 20px;
+}
+
+.perfil-header {
+  text-align: center;
+  padding: 24px;
+  color: white;
+  border-radius: 20px 20px 0 0;
+}
+
+.perfil-body {
+  padding: 20px;
+}
+.perfil-actions {
+  padding: 12px 20px 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-top {
+    flex-direction: column;
+  }
+  .cards-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .charts-bottom-row {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .admin-prestadores {
-    padding: 16px;
+  .cards-row {
+    grid-template-columns: 1fr;
   }
-
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
   }
-
-  .filters-dialog,
-  .details-dialog {
-    min-width: 90vw;
-    max-width: 90vw;
+  .page-header .header-actions .search-input {
+    width: 100%;
   }
-
-  .details-content .row {
+  .filters-bar {
     flex-direction: column;
+  }
+  .filters-bar .filter-select {
+    width: 100%;
   }
 }
 </style>

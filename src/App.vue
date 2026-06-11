@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from 'src/stores/auth-store';
+import { useAuthStore } from 'src/stores/login-store';
 
 const loading = ref(true);
 const authStore = useAuthStore();

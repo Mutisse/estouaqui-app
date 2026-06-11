@@ -1,8 +1,8 @@
 <!-- src/pages/mobile/client/Promocoes.vue -->
 <template>
   <q-page class="promocoes-page">
-    <!-- Skeleton Loading (enquanto carrega) -->
-    <div v-if="carregamentoInicial" class="skeleton-loading">
+    <!-- Skeleton Loading -->
+    <div v-if="promocaoStore.carregamentoInicial" class="skeleton-loading">
       <div class="skeleton-header">
         <div class="skeleton-back-btn"></div>
         <div class="skeleton-title"></div>
@@ -29,7 +29,7 @@
       </div>
     </div>
 
-    <!-- Conteúdo original -->
+    <!-- Conteúdo principal -->
     <template v-else>
       <!-- Cabeçalho com gradiente -->
       <div class="page-header">
@@ -77,10 +77,10 @@
             <q-icon name="stars" size="20px" color="primary" />
             <span>Promoções Ativas</span>
           </div>
-          <div class="section-count">{{ promocoes.length }} ofertas</div>
+          <div class="section-count">{{ promocaoStore.totalPromocoes }} ofertas</div>
         </div>
 
-        <div v-if="promocoes.length === 0" class="empty-state">
+        <div v-if="promocaoStore.temPromocoes === false" class="empty-state">
           <div class="empty-icon">
             <q-icon name="local_offer" size="80px" />
           </div>
@@ -90,14 +90,14 @@
 
         <div v-else class="promocoes-grid">
           <div
-            v-for="promo in promocoes"
+            v-for="promo in promocaoStore.promocoesAtivas"
             :key="promo.id"
             class="promo-card"
-            :class="{ featured: isDestaque(promo) }"
+            :class="{ featured: promocaoStore.isPromocaoDestaque(promo) }"
           >
             <div class="promo-card-inner">
               <!-- Badge de destaque -->
-              <div class="promo-badge" v-if="isDestaque(promo)">
+              <div class="promo-badge" v-if="promocaoStore.isPromocaoDestaque(promo)">
                 <q-icon name="stars" size="14px" />
                 <span>Destaque</span>
               </div>
@@ -129,21 +129,21 @@
                 <div class="promo-details">
                   <div
                     class="discount-badge"
-                    :class="{ 'discount-high': promo.valor_desconto >= 20 }"
+                    :class="{ 'discount-high': promocaoStore.isPromocaoDestaque(promo) }"
                   >
                     <q-icon
                       :name="promo.tipo_desconto === 'percentual' ? 'percent' : 'attach_money'"
                       size="14px"
                     />
-                    {{ formatDesconto(promo) }}
+                    {{ promocaoStore.formatarDesconto(promo) }}
                   </div>
                   <div class="min-value" v-if="promo.valor_minimo > 0">
                     <q-icon name="shopping_cart" size="12px" />
-                    Mínimo: {{ formatMoney(promo.valor_minimo) }}
+                    Mínimo: {{ promocaoStore.formatarMoeda(promo.valor_minimo) }}
                   </div>
                   <div class="valid-until">
                     <q-icon name="event" size="12px" />
-                    {{ formatDate(promo.validade) }}
+                    {{ promocaoStore.formatarData(promo.validade) }}
                   </div>
                 </div>
               </div>
@@ -151,7 +151,7 @@
               <!-- Botão de ação -->
               <q-btn
                 class="use-btn"
-                :class="{ 'btn-featured': isDestaque(promo) }"
+                :class="{ 'btn-featured': promocaoStore.isPromocaoDestaque(promo) }"
                 unelevated
                 label="Usar cupom"
                 @click="usarCupom(promo.codigo)"
@@ -207,10 +207,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePromocaoStore, type PromocaoData } from 'src/stores/client/promocao-store';
+import { usePromocaoStore } from 'src/stores/client/promocao-store';
 
 defineOptions({
   name: 'MobilePromocoes',
@@ -221,42 +221,9 @@ const $q = useQuasar();
 const promocaoStore = usePromocaoStore();
 
 // Estados
-const carregamentoInicial = ref(true);
 const modalCupom = ref(false);
 const codigoCupom = ref('');
 const validando = ref(false);
-
-// Computed
-const promocoes = computed(() => promocaoStore.promocoes);
-
-// Funções auxiliares
-const formatMoney = (value: number) => {
-  return new Intl.NumberFormat('pt-PT', {
-    style: 'currency',
-    currency: 'MZN',
-    minimumFractionDigits: 0,
-  }).format(value);
-};
-
-const formatDate = (date: string) => {
-  const d = new Date(date);
-  return d.toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-};
-
-const formatDesconto = (promo: PromocaoData) => {
-  if (promo.tipo_desconto === 'percentual') {
-    return `${promo.valor_desconto}% OFF`;
-  }
-  return `${formatMoney(promo.valor_desconto)} OFF`;
-};
-
-const isDestaque = (promo: PromocaoData) => {
-  return promo.valor_desconto >= 20 && promo.tipo_desconto === 'percentual';
-};
 
 const copiarCodigo = async (codigo: string) => {
   try {
@@ -300,9 +267,28 @@ const validarCupom = async () => {
   validando.value = true;
   try {
     const result = await promocaoStore.validarCupom(codigoCupom.value.toUpperCase());
-    if (result) {
+    if (result && result.valido) {
       modalCupom.value = false;
+      $q.notify({
+        type: 'positive',
+        message: result.mensagem || `Cupom válido! Desconto de ${result.desconto}%`,
+        position: 'top',
+        timeout: 3000,
+      });
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: result?.mensagem || 'Cupom inválido',
+        position: 'top',
+      });
     }
+  } catch (error) {
+    console.error('Erro ao validar cupom:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao validar cupom',
+      position: 'top',
+    });
   } finally {
     validando.value = false;
   }
@@ -310,16 +296,7 @@ const validarCupom = async () => {
 
 // Carregar dados
 const carregarDados = async () => {
-  carregamentoInicial.value = true;
-  try {
-    await promocaoStore.fetchPromocoes();
-  } catch (error) {
-    console.error('Erro ao carregar promoções:', error);
-  } finally {
-    setTimeout(() => {
-      carregamentoInicial.value = false;
-    }, 500);
-  }
+  await promocaoStore.carregarDadosIniciais();
 };
 
 onMounted(() => {
@@ -469,18 +446,6 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   animation: shimmer 1.5s infinite;
 }
 
-.skeleton-spinner {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 10000;
-}
-
 .w-20 {
   width: 20%;
 }
@@ -498,7 +463,7 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
 }
 
 /* ========================================== */
-/* ESTILOS ORIGINAIS (mantidos sem alterações) */
+/* ESTILOS ORIGINAIS */
 /* ========================================== */
 
 .page-header {
@@ -675,6 +640,20 @@ $orange-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
       .promo-title,
       .promo-description {
         color: white;
+      }
+
+      .promo-code {
+        background: rgba(255, 255, 255, 0.2);
+        .code-label,
+        .code-value,
+        .copy-icon {
+          color: white;
+        }
+      }
+
+      .min-value,
+      .valid-until {
+        color: rgba(255, 255, 255, 0.8);
       }
     }
   }

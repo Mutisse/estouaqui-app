@@ -1,814 +1,858 @@
 <template>
-  <q-page class="admin-servicos q-pa-md">
+  <div class="page-container">
     <div class="page-header">
-      <div class="page-title-section">
-        <div class="page-title">
-          <q-icon name="construction" size="32px" class="q-mr-sm" />
-          Gestão de Serviços
-        </div>
-        <div class="page-subtitle">Gerencie os serviços oferecidos na plataforma</div>
-      </div>
+      <h1>Serviços</h1>
       <div class="header-actions">
-        <q-btn
-          label="Atualizar"
-          icon="refresh"
-          color="grey-7"
-          outline
-          @click="carregarServicos"
-          :loading="conteudoStore.loading"
-        />
-      </div>
-    </div>
-
-    <!-- Skeleton Loading -->
-    <div v-if="conteudoStore.loading" class="skeleton-container">
-      <div class="skeleton-card">
-        <div class="skeleton-header">
-          <div class="skeleton-title"></div>
-          <div class="skeleton-filters">
-            <div class="skeleton-select"></div>
-            <div class="skeleton-select"></div>
-          </div>
-        </div>
-        <div class="skeleton-table">
-          <div class="skeleton-table-header">
-            <div v-for="i in 6" :key="i" class="skeleton-header-cell"></div>
-          </div>
-          <div v-for="row in 5" :key="row" class="skeleton-table-row">
-            <div class="skeleton-cell">
-              <div class="skeleton-text"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-chip"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-text"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-text"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-badge"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-actions">
-                <div class="skeleton-action-icon"></div>
-                <div class="skeleton-action-icon"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="skeleton-shimmer"></div>
-    </div>
-
-    <!-- Conteúdo real -->
-    <template v-else>
-      <q-card class="servicos-card">
-        <q-card-section>
-          <div class="row justify-between items-center">
-            <div class="text-h6">Lista de Serviços</div>
-            <div class="row q-gutter-sm">
-              <q-select
-                v-model="filtroCategoria"
-                :options="categoriasOptions"
-                label="Filtrar por categoria"
-                dense
-                outlined
-                clearable
-                class="filter-select"
-                style="min-width: 150px"
-                @update:model-value="carregarServicos"
-              />
-              <q-select
-                v-model="filtroAtivo"
-                :options="statusOptions"
-                label="Status"
-                dense
-                outlined
-                clearable
-                class="filter-select"
-                style="min-width: 120px"
-                @update:model-value="carregarServicos"
-              />
-            </div>
-          </div>
-        </q-card-section>
-
-        <q-table
-          :rows="conteudoStore.servicos"
-          :columns="colunas"
-          row-key="id"
-          :loading="conteudoStore.loading"
-          :rows-per-page-options="[10, 20, 50]"
-          class="servicos-table"
+        <q-input
+          v-model="filtros.search"
+          placeholder="Pesquisar serviços..."
+          dense
+          outlined
+          class="search-input"
+          @update:model-value="onSearchChange"
         >
-          <!-- Nome do serviço -->
-          <template v-slot:body-cell-nome="props">
-            <q-td :props="props">
-              <div class="servico-nome">
-                <q-icon
-                  :name="getIconeCategoria(props.row.categoria?.nome)"
-                  size="20px"
-                  class="q-mr-sm"
-                  :color="getCorCategoria(props.row.categoria?.nome)"
-                />
-                <span class="text-weight-medium">{{ props.row.nome }}</span>
-              </div>
-            </q-td>
+          <template v-slot:append>
+            <q-icon name="search" />
           </template>
+        </q-input>
+        <q-btn color="primary" icon="add" label="Novo Serviço" @click="abrirModalNovo" />
+        <q-btn flat icon="refresh" label="Atualizar" @click="handleRecarregar" :loading="isLoading" />
+      </div>
+    </div>
 
-          <!-- Categoria com cor -->
-          <template v-slot:body-cell-categoria="props">
-            <q-td :props="props">
-              <q-chip
-                size="sm"
-                :color="getCorCategoria(props.row.categoria?.nome)"
-                text-color="white"
-                dense
-              >
-                {{ props.row.categoria?.nome || 'Sem categoria' }}
-              </q-chip>
-            </q-td>
-          </template>
+    <!-- Cards de Estatísticas -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <q-icon name="handyman" size="28px" />
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ formatNumber(estatisticas.total) }}</div>
+          <div class="stat-label">Total Serviços</div>
+        </div>
+      </div>
 
-          <!-- Preço -->
-          <template v-slot:body-cell-preco="props">
-            <q-td :props="props">
-              <div class="preco-value">
-                <strong>{{ formatMoney(props.row.preco) }}</strong>
-              </div>
-            </q-td>
-          </template>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <q-icon name="check_circle" size="28px" />
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ formatNumber(estatisticas.ativos) }}</div>
+          <div class="stat-label">Ativos</div>
+        </div>
+      </div>
 
-          <!-- Duração -->
-          <template v-slot:body-cell-duracao="props">
-            <q-td :props="props">
-              <div class="duracao-value">
-                <q-icon name="schedule" size="14px" class="q-mr-xs" />
-                {{ props.row.duracao }} min
-              </div>
-            </q-td>
-          </template>
+      <div class="stat-card">
+        <div class="stat-icon red">
+          <q-icon name="cancel" size="28px" />
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ formatNumber(estatisticas.inativos) }}</div>
+          <div class="stat-label">Inativos</div>
+        </div>
+      </div>
 
-          <!-- Status -->
-          <template v-slot:body-cell-ativo="props">
-            <q-td :props="props">
-              <q-badge :color="props.row.ativo ? 'positive' : 'grey'" class="status-badge">
-                <q-icon
-                  :name="props.row.ativo ? 'check_circle' : 'cancel'"
-                  size="12px"
-                  class="q-mr-xs"
-                />
-                {{ props.row.ativo ? 'Ativo' : 'Inativo' }}
-              </q-badge>
-            </q-td>
-          </template>
+      <div class="stat-card">
+        <div class="stat-icon purple">
+          <q-icon name="payments" size="28px" />
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ formatMoney(estatisticas.preco_medio) }}</div>
+          <div class="stat-label">Preço Médio</div>
+        </div>
+      </div>
+    </div>
 
-          <!-- Ações -->
-          <template v-slot:body-cell-acoes="props">
-            <q-td :props="props">
-              <div class="action-buttons">
-                <q-btn
-                  flat
-                  round
-                  icon="edit"
-                  size="sm"
-                  color="secondary"
-                  @click="editarServico(props.row)"
-                >
-                  <q-tooltip>Editar serviço</q-tooltip>
-                </q-btn>
-                <q-btn
-                  flat
-                  round
-                  icon="delete"
-                  size="sm"
-                  color="negative"
-                  @click="removerServico(props.row)"
-                >
-                  <q-tooltip>Remover serviço</q-tooltip>
-                </q-btn>
-              </div>
-            </q-td>
-          </template>
+    <!-- Filtros -->
+    <div class="filters-bar">
+      <q-select
+        v-model="filtros.categoria_id"
+        :options="categorias"
+        label="Categoria"
+        dense
+        outlined
+        clearable
+        class="filter-select"
+        @update:model-value="onFiltroChange"
+      />
+      <q-select
+        v-model="filtros.status"
+        :options="opcoesStatus"
+        label="Status"
+        dense
+        outlined
+        clearable
+        class="filter-select"
+        @update:model-value="onFiltroChange"
+      />
+      <q-btn flat label="Limpar filtros" @click="handleLimparFiltros" class="clear-btn" />
+    </div>
 
-          <template v-slot:no-data>
-            <div class="text-center q-pa-md">
-              <q-icon name="construction" size="48px" color="grey" />
-              <div class="text-subtitle1 q-mt-sm">Nenhum serviço encontrado</div>
-            </div>
-          </template>
-        </q-table>
-      </q-card>
-    </template>
+    <!-- Loading -->
+    <div v-if="isLoading" class="loading-container">
+      <q-spinner size="40px" color="primary" />
+      <p>Carregando serviços...</p>
+    </div>
 
-    <!-- Dialog para editar serviço -->
-    <q-dialog v-model="mostrarDialog" persistent transition="scale">
-      <q-card style="min-width: 500px" class="servico-dialog">
-        <q-card-section class="dialog-header bg-secondary text-white">
-          <div class="text-h6">
-            <q-icon name="edit" class="q-mr-sm" />
-            Editar Serviço
+    <!-- Tabela -->
+    <q-table
+      v-else
+      :rows="servicos"
+      :columns="tableColumns"
+      row-key="id"
+      flat
+      bordered
+    >
+      <template v-slot:body-cell-preco_base="props">
+        <q-td :props="props">
+          <span class="preco-value">{{ formatMoney(props.row.preco_base) }}</span>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-duracao="props">
+        <q-td :props="props">
+          {{ formatarDuracao(props.row.duracao) }}
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-categoria="props">
+        <q-td :props="props">
+          <q-badge :color="getCategoriaColor(props.row.categoria_id)" outline>
+            {{ props.row.categoria?.nome || '—' }}
+          </q-badge>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-ativo="props">
+        <q-td :props="props">
+          <q-badge :color="getStatusColor(props.row.ativo)">
+            {{ getStatusLabel(props.row.ativo) }}
+          </q-badge>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-acoes="props">
+        <q-td :props="props">
+          <div class="acoes-cell">
+            <q-btn flat round icon="visibility" color="info" size="sm" @click="() => verServico(props.row)" title="Ver detalhes" />
+            <q-btn flat round icon="edit" color="primary" size="sm" @click="() => editarServico(props.row)" title="Editar" />
+            <q-btn flat round icon="delete" color="negative" size="sm" @click="() => confirmarExclusao(props.row)" title="Excluir" />
           </div>
-          <q-btn flat round dense icon="close" v-close-popup text-color="white" />
+        </q-td>
+      </template>
+
+      <template v-slot:bottom>
+        <div class="pagination-container" v-if="paginacao.total > 0">
+          <q-btn
+            flat
+            icon="chevron_left"
+            :disable="!temPaginaAnterior"
+            @click="() => mudarPagina(paginacao.current_page - 1)"
+          />
+          <span class="pagination-info">
+            Página {{ paginacao.current_page }} de {{ paginacao.last_page }}
+            ({{ paginacao.total }} registos)
+          </span>
+          <q-btn
+            flat
+            icon="chevron_right"
+            :disable="!temProximaPagina"
+            @click="() => mudarPagina(paginacao.current_page + 1)"
+          />
+        </div>
+      </template>
+
+      <template v-slot:no-data>
+        <div class="no-data">
+          <q-icon name="handyman" size="48px" color="grey-5" />
+          <p>Nenhum serviço encontrado</p>
+          <q-btn flat color="primary" label="Criar primeiro serviço" @click="abrirModalNovo" />
+        </div>
+      </template>
+    </q-table>
+
+    <!-- Modal Novo/Editar Serviço -->
+    <q-dialog v-model="modalVisible" persistent>
+      <q-card style="min-width: 500px; max-width: 600px;">
+        <q-card-section>
+          <div class="text-h6">{{ editando ? 'Editar Serviço' : 'Novo Serviço' }}</div>
         </q-card-section>
 
-        <q-card-section class="q-gutter-md q-pt-lg">
+        <q-card-section class="q-pt-none">
           <q-input
             v-model="form.nome"
-            label="Nome do serviço"
-            outlined
+            label="Nome do Serviço *"
             dense
-            :rules="[(val) => !!val || 'Nome é obrigatório']"
-            counter
-            maxlength="100"
-            disable
-          >
-            <template v-slot:prepend>
-              <q-icon name="title" color="secondary" />
-            </template>
-            <template v-slot:append>
-              <q-icon name="info" color="grey">
-                <q-tooltip>Nome não pode ser alterado</q-tooltip>
-              </q-icon>
-            </template>
-          </q-input>
-
-          <q-select
-            v-model="form.categoria_id"
-            :options="categoriasSelectOptions"
-            label="Categoria"
             outlined
-            dense
-            emit-value
-            map-options
-            :rules="[(val) => !!val || 'Selecione uma categoria']"
-          >
-            <template v-slot:prepend>
-              <q-icon name="category" color="secondary" />
-            </template>
-          </q-select>
+            :error="!!errors.nome"
+            :error-message="errors.nome"
+          />
 
           <q-input
             v-model="form.descricao"
             label="Descrição"
-            outlined
-            dense
             type="textarea"
-            autogrow
+            dense
+            outlined
+            class="q-mt-md"
             rows="3"
-          >
-            <template v-slot:prepend>
-              <q-icon name="description" color="secondary" />
-            </template>
-          </q-input>
+          />
 
-          <div class="row q-col-gutter-md">
-            <div class="col-6">
-              <q-input
-                v-model.number="form.preco"
-                label="Preço (MZN)"
-                outlined
-                dense
-                type="number"
-                :rules="[(val) => val > 0 || 'Preço deve ser maior que 0']"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="attach_money" color="secondary" />
-                </template>
-              </q-input>
-            </div>
-
-            <div class="col-6">
-              <q-input
-                v-model.number="form.duracao"
-                label="Duração (minutos)"
-                outlined
-                dense
-                type="number"
-                :rules="[(val) => val >= 5 || 'Duração mínima de 5 minutos']"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="schedule" color="secondary" />
-                </template>
-              </q-input>
-            </div>
+          <div class="form-row q-mt-md">
+            <q-select
+              v-model="form.categoria_id"
+              :options="categorias"
+              label="Categoria *"
+              dense
+              outlined
+              class="col"
+              emit-value
+              map-options
+              :error="!!errors.categoria_id"
+              :error-message="errors.categoria_id"
+            />
+            <q-input
+              v-model.number="form.duracao"
+              label="Duração (minutos) *"
+              type="number"
+              dense
+              outlined
+              class="col"
+              min="15"
+              step="15"
+              :error="!!errors.duracao"
+              :error-message="errors.duracao"
+            />
           </div>
 
-          <q-toggle v-model="form.ativo" label="Serviço ativo" left-label color="secondary" />
+          <div class="form-row q-mt-md">
+            <q-input
+              v-model.number="form.preco_base"
+              label="Preço Base (MZN) *"
+              type="number"
+              dense
+              outlined
+              class="col"
+              min="0"
+              step="50"
+              prefix="MZN "
+              :error="!!errors.preco_base"
+              :error-message="errors.preco_base"
+            />
+          </div>
+
+          <q-toggle v-model="form.ativo" label="Ativo" class="q-mt-md" />
         </q-card-section>
 
-        <q-card-actions align="right" class="dialog-actions">
-          <q-btn flat label="Cancelar" color="grey-7" v-close-popup />
-          <q-btn
-            unelevated
-            label="Salvar"
-            color="secondary"
-            @click="salvarServico"
-            :disable="!form.nome || !form.categoria_id || !form.preco"
-            :loading="salvando"
-          />
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" v-close-popup @click="fecharModal" />
+          <q-btn flat label="Salvar" color="primary" @click="salvarServico" :loading="isSaving" />
         </q-card-actions>
       </q-card>
     </q-dialog>
-  </q-page>
+
+    <!-- Modal Visualizar Serviço -->
+    <q-dialog v-model="viewModalVisible">
+      <q-card style="min-width: 450px; max-width: 550px;">
+        <q-card-section class="view-header" :style="{ background: `linear-gradient(135deg, #667EEA, #1a1a2e)` }">
+          <div class="view-icon">
+            <q-icon name="handyman" size="48px" />
+          </div>
+          <div class="view-nome">{{ servicoVisualizacao?.nome }}</div>
+          <q-badge :color="servicoVisualizacao?.ativo ? 'green' : 'red'" class="view-status">
+            {{ servicoVisualizacao?.ativo ? 'Ativo' : 'Inativo' }}
+          </q-badge>
+        </q-card-section>
+
+        <q-card-section class="view-body">
+          <div class="info-group">
+            <div class="info-title">Descrição</div>
+            <div class="info-value descricao">
+              {{ servicoVisualizacao?.descricao || 'Sem descrição' }}
+            </div>
+          </div>
+
+          <div class="info-group">
+            <div class="info-title">Informações</div>
+            <div class="info-row">
+              <strong>Categoria:</strong>
+              <q-badge :color="getCategoriaColor(servicoVisualizacao?.categoria_id)" outline>
+                {{ servicoVisualizacao?.categoria?.nome || '—' }}
+              </q-badge>
+            </div>
+            <div class="info-row">
+              <strong>Preço Base:</strong> {{ formatMoney(servicoVisualizacao?.preco_base || 0) }}
+            </div>
+            <div class="info-row">
+              <strong>Duração:</strong> {{ formatarDuracao(servicoVisualizacao?.duracao || 0) }}
+            </div>
+            <div class="info-row" v-if="servicoVisualizacao?.prestador">
+              <strong>Prestador:</strong> {{ servicoVisualizacao.prestador.nome }}
+            </div>
+          </div>
+
+          <div class="info-group">
+            <div class="info-title">Datas</div>
+            <div class="info-row">
+              <strong>Criado em:</strong> {{ formatarData(servicoVisualizacao?.created_at) }}
+            </div>
+            <div class="info-row" v-if="servicoVisualizacao?.updated_at !== servicoVisualizacao?.created_at">
+              <strong>Atualizado em:</strong> {{ formatarData(servicoVisualizacao?.updated_at) }}
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Fechar" v-close-popup />
+          <q-btn flat label="Editar" color="primary" @click="editarDoView" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
-import { useQuasar, type QTableColumn } from 'quasar';
-// ✅ IMPORT CORRETO
-import { useAdminConteudoStore, type ServicoData, type CategoriaData } from 'src/stores/admin/admin-conteudo-store';
+import { ref, reactive, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
+import { storeToRefs } from 'pinia';
+import { useAdminServicosStore } from 'src/stores/admin/admin-servicos-store';
+import type { Servico, ServicoForm } from 'src/stores/admin/admin-servicos-store';
 
-defineOptions({
-  name: 'AdminServicos',
-});
+defineOptions({ name: 'AdminServicos' });
 
 const $q = useQuasar();
-// ✅ USANDO O STORE CORRETO
-const conteudoStore = useAdminConteudoStore();
+const servicosStore = useAdminServicosStore();
 
-// Estados
-const mostrarDialog = ref(false);
-const salvando = ref(false);
-const servicoEditandoId = ref<number | null>(null);
-const filtroCategoria = ref<number | null>(null);
-const filtroAtivo = ref<boolean | null>(null);
+const {
+  isLoading,
+  isSaving,
+  servicos,
+  categorias,
+  estatisticas,
+  paginacao,
+  filtros,
+  opcoesStatus,
+  temPaginaAnterior,
+  temProximaPagina,
+} = storeToRefs(servicosStore);
 
-// Opções para filtros
-const statusOptions = [
-  { label: 'Ativos', value: true },
-  { label: 'Inativos', value: false },
-];
+const {
+  carregarServicos,
+  carregarEstatisticas,
+  carregarCategorias,
+  buscarServico,
+  criarServico,
+  atualizarServico,
+  excluirServico,
+  setFiltro,
+  limparFiltros,
+  mudarPagina,
+  recarregarDados,
+  getStatusColor,
+  getStatusLabel,
+  formatarDuracao,
+} = servicosStore;
 
-// Categorias para os filtros e select
-const categoriasSelectOptions = ref<{ label: string; value: number }[]>([]);
-const categoriasOptions = computed(() => [
-  ...categoriasSelectOptions.value,
-  { label: 'Todas', value: null },
-]);
+// Estados locais
+const modalVisible = ref(false);
+const viewModalVisible = ref(false);
+const editando = ref(false);
+const editandoId = ref<number | null>(null);
+const servicoVisualizacao = ref<Servico | null>(null);
 
-// Funções auxiliares para cores e ícones
-const getCorCategoria = (nomeCategoria?: string): string => {
-  const cores: Record<string, string> = {
-    Eletricista: 'warning',
-    Canalizador: 'info',
-    Pintor: 'accent',
-    Informático: 'primary',
-    Limpeza: 'positive',
-    Motorista: 'secondary',
-    Cabeleireiro: 'pink',
-    Manicure: 'purple',
-  };
-  return cores[nomeCategoria || ''] || 'grey';
-};
-
-const getIconeCategoria = (nomeCategoria?: string): string => {
-  const icones: Record<string, string> = {
-    Eletricista: 'bolt',
-    Canalizador: 'water_drop',
-    Pintor: 'brush',
-    Informático: 'computer',
-    Limpeza: 'cleaning_services',
-    Motorista: 'local_taxi',
-    Cabeleireiro: 'content_cut',
-    Manicure: 'handshake',
-  };
-  return icones[nomeCategoria || ''] || 'handyman';
-};
-
-const formatMoney = (value: number) => {
-  return new Intl.NumberFormat('pt-PT', {
-    style: 'currency',
-    currency: 'MZN',
-    minimumFractionDigits: 0,
-  }).format(value);
-};
-
-// Colunas da tabela
-const colunas: QTableColumn[] = [
-  { name: 'nome', label: 'Serviço', field: 'nome', align: 'left', sortable: true },
-  { name: 'categoria', label: 'Categoria', field: 'categoria', align: 'left', sortable: true },
-  { name: 'preco', label: 'Preço', field: 'preco', align: 'center', sortable: true },
-  { name: 'duracao', label: 'Duração', field: 'duracao', align: 'center', sortable: true },
-  { name: 'ativo', label: 'Status', field: 'ativo', align: 'center', sortable: false },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center', sortable: false },
-];
-
-// Formulário
-const form = reactive({
+const errors = reactive({
   nome: '',
-  categoria_id: null as number | null,
+  categoria_id: '',
+  duracao: '',
+  preco_base: '',
+});
+
+const form = reactive<ServicoForm>({
+  nome: '',
   descricao: '',
-  preco: 0,
-  duracao: 30,
+  categoria_id: null,
+  duracao: 60,
+  preco_base: 0,
   ativo: true,
 });
 
-// ✅ Carregar categorias usando conteudoStore
-const carregarCategorias = async () => {
-  try {
-    const cats = await conteudoStore.fetchCategorias();
-    categoriasSelectOptions.value = cats.map((cat: CategoriaData) => ({
-      label: cat.nome,
-      value: cat.id,
-    }));
-  } catch (error) {
-    console.error('Erro ao carregar categorias:', error);
-  }
+const tableColumns = [
+  { name: 'id', label: 'ID', field: 'id', align: 'left' as const, sortable: true, style: 'width: 60px' },
+  { name: 'nome', label: 'Nome', field: 'nome', align: 'left' as const, style: 'min-width: 200px' },
+  { name: 'categoria', label: 'Categoria', field: 'categoria', align: 'left' as const, style: 'width: 150px' },
+  { name: 'preco_base', label: 'Preço', field: 'preco_base', align: 'right' as const, style: 'width: 120px' },
+  { name: 'duracao', label: 'Duração', field: 'duracao', align: 'center' as const, style: 'width: 100px' },
+  { name: 'ativo', label: 'Status', field: 'ativo', align: 'center' as const, style: 'width: 100px' },
+  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' as const, style: 'width: 120px' },
+];
+
+// Funções auxiliares
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('pt-PT').format(num);
 };
 
-// ✅ Carregar serviços usando conteudoStore
-const carregarServicos = async () => {
-  try {
-    const params: {
-      categoria?: number;
-      ativo?: boolean;
-    } = {};
-    if (filtroCategoria.value) params.categoria = filtroCategoria.value;
-    if (filtroAtivo.value !== null) params.ativo = filtroAtivo.value;
-
-    await conteudoStore.fetchServicos(params);
-  } catch (error) {
-    console.error('Erro ao carregar serviços:', error);
-  }
+const formatMoney = (value: number): string => {
+  return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(value || 0);
 };
 
-// Editar serviço
-const editarServico = (servico: ServicoData) => {
-  servicoEditandoId.value = servico.id;
-  form.nome = servico.nome;
-  form.categoria_id = servico.categoria?.id || null;
-  form.descricao = servico.descricao || '';
-  form.preco = servico.preco;
-  form.duracao = servico.duracao;
-  form.ativo = servico.ativo;
-  mostrarDialog.value = true;
+const formatarData = (dataString?: string): string => {
+  if (!dataString) return '—';
+  const date = new Date(dataString);
+  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-// ✅ Salvar serviço usando conteudoStore
-const salvarServico = async () => {
-  if (!form.nome || !form.categoria_id || !form.preco) {
-    $q.notify({
-      type: 'warning',
-      message: 'Preencha todos os campos obrigatórios',
-      position: 'top',
-    });
-    return;
-  }
-
-  salvando.value = true;
-  try {
-    const response = await conteudoStore.updateServico(servicoEditandoId.value!, {
-      categoria_id: form.categoria_id,
-      descricao: form.descricao,
-      preco: form.preco,
-      duracao: form.duracao,
-      ativo: form.ativo,
-    });
-
-    if (response) {
-      $q.notify({
-        type: 'positive',
-        message: 'Serviço atualizado com sucesso!',
-        position: 'top',
-      });
-      mostrarDialog.value = false;
-      await carregarServicos();
-    } else {
-      throw new Error('Erro ao salvar');
-    }
-  } catch (err) {
-    console.error('Erro ao salvar serviço:', err);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao salvar serviço',
-      position: 'top',
-    });
-  } finally {
-    salvando.value = false;
-  }
+const getCategoriaColor = (categoriaId?: number): string => {
+  const colors: Record<number, string> = {
+    1: 'primary',
+    2: 'secondary',
+    3: 'accent',
+    4: 'info',
+    5: 'warning',
+  };
+  return colors[categoriaId || 1] || 'grey';
 };
 
-// ✅ Remover serviço usando conteudoStore
-const removerServico = (servico: ServicoData) => {
-  $q.dialog({
-    title: 'Confirmar remoção',
-    message: `Tem certeza que deseja remover o serviço "${servico.nome}"?`,
-    cancel: { label: 'Cancelar', color: 'grey' },
-    ok: { label: 'Remover', color: 'negative' },
-    persistent: true,
-  }).onOk(() => {
-    void (async () => {
-      try {
-        const response = await conteudoStore.deleteServico(servico.id);
-        if (response) {
-          $q.notify({
-            type: 'positive',
-            message: 'Serviço removido com sucesso!',
-            position: 'top',
-          });
-          await carregarServicos();
-        } else {
-          throw new Error('Erro ao remover');
-        }
-      } catch (err) {
-        console.error('Erro ao remover serviço:', err);
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao remover serviço',
-          position: 'top',
-        });
-      }
-    })();
+const validarForm = (): boolean => {
+  let isValid = true;
+  errors.nome = '';
+  errors.categoria_id = '';
+  errors.duracao = '';
+  errors.preco_base = '';
+
+  if (!form.nome.trim()) {
+    errors.nome = 'Nome é obrigatório';
+    isValid = false;
+  }
+
+  if (!form.categoria_id) {
+    errors.categoria_id = 'Categoria é obrigatória';
+    isValid = false;
+  }
+
+  if (!form.duracao || form.duracao < 15) {
+    errors.duracao = 'Duração deve ser no mínimo 15 minutos';
+    isValid = false;
+  }
+
+  if (form.preco_base < 0) {
+    errors.preco_base = 'Preço deve ser maior ou igual a zero';
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+// Handlers
+const handleRecarregar = (): void => {
+  recarregarDados().catch(() => {
+    $q.notify({ type: 'negative', message: 'Erro ao recarregar dados' });
   });
 };
 
-// Carregar dados ao montar
+// Ações de filtro
+const onSearchChange = (value: string | number | null): void => {
+  setFiltro('search', String(value ?? ''));
+};
+
+const onFiltroChange = (): void => {
+  setFiltro('categoria_id', filtros.value.categoria_id);
+  setFiltro('status', filtros.value.status);
+};
+
+const handleLimparFiltros = (): void => {
+  limparFiltros();
+};
+
+// Ações de modal
+const abrirModalNovo = (): void => {
+  editando.value = false;
+  editandoId.value = null;
+  form.nome = '';
+  form.descricao = '';
+  form.categoria_id = null;
+  form.duracao = 60;
+  form.preco_base = 0;
+  form.ativo = true;
+  errors.nome = '';
+  errors.categoria_id = '';
+  errors.duracao = '';
+  errors.preco_base = '';
+  modalVisible.value = true;
+};
+
+const editarServico = (servico: Servico): void => {
+  editando.value = true;
+  editandoId.value = servico.id;
+  form.nome = servico.nome;
+  form.descricao = servico.descricao || '';
+  form.categoria_id = servico.categoria_id;
+  form.duracao = servico.duracao;
+  form.preco_base = servico.preco_base;
+  form.ativo = servico.ativo;
+  errors.nome = '';
+  errors.categoria_id = '';
+  errors.duracao = '';
+  errors.preco_base = '';
+  modalVisible.value = true;
+};
+
+const verServico = async (servico: Servico): Promise<void> => {
+  const dados = await buscarServico(servico.id);
+  if (dados) {
+    servicoVisualizacao.value = dados;
+    viewModalVisible.value = true;
+  }
+};
+
+const editarDoView = (): void => {
+  if (servicoVisualizacao.value) {
+    viewModalVisible.value = false;
+    editarServico(servicoVisualizacao.value);
+  }
+};
+
+const salvarServico = (): void => {
+  if (!validarForm()) return;
+
+  if (editando.value && editandoId.value) {
+    atualizarServico(editandoId.value, {
+      nome: form.nome,
+      descricao: form.descricao,
+      categoria_id: form.categoria_id!,
+      duracao: form.duracao,
+      preco_base: form.preco_base,
+      ativo: form.ativo,
+    })
+      .then((result) => {
+        if (result) {
+          $q.notify({ type: 'positive', message: 'Serviço atualizado com sucesso!' });
+          modalVisible.value = false;
+          return recarregarDados();
+        }
+        $q.notify({ type: 'negative', message: 'Erro ao atualizar serviço' });
+        return null;
+      })
+      .catch(() => {
+        $q.notify({ type: 'negative', message: 'Erro ao atualizar serviço' });
+      });
+  } else {
+    criarServico({
+      nome: form.nome,
+      descricao: form.descricao,
+      categoria_id: form.categoria_id!,
+      duracao: form.duracao,
+      preco_base: form.preco_base,
+      ativo: form.ativo,
+    })
+      .then((result) => {
+        if (result) {
+          $q.notify({ type: 'positive', message: 'Serviço criado com sucesso!' });
+          modalVisible.value = false;
+          return recarregarDados();
+        }
+        $q.notify({ type: 'negative', message: 'Erro ao criar serviço' });
+        return null;
+      })
+      .catch(() => {
+        $q.notify({ type: 'negative', message: 'Erro ao criar serviço' });
+      });
+  }
+};
+
+const confirmarExclusao = (servico: Servico): void => {
+  $q.dialog({
+    title: 'Confirmar exclusão',
+    message: `Tem certeza que deseja excluir o serviço "${servico.nome}"? Esta ação não pode ser desfeita.`,
+    cancel: true,
+    ok: { label: 'Excluir', color: 'negative' },
+  }).onOk(() => {
+    excluirServico(servico.id)
+      .then((success) => {
+        if (success) {
+          $q.notify({ type: 'positive', message: 'Serviço excluído com sucesso!' });
+          return recarregarDados();
+        }
+        $q.notify({ type: 'negative', message: 'Erro ao excluir serviço' });
+        return null;
+      })
+      .catch(() => {
+        $q.notify({ type: 'negative', message: 'Erro ao excluir serviço' });
+      });
+  });
+};
+
+const fecharModal = (): void => {
+  modalVisible.value = false;
+  editando.value = false;
+  editandoId.value = null;
+};
+
+// Lifecycle
 onMounted(() => {
-  void carregarCategorias();
-  void carregarServicos();
+  carregarServicos().catch(() => {
+    $q.notify({ type: 'negative', message: 'Erro ao carregar serviços' });
+  });
+  carregarEstatisticas().catch(() => {
+    $q.notify({ type: 'negative', message: 'Erro ao carregar estatísticas' });
+  });
+  carregarCategorias().catch(() => {
+    $q.notify({ type: 'negative', message: 'Erro ao carregar categorias' });
+  });
 });
 </script>
 
 <style scoped lang="scss">
-// ... styles mantidos iguais ao original
-.admin-servicos {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  background: #f5f7fa;
+.page-container {
+  background: #f3f4f6;
   min-height: 100vh;
+  padding: 20px;
 }
 
 .page-header {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  .page-title-section {
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      display: flex;
-      align-items: center;
-    }
-
-    .page-subtitle {
-      font-size: 0.875rem;
-      color: #6c757d;
-      margin-top: 4px;
-    }
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .header-actions {
     display: flex;
     gap: 12px;
+    flex-wrap: wrap;
+
+    .search-input {
+      width: 250px;
+    }
   }
 }
 
-// Skeleton Loading
-.skeleton-container {
-  position: relative;
-  overflow: hidden;
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.skeleton-card {
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
   background: white;
   border-radius: 16px;
-  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.blue { background: rgba(102, 126, 234, 0.1); color: #667eea; }
+    &.green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    &.red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    &.purple { background: rgba(118, 75, 162, 0.1); color: #764ba2; }
+  }
+
+  .stat-info {
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .stat-label {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+  }
 }
 
-.skeleton-header {
+.filters-bar {
   display: flex;
-  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  background: white;
+  padding: 16px 20px;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  .filter-select {
+    min-width: 200px;
+  }
+
+  .clear-btn {
+    color: #6b7280;
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #eeeeee;
-}
-
-.skeleton-title {
-  width: 150px;
-  height: 24px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-filters {
-  display: flex;
-  gap: 8px;
-}
-
-.skeleton-select {
-  width: 150px;
-  height: 40px;
-  background: #e0e0e0;
-  border-radius: 8px;
-}
-
-.skeleton-table {
-  padding: 0 20px 20px 20px;
-}
-
-.skeleton-table-header {
-  display: flex;
-  background: #f8f9fa;
-  padding: 12px 0;
-  border-bottom: 2px solid #eeeeee;
-}
-
-.skeleton-header-cell {
-  flex: 1;
-  height: 20px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin: 0 8px;
-}
-
-.skeleton-table-row {
-  display: flex;
-  padding: 16px 0;
-  border-bottom: 1px solid #eeeeee;
-}
-
-.skeleton-cell {
-  flex: 1;
-  margin: 0 8px;
-}
-
-.skeleton-text {
-  width: 80%;
-  height: 14px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-chip {
-  width: 80px;
-  height: 24px;
-  background: #e0e0e0;
-  border-radius: 16px;
-}
-
-.skeleton-badge {
-  width: 60px;
-  height: 24px;
-  background: #e0e0e0;
-  border-radius: 16px;
-  margin: 0 auto;
-}
-
-.skeleton-actions {
-  display: flex;
   justify-content: center;
-  gap: 8px;
-}
-
-.skeleton-action-icon {
-  width: 32px;
-  height: 32px;
-  background: #e0e0e0;
-  border-radius: 50%;
-}
-
-.skeleton-shimmer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  animation: shimmer 1.5s infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-// Estilos principais
-.servicos-card {
+  padding: 60px;
+  background: white;
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
 
-  :deep(.q-card__section) {
-    padding: 20px;
+  p {
+    margin-top: 12px;
+    color: #6b7280;
   }
-}
-
-.filter-select {
-  min-width: 150px;
-}
-
-.servicos-table {
-  :deep(.q-table) {
-    thead tr th {
-      background: #f8f9fa;
-      font-weight: 600;
-      color: #495057;
-      border-bottom: 2px solid #e9ecef;
-    }
-
-    tbody tr {
-      transition: background 0.2s ease;
-
-      &:hover {
-        background: #f8f9fa;
-      }
-    }
-
-    td {
-      padding: 12px 16px;
-      vertical-align: middle;
-    }
-  }
-}
-
-.servico-nome {
-  display: flex;
-  align-items: center;
 }
 
 .preco-value {
-  color: #2e7d32;
   font-weight: 600;
+  color: #10b981;
 }
 
-.duracao-value {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6c757d;
-}
-
-.status-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-}
-
-.action-buttons {
+.acoes-cell {
   display: flex;
   gap: 4px;
   justify-content: center;
+}
 
-  .q-btn {
-    transition: transform 0.2s ease;
+.no-data {
+  text-align: center;
+  padding: 48px;
+  color: #9ca3af;
 
-    &:hover {
-      transform: scale(1.1);
-    }
+  p {
+    margin-top: 12px;
   }
 }
 
-.servico-dialog {
+.pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+  background: white;
   border-radius: 16px;
-  overflow: hidden;
+  margin-top: 20px;
 
-  .dialog-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
+  .pagination-info {
+    font-size: 14px;
+    color: #6b7280;
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.view-header {
+  text-align: center;
+  padding: 24px;
+  color: white;
+
+  .view-icon {
+    margin-bottom: 12px;
   }
 
-  .dialog-actions {
-    padding: 12px 20px;
-    border-top: 1px solid #e9ecef;
+  .view-nome {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .view-status {
+    font-size: 11px;
+  }
+}
+
+.view-body {
+  padding: 20px;
+
+  .info-group {
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .info-title {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-value.descricao {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .info-row {
+      font-size: 13px;
+      color: #374151;
+      margin-bottom: 8px;
+    }
   }
 }
 
 @media (max-width: 768px) {
-  .admin-servicos {
-    padding: 16px;
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
   }
 
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+
+    .header-actions {
+      flex-direction: column;
+
+      .search-input {
+        width: 100%;
+      }
+    }
   }
 
-  .filter-select {
-    width: 100%;
-  }
+  .filters-bar {
+    flex-direction: column;
 
-  .servico-dialog {
-    min-width: 90vw;
-    max-width: 90vw;
+    .filter-select {
+      width: 100%;
+    }
   }
 }
 </style>

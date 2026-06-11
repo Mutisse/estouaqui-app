@@ -1,19 +1,32 @@
 <template>
   <div class="prestador-saques">
-
     <!-- ===== CABEÇALHO ===== -->
     <div class="page-header">
       <button class="back-btn" @click="() => void router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M15 18l-6-6 6-6"/>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M15 18l-6-6 6-6" />
         </svg>
       </button>
       <h1 class="page-title">Realizar Saque</h1>
       <button class="help-btn" @click="ajuda">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
       </button>
     </div>
@@ -53,15 +66,21 @@
 
     <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
-
       <!-- ===== SALDO DISPONÍVEL ===== -->
       <div class="saldo-info">
         <div class="saldo-label">Saldo disponível para saque</div>
         <div class="saldo-value">{{ formatarValor(saldoDisponivel) }} MZN</div>
         <div v-if="ganhos.pendente > 0" class="saldo-detalhe">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
           </svg>
           {{ formatarValor(ganhos.pendente) }} MZN pendentes
         </div>
@@ -80,10 +99,20 @@
             :class="{ active: formaPagamento === opcao.value }"
             @click="formaPagamento = opcao.value"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path v-if="opcao.value === 'mpesa'" d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
-              <rect v-else x="2" y="4" width="20" height="16" rx="2"/>
-              <line x1="2" y1="10" x2="22" y2="10"/>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                v-if="opcao.value === 'mpesa'"
+                d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
+              />
+              <rect v-else x="2" y="4" width="20" height="16" rx="2" />
+              <line x1="2" y1="10" x2="22" y2="10" />
             </svg>
             {{ opcao.label }}
           </button>
@@ -168,22 +197,13 @@
           </div>
           <div class="input-group">
             <label class="input-label">IBAN (opcional)</label>
-            <input
-              type="text"
-              v-model="contaIban"
-              placeholder="IBAN"
-              class="text-input"
-            />
+            <input type="text" v-model="contaIban" placeholder="IBAN" class="text-input" />
           </div>
         </template>
 
         <div class="saque-actions">
           <button class="cancel-btn" @click="() => void router.back()">Cancelar</button>
-          <button
-            class="submit-btn"
-            :disabled="!podeSolicitar"
-            @click="solicitarSaque"
-          >
+          <button class="submit-btn" :disabled="!podeSolicitar" @click="solicitarSaque">
             <span v-if="!salvando">Solicitar saque</span>
             <div v-else class="btn-spinner"></div>
           </button>
@@ -203,19 +223,42 @@
         </div>
 
         <div v-else-if="historicoSaques.length === 0" class="empty-history">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5">
-            <path d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
-            <circle cx="12" cy="12" r="4"/>
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#D1D5DB"
+            stroke-width="1.5"
+          >
+            <path
+              d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
+            />
+            <circle cx="12" cy="12" r="4" />
           </svg>
           <p>Nenhum saque realizado</p>
           <span>Seus saques aparecerão aqui</span>
         </div>
 
         <div v-else class="historico-list">
-          <div v-for="saque in historicoSaques" :key="saque.id" class="historico-item" @click="() => verDetalhesSaque(saque)">
+          <div
+            v-for="saque in historicoSaques"
+            :key="saque.id"
+            class="historico-item"
+            @click="() => verDetalhesSaque(saque)"
+          >
             <div class="historico-item__icon" :class="getCorPorStatus(saque.status)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
+                />
               </svg>
             </div>
             <div class="historico-item__info">
@@ -240,9 +283,16 @@
         <div class="dialog-header">
           <h3>Detalhes do Saque</h3>
           <button class="dialog-close" @click="showDetalhesDialog = false">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
@@ -253,7 +303,9 @@
           </div>
           <div class="dialog-row">
             <span class="dialog-label">Valor:</span>
-            <span class="dialog-value highlight">{{ formatarValor(saqueDetalhes?.valor || 0) }} MZN</span>
+            <span class="dialog-value highlight"
+              >{{ formatarValor(saqueDetalhes?.valor || 0) }} MZN</span
+            >
           </div>
           <div class="dialog-row">
             <span class="dialog-label">Forma:</span>
@@ -269,7 +321,9 @@
           </div>
           <div class="dialog-row">
             <span class="dialog-label">Data:</span>
-            <span class="dialog-value">{{ formatarDataCompleta(saqueDetalhes?.created_at || '') }}</span>
+            <span class="dialog-value">{{
+              formatarDataCompleta(saqueDetalhes?.created_at || '')
+            }}</span>
           </div>
           <div class="dialog-row">
             <span class="dialog-label">Conta:</span>
@@ -292,21 +346,15 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorFinanceiroStore } from 'src/stores/prestador/prestador-financeiro-store';
-import type { SaqueData, GanhosData } from 'src/stores/prestador/prestador-financeiro-store';
+import {
+  usePrestadorSaquesStore,
+  VALOR_MINIMO_SAQUE,
+  formasPagamentoOptions,
+  bancosOptions,
+  type SaqueData,
+} from 'src/stores/prestador/prestador-saques-store';
 
 defineOptions({ name: 'PrestadorSaques' });
-
-interface FormaPagamentoOption {
-  label: string;
-  value: string;
-  icone: string;
-}
-
-interface BancoOption {
-  label: string;
-  value: string;
-}
 
 interface SaqueDetalhes {
   id: number;
@@ -321,55 +369,35 @@ interface SaqueDetalhes {
 
 const router = useRouter();
 const $q = useQuasar();
-const financeiroStore = usePrestadorFinanceiroStore();
 
-const VALOR_MINIMO_SAQUE = 500;
+// ✅ APENAS UM STORE!
+const saquesStore = usePrestadorSaquesStore();
 
+// Estados locais
 const loading = ref(true);
 const salvando = ref(false);
 const carregandoHistorico = ref(false);
 const formaPagamento = ref<string>('mpesa');
 const valorSaque = ref<number | null>(null);
 
+// Formulário M-Pesa
 const mpesaNumero = ref('');
 const mpesaNome = ref('');
 
+// Formulário Conta Bancária
 const contaBanco = ref('');
 const contaNumero = ref('');
 const contaTitular = ref('');
 const contaIban = ref('');
 
+// Dialog
 const showDetalhesDialog = ref(false);
 const saqueDetalhes = ref<SaqueDetalhes | null>(null);
 
-const ganhos = computed<GanhosData>(() => financeiroStore.ganhos);
-const historicoSaquesStore = computed<SaqueData[]>(() => financeiroStore.historicoSaques);
-
-const bancosOptions = ref<BancoOption[]>([
-  { label: 'BCI - Banco Comercial e de Investimentos', value: 'bci' },
-  { label: 'BIM - Banco Internacional de Moçambique', value: 'bim' },
-  { label: 'Millennium BIM', value: 'millennium' },
-  { label: 'Standard Bank', value: 'standard' },
-  { label: 'Moza Banco', value: 'moza' },
-  { label: 'ABS - African Banking Corporation', value: 'abs' },
-  { label: 'First National Bank (FNB)', value: 'fnb' },
-  { label: 'Banco Unico', value: 'unico' },
-  { label: 'Ecobank', value: 'eco' },
-  { label: 'Banco de Oportunidades', value: 'oportunidades' },
-]);
-
-const formasPagamentoOptions = ref<FormaPagamentoOption[]>([
-  { label: 'M-Pesa', value: 'mpesa', icone: 'phone_android' },
-  { label: 'Conta bancária', value: 'bancario', icone: 'account_balance' },
-]);
-
-const saldoDisponivel = computed(() => {
-  return (ganhos.value?.total || 0) - (ganhos.value?.pendente || 0);
-});
-
-const historicoSaques = computed(() => {
-  return (historicoSaquesStore.value || []).slice(0, 5);
-});
+// Computed - removido 'carregando' não usado
+const saldoDisponivel = computed(() => saquesStore.saldoDisponivel);
+const ganhos = computed(() => saquesStore.ganhos);
+const historicoSaques = computed(() => saquesStore.ultimosSaques);
 
 const podeSolicitar = computed(() => {
   if (!valorSaque.value || valorSaque.value <= 0) return false;
@@ -388,9 +416,21 @@ const podeSolicitar = computed(() => {
   return false;
 });
 
+// Utilitários
 const formatarValor = (valor: number): string => {
-  if (!valor && valor !== 0) return '0';
-  return valor.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return saquesStore.formatarValor(valor);
+};
+
+const getLabelPorMetodo = (metodo: string): string => {
+  return saquesStore.getLabelPorMetodo(metodo);
+};
+
+const getCorPorStatus = (status: string): string => {
+  return saquesStore.getCorPorStatus(status);
+};
+
+const getLabelPorStatus = (status: string): string => {
+  return saquesStore.getLabelPorStatus(status);
 };
 
 const formatarData = (dataString: string): string => {
@@ -403,38 +443,15 @@ const formatarDataCompleta = (dataString: string): string => {
   if (!dataString) return '';
   const date = new Date(dataString);
   return date.toLocaleDateString('pt-PT', {
-    day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 };
 
-const getLabelPorMetodo = (metodo: string): string => {
-  if (metodo === 'mpesa') return 'M-Pesa';
-  if (metodo === 'bancario') return 'Conta bancária';
-  return 'Outro';
-};
-
-const getCorPorStatus = (status: string): string => {
-  const statusLower = status?.toLowerCase() || '';
-  switch (statusLower) {
-    case 'pendente': return 'warning';
-    case 'processando': return 'info';
-    case 'concluido': return 'success';
-    case 'cancelado': return 'danger';
-    default: return 'grey';
-  }
-};
-
-const getLabelPorStatus = (status: string): string => {
-  const statusLower = status?.toLowerCase() || '';
-  switch (statusLower) {
-    case 'pendente': return 'Pendente';
-    case 'processando': return 'Processando';
-    case 'concluido': return 'Concluído';
-    case 'cancelado': return 'Cancelado';
-    default: return status || 'Desconhecido';
-  }
-};
-
+// ✅ CORRIGIDO: Tipagem correta com SaqueData
 const verDetalhesSaque = (saque: SaqueData): void => {
   const detalhes: SaqueDetalhes = {
     id: saque.id,
@@ -455,10 +472,7 @@ const verDetalhesSaque = (saque: SaqueData): void => {
 const carregarDados = async (): Promise<void> => {
   loading.value = true;
   try {
-    await Promise.all([
-      financeiroStore.fetchGanhos(true),
-      financeiroStore.fetchHistoricoSaques(true),
-    ]);
+    await saquesStore.carregarTodosDados();
   } catch (error) {
     console.error('Erro ao carregar dados:', error);
     $q.notify({ type: 'negative', message: 'Erro ao carregar dados', position: 'top' });
@@ -482,14 +496,19 @@ const processarSaque = async (): Promise<void> => {
 
   salvando.value = true;
   try {
-    const result = await financeiroStore.solicitarSaque({
+    const result = await saquesStore.solicitarSaque({
       valor: valorSaque.value,
       metodo: formaPagamento.value as 'mpesa' | 'bancario',
       conta: conta,
     });
 
     if (result) {
-      $q.notify({ type: 'positive', message: 'Saque solicitado com sucesso!', position: 'top', icon: 'check_circle' });
+      $q.notify({
+        type: 'positive',
+        message: 'Saque solicitado com sucesso!',
+        position: 'top',
+        icon: 'check_circle',
+      });
       valorSaque.value = null;
       mpesaNumero.value = '';
       mpesaNome.value = '';
@@ -499,8 +518,7 @@ const processarSaque = async (): Promise<void> => {
       contaIban.value = '';
       await carregarDados();
     }
-  } catch (error) {
-    console.error('Erro ao solicitar saque:', error);
+  } catch {
     $q.notify({ type: 'negative', message: 'Erro ao solicitar saque', position: 'top' });
   } finally {
     salvando.value = false;
@@ -518,7 +536,9 @@ const solicitarSaque = (): void => {
     cancel: { label: 'Cancelar', flat: true },
     ok: { label: 'Confirmar', color: 'positive', unelevated: true },
     persistent: true,
-  }).onOk(() => { void processarSaque(); });
+  }).onOk(() => {
+    void processarSaque();
+  });
 };
 
 const ajuda = (): void => {
@@ -552,18 +572,18 @@ onMounted(async () => {
 // =====================
 // VARIABLES
 // =====================
-$accent: #5B4BF5;
+$accent: #5b4bf5;
 $accent-light: rgba(91, 75, 245, 0.1);
-$success: #10B981;
-$warning: #F59E0B;
-$danger: #EF4444;
-$info: #3B82F6;
-$dark: #0A0A0F;
-$gray: #6B7280;
-$gray-light: #F3F4F6;
-$border: #E5E7EB;
-$white: #FFFFFF;
-$bg: #F4F4F8;
+$success: #10b981;
+$warning: #f59e0b;
+$danger: #ef4444;
+$info: #3b82f6;
+$dark: #0a0a0f;
+$gray: #6b7280;
+$gray-light: #f3f4f6;
+$border: #e5e7eb;
+$white: #ffffff;
+$bg: #f4f4f8;
 $radius: 16px;
 $radius-sm: 12px;
 $radius-xs: 8px;
@@ -572,26 +592,124 @@ $radius-xs: 8px;
 // SKELETON
 // =====================
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .skeleton-container {
-  .skeleton-saldo { background: $white; margin-bottom: 16px; padding: 20px; text-align: center; }
-  .skeleton-label { width: 120px; height: 14px; background: $gray-light; border-radius: 4px; margin: 0 auto 12px; }
-  .skeleton-value { width: 180px; height: 48px; background: $gray-light; border-radius: 8px; margin: 0 auto; }
-  .skeleton-card { background: $white; border-radius: $radius; padding: 20px; margin: 16px; position: relative; overflow: hidden; }
-  .skeleton-title { width: 150px; height: 20px; background: $gray-light; border-radius: 4px; margin-bottom: 16px; &.small { width: 100px; height: 16px; margin-bottom: 0; } }
-  .skeleton-input { width: 100%; height: 48px; background: $gray-light; border-radius: 8px; margin-bottom: 16px; }
-  .skeleton-button { width: 100%; height: 44px; background: $border; border-radius: 8px; &.primary { background: $gray-light; } }
-  .skeleton-link { width: 80px; height: 20px; background: $gray-light; border-radius: 4px; }
-  .skeleton-historico { background: $white; padding: 16px; }
-  .skeleton-history-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid $border; }
-  .skeleton-avatar { width: 44px; height: 44px; background: $gray-light; border-radius: 50%; flex-shrink: 0; }
-  .skeleton-text { width: 60%; height: 14px; background: $gray-light; border-radius: 4px; margin-bottom: 8px; }
-  .skeleton-text-short { width: 40%; height: 12px; background: $gray-light; border-radius: 4px; }
-  .skeleton-badge { width: 70px; height: 24px; background: $gray-light; border-radius: 12px; flex-shrink: 0; }
-  .skeleton-shimmer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent); animation: shimmer 1.5s infinite; }
+  .skeleton-saldo {
+    background: $white;
+    margin-bottom: 16px;
+    padding: 20px;
+    text-align: center;
+  }
+  .skeleton-label {
+    width: 120px;
+    height: 14px;
+    background: $gray-light;
+    border-radius: 4px;
+    margin: 0 auto 12px;
+  }
+  .skeleton-value {
+    width: 180px;
+    height: 48px;
+    background: $gray-light;
+    border-radius: 8px;
+    margin: 0 auto;
+  }
+  .skeleton-card {
+    background: $white;
+    border-radius: $radius;
+    padding: 20px;
+    margin: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .skeleton-title {
+    width: 150px;
+    height: 20px;
+    background: $gray-light;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    &.small {
+      width: 100px;
+      height: 16px;
+      margin-bottom: 0;
+    }
+  }
+  .skeleton-input {
+    width: 100%;
+    height: 48px;
+    background: $gray-light;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .skeleton-button {
+    width: 100%;
+    height: 44px;
+    background: $border;
+    border-radius: 8px;
+    &.primary {
+      background: $gray-light;
+    }
+  }
+  .skeleton-link {
+    width: 80px;
+    height: 20px;
+    background: $gray-light;
+    border-radius: 4px;
+  }
+  .skeleton-historico {
+    background: $white;
+    padding: 16px;
+  }
+  .skeleton-history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid $border;
+  }
+  .skeleton-avatar {
+    width: 44px;
+    height: 44px;
+    background: $gray-light;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .skeleton-text {
+    width: 60%;
+    height: 14px;
+    background: $gray-light;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .skeleton-text-short {
+    width: 40%;
+    height: 12px;
+    background: $gray-light;
+    border-radius: 4px;
+  }
+  .skeleton-badge {
+    width: 70px;
+    height: 24px;
+    background: $gray-light;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+  .skeleton-shimmer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    animation: shimmer 1.5s infinite;
+  }
 }
 
 // =====================
@@ -611,7 +729,8 @@ $radius-xs: 8px;
   padding: 12px 16px;
   border-bottom: 1px solid $border;
 
-  .back-btn, .help-btn {
+  .back-btn,
+  .help-btn {
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -623,7 +742,10 @@ $radius-xs: 8px;
     cursor: pointer;
     color: $gray;
     transition: all 0.2s;
-    &:hover { background: $accent-light; color: $accent; }
+    &:hover {
+      background: $accent-light;
+      color: $accent;
+    }
   }
 
   .page-title {
@@ -706,8 +828,14 @@ $radius-xs: 8px;
   cursor: pointer;
   transition: all 0.2s;
 
-  &:hover { background: $accent-light; }
-  &.active { background: $accent; border-color: $accent; color: $white; }
+  &:hover {
+    background: $accent-light;
+  }
+  &.active {
+    background: $accent;
+    border-color: $accent;
+    color: $white;
+  }
 }
 
 .input-group {
@@ -725,7 +853,9 @@ $radius-xs: 8px;
     font-size: 0.7rem;
     color: $gray;
     margin-top: 4px;
-    &.error { color: $danger; }
+    &.error {
+      color: $danger;
+    }
   }
 }
 
@@ -742,7 +872,9 @@ $radius-xs: 8px;
     font-size: 1rem;
     outline: none;
     transition: all 0.2s;
-    &:focus { border-color: $accent; }
+    &:focus {
+      border-color: $accent;
+    }
   }
 
   .max-btn {
@@ -754,7 +886,9 @@ $radius-xs: 8px;
     font-weight: 500;
     color: $accent;
     cursor: pointer;
-    &:hover { background: rgba($accent, 0.15); }
+    &:hover {
+      background: rgba($accent, 0.15);
+    }
   }
 }
 
@@ -778,11 +912,14 @@ $radius-xs: 8px;
     border: none;
     outline: none;
     font-size: 0.9rem;
-    &:focus { background: $accent-light; }
+    &:focus {
+      background: $accent-light;
+    }
   }
 }
 
-.text-input, .select-input {
+.text-input,
+.select-input {
   width: 100%;
   padding: 12px;
   border: 1px solid $border;
@@ -790,7 +927,9 @@ $radius-xs: 8px;
   font-size: 0.9rem;
   outline: none;
   background: $white;
-  &:focus { border-color: $accent; }
+  &:focus {
+    border-color: $accent;
+  }
 }
 
 .saque-actions {
@@ -808,7 +947,9 @@ $radius-xs: 8px;
     font-weight: 500;
     color: $gray;
     cursor: pointer;
-    &:hover { background: $gray-light; }
+    &:hover {
+      background: $gray-light;
+    }
   }
 
   .submit-btn {
@@ -822,15 +963,21 @@ $radius-xs: 8px;
     color: $white;
     cursor: pointer;
     transition: all 0.2s;
-    &:hover:not(:disabled) { background: lighten($accent, 6%); transform: translateY(-1px); }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:hover:not(:disabled) {
+      background: lighten($accent, 6%);
+      transform: translateY(-1px);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 }
 
 .btn-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   margin: 0 auto;
@@ -838,7 +985,9 @@ $radius-xs: 8px;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 // =====================
@@ -888,16 +1037,29 @@ $radius-xs: 8px;
     animation: spin 0.6s linear infinite;
   }
 
-  p { color: $gray; font-size: 0.85rem; margin: 0; }
+  p {
+    color: $gray;
+    font-size: 0.85rem;
+    margin: 0;
+  }
 }
 
 .empty-history {
   text-align: center;
   padding: 32px;
 
-  svg { margin-bottom: 12px; }
-  p { font-weight: 500; color: $dark; margin: 0 0 4px; }
-  span { font-size: 0.8rem; color: $gray; }
+  svg {
+    margin-bottom: 12px;
+  }
+  p {
+    font-weight: 500;
+    color: $dark;
+    margin: 0 0 4px;
+  }
+  span {
+    font-size: 0.8rem;
+    color: $gray;
+  }
 }
 
 .historico-list {
@@ -910,8 +1072,15 @@ $radius-xs: 8px;
     cursor: pointer;
     transition: background 0.2s;
 
-    &:hover { background: $gray-light; margin: 0 -8px; padding: 12px 8px; border-radius: $radius-xs; }
-    &:last-child { border-bottom: none; }
+    &:hover {
+      background: $gray-light;
+      margin: 0 -8px;
+      padding: 12px 8px;
+      border-radius: $radius-xs;
+    }
+    &:last-child {
+      border-bottom: none;
+    }
 
     &__icon {
       width: 44px;
@@ -922,11 +1091,26 @@ $radius-xs: 8px;
       justify-content: center;
       flex-shrink: 0;
 
-      &.warning { background: rgba($warning, 0.1); color: $warning; }
-      &.info { background: rgba($info, 0.1); color: $info; }
-      &.success { background: rgba($success, 0.1); color: $success; }
-      &.danger { background: rgba($danger, 0.1); color: $danger; }
-      &.grey { background: rgba($gray, 0.1); color: $gray; }
+      &.warning {
+        background: rgba($warning, 0.1);
+        color: $warning;
+      }
+      &.info {
+        background: rgba($info, 0.1);
+        color: $info;
+      }
+      &.success {
+        background: rgba($success, 0.1);
+        color: $success;
+      }
+      &.danger {
+        background: rgba($danger, 0.1);
+        color: $danger;
+      }
+      &.grey {
+        background: rgba($gray, 0.1);
+        color: $gray;
+      }
     }
 
     &__info {
@@ -969,11 +1153,26 @@ $radius-xs: 8px;
       display: inline-block;
       margin-top: 4px;
 
-      &.warning { background: rgba($warning, 0.1); color: $warning; }
-      &.info { background: rgba($info, 0.1); color: $info; }
-      &.success { background: rgba($success, 0.1); color: $success; }
-      &.danger { background: rgba($danger, 0.1); color: $danger; }
-      &.grey { background: rgba($gray, 0.1); color: $gray; }
+      &.warning {
+        background: rgba($warning, 0.1);
+        color: $warning;
+      }
+      &.info {
+        background: rgba($info, 0.1);
+        color: $info;
+      }
+      &.success {
+        background: rgba($success, 0.1);
+        color: $success;
+      }
+      &.danger {
+        background: rgba($danger, 0.1);
+        color: $danger;
+      }
+      &.grey {
+        background: rgba($gray, 0.1);
+        color: $gray;
+      }
     }
   }
 }
@@ -1026,7 +1225,9 @@ $radius-xs: 8px;
     border: none;
     cursor: pointer;
     color: $gray;
-    &:hover { background: $border; }
+    &:hover {
+      background: $border;
+    }
   }
 }
 
@@ -1058,10 +1259,22 @@ $radius-xs: 8px;
       border-radius: 20px;
       font-size: 0.7rem;
 
-      &.warning { background: rgba($warning, 0.1); color: $warning; }
-      &.info { background: rgba($info, 0.1); color: $info; }
-      &.success { background: rgba($success, 0.1); color: $success; }
-      &.danger { background: rgba($danger, 0.1); color: $danger; }
+      &.warning {
+        background: rgba($warning, 0.1);
+        color: $warning;
+      }
+      &.info {
+        background: rgba($info, 0.1);
+        color: $info;
+      }
+      &.success {
+        background: rgba($success, 0.1);
+        color: $success;
+      }
+      &.danger {
+        background: rgba($danger, 0.1);
+        color: $danger;
+      }
     }
   }
 }
@@ -1079,7 +1292,9 @@ $radius-xs: 8px;
     font-weight: 500;
     color: $accent;
     cursor: pointer;
-    &:hover { background: $accent-light; }
+    &:hover {
+      background: $accent-light;
+    }
   }
 }
 </style>

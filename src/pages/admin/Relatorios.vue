@@ -1,1013 +1,886 @@
 <template>
-  <q-page class="admin-relatorios q-pa-md">
+  <div class="page-container">
     <div class="page-header">
-      <div class="page-title-section">
-        <div class="page-title">
-          <q-icon name="description" size="32px" class="q-mr-sm" />
-          Relatórios
+      <h1>Relatórios e Analytics</h1>
+      <div class="header-actions">
+        <div class="date-range">
+          <q-input
+            v-model="filtros.data_inicio"
+            label="Data Início"
+            type="date"
+            dense
+            outlined
+            class="date-input"
+          />
+          <q-input
+            v-model="filtros.data_fim"
+            label="Data Fim"
+            type="date"
+            dense
+            outlined
+            class="date-input"
+          />
         </div>
-        <div class="page-subtitle">Gere relatórios detalhados da plataforma</div>
+        <q-btn-dropdown flat color="primary" icon="download" label="Exportar">
+          <q-list>
+            <q-item clickable v-close-popup @click="exportar('excel')">
+              <q-item-section avatar><q-icon name="table_chart" /></q-item-section>
+              <q-item-section>Exportar para Excel</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="exportar('pdf')">
+              <q-item-section avatar><q-icon name="picture_as_pdf" /></q-item-section>
+              <q-item-section>Exportar para PDF</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+        <q-btn color="primary" icon="refresh" @click="carregarTodosDados" :loading="isLoading" />
       </div>
-      <q-btn
-        label="Atualizar"
-        icon="refresh"
-        color="grey-7"
-        outline
-        @click="carregarDados"
-        :loading="dashboardStore.loading"
-      />
     </div>
 
-    <!-- Skeleton Loading -->
-    <div v-if="dashboardStore.loading" class="skeleton-container">
-      <div class="row q-col-gutter-lg">
-        <div class="col-12 col-md-3">
-          <div class="skeleton-card">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-select"></div>
-            <div class="skeleton-input"></div>
-            <div class="skeleton-input"></div>
-            <div class="skeleton-button"></div>
-          </div>
-        </div>
-
-        <div class="col-12 col-md-9">
-          <div class="skeleton-card">
-            <div class="skeleton-title"></div>
-            <div class="row q-col-gutter-md q-mt-md">
-              <div v-for="i in 3" :key="i" class="col-12 col-sm-4">
-                <div class="skeleton-resumo-item">
-                  <div class="skeleton-icon"></div>
-                  <div class="skeleton-resumo-content">
-                    <div class="skeleton-label"></div>
-                    <div class="skeleton-value"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="skeleton-card">
-            <div class="skeleton-tabs">
-              <div v-for="i in 3" :key="i" class="skeleton-tab"></div>
-            </div>
-            <div class="skeleton-table-header">
-              <div class="skeleton-panel-header"></div>
-              <div class="skeleton-table">
-                <div class="skeleton-table-header-row">
-                  <div v-for="i in 4" :key="`th-${i}`" class="skeleton-header-cell"></div>
-                </div>
-                <div v-for="row in 4" :key="row" class="skeleton-table-row">
-                  <div v-for="i in 4" :key="`td-${row}-${i}`" class="skeleton-cell">
-                    <div class="skeleton-text"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="skeleton-shimmer"></div>
+    <!-- Loading -->
+    <div v-if="isLoading" class="loading-container">
+      <q-spinner size="40px" color="primary" />
+      <p>Carregando dados dos relatórios...</p>
     </div>
 
-    <!-- Conteúdo real -->
-    <template v-else>
-      <div class="row q-col-gutter-lg">
-        <!-- Seletor de Período -->
-        <div class="col-12 col-md-3">
-          <q-card class="periodo-card">
-            <q-card-section>
-              <div class="text-h6">
-                <q-icon name="calendar_today" class="q-mr-sm" />
-                Período
-              </div>
-              <q-select
-                v-model="periodo"
-                :options="periodos"
-                label="Selecione o período"
-                dense
-                outlined
-                class="q-mt-md"
-                @update:model-value="carregarDados"
-              />
-              <div v-if="periodo === 'custom'" class="q-mt-md">
-                <q-input v-model="dataInicio" label="Data Início" dense outlined type="date" />
-                <q-input
-                  v-model="dataFim"
-                  label="Data Fim"
-                  dense
-                  outlined
-                  type="date"
-                  class="q-mt-sm"
-                />
-                <q-btn
-                  label="Aplicar"
-                  color="primary"
-                  dense
-                  class="q-mt-md full-width"
-                  @click="carregarDados"
-                />
-              </div>
-            </q-card-section>
-          </q-card>
+    <div v-else>
+      <!-- ==================== SEÇÃO 1: RESUMO GERAL ==================== -->
+      <div class="section">
+        <div class="section-header">
+          <h2>📊 Resumo Geral</h2>
+          <q-icon name="dashboard" size="24px" color="primary" />
         </div>
-
-        <!-- Resumo do Período -->
-        <div class="col-12 col-md-9">
-          <q-card class="resumo-card">
-            <q-card-section>
-              <div class="text-h6">
-                <q-icon name="summarize" class="q-mr-sm" />
-                Resumo do Período
-              </div>
-              <div class="row q-col-gutter-md q-mt-md">
-                <div class="col-12 col-sm-4">
-                  <div class="resumo-item">
-                    <div class="resumo-icon" style="background: rgba(46, 125, 50, 0.1)">
-                      <q-icon name="payments" size="28px" color="positive" />
-                    </div>
-                    <div class="resumo-content">
-                      <div class="resumo-label">Receita Total</div>
-                      <div class="resumo-value text-positive">
-                        {{ formatMoney(receitaPeriodo) }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 col-sm-4">
-                  <div class="resumo-item">
-                    <div class="resumo-icon" style="background: rgba(25, 118, 210, 0.1)">
-                      <q-icon name="assignment" size="28px" color="primary" />
-                    </div>
-                    <div class="resumo-content">
-                      <div class="resumo-label">Serviços</div>
-                      <div class="resumo-value">{{ formatNumber(servicosPeriodo) }}</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 col-sm-4">
-                  <div class="resumo-item">
-                    <div class="resumo-icon" style="background: rgba(156, 39, 176, 0.1)">
-                      <q-icon name="person_add" size="28px" color="secondary" />
-                    </div>
-                    <div class="resumo-content">
-                      <div class="resumo-label">Novos Utilizadores</div>
-                      <div class="resumo-value">{{ formatNumber(novosUtilizadoresPeriodo) }}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- Relatórios por Tipo -->
-        <div class="col-12">
-          <q-card class="relatorios-card">
-            <q-card-section>
-              <q-tabs v-model="tabRelatorio" class="relatorio-tabs" dense>
-                <q-tab name="servicos" label="Serviços" icon="construction" />
-                <q-tab name="prestadores" label="Prestadores" icon="handyman" />
-                <q-tab name="financeiro" label="Financeiro" icon="payments" />
-              </q-tabs>
-
-              <q-separator />
-
-              <q-tab-panels v-model="tabRelatorio" animated>
-                <!-- Painel de Serviços -->
-                <q-tab-panel name="servicos" class="q-pa-none">
-                  <div class="panel-header">
-                    <div class="panel-title">
-                      <q-icon name="construction" class="q-mr-sm" />
-                      Relatório de Serviços
-                    </div>
-                    <q-btn
-                      color="primary"
-                      icon="download"
-                      label="Exportar"
-                      flat
-                      @click="exportarRelatorio('servicos')"
-                      :loading="exportando"
-                    />
-                  </div>
-                  <q-table
-                    :rows="relatorioServicos"
-                    :columns="servicosColumns"
-                    row-key="periodo"
-                    :loading="dashboardStore.loading"
-                    :rows-per-page-options="[5, 10, 20]"
-                    flat
-                    bordered
-                    class="relatorio-table"
-                  >
-                    <template v-slot:body-cell-receita_total="props">
-                      <q-td :props="props">
-                        <span class="text-primary">{{ formatMoney(props.row.receita_total) }}</span>
-                      </q-td>
-                    </template>
-                    <template v-slot:body-cell-servicos_por_status="props">
-                      <q-td :props="props">
-                        <div class="status-chips">
-                          <q-chip size="sm" color="info" dense
-                            >Pendente: {{ props.row.servicos_por_status?.pendente || 0 }}</q-chip
-                          >
-                          <q-chip size="sm" color="warning" dense
-                            >Aceito: {{ props.row.servicos_por_status?.aceito || 0 }}</q-chip
-                          >
-                          <q-chip size="sm" color="positive" dense
-                            >Concluído: {{ props.row.servicos_por_status?.concluido || 0 }}</q-chip
-                          >
-                        </div>
-                      </q-td>
-                    </template>
-                  </q-table>
-                </q-tab-panel>
-
-                <!-- Painel de Prestadores -->
-                <q-tab-panel name="prestadores" class="q-pa-none">
-                  <div class="panel-header">
-                    <div class="panel-title">
-                      <q-icon name="handyman" class="q-mr-sm" />
-                      Relatório de Prestadores
-                    </div>
-                    <q-btn
-                      color="primary"
-                      icon="download"
-                      label="Exportar"
-                      flat
-                      @click="exportarRelatorio('prestadores')"
-                      :loading="exportando"
-                    />
-                  </div>
-                  <q-table
-                    :rows="relatorioPrestadores"
-                    :columns="prestadoresColumns"
-                    row-key="total"
-                    :loading="dashboardStore.loading"
-                    :rows-per-page-options="[5, 10, 20]"
-                    flat
-                    bordered
-                    class="relatorio-table"
-                  >
-                    <template v-slot:body-cell-top_prestadores="props">
-                      <q-td :props="props">
-                        <div class="top-prestadores">
-                          <div
-                            v-for="prestador in props.row.top_prestadores"
-                            :key="prestador.id"
-                            class="prestador-item"
-                          >
-                            <q-icon name="star" size="12px" color="warning" />
-                            <span>{{ prestador.nome }}</span>
-                            <span class="text-caption text-grey"
-                              >({{ prestador.media_avaliacao }} ★)</span
-                            >
-                          </div>
-                        </div>
-                      </q-td>
-                    </template>
-                  </q-table>
-                </q-tab-panel>
-
-                <!-- Painel Financeiro -->
-                <q-tab-panel name="financeiro" class="q-pa-none">
-                  <div class="panel-header">
-                    <div class="panel-title">
-                      <q-icon name="payments" class="q-mr-sm" />
-                      Relatório Financeiro
-                    </div>
-                    <q-btn
-                      color="primary"
-                      icon="download"
-                      label="Exportar"
-                      flat
-                      @click="exportarRelatorio('financeiro')"
-                      :loading="exportando"
-                    />
-                  </div>
-                  <q-table
-                    :rows="relatorioFinanceiro"
-                    :columns="financeiroColumns"
-                    row-key="periodo"
-                    :loading="dashboardStore.loading"
-                    :rows-per-page-options="[5, 10, 20]"
-                    flat
-                    bordered
-                    class="relatorio-table"
-                  >
-                    <template v-slot:body-cell-entradas="props">
-                      <q-td :props="props">
-                        <span class="text-positive">{{ formatMoney(props.row.entradas) }}</span>
-                      </q-td>
-                    </template>
-                    <template v-slot:body-cell-saidas="props">
-                      <q-td :props="props">
-                        <span class="text-negative">{{ formatMoney(props.row.saidas) }}</span>
-                      </q-td>
-                    </template>
-                    <template v-slot:body-cell-saldo="props">
-                      <q-td :props="props">
-                        <span :class="props.row.saldo >= 0 ? 'text-positive' : 'text-negative'">
-                          {{ formatMoney(props.row.saldo) }}
-                        </span>
-                      </q-td>
-                    </template>
-                  </q-table>
-                </q-tab-panel>
-              </q-tab-panels>
-            </q-card-section>
-          </q-card>
+        <div class="kpi-grid">
+          <KpiCard
+            label="Total Pedidos"
+            :value="dadosPedidos?.total || 0"
+            icon="receipt_long"
+            iconBg="#667EEA20"
+            iconColor="#667EEA"
+          />
+          <KpiCard
+            label="Faturamento Total"
+            :value="dadosFinanceiro?.faturamento_total || 0"
+            icon="payments"
+            format="currency"
+            iconBg="#10B98120"
+            iconColor="#10B981"
+          />
+          <KpiCard
+            label="Prestadores Ativos"
+            :value="dadosPrestadores?.ativos || 0"
+            icon="handyman"
+            iconBg="#F59E0B20"
+            iconColor="#F59E0B"
+          />
+          <KpiCard
+            label="Total Clientes"
+            :value="dadosClientes?.total_clientes || 0"
+            icon="people"
+            iconBg="#8B5CF620"
+            iconColor="#8B5CF6"
+          />
+          <KpiCard
+            label="Ticket Médio"
+            :value="dadosPedidos?.valor_medio || 0"
+            icon="trending_up"
+            format="currency"
+            iconBg="#EC489920"
+            iconColor="#EC4899"
+          />
+          <KpiCard
+            label="Avaliação Média"
+            :value="dadosPrestadores?.media_avaliacao_global || 0"
+            icon="star"
+            format="number"
+            iconBg="#F59E0B20"
+            iconColor="#F59E0B"
+          />
         </div>
       </div>
-    </template>
-  </q-page>
+
+      <!-- ==================== SEÇÃO 2: PEDIDOS ==================== -->
+      <div class="section">
+        <div class="section-header">
+          <h2>📋 Análise de Pedidos</h2>
+          <q-icon name="receipt_long" size="24px" color="primary" />
+        </div>
+
+        <!-- KPIs de Pedidos -->
+        <div class="kpi-grid-small">
+          <KpiCard
+            label="Pendentes"
+            :value="dadosPedidos?.por_status?.pendente || 0"
+            icon="pending"
+            iconBg="#F59E0B20"
+            iconColor="#F59E0B"
+            small
+          />
+          <KpiCard
+            label="Aceitos"
+            :value="dadosPedidos?.por_status?.aceito || 0"
+            icon="check_circle"
+            iconBg="#3B82F620"
+            iconColor="#3B82F6"
+            small
+          />
+          <KpiCard
+            label="Em Andamento"
+            :value="dadosPedidos?.por_status?.em_andamento || 0"
+            icon="build"
+            iconBg="#8B5CF620"
+            iconColor="#8B5CF6"
+            small
+          />
+          <KpiCard
+            label="Concluídos"
+            :value="dadosPedidos?.por_status?.concluido || 0"
+            icon="verified"
+            iconBg="#10B98120"
+            iconColor="#10B981"
+            small
+          />
+          <KpiCard
+            label="Cancelados"
+            :value="dadosPedidos?.por_status?.cancelado || 0"
+            icon="cancel"
+            iconBg="#EF444420"
+            iconColor="#EF4444"
+            small
+          />
+        </div>
+
+        <!-- Gráficos de Pedidos - Layout 2 colunas -->
+        <div class="charts-grid-2cols">
+          <ChartCard
+            chart-id="status-chart"
+            title="Distribuição por Status"
+            icon="pie_chart"
+            iconColor="#667EEA"
+            type="doughnut"
+            :labels="['Pendente', 'Aceito', 'Em Andamento', 'Concluído', 'Cancelado']"
+            :datasets="[
+              {
+                label: 'Pedidos',
+                data: [
+                  dadosPedidos?.por_status?.pendente || 0,
+                  dadosPedidos?.por_status?.aceito || 0,
+                  dadosPedidos?.por_status?.em_andamento || 0,
+                  dadosPedidos?.por_status?.concluido || 0,
+                  dadosPedidos?.por_status?.cancelado || 0,
+                ],
+                backgroundColor: ['#F59E0B', '#3B82F6', '#8B5CF6', '#10B981', '#EF4444'],
+              },
+            ]"
+          />
+
+          <ChartCard
+            chart-id="pedidos-dia-chart"
+            title="Pedidos por Dia"
+            icon="show_chart"
+            iconColor="#10B981"
+            type="line"
+            :labels="dadosPedidos?.pedidos_por_dia?.map((p) => formatarDataCurta(p.data)) || []"
+            :datasets="[
+              {
+                label: 'Pedidos',
+                data: dadosPedidos?.pedidos_por_dia?.map((p) => p.total) || [],
+                borderColor: '#667EEA',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+              },
+            ]"
+          />
+        </div>
+
+        <div class="charts-grid-2cols">
+          <ChartCard
+            chart-id="categoria-chart"
+            title="Pedidos por Categoria"
+            icon="category"
+            iconColor="#8B5CF6"
+            type="bar"
+            :labels="dadosPedidos?.pedidos_por_categoria?.map((c) => c.nome) || []"
+            :datasets="[
+              {
+                label: 'Quantidade',
+                data: dadosPedidos?.pedidos_por_categoria?.map((c) => c.total) || [],
+                backgroundColor: '#667EEA',
+              },
+            ]"
+          />
+
+          <ChartCard
+            chart-id="prestador-chart"
+            title="Top 5 Prestadores"
+            icon="handyman"
+            iconColor="#F59E0B"
+            type="bar"
+            :labels="dadosPedidos?.pedidos_por_prestador?.slice(0, 5).map((p) => p.nome) || []"
+            :datasets="[
+              {
+                label: 'Pedidos',
+                data: dadosPedidos?.pedidos_por_prestador?.slice(0, 5).map((p) => p.total) || [],
+                backgroundColor: '#10B981',
+              },
+            ]"
+          />
+        </div>
+
+        <!-- Tabela Top Clientes -->
+        <div class="table-card" v-if="dadosPedidos?.top_clientes?.length">
+          <div class="table-header">
+            <h3>🏆 Top Clientes</h3>
+          </div>
+          <q-table
+            :rows="dadosPedidos.top_clientes"
+            :columns="topClientesColumns"
+            row-key="id"
+            flat
+            dense
+            bordered
+          />
+        </div>
+      </div>
+
+      <!-- ==================== SEÇÃO 3: FINANCEIRO ==================== -->
+      <div class="section">
+        <div class="section-header">
+          <h2>💰 Análise Financeira</h2>
+          <q-icon name="payments" size="24px" color="primary" />
+        </div>
+
+        <!-- KPIs Financeiros -->
+        <div class="kpi-grid">
+          <KpiCard
+            label="Faturamento Período"
+            :value="dadosFinanceiro?.faturamento_periodo || 0"
+            icon="trending_up"
+            format="currency"
+            iconBg="#10B98120"
+            iconColor="#10B981"
+          />
+          <KpiCard
+            label="Comissões"
+            :value="dadosFinanceiro?.comissoes_total || 0"
+            icon="commission"
+            format="currency"
+            iconBg="#F59E0B20"
+            iconColor="#F59E0B"
+          />
+          <KpiCard
+            label="Pagamentos Pendentes"
+            :value="dadosFinanceiro?.pagamentos_pendentes || 0"
+            icon="pending"
+            format="currency"
+            iconBg="#EF444420"
+            iconColor="#EF4444"
+          />
+          <KpiCard
+            label="Faturamento Total"
+            :value="dadosFinanceiro?.faturamento_total || 0"
+            icon="account_balance"
+            format="currency"
+            iconBg="#667EEA20"
+            iconColor="#667EEA"
+          />
+        </div>
+
+        <!-- Gráficos Financeiros - Layout 2 colunas -->
+        <div class="charts-grid-2cols">
+          <ChartCard
+            chart-id="receita-dia-chart"
+            title="Receita por Dia"
+            icon="show_chart"
+            iconColor="#10B981"
+            type="line"
+            :labels="dadosFinanceiro?.receita_por_dia?.map((r) => formatarDataCurta(r.data)) || []"
+            :datasets="[
+              {
+                label: 'Receita (MZN)',
+                data: dadosFinanceiro?.receita_por_dia?.map((r) => r.valor) || [],
+                borderColor: '#667EEA',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+              },
+            ]"
+          />
+
+          <ChartCard
+            chart-id="receita-mes-chart"
+            title="Receita por Mês"
+            icon="calendar_month"
+            iconColor="#8B5CF6"
+            type="bar"
+            :labels="dadosFinanceiro?.receita_por_mes?.map((r) => r.mes) || []"
+            :datasets="[
+              {
+                label: 'Receita (MZN)',
+                data: dadosFinanceiro?.receita_por_mes?.map((r) => r.valor) || [],
+                backgroundColor: '#10B981',
+              },
+            ]"
+          />
+        </div>
+
+        <div class="charts-grid-2cols">
+          <ChartCard
+            chart-id="top-categorias-financeiro-chart"
+            title="Top Categorias por Faturamento"
+            icon="category"
+            iconColor="#F59E0B"
+            type="pie"
+            :labels="dadosFinanceiro?.top_categorias?.map((c) => c.nome) || []"
+            :datasets="[
+              {
+                label: 'Faturamento',
+                data: dadosFinanceiro?.top_categorias?.map((c) => c.valor) || [],
+                backgroundColor: [
+                  '#667EEA',
+                  '#10B981',
+                  '#F59E0B',
+                  '#EF4444',
+                  '#8B5CF6',
+                  '#EC4899',
+                  '#06B6D4',
+                ],
+              },
+            ]"
+          />
+          <div class="chart-placeholder"></div>
+        </div>
+      </div>
+
+      <!-- ==================== SEÇÃO 4: PRESTADORES ==================== -->
+      <div class="section">
+        <div class="section-header">
+          <h2>👨‍🔧 Análise de Prestadores</h2>
+          <q-icon name="handyman" size="24px" color="primary" />
+        </div>
+
+        <!-- KPIs de Prestadores -->
+        <div class="kpi-grid-small">
+          <KpiCard
+            label="Total"
+            :value="dadosPrestadores?.total_prestadores || 0"
+            icon="handyman"
+            iconBg="#667EEA20"
+            iconColor="#667EEA"
+            small
+          />
+          <KpiCard
+            label="Ativos"
+            :value="dadosPrestadores?.ativos || 0"
+            icon="check_circle"
+            iconBg="#10B98120"
+            iconColor="#10B981"
+            small
+          />
+          <KpiCard
+            label="Verificados"
+            :value="dadosPrestadores?.verificados || 0"
+            icon="verified"
+            iconBg="#F59E0B20"
+            iconColor="#F59E0B"
+            small
+          />
+          <KpiCard
+            label="Média Avaliação"
+            :value="dadosPrestadores?.media_avaliacao_global || 0"
+            icon="star"
+            format="number"
+            iconBg="#8B5CF620"
+            iconColor="#8B5CF6"
+            small
+          />
+        </div>
+
+        <!-- Gráficos de Prestadores - Layout 2 colunas -->
+        <div class="charts-grid-2cols">
+          <ChartCard
+            chart-id="status-prestador-chart"
+            title="Status dos Prestadores"
+            icon="people"
+            iconColor="#667EEA"
+            type="doughnut"
+            :labels="['Ativos', 'Inativos']"
+            :datasets="[
+              {
+                label: 'Prestadores',
+                data: [dadosPrestadores?.ativos || 0, dadosPrestadores?.inativos || 0],
+                backgroundColor: ['#10B981', '#EF4444'],
+              },
+            ]"
+          />
+
+          <ChartCard
+            chart-id="verificacao-chart"
+            title="Verificação"
+            icon="verified"
+            iconColor="#F59E0B"
+            type="doughnut"
+            :labels="['Verificados', 'Não Verificados']"
+            :datasets="[
+              {
+                label: 'Prestadores',
+                data: [dadosPrestadores?.verificados || 0, dadosPrestadores?.nao_verificados || 0],
+                backgroundColor: ['#667EEA', '#F59E0B'],
+              },
+            ]"
+          />
+        </div>
+
+        <div class="charts-grid-2cols">
+          <ChartCard
+            chart-id="prestadores-categoria-chart"
+            title="Prestadores por Categoria"
+            icon="category"
+            iconColor="#8B5CF6"
+            type="bar"
+            :labels="dadosPrestadores?.prestadores_por_categoria?.map((c) => c.nome) || []"
+            :datasets="[
+              {
+                label: 'Prestadores',
+                data: dadosPrestadores?.prestadores_por_categoria?.map((c) => c.total) || [],
+                backgroundColor: '#667EEA',
+              },
+            ]"
+          />
+        </div>
+
+        <!-- Tabela Top Prestadores -->
+        <div class="table-card" v-if="dadosPrestadores?.top_prestadores?.length">
+          <div class="table-header">
+            <h3>🏆 Top Prestadores</h3>
+          </div>
+          <q-table
+            :rows="dadosPrestadores.top_prestadores"
+            :columns="topPrestadoresColumns"
+            row-key="id"
+            flat
+            dense
+            bordered
+          />
+        </div>
+      </div>
+
+      <!-- ==================== SEÇÃO 5: CLIENTES ==================== -->
+      <div class="section">
+        <div class="section-header">
+          <h2>👥 Análise de Clientes</h2>
+          <q-icon name="people" size="24px" color="primary" />
+        </div>
+
+        <!-- KPIs de Clientes -->
+        <div class="kpi-grid">
+          <KpiCard
+            label="Total Clientes"
+            :value="dadosClientes?.total_clientes || 0"
+            icon="people"
+            iconBg="#667EEA20"
+            iconColor="#667EEA"
+          />
+          <KpiCard
+            label="Novos no Mês"
+            :value="dadosClientes?.novos_mes || 0"
+            icon="person_add"
+            iconBg="#10B98120"
+            iconColor="#10B981"
+          />
+          <KpiCard
+            label="Ativos no Mês"
+            :value="dadosClientes?.ativos_mes || 0"
+            icon="check_circle"
+            iconBg="#F59E0B20"
+            iconColor="#F59E0B"
+          />
+        </div>
+
+        <!-- Gráficos de Clientes - Layout 2 colunas -->
+        <div class="charts-grid-2cols">
+          <ChartCard
+            chart-id="clientes-mes-chart"
+            title="Novos Clientes por Mês"
+            icon="trending_up"
+            iconColor="#10B981"
+            type="line"
+            :labels="dadosClientes?.clientes_por_mes?.map((c) => c.mes) || []"
+            :datasets="[
+              {
+                label: 'Novos Clientes',
+                data: dadosClientes?.clientes_por_mes?.map((c) => c.total) || [],
+                borderColor: '#667EEA',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+              },
+            ]"
+          />
+        </div>
+
+        <!-- Tabela Top Clientes -->
+        <div class="table-card" v-if="dadosClientes?.top_clientes?.length">
+          <div class="table-header">
+            <h3>🏆 Top Clientes</h3>
+          </div>
+          <q-table
+            :rows="dadosClientes.top_clientes"
+            :columns="topClientesDetalhesColumns"
+            row-key="id"
+            flat
+            dense
+            bordered
+          />
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useQuasar, type QTableColumn } from 'quasar';
-import { useAdminDashboardStore } from 'src/stores/admin/admin-dashboard-store';
-import { useAdminFinanceiroStore } from 'src/stores/admin/admin-financeiro-store';
+import { ref, onMounted, watch } from 'vue';
+import { useQuasar } from 'quasar';
+import { storeToRefs } from 'pinia';
+import {
+  useAdminRelatoriosStore,
+  type FiltrosRelatorios,
+} from 'src/stores/admin/admin-relatorios-store';
+import KpiCard from 'src/components/admin/KpiCard.vue';
+import ChartCard from 'src/components/admin/ChartCard.vue';
 
-// ==========================================
-// INTERFACES
-// ==========================================
-
-interface ServicosPorStatus {
-  pendente: number;
-  aceito: number;
-  em_andamento: number;
-  concluido: number;
-  cancelado: number;
-}
-
-interface RelatorioServicos {
-  periodo: string;
-  total_servicos: number;
-  receita_total: number;
-  servicos_por_status: ServicosPorStatus;
-}
-
-interface PrestadorTop {
-  id: number;
-  nome: string;
-  media_avaliacao: number;
-  total_servicos: number;
-}
-
-interface RelatorioPrestadores {
-  total: number;
-  verificados: number;
-  nao_verificados: number;
-  ativos: number;
-  bloqueados: number;
-  media_avaliacao_geral: number;
-  top_prestadores: PrestadorTop[];
-  periodo: string;
-}
-
-interface RelatorioFinanceiro {
-  periodo: string;
-  entradas: number;
-  saidas: number;
-  saldo: number;
-  comissoes: number;
-}
-
-defineOptions({
-  name: 'AdminRelatorios',
-});
+defineOptions({ name: 'AdminRelatorios' });
 
 const $q = useQuasar();
-const dashboardStore = useAdminDashboardStore();
-const financeiroStore = useAdminFinanceiroStore();
+const relatoriosStore = useAdminRelatoriosStore();
 
-// Estados
-const periodo = ref('mes');
-const tabRelatorio = ref('servicos');
-const exportando = ref(false);
-const dataInicio = ref('');
-const dataFim = ref('');
+const { isLoading, dadosPedidos, dadosFinanceiro, dadosPrestadores, dadosClientes } =
+  storeToRefs(relatoriosStore);
 
-// Opções de período
-const periodos = [
-  { label: 'Hoje', value: 'hoje' },
-  { label: 'Esta semana', value: 'semana' },
-  { label: 'Este mês', value: 'mes' },
-  { label: 'Este ano', value: 'ano' },
-  { label: 'Personalizado', value: 'custom' },
-];
+const {
+  carregarRelatorioPedidos,
+  carregarRelatorioFinanceiro,
+  carregarRelatorioPrestadores,
+  carregarRelatorioClientes,
+  exportarExcel,
+  exportarPDF,
+} = relatoriosStore;
 
-// Computed para dados do período
-const receitaPeriodo = computed(() => {
-  const receita = dashboardStore.estatisticas.receita_total;
-  const percentual = periodo.value === 'mes' ? receita : receita * 0.8;
-  return percentual;
-});
-
-const servicosPeriodo = computed(() => {
-  const servicos = dashboardStore.estatisticas.total_pedidos;
-  const percentual = periodo.value === 'mes' ? servicos : Math.floor(servicos * 0.7);
-  return percentual;
-});
-
-const novosUtilizadoresPeriodo = computed(() => {
-  const users = dashboardStore.dashboard.total_users;
-  const percentual = periodo.value === 'mes' ? Math.floor(users * 0.15) : Math.floor(users * 0.3);
-  return percentual;
-});
-
-// Relatórios
-const relatorioServicos = computed((): RelatorioServicos[] => {
-  const data = financeiroStore.relatorioServicos;
-  if (!data) return [];
-  return [data];
-});
-
-const relatorioPrestadores = computed((): RelatorioPrestadores[] => {
-  const data = financeiroStore.relatorioPrestadores;
-  if (!data) return [];
-  return [data];
-});
-
-const relatorioFinanceiro = computed((): RelatorioFinanceiro[] => {
-  const data = financeiroStore.relatorioFinanceiro;
-  if (!data) return [];
-  return [data];
-});
-
-// Colunas para tabela de serviços
-const servicosColumns: QTableColumn[] = [
-  { name: 'periodo', label: 'Período', field: 'periodo', align: 'left', sortable: true },
-  {
-    name: 'total_servicos',
-    label: 'Total Serviços',
-    field: 'total_servicos',
-    align: 'center',
-    sortable: true,
-  },
-  {
-    name: 'receita_total',
-    label: 'Receita Total',
-    field: 'receita_total',
-    align: 'center',
-    sortable: true,
-  },
-  {
-    name: 'servicos_por_status',
-    label: 'Status',
-    field: 'servicos_por_status',
-    align: 'left',
-    sortable: false,
-  },
-];
-
-// Colunas para tabela de prestadores
-const prestadoresColumns: QTableColumn[] = [
-  { name: 'total', label: 'Total Prestadores', field: 'total', align: 'center', sortable: true },
-  {
-    name: 'verificados',
-    label: 'Verificados',
-    field: 'verificados',
-    align: 'center',
-    sortable: true,
-  },
-  {
-    name: 'nao_verificados',
-    label: 'Não Verificados',
-    field: 'nao_verificados',
-    align: 'center',
-    sortable: true,
-  },
-  {
-    name: 'media_avaliacao_geral',
-    label: 'Média Avaliação',
-    field: 'media_avaliacao_geral',
-    align: 'center',
-    sortable: true,
-  },
-  {
-    name: 'top_prestadores',
-    label: 'Top Prestadores',
-    field: 'top_prestadores',
-    align: 'left',
-    sortable: false,
-  },
-];
-
-// Colunas para tabela financeira
-const financeiroColumns: QTableColumn[] = [
-  { name: 'periodo', label: 'Período', field: 'periodo', align: 'left', sortable: true },
-  { name: 'entradas', label: 'Entradas', field: 'entradas', align: 'center', sortable: true },
-  { name: 'saidas', label: 'Saídas', field: 'saidas', align: 'center', sortable: true },
-  { name: 'saldo', label: 'Saldo', field: 'saldo', align: 'center', sortable: true },
-  { name: 'comissoes', label: 'Comissões', field: 'comissoes', align: 'center', sortable: true },
-];
-
-// Funções auxiliares
-const formatNumber = (value: number): string => {
-  return new Intl.NumberFormat('pt-PT').format(value);
+// ✅ Função auxiliar para formatar data como YYYY-MM-DD
+const formatarDataYMD = (data: Date): string => {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
 };
+
+// ✅ Datas com valores garantidos
+const hoje = new Date();
+const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+// ✅ Interface local para o filtro - com undefined explícito
+interface FiltrosLocal {
+  data_inicio: string;
+  data_fim: string;
+  tipo: string;
+  categoria_id?: number | undefined;
+  prestador_id?: number | undefined;
+}
+
+// ✅ Tipar corretamente o ref
+const filtros = ref<FiltrosLocal>({
+  data_inicio: formatarDataYMD(primeiroDiaMes),
+  data_fim: formatarDataYMD(hoje),
+  tipo: 'completo',
+  categoria_id: undefined,
+  prestador_id: undefined,
+});
+
+const topClientesColumns = [
+  { name: 'nome', label: 'Cliente', field: 'nome', align: 'left' as const },
+  { name: 'pedidos', label: 'Pedidos', field: 'pedidos', align: 'center' as const },
+  {
+    name: 'valor_total',
+    label: 'Valor Total',
+    field: 'valor_total',
+    align: 'right' as const,
+    format: (val: number) => formatMoney(val),
+  },
+];
+
+const topPrestadoresColumns = [
+  { name: 'nome', label: 'Prestador', field: 'nome', align: 'left' as const },
+  { name: 'profissao', label: 'Profissão', field: 'profissao', align: 'left' as const },
+  { name: 'total_pedidos', label: 'Pedidos', field: 'total_pedidos', align: 'center' as const },
+  {
+    name: 'faturamento',
+    label: 'Faturamento',
+    field: 'faturamento',
+    align: 'right' as const,
+    format: (val: number) => formatMoney(val),
+  },
+  {
+    name: 'media_avaliacao',
+    label: 'Avaliação',
+    field: 'media_avaliacao',
+    align: 'center' as const,
+  },
+];
+
+const topClientesDetalhesColumns = [
+  { name: 'nome', label: 'Cliente', field: 'nome', align: 'left' as const },
+  { name: 'total_pedidos', label: 'Pedidos', field: 'total_pedidos', align: 'center' as const },
+  {
+    name: 'total_gasto',
+    label: 'Total Gasto',
+    field: 'total_gasto',
+    align: 'right' as const,
+    format: (val: number) => formatMoney(val),
+  },
+];
 
 const formatMoney = (value: number): string => {
-  return new Intl.NumberFormat('pt-PT', {
-    style: 'currency',
-    currency: 'MZN',
-    minimumFractionDigits: 0,
-  }).format(value);
+  return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(value);
 };
 
-// Carregar dados
-const carregarDados = async (): Promise<void> => {
-  try {
-    const periodoValue = periodo.value === 'custom' ? 'mes' : periodo.value;
+const formatarDataCurta = (data: string): string => {
+  if (!data) return '';
+  const d = new Date(data);
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+};
 
-    await Promise.all([
-      dashboardStore.fetchDashboard(),
-      dashboardStore.fetchStats(),
-      financeiroStore.fetchRelatorioServicos(periodoValue),
-      financeiroStore.fetchRelatorioPrestadores(),
-      financeiroStore.fetchRelatorioFinanceiro(periodoValue),
-    ]);
-  } catch (error) {
-    console.error('Erro ao carregar dados:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar dados dos relatórios',
-      position: 'top',
-    });
+// ✅ Função para obter os filtros - removendo undefined
+const obterFiltros = (): FiltrosRelatorios => {
+  const result: FiltrosRelatorios = {
+    data_inicio: filtros.value.data_inicio,
+    data_fim: filtros.value.data_fim,
+    tipo: filtros.value.tipo,
+  };
+
+  // ✅ Só adiciona categoria_id se for um número válido
+  if (filtros.value.categoria_id !== undefined) {
+    result.categoria_id = filtros.value.categoria_id;
   }
+
+  // ✅ Só adiciona prestador_id se for um número válido
+  if (filtros.value.prestador_id !== undefined) {
+    result.prestador_id = filtros.value.prestador_id;
+  }
+
+  return result;
 };
 
-// ✅ Exportar relatório (sem any)
-const exportarRelatorio = (tipo: string): void => {
-  if (exportando.value) return;
+// ✅ Função para carregar todos os dados
+const carregarTodosDados = (): void => {
+  const filtrosAtuais = obterFiltros();
 
-  exportando.value = true;
+  Promise.all([
+    carregarRelatorioPedidos(filtrosAtuais),
+    carregarRelatorioFinanceiro(filtrosAtuais),
+    carregarRelatorioPrestadores(filtrosAtuais),
+    carregarRelatorioClientes(filtrosAtuais),
+  ]).catch((error) => {
+    console.error('Erro ao carregar dados:', error);
+    $q.notify({ type: 'negative', message: 'Erro ao carregar dados dos relatórios' });
+  });
+};
+
+const exportar = async (formato: 'excel' | 'pdf'): Promise<void> => {
+  const filtrosAtuais = obterFiltros();
 
   try {
-    let data: RelatorioServicos[] | RelatorioPrestadores[] | RelatorioFinanceiro[] = [];
-    let filename = '';
-    let headers: string[] = [];
-
-    if (tipo === 'servicos') {
-      data = relatorioServicos.value;
-      filename = `relatorio_servicos_${periodo.value}`;
-      headers = [
-        'Período',
-        'Total Serviços',
-        'Receita Total',
-        'Pendentes',
-        'Aceitos',
-        'Em Andamento',
-        'Concluídos',
-        'Cancelados',
-      ];
-    } else if (tipo === 'prestadores') {
-      data = relatorioPrestadores.value;
-      filename = 'relatorio_prestadores';
-      headers = ['Total', 'Verificados', 'Não Verificados', 'Média Avaliação', 'Top Prestadores'];
+    let blob: Blob | null = null;
+    if (formato === 'excel') {
+      blob = await exportarExcel('completo', filtrosAtuais);
     } else {
-      data = relatorioFinanceiro.value;
-      filename = `relatorio_financeiro_${periodo.value}`;
-      headers = ['Período', 'Entradas', 'Saídas', 'Saldo', 'Comissões'];
+      blob = await exportarPDF('completo', filtrosAtuais);
     }
 
-    if (data.length === 0) {
-      $q.notify({
-        type: 'warning',
-        message: 'Não há dados para exportar',
-        position: 'top',
-      });
-      return;
+    if (blob) {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute(
+        'download',
+        `relatorio_completo_${formatarDataYMD(new Date())}.${formato === 'excel' ? 'xlsx' : 'pdf'}`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      $q.notify({ type: 'positive', message: `Relatório exportado com sucesso!` });
     }
-
-    const csvRows: string[][] = [headers];
-
-    if (tipo === 'servicos') {
-      const servicosData = data as RelatorioServicos[];
-      servicosData.forEach((row: RelatorioServicos) => {
-        csvRows.push([
-          row.periodo || '',
-          String(row.total_servicos || 0),
-          String(row.receita_total || 0),
-          String(row.servicos_por_status?.pendente || 0),
-          String(row.servicos_por_status?.aceito || '0'),
-          String(row.servicos_por_status?.em_andamento || '0'),
-          String(row.servicos_por_status?.concluido || '0'),
-          String(row.servicos_por_status?.cancelado || '0'),
-        ]);
-      });
-    } else if (tipo === 'prestadores') {
-      const prestadoresData = data as RelatorioPrestadores[];
-      prestadoresData.forEach((row: RelatorioPrestadores) => {
-        const topPrestadores =
-          row.top_prestadores?.map((p: PrestadorTop) => p.nome).join('; ') || '';
-        csvRows.push([
-          String(row.total || 0),
-          String(row.verificados || 0),
-          String(row.nao_verificados || 0),
-          String(row.media_avaliacao_geral || 0),
-          topPrestadores,
-        ]);
-      });
-    } else {
-      const financeiroData = data as RelatorioFinanceiro[];
-      financeiroData.forEach((row: RelatorioFinanceiro) => {
-        csvRows.push([
-          row.periodo || '',
-          String(row.entradas || 0),
-          String(row.saidas || 0),
-          String(row.saldo || 0),
-          String(row.comissoes || 0),
-        ]);
-      });
-    }
-
-    const csv = csvRows.map((row) => row.join(',')).join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.setAttribute('download', `${filename}_${new Date().toISOString().slice(0, 19)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    $q.notify({
-      type: 'positive',
-      message: 'Relatório exportado com sucesso!',
-      position: 'top',
-    });
   } catch (error) {
     console.error('Erro ao exportar:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao exportar relatório',
-      position: 'top',
-    });
-  } finally {
-    exportando.value = false;
+    $q.notify({ type: 'negative', message: 'Erro ao exportar relatório' });
   }
 };
 
-// Carregar dados ao montar
+// ✅ Watch com tratamento de void
+watch(
+  [() => filtros.value.data_inicio, () => filtros.value.data_fim],
+  () => {
+    void carregarTodosDados();
+  },
+  { deep: true },
+);
+
+// ✅ Lifecycle
 onMounted(() => {
-  void carregarDados();
+  void carregarTodosDados();
 });
 </script>
 
 <style scoped lang="scss">
-// ... styles mantidos iguais ao original
-$primary-color: #667eea;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-
-.admin-relatorios {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 20px;
-  background: #f5f7fa;
+.page-container {
+  background: #f3f4f6;
   min-height: 100vh;
+  padding: 20px;
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-
-  .page-title-section {
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      display: flex;
-      align-items: center;
-    }
-
-    .page-subtitle {
-      font-size: 0.875rem;
-      color: #6c757d;
-      margin-top: 4px;
-    }
-  }
-}
-
-// Skeleton Loading
-.skeleton-container {
-  position: relative;
-  overflow: hidden;
-}
-
-.skeleton-card {
   background: white;
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 20px;
-  margin-bottom: 24px;
-}
-
-.skeleton-title {
-  width: 150px;
-  height: 24px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin-bottom: 16px;
-}
-
-.skeleton-select {
-  width: 100%;
-  height: 48px;
-  background: $gray-100;
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.skeleton-input {
-  width: 100%;
-  height: 48px;
-  background: $gray-100;
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-
-.skeleton-button {
-  width: 100%;
-  height: 36px;
-  background: $gray-200;
-  border-radius: 8px;
-}
-
-.skeleton-resumo-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px;
-  background: white;
-  border-radius: 16px;
-  border: 1px solid $gray-200;
-}
-
-.skeleton-icon {
-  width: 52px;
-  height: 52px;
-  background: $gray-200;
-  border-radius: 14px;
-}
-
-.skeleton-resumo-content {
-  flex: 1;
-}
-
-.skeleton-label {
-  width: 80px;
-  height: 12px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
-
-.skeleton-value {
-  width: 100px;
-  height: 20px;
-  background: $gray-200;
-  border-radius: 4px;
-}
-
-.skeleton-tabs {
-  display: flex;
-  gap: 8px;
-  border-bottom: 1px solid $gray-200;
-  padding-bottom: 8px;
-  margin-bottom: 16px;
-}
-
-.skeleton-tab {
-  width: 100px;
-  height: 36px;
-  background: $gray-200;
-  border-radius: 8px;
-}
-
-.skeleton-panel-header {
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid $gray-200;
-}
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-.skeleton-table {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.skeleton-table-header-row {
-  display: flex;
-  background: $gray-100;
-  padding: 12px 16px;
-
-  .skeleton-header-cell {
-    flex: 1;
-    height: 20px;
-    background: $gray-300;
-    border-radius: 4px;
-    margin: 0 4px;
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
   }
-}
 
-.skeleton-table-row {
-  display: flex;
-  padding: 12px 16px;
-  border-bottom: 1px solid $gray-200;
-
-  .skeleton-cell {
-    flex: 1;
-    margin: 0 4px;
-
-    .skeleton-text {
-      width: 80%;
-      height: 14px;
-      background: $gray-200;
-      border-radius: 4px;
-    }
-  }
-}
-
-.skeleton-shimmer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  animation: shimmer 1.5s infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-// Estilos principais
-.periodo-card,
-.resumo-card,
-.relatorios-card {
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
-.resumo-card {
-  .resumo-item {
+  .header-actions {
     display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px;
-    background: white;
-    border-radius: 16px;
-    transition: all 0.2s ease;
+    gap: 12px;
+    flex-wrap: wrap;
 
-    .resumo-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
+    .date-range {
       display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+      gap: 12px;
 
-    .resumo-content {
-      flex: 1;
+      .date-input {
+        width: 140px;
+      }
     }
+  }
+}
 
-    .resumo-label {
-      font-size: 0.75rem;
-      color: #6c757d;
-      text-transform: uppercase;
-    }
+.section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-    .resumo-value {
-      font-size: 1.3rem;
-      font-weight: 700;
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
       color: #1a1a2e;
     }
   }
 }
 
-.relatorios-card {
-  .relatorio-tabs {
-    :deep(.q-tab) {
-      font-size: 0.9rem;
-      padding: 8px 16px;
-
-      &.q-tab--active {
-        color: #1976d2;
-      }
-    }
-  }
-}
-
-.panel-header {
+.loading-container {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e9ecef;
+  justify-content: center;
+  padding: 60px;
+  background: white;
+  border-radius: 12px;
 
-  .panel-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #1a1a2e;
-    display: flex;
-    align-items: center;
+  p {
+    margin-top: 12px;
+    color: #6b7280;
   }
 }
 
-.relatorio-table {
-  :deep(.q-table) {
-    thead tr th {
-      background: #f8f9fa;
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-grid-small {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.charts-grid-2cols {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.chart-placeholder {
+  background: #f8f9fa;
+  border-radius: 12px;
+  min-height: 300px;
+}
+
+.table-card {
+  margin-top: 20px;
+
+  .table-header {
+    margin-bottom: 16px;
+
+    h3 {
+      font-size: 16px;
       font-weight: 600;
-      color: #495057;
-    }
-
-    tbody tr {
-      transition: background 0.2s ease;
-
-      &:hover {
-        background: #f8f9fa;
-      }
-    }
-
-    td {
-      padding: 12px 16px;
+      margin: 0;
+      color: #374151;
     }
   }
 }
 
-.status-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.top-prestadores {
-  .prestador-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.8rem;
-    margin-bottom: 4px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
+@media (max-width: 900px) {
+  .charts-grid-2cols {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .admin-relatorios {
-    padding: 16px;
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .kpi-grid-small {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
-  }
+    align-items: stretch;
 
-  .resumo-card .resumo-item {
-    margin-bottom: 12px;
+    .header-actions {
+      flex-direction: column;
+      align-items: stretch;
 
-    &:last-child {
-      margin-bottom: 0;
+      .date-range {
+        flex-direction: column;
+
+        .date-input {
+          width: 100%;
+        }
+      }
     }
-  }
-
-  .panel-header {
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
-  }
-
-  .status-chips {
-    flex-direction: column;
   }
 }
 </style>

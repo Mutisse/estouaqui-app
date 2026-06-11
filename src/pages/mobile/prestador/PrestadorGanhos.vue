@@ -54,27 +54,13 @@
       <!-- ===== CABEÇALHO ===== -->
       <div class="page-header">
         <button class="back-btn" @click="() => void router.back()">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
         <h1 class="page-title">Meus Ganhos</h1>
         <button class="menu-btn" @click="opcoes">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="1" />
             <circle cx="12" cy="5" r="1" />
             <circle cx="12" cy="19" r="1" />
@@ -83,7 +69,7 @@
       </div>
 
       <!-- Loading interno -->
-      <div v-if="loading" class="loading-state">
+      <div v-if="ganhosStore.isLoading" class="loading-state">
         <div class="loader"></div>
         <p>Carregando dados...</p>
       </div>
@@ -93,19 +79,10 @@
         <div class="saldo-card">
           <div class="saldo-card__inner">
             <div class="saldo-label">Saldo disponível</div>
-            <div class="saldo-value">{{ formatarValor(saldoDisponivel) }} MZN</div>
+            <div class="saldo-value">{{ formatarValor(ganhosStore.saldoDisponivel) }} MZN</div>
             <button class="saque-btn" @click="irParaSaques">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
-                />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
                 <circle cx="12" cy="12" r="4" />
               </svg>
               Realizar saque
@@ -115,60 +92,24 @@
 
         <!-- ===== FILTROS DE PERÍODO ===== -->
         <div class="periodo-filters">
-          <button
-            class="periodo-btn"
-            :class="{ active: periodo === 'hoje' }"
-            @click="
-              periodo = 'hoje';
-              carregarDados();
-            "
-          >
-            Hoje
-          </button>
-          <button
-            class="periodo-btn"
-            :class="{ active: periodo === 'semana' }"
-            @click="
-              periodo = 'semana';
-              carregarDados();
-            "
-          >
-            Semana
-          </button>
-          <button
-            class="periodo-btn"
-            :class="{ active: periodo === 'mes' }"
-            @click="
-              periodo = 'mes';
-              carregarDados();
-            "
-          >
-            Mês
-          </button>
-          <button
-            class="periodo-btn"
-            :class="{ active: periodo === 'ano' }"
-            @click="
-              periodo = 'ano';
-              carregarDados();
-            "
-          >
-            Ano
-          </button>
+          <button class="periodo-btn" :class="{ active: ganhosStore.periodo === 'hoje' }" @click="mudarPeriodo('hoje')">Hoje</button>
+          <button class="periodo-btn" :class="{ active: ganhosStore.periodo === 'semana' }" @click="mudarPeriodo('semana')">Semana</button>
+          <button class="periodo-btn" :class="{ active: ganhosStore.periodo === 'mes' }" @click="mudarPeriodo('mes')">Mês</button>
+          <button class="periodo-btn" :class="{ active: ganhosStore.periodo === 'ano' }" @click="mudarPeriodo('ano')">Ano</button>
         </div>
 
         <!-- ===== RESUMO ===== -->
         <div class="resumo-grid">
           <div class="resumo-card">
-            <div class="resumo-card__value">{{ resumo.totalServicos }}</div>
+            <div class="resumo-card__value">{{ ganhosStore.resumo.totalServicos }}</div>
             <div class="resumo-card__label">Serviços</div>
           </div>
           <div class="resumo-card">
-            <div class="resumo-card__value">{{ formatarValor(resumo.ganhosPeriodo) }}</div>
+            <div class="resumo-card__value">{{ formatarValor(ganhosStore.resumo.ganhosPeriodo) }}</div>
             <div class="resumo-card__label">Ganhos</div>
           </div>
           <div class="resumo-card">
-            <div class="resumo-card__value">{{ formatarValor(resumo.media) }}</div>
+            <div class="resumo-card__value">{{ formatarValor(ganhosStore.resumo.media) }}</div>
             <div class="resumo-card__label">Média</div>
           </div>
         </div>
@@ -179,22 +120,15 @@
             <h3>Evolução de ganhos</h3>
           </div>
           <div class="grafico-card">
-            <div v-if="graficoData.length === 0" class="grafico-empty">
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#D1D5DB"
-                stroke-width="1.5"
-              >
+            <div v-if="ganhosStore.graficoData.length === 0" class="grafico-empty">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5">
                 <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
                 <path d="M12 8v4l2 2" />
               </svg>
               <p>Nenhum dado disponível</p>
             </div>
             <div v-else class="grafico-barras">
-              <div v-for="(item, index) in graficoData" :key="index" class="barra-item">
+              <div v-for="(item, index) in ganhosStore.graficoData" :key="index" class="barra-item">
                 <div class="barra-label">{{ item.label }}</div>
                 <div class="barra-container">
                   <div class="barra" :style="{ height: item.altura + 'px' }"></div>
@@ -211,36 +145,18 @@
             <h3>Últimos ganhos</h3>
             <button class="view-all" @click="verTodos">Ver todos →</button>
           </div>
-          <div v-if="historicoGanhos.length === 0" class="empty-state">
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#D1D5DB"
-              stroke-width="1.5"
-            >
-              <path
-                d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
-              />
+          <div v-if="ganhosStore.historicoGanhos.length === 0" class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5">
+              <path d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
               <circle cx="12" cy="12" r="4" />
             </svg>
             <p>Nenhum ganho registrado</p>
           </div>
           <div v-else class="historico-list">
-            <div v-for="ganho in historicoGanhos" :key="ganho.id" class="historico-item">
+            <div v-for="ganho in ganhosStore.historicoGanhos" :key="ganho.id" class="historico-item">
               <div class="historico-item__avatar" :class="ganho.cor">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
-                  />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
                 </svg>
               </div>
               <div class="historico-item__info">
@@ -260,14 +176,7 @@
           <div class="estatisticas-grid">
             <div class="estatistica-card">
               <div class="estatistica-card__icon">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#5B4BF5"
-                  stroke-width="2"
-                >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                   <line x1="16" y1="2" x2="16" y2="6" />
                   <line x1="8" y1="2" x2="8" y2="6" />
@@ -275,308 +184,71 @@
                 </svg>
               </div>
               <div class="estatistica-card__title">Melhor mês</div>
-              <div class="estatistica-card__value">{{ estatisticas.melhorMes.mes }}</div>
-              <div class="estatistica-card__sub">
-                {{ formatarValor(estatisticas.melhorMes.valor) }} MZN
-              </div>
+              <div class="estatistica-card__value">{{ ganhosStore.estatisticas.melhorMes.mes }}</div>
+              <div class="estatistica-card__sub">{{ formatarValor(ganhosStore.estatisticas.melhorMes.valor) }} MZN</div>
             </div>
             <div class="estatistica-card">
               <div class="estatistica-card__icon">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#5B4BF5"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"
-                  />
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
+                  <path d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z" />
                 </svg>
               </div>
               <div class="estatistica-card__title">Serviço mais requisitado</div>
-              <div class="estatistica-card__value">
-                {{ estatisticas.servicoMaisRequisitado.nome }}
-              </div>
-              <div class="estatistica-card__sub">
-                {{ estatisticas.servicoMaisRequisitado.quantidade }} serviços
-              </div>
+              <div class="estatistica-card__value">{{ ganhosStore.estatisticas.servicoMaisRequisitado.nome }}</div>
+              <div class="estatistica-card__sub">{{ ganhosStore.estatisticas.servicoMaisRequisitado.quantidade }} serviços</div>
             </div>
             <div class="estatistica-card">
               <div class="estatistica-card__icon">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#5B4BF5"
-                  stroke-width="2"
-                >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
               </div>
               <div class="estatistica-card__title">Melhor cliente</div>
-              <div class="estatistica-card__value">{{ estatisticas.melhorCliente.nome }}</div>
-              <div class="estatistica-card__sub">
-                {{ formatarValor(estatisticas.melhorCliente.totalGasto) }} MZN gastos
-              </div>
+              <div class="estatistica-card__value">{{ ganhosStore.estatisticas.melhorCliente.nome }}</div>
+              <div class="estatistica-card__sub">{{ formatarValor(ganhosStore.estatisticas.melhorCliente.totalGasto) }} MZN gastos</div>
             </div>
             <div class="estatistica-card">
               <div class="estatistica-card__icon">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#5B4BF5"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
-                  />
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
+                  <path d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
                 </svg>
               </div>
               <div class="estatistica-card__title">Média por serviço</div>
-              <div class="estatistica-card__value">
-                {{ formatarValor(estatisticas.mediaPorServico) }} MZN
-              </div>
-              <div class="estatistica-card__sub">
-                {{ estatisticas.totalServicos }} serviços realizados
-              </div>
+              <div class="estatistica-card__value">{{ formatarValor(ganhosStore.estatisticas.mediaPorServico) }} MZN</div>
+              <div class="estatistica-card__sub">{{ ganhosStore.estatisticas.totalServicos }} serviços realizados</div>
             </div>
           </div>
         </div>
       </template>
     </template>
-
-    <!-- ===== FAB ===== -->
-    <button class="fab-btn" @click="scrollParaEstatisticas">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
-        <path d="M12 8v4l2 2" />
-      </svg>
-    </button>
   </div>
 </template>
+
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorFinanceiroStore } from 'src/stores/prestador/prestador-financeiro-store';
-import { usePrestadorServicosStore } from 'src/stores/prestador/prestador-servicos-store';
-import type { SolicitacaoData } from 'src/stores/prestador/prestador-servicos-store';
+import { usePrestadorGanhosStore } from 'src/stores/prestador/prestador-ganhos-store';
 
 defineOptions({ name: 'PrestadorGanhos' });
-
-interface GanhoHistorico {
-  id: number;
-  cliente: string;
-  servico: string;
-  data: string;
-  valor: number;
-  cor: string;
-}
-
-interface ResumoGanhos {
-  totalServicos: number;
-  ganhosPeriodo: number;
-  media: number;
-}
-
-interface GraficoItem {
-  label: string;
-  valor: number;
-  altura: number;
-}
-
-interface Estatisticas {
-  melhorMes: { mes: string; valor: number };
-  servicoMaisRequisitado: { nome: string; quantidade: number };
-  melhorCliente: { nome: string; totalGasto: number };
-  mediaPorServico: number;
-  totalServicos: number;
-}
 
 const router = useRouter();
 const $q = useQuasar();
 
-const financeiroStore = usePrestadorFinanceiroStore();
-const servicosStore = usePrestadorServicosStore();
+// ✅ APENAS UM STORE!
+const ganhosStore = usePrestadorGanhosStore();
 
 const carregamentoInicial = ref(true);
-const loading = ref(true);
-const periodo = ref('mes');
-const saldoDisponivel = ref(0);
-const historicoGanhos = ref<GanhoHistorico[]>([]);
-const resumo = ref<ResumoGanhos>({ totalServicos: 0, ganhosPeriodo: 0, media: 0 });
-const graficoData = ref<GraficoItem[]>([]);
-const estatisticas = ref<Estatisticas>({
-  melhorMes: { mes: '--', valor: 0 },
-  servicoMaisRequisitado: { nome: '--', quantidade: 0 },
-  melhorCliente: { nome: '--', totalGasto: 0 },
-  mediaPorServico: 0,
-  totalServicos: 0,
-});
 
 const formatarValor = (valor: number): string => {
   if (valor >= 1000) return (valor / 1000).toFixed(1) + 'k';
   return valor.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-const formatarData = (dataString: string): string => {
-  const date = new Date(dataString);
-  const hoje = new Date();
-  const ontem = new Date(hoje);
-  ontem.setDate(hoje.getDate() - 1);
-
-  if (date.toDateString() === hoje.toDateString()) return 'Hoje';
-  if (date.toDateString() === ontem.toDateString()) return 'Ontem';
-  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
-};
-
-const obterCorGanho = (index: number): string => {
-  const cores: string[] = ['primary', 'success', 'warning', 'info', 'accent'];
-  const posicao = index % cores.length;
-  return cores[posicao] || 'primary';
-};
-
-const carregarDados = async (): Promise<void> => {
-  loading.value = true;
-  try {
-    await financeiroStore.fetchGanhos();
-    const ganhos = financeiroStore.ganhos;
-    saldoDisponivel.value = ganhos.total - ganhos.pendente;
-
-    await servicosStore.fetchSolicitacoes('concluido');
-    const pedidos: SolicitacaoData[] = servicosStore.solicitacoes;
-
-    // Estatísticas
-    estatisticas.value = calcularEstatisticas(pedidos);
-
-    // Filtrar por período
-    const dataAtual = new Date();
-    const dataLimite = new Date();
-    switch (periodo.value) {
-      case 'hoje':
-        dataLimite.setHours(0, 0, 0, 0);
-        break;
-      case 'semana':
-        dataLimite.setDate(dataAtual.getDate() - 7);
-        break;
-      case 'mes':
-        dataLimite.setMonth(dataAtual.getMonth() - 1);
-        break;
-      case 'ano':
-        dataLimite.setFullYear(dataAtual.getFullYear() - 1);
-        break;
-      default:
-        dataLimite.setDate(dataAtual.getDate() - 30);
-    }
-
-    const pedidosFiltrados = pedidos.filter((p) => new Date(p.data) >= dataLimite);
-
-    const totalServicos = pedidosFiltrados.length;
-    const ganhosPeriodo = pedidosFiltrados.reduce((sum, p) => sum + p.valor, 0);
-    const media = totalServicos > 0 ? ganhosPeriodo / totalServicos : 0;
-
-    resumo.value = { totalServicos, ganhosPeriodo, media: Math.round(media) };
-
-    // Histórico de ganhos - com verificação de undefined
-    const historicoTemp: GanhoHistorico[] = [];
-    const limite = Math.min(pedidosFiltrados.length, 5);
-    for (let i = 0; i < limite; i++) {
-      const p = pedidosFiltrados[i];
-      if (p) {
-        historicoTemp.push({
-          id: p.id,
-          cliente: p.cliente?.nome || 'Cliente',
-          servico: p.servico?.nome || 'Serviço',
-          data: formatarData(p.data),
-          valor: p.valor,
-          cor: obterCorGanho(i),
-        });
-      }
-    }
-    historicoGanhos.value = historicoTemp;
-
-    // Gráfico
-    const meses: GraficoItem[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const data = new Date();
-      data.setMonth(data.getMonth() - i);
-      const nomeMes = data.toLocaleDateString('pt-PT', { month: 'short' });
-      const ganhosMes = pedidos
-        .filter((p) => {
-          const dataPedido = new Date(p.data);
-          return (
-            dataPedido.getMonth() === data.getMonth() &&
-            dataPedido.getFullYear() === data.getFullYear()
-          );
-        })
-        .reduce((sum, p) => sum + p.valor, 0);
-
-      meses.push({
-        label: nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1),
-        valor: ganhosMes / 1000,
-        altura: Math.min(120, (ganhosMes / 10000) * 120) || 5,
-      });
-    }
-    graficoData.value = meses;
-  } catch (error) {
-    console.error('Erro ao carregar dados:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar dados', position: 'top' });
-  } finally {
-    loading.value = false;
-  }
-};
-
-const calcularEstatisticas = (pedidos: SolicitacaoData[]): Estatisticas => {
-  const ganhosPorMes: Record<string, number> = {};
-  pedidos.forEach((p) => {
-    const data = new Date(p.data);
-    const mesAno = `${data.toLocaleDateString('pt-PT', { month: 'long' })} ${data.getFullYear()}`;
-    ganhosPorMes[mesAno] = (ganhosPorMes[mesAno] || 0) + p.valor;
-  });
-
-  let melhorMes = { mes: '--', valor: 0 };
-  Object.entries(ganhosPorMes).forEach(([mes, valor]) => {
-    if (valor > melhorMes.valor) melhorMes = { mes, valor };
-  });
-
-  const servicosCount: Record<string, number> = {};
-  pedidos.forEach((p) => {
-    const nomeServico = p.servico?.nome || 'Serviço';
-    servicosCount[nomeServico] = (servicosCount[nomeServico] || 0) + 1;
-  });
-
-  let servicoMaisRequisitado = { nome: '--', quantidade: 0 };
-  Object.entries(servicosCount).forEach(([nome, quantidade]) => {
-    if (quantidade > servicoMaisRequisitado.quantidade)
-      servicoMaisRequisitado = { nome, quantidade };
-  });
-
-  const gastosPorCliente: Record<string, { nome: string; total: number }> = {};
-  pedidos.forEach((p) => {
-    const clienteNome = p.cliente?.nome || 'Cliente';
-    if (!gastosPorCliente[clienteNome]) {
-      gastosPorCliente[clienteNome] = { nome: clienteNome, total: 0 };
-    }
-    gastosPorCliente[clienteNome].total += p.valor;
-  });
-
-  let melhorCliente = { nome: '--', totalGasto: 0 };
-  Object.values(gastosPorCliente).forEach((cliente) => {
-    if (cliente.total > melhorCliente.totalGasto)
-      melhorCliente = { nome: cliente.nome, totalGasto: cliente.total };
-  });
-
-  const totalServicos = pedidos.length;
-  const totalGanhos = pedidos.reduce((sum, p) => sum + p.valor, 0);
-  const mediaPorServico = totalServicos > 0 ? totalGanhos / totalServicos : 0;
-
-  return { melhorMes, servicoMaisRequisitado, melhorCliente, mediaPorServico, totalServicos };
+const mudarPeriodo = async (periodo: 'hoje' | 'semana' | 'mes' | 'ano'): Promise<void> => {
+  ganhosStore.setPeriodo(periodo);
+  await ganhosStore.recarregarDados();
 };
 
 const irParaSaques = (): void => {
@@ -591,14 +263,13 @@ const verTodos = (): void => {
   $q.notify({ type: 'info', message: 'Histórico completo em breve', position: 'top' });
 };
 
-const scrollParaEstatisticas = (): void => {
-  document.querySelector('.estatisticas-section')?.scrollIntoView({ behavior: 'smooth' });
-};
-
 onMounted(async () => {
   carregamentoInicial.value = true;
   try {
-    await carregarDados();
+    await ganhosStore.carregarTodosDados();
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
+    $q.notify({ type: 'negative', message: 'Erro ao carregar dados', position: 'top' });
   } finally {
     setTimeout(() => {
       carregamentoInicial.value = false;
@@ -1200,31 +871,6 @@ $radius-xs: 8px;
   &__sub {
     font-size: 0.7rem;
     color: $accent;
-  }
-}
-
-// =====================
-// FAB
-// =====================
-.fab-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: $accent;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba($accent, 0.4);
-  transition: all 0.2s;
-
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba($accent, 0.5);
   }
 }
 </style>

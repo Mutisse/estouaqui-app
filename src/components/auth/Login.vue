@@ -1,7 +1,5 @@
-<!-- pages/auth/Login.vue -->
 <template>
   <q-form @submit="handleLogin" class="ea-login-form">
-
     <!-- Campo Email/Telefone -->
     <div class="ea-input-group">
       <label class="ea-input-label">Email ou Telefone</label>
@@ -67,11 +65,10 @@
       type="submit"
       label="Entrar"
       class="ea-login-btn"
-      :loading="loading"
+      :loading="authStore.loading"
       :disable="!isFormValid"
       no-caps
     />
-
   </q-form>
 
   <!-- Loading global -->
@@ -83,7 +80,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from 'src/stores/auth-store';
+import { useAuthStore } from 'src/stores/login-store';
 import { useQuasar } from 'quasar';
 
 defineOptions({ name: 'LoginForm' });
@@ -96,27 +93,22 @@ const $q = useQuasar();
 const login = ref('');
 const password = ref('');
 const showPassword = ref(false);
-const loading = ref(false);
 const globalLoading = ref(false);
 const loginError = ref(false);
 const loginErrorMessage = ref('');
 
-let loginAttempts = 0;
-const MAX_ATTEMPTS = 5;
-let lockUntil: Date | null = null;
-
 // Validações
-const isValidEmail = (value: string) => {
+const isValidEmail = (value: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(value);
 };
 
-const isValidPhone = (value: string) => {
+const isValidPhone = (value: string): boolean => {
   const phoneRegex = /^(\+258)?\s?[82][0-9]\s?[0-9]{3}\s?[0-9]{4}$|^[82][0-9]{8}$/;
   return phoneRegex.test(value.replace(/\s/g, ''));
 };
 
-const validateLogin = () => {
+const validateLogin = (): void => {
   if (!login.value) {
     loginError.value = false;
     loginErrorMessage.value = '';
@@ -132,102 +124,17 @@ const validateLogin = () => {
   }
 };
 
-const isFormValid = computed(() => {
+const isFormValid = computed((): boolean => {
   if (!login.value || !password.value) return false;
   return isValidEmail(login.value) || isValidPhone(login.value);
 });
 
-const isAccountLocked = (): boolean => {
-  if (lockUntil && new Date() < lockUntil) {
-    const remainingMinutes = Math.ceil((lockUntil.getTime() - new Date().getTime()) / 60000);
-    $q.notify({
-      type: 'warning',
-      message: `Muitas tentativas falhas. Tente novamente em ${remainingMinutes} minutos.`,
-      position: 'top',
-      timeout: 5000,
-    });
-    return true;
-  }
-  return false;
-};
-
-const incrementLoginAttempts = () => {
-  loginAttempts++;
-  if (loginAttempts >= MAX_ATTEMPTS) {
-    lockUntil = new Date(Date.now() + 15 * 60 * 1000);
-    $q.notify({
-      type: 'error',
-      message: 'Muitas tentativas falhas. Conta bloqueada por 15 minutos.',
-      position: 'top',
-      timeout: 5000,
-    });
-  }
-};
-
-const resetLoginAttempts = () => {
-  loginAttempts = 0;
-  lockUntil = null;
-};
-
-const checkExistingAuth = async () => {
-  if (authStore.isAuthenticated && authStore.user) {
-    if (authStore.isPrestador) {
-      await router.push('/mobile/prestador/dashboard');
-    } else if (authStore.isCliente) {
-      await router.push('/mobile/inicio');
-    }
-  }
-};
-
-const processarRecuperacaoSenha = (contacto: string) => {
-  globalLoading.value = true;
-
-  import('src/boot/axios')
-    .then(({ api }) => {
-      return api.post('/auth/forgot-password', {
-        email: isValidEmail(contacto) ? contacto : undefined,
-        telefone: !isValidEmail(contacto) ? contacto : undefined,
-      });
-    })
-    .then((response) => {
-      if (response.data.success) {
-        $q.notify({
-          type: 'positive',
-          message: response.data.message || `Instruções enviadas para ${contacto}`,
-          position: 'top',
-          icon: 'mail',
-          timeout: 4000,
-        });
-      } else {
-        $q.notify({
-          type: 'negative',
-          message: response.data.error || 'Erro ao enviar instruções',
-          position: 'top',
-          timeout: 4000,
-        });
-      }
-    })
-    .catch((error) => {
-      console.error('Erro ao recuperar senha:', error);
-      $q.notify({
-        type: 'negative',
-        message: 'Erro ao enviar instruções. Tente novamente.',
-        position: 'top',
-        timeout: 4000,
-      });
-    })
-    .finally(() => {
-      globalLoading.value = false;
-    });
-};
-
-const handleLogin = async () => {
+const handleLogin = async (): Promise<void> => {
   if (!login.value || !password.value) {
     $q.notify({
       type: 'warning',
       message: 'Preencha todos os campos',
       position: 'top',
-      timeout: 3000,
     });
     return;
   }
@@ -237,98 +144,119 @@ const handleLogin = async () => {
       type: 'warning',
       message: 'Use um email válido ou telefone (84 123 4567)',
       position: 'top',
-      timeout: 3000,
     });
     return;
   }
-
-  if (isAccountLocked()) return;
-
-  loading.value = true;
 
   try {
     const success = await authStore.login(login.value, password.value);
 
     if (success) {
-      await new Promise(resolve => setTimeout(resolve, 100));
       const user = authStore.user;
 
-      if (user?.tipo === 'admin') {
+      // ✅ BLOQUEAR ROOT e ADMIN no app mobile
+      if (user?.tipo === 'root' || user?.tipo === 'admin') {
         await authStore.logout();
-        incrementLoginAttempts();
         $q.notify({
           type: 'error',
-          message: 'Acesso negado. Utilize a página de login administrativo.',
+          message: user?.tipo === 'root'
+            ? 'Acesso root apenas pelo painel administrativo.'
+            : 'Acesso negado. Utilize a página de login administrativo.',
           position: 'top',
-          icon: 'error',
-          timeout: 5000,
         });
         login.value = '';
         password.value = '';
-        loading.value = false;
         return;
       }
 
-      resetLoginAttempts();
       $q.notify({
         type: 'positive',
         message: 'Login efetuado com sucesso!',
         position: 'top',
-        icon: 'check_circle',
-        timeout: 3000,
       });
 
+      // Redireciona baseado no tipo
       if (user?.tipo === 'prestador') {
         await router.push('/mobile/prestador/dashboard');
       } else {
         await router.push('/mobile/inicio');
       }
-    } else {
-      incrementLoginAttempts();
-      $q.notify({
-        type: 'negative',
-        message: 'Email/Telefone ou palavra-passe incorretos',
-        position: 'top',
-        timeout: 4000,
-      });
     }
   } catch (error) {
-    console.error('Erro no login:', error);
-    incrementLoginAttempts();
+    const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer login';
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'Erro ao fazer login',
+      message: errorMessage,
       position: 'top',
-      timeout: 4000,
     });
-  } finally {
-    loading.value = false;
   }
 };
 
-const forgotPassword = () => {
+// Função separada para lidar com o forgot password
+const handleForgotPassword = async (email: string): Promise<void> => {
+  globalLoading.value = true;
+  try {
+    const success = await authStore.forgotPassword(email);
+
+    if (success) {
+      $q.notify({
+        type: 'positive',
+        message: 'Link de recuperação enviado para o seu email!',
+        position: 'top',
+        icon: 'mail',
+      });
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'Erro ao enviar link de recuperação. Verifique o email.',
+        position: 'top',
+      });
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro ao recuperar senha';
+    $q.notify({
+      type: 'negative',
+      message: errorMessage,
+      position: 'top',
+    });
+  } finally {
+    globalLoading.value = false;
+  }
+};
+
+const forgotPassword = (): void => {
   $q.dialog({
     title: 'Recuperar Palavra-passe',
-    message: 'Digite seu email ou número de telefone para receber instruções:',
+    message: 'Digite seu email para receber instruções:',
     prompt: {
       model: '',
       type: 'text',
-      isValid: (val: string) => isValidEmail(val) || isValidPhone(val),
+      isValid: (val: string) => isValidEmail(val),
     },
-    cancel: {
-      label: 'Cancelar',
-      color: 'grey-7',
-      flat: true,
-    },
-    ok: {
-      label: 'Enviar',
-      color: 'primary',
-      unelevated: true,
-    },
+    cancel: { label: 'Cancelar', color: 'grey-7', flat: true },
+    ok: { label: 'Enviar', color: 'primary', unelevated: true },
     persistent: true,
-  }).onOk((contacto) => {
-    processarRecuperacaoSenha(contacto);
+  }).onOk((email: string) => {
+    void handleForgotPassword(email);
   });
+};
+
+const checkExistingAuth = async (): Promise<void> => {
+  if (authStore.isAuthenticated && authStore.user) {
+    const user = authStore.user;
+
+    // ✅ Se já estiver logado como root/admin, redirecionar para logout ou página inicial
+    if (user?.tipo === 'root' || user?.tipo === 'admin') {
+      await authStore.logout();
+      return;
+    }
+
+    if (authStore.isPrestador) {
+      await router.push('/mobile/prestador/dashboard');
+    } else if (authStore.isCliente) {
+      await router.push('/mobile/inicio');
+    }
+  }
 };
 
 onMounted(() => {
@@ -374,7 +302,7 @@ $accent: #5B4BF5;
 
 .ea-input-field {
   :deep(.q-field__control) {
-    background: transparent !important;  /* FUNDO TRANSPARENTE */
+    background: transparent !important;
     border-radius: 14px;
     padding-left: 44px;
 
@@ -405,7 +333,6 @@ $accent: #5B4BF5;
     right: 8px;
   }
 
-  // Remove o fundo branco padrão do Quasar
   :deep(.q-field--outlined .q-field__control) {
     background: transparent !important;
   }

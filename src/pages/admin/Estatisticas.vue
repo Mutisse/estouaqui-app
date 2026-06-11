@@ -1,13 +1,7 @@
-﻿<template>
-  <q-page class="admin-estatisticas q-pa-md">
+<template>
+  <div class="page-container">
     <div class="page-header">
-      <div class="page-title-section">
-        <div class="page-title">
-          <q-icon name="bar_chart" size="32px" class="q-mr-sm" />
-          Estatísticas
-        </div>
-        <div class="page-subtitle">Análise de dados e métricas da plataforma</div>
-      </div>
+      <h1>Estatísticas</h1>
       <div class="header-actions">
         <q-select
           v-model="periodoSelecionado"
@@ -15,556 +9,627 @@
           label="Período"
           dense
           outlined
-          style="min-width: 150px"
-          @update:model-value="carregarDados"
+          class="period-select"
+          @update:model-value="mudarPeriodo"
+          :disable="isLoading"
         />
-        <q-btn
-          label="Atualizar"
-          icon="refresh"
-          color="grey-7"
-          outline
-          @click="carregarDados"
-          :loading="dashboardStore.loading"
-        />
+        <q-btn flat icon="refresh" label="Atualizar" @click="recarregar" :loading="isLoading" />
       </div>
     </div>
 
-    <!-- Skeleton Loading -->
-    <div v-if="dashboardStore.loading" class="skeleton-container">
-      <div class="row q-col-gutter-lg">
-        <div v-for="i in 4" :key="i" class="col-12 col-sm-6 col-md-3">
-          <div class="skeleton-kpi-card">
-            <div class="skeleton-kpi-icon"></div>
-            <div class="skeleton-kpi-content">
-              <div class="skeleton-kpi-label"></div>
-              <div class="skeleton-kpi-value"></div>
-              <div class="skeleton-kpi-trend"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="row q-col-gutter-lg q-mt-lg">
-        <div class="col-12 col-md-6">
-          <div class="skeleton-stats-card">
-            <div class="skeleton-card-header">
-              <div class="skeleton-title"></div>
-              <div class="skeleton-chip"></div>
-            </div>
-            <div class="skeleton-stats-list">
-              <div v-for="i in 6" :key="i" class="skeleton-stats-item">
-                <div class="skeleton-stats-label">
-                  <div class="skeleton-stats-month"></div>
-                  <div class="skeleton-stats-count"></div>
-                </div>
-                <div class="skeleton-progress-bar"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-md-6">
-          <div class="skeleton-stats-card">
-            <div class="skeleton-card-header">
-              <div class="skeleton-title"></div>
-              <div class="skeleton-chip"></div>
-            </div>
-            <div class="skeleton-stats-list">
-              <div v-for="i in 5" :key="i" class="skeleton-stats-item">
-                <div class="skeleton-stats-label">
-                  <div class="skeleton-stats-categoria">
-                    <div class="skeleton-icon-small"></div>
-                    <div class="skeleton-text-small"></div>
-                  </div>
-                  <div class="skeleton-stats-count"></div>
-                </div>
-                <div class="skeleton-progress-bar"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="row q-col-gutter-lg q-mt-lg">
-        <div class="col-12">
-          <div class="skeleton-stats-card">
-            <div class="skeleton-card-header">
-              <div class="skeleton-title"></div>
-            </div>
-            <div class="row q-col-gutter-md">
-              <div v-for="i in 4" :key="i" class="col-12 col-sm-6 col-md-3">
-                <div class="skeleton-financial-card">
-                  <div class="skeleton-financial-icon"></div>
-                  <div class="skeleton-financial-content">
-                    <div class="skeleton-financial-label"></div>
-                    <div class="skeleton-financial-value"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="row q-col-gutter-lg q-mt-lg">
-        <div class="col-12">
-          <div class="skeleton-stats-card">
-            <div class="skeleton-card-header">
-              <div class="skeleton-title"></div>
-            </div>
-            <div class="skeleton-table">
-              <div class="skeleton-table-header-row">
-                <div v-for="i in 5" :key="i" class="skeleton-header-cell"></div>
-              </div>
-              <div v-for="row in 5" :key="row" class="skeleton-table-row">
-                <div v-for="i in 5" :key="`td-${row}-${i}`" class="skeleton-cell">
-                  <div class="skeleton-text"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="skeleton-shimmer"></div>
+    <!-- Loading -->
+    <div v-if="isLoading" class="loading-container">
+      <q-spinner size="40px" color="primary" />
+      <p>Carregando estatísticas...</p>
     </div>
 
-    <!-- Conteúdo real -->
     <template v-else>
-      <div class="row q-col-gutter-lg">
-        <div class="col-12 col-sm-6 col-md-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(25, 118, 210, 0.1)">
-              <q-icon name="people" size="32px" color="primary" />
+      <!-- Primeira Linha de Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue">
+            <q-icon name="people" size="24px" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ formatNumber(estatisticasStore.totalUsuarios) }}</div>
+            <div class="stat-label">Total Utilizadores</div>
+            <div class="stat-trend positive" v-if="estatisticasStore.dados?.crescimento_usuarios">
+              <q-icon name="trending_up" size="12px" />
+              +{{ estatisticasStore.dados.crescimento_usuarios }}%
             </div>
-            <div class="kpi-content">
-              <div class="kpi-label">Total Utilizadores</div>
-              <div class="kpi-value">{{ formatNumber(dashboardStore.dashboard.total_users) }}</div>
-              <div class="kpi-trend trend-up">
-                <q-icon name="trending_up" size="14px" />
-                +{{ calculoTrend.totalUsers }}% este período
+          </div>
+          <div class="stat-bg-icon">
+            <q-icon name="people" size="80px" />
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <q-icon name="handyman" size="24px" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ formatNumber(estatisticasStore.totalPrestadores) }}</div>
+            <div class="stat-label">Total Prestadores</div>
+            <div
+              class="stat-trend positive"
+              v-if="estatisticasStore.dados?.crescimento_prestadores"
+            >
+              <q-icon name="trending_up" size="12px" />
+              +{{ estatisticasStore.dados.crescimento_prestadores }}%
+            </div>
+          </div>
+          <div class="stat-bg-icon">
+            <q-icon name="handyman" size="80px" />
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon gold">
+            <q-icon name="receipt_long" size="24px" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ formatNumber(estatisticasStore.totalPedidos) }}</div>
+            <div class="stat-label">Total Pedidos</div>
+            <div class="stat-trend positive" v-if="estatisticasStore.dados?.crescimento_pedidos">
+              <q-icon name="trending_up" size="12px" />
+              +{{ estatisticasStore.dados.crescimento_pedidos }}%
+            </div>
+          </div>
+          <div class="stat-bg-icon">
+            <q-icon name="receipt_long" size="80px" />
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon purple">
+            <q-icon name="payments" size="24px" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ formatMoney(estatisticasStore.ganhosTotais) }}</div>
+            <div class="stat-label">Ganhos Totais</div>
+            <div class="stat-trend positive" v-if="estatisticasStore.dados?.crescimento_ganhos">
+              <q-icon name="trending_up" size="12px" />
+              +{{ estatisticasStore.dados.crescimento_ganhos }}%
+            </div>
+          </div>
+          <div class="stat-bg-icon">
+            <q-icon name="payments" size="80px" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Segunda Linha de Cards - Métricas Adicionais -->
+      <div class="stats-grid-secondary">
+        <div class="stat-card-small">
+          <div class="stat-icon-small cyan">
+            <q-icon name="shopping_cart" size="20px" />
+          </div>
+          <div class="stat-info-small">
+            <div class="stat-value-small">
+              {{ formatNumber(estatisticasStore.dados?.pedidos_por_status?.pendente || 0) }}
+            </div>
+            <div class="stat-label-small">Pedidos Pendentes</div>
+          </div>
+        </div>
+
+        <div class="stat-card-small">
+          <div class="stat-icon-small teal">
+            <q-icon name="check_circle" size="20px" />
+          </div>
+          <div class="stat-info-small">
+            <div class="stat-value-small">
+              {{ formatNumber(estatisticasStore.dados?.pedidos_por_status?.concluido || 0) }}
+            </div>
+            <div class="stat-label-small">Pedidos Concluídos</div>
+          </div>
+        </div>
+
+        <div class="stat-card-small">
+          <div class="stat-icon-small orange">
+            <q-icon name="cancel" size="20px" />
+          </div>
+          <div class="stat-info-small">
+            <div class="stat-value-small">
+              {{ formatNumber(estatisticasStore.dados?.pedidos_por_status?.cancelado || 0) }}
+            </div>
+            <div class="stat-label-small">Pedidos Cancelados</div>
+          </div>
+        </div>
+
+        <div class="stat-card-small">
+          <div class="stat-icon-small pink">
+            <q-icon name="rate_review" size="20px" />
+          </div>
+          <div class="stat-info-small">
+            <div class="stat-value-small">
+              {{ formatNumber(estatisticasStore.dados?.avaliacoes_total || 0) }}
+            </div>
+            <div class="stat-label-small">Avaliações</div>
+          </div>
+        </div>
+
+        <div class="stat-card-small">
+          <div class="stat-icon-small indigo">
+            <q-icon name="category" size="20px" />
+          </div>
+          <div class="stat-info-small">
+            <div class="stat-value-small">
+              {{ formatNumber(estatisticasStore.dados?.total_categorias || 0) }}
+            </div>
+            <div class="stat-label-small">Categorias</div>
+          </div>
+        </div>
+
+        <div class="stat-card-small">
+          <div class="stat-icon-small red">
+            <q-icon name="support" size="20px" />
+          </div>
+          <div class="stat-info-small">
+            <div class="stat-value-small">
+              {{ formatNumber(estatisticasStore.dados?.tickets_abertos || 0) }}
+            </div>
+            <div class="stat-label-small">Tickets Abertos</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos - Layout 2 colunas -->
+      <div class="charts-row">
+        <!-- Gráfico de Ganhos por Mês -->
+        <div class="chart-card" v-if="estatisticasStore.dados?.ganhos_por_mes?.length">
+          <div class="card-header">
+            <h3>📈 Evolução de Ganhos</h3>
+            <q-icon name="show_chart" size="20px" color="primary" />
+          </div>
+          <div class="chart-container">
+            <canvas ref="chartCanvasGanhos"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico de Pedidos por Mês -->
+        <div class="chart-card" v-if="estatisticasStore.dados?.pedidos_por_mes?.length">
+          <div class="card-header">
+            <h3>📊 Evolução de Pedidos</h3>
+            <q-icon name="bar_chart" size="20px" color="primary" />
+          </div>
+          <div class="chart-container">
+            <canvas ref="chartCanvasPedidos"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <!-- Top Categorias -->
+        <div class="top-list-card" v-if="estatisticasStore.dados?.top_categorias?.length">
+          <div class="card-header">
+            <h3>🏆 Top Categorias Mais Pedidas</h3>
+            <q-icon name="category" size="20px" color="primary" />
+          </div>
+          <div class="top-list">
+            <div
+              v-for="(categoria, index) in estatisticasStore.dados.top_categorias.slice(0, 5)"
+              :key="categoria.categoria"
+              class="list-item"
+            >
+              <div class="item-rank">{{ index + 1 }}º</div>
+              <div class="item-name">{{ categoria.categoria }}</div>
+              <div class="item-bar-container">
+                <div
+                  class="item-bar"
+                  :style="{ width: (categoria.total / estatisticasStore.totalPedidos) * 100 + '%' }"
+                ></div>
+              </div>
+              <div class="item-count">{{ formatNumber(categoria.total) }}</div>
+              <div class="item-percent">
+                {{ Math.round((categoria.total / estatisticasStore.totalPedidos) * 100) }}%
               </div>
             </div>
           </div>
         </div>
 
-        <div class="col-12 col-sm-6 col-md-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(46, 125, 50, 0.1)">
-              <q-icon name="handyman" size="32px" color="positive" />
-            </div>
-            <div class="kpi-content">
-              <div class="kpi-label">Prestadores</div>
-              <div class="kpi-value">{{ formatNumber(dashboardStore.dashboard.total_prestadores) }}</div>
-              <div class="kpi-trend trend-up">
-                <q-icon name="trending_up" size="14px" />
-                +{{ calculoTrend.prestadores }}% este período
-              </div>
-            </div>
+        <!-- Top Prestadores -->
+        <div class="top-list-card" v-if="estatisticasStore.dados?.top_prestadores?.length">
+          <div class="card-header">
+            <h3>⭐ Top Prestadores Mais Solicitados</h3>
+            <q-icon name="star" size="20px" color="warning" />
           </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-md-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(237, 108, 2, 0.1)">
-              <q-icon name="assignment" size="32px" color="warning" />
-            </div>
-            <div class="kpi-content">
-              <div class="kpi-label">Serviços Realizados</div>
-              <div class="kpi-value">{{ formatNumber(dashboardStore.estatisticas.total_pedidos) }}</div>
-              <div class="kpi-trend trend-up">
-                <q-icon name="trending_up" size="14px" />
-                +{{ calculoTrend.servicos }}% este período
+          <div class="top-list">
+            <div
+              v-for="(prestador, index) in estatisticasStore.dados.top_prestadores.slice(0, 5)"
+              :key="prestador.nome"
+              class="list-item"
+            >
+              <div class="item-rank">{{ index + 1 }}º</div>
+              <div class="item-avatar">
+                <q-avatar size="32px">
+                  <img :src="getAvatarUrl(prestador.nome)" />
+                </q-avatar>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-md-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(156, 39, 176, 0.1)">
-              <q-icon name="star" size="32px" color="secondary" />
-            </div>
-            <div class="kpi-content">
-              <div class="kpi-label">Avaliação Média</div>
-              <div class="kpi-value">{{ dashboardStore.dashboard.avaliacao_media.toFixed(1) }}</div>
-              <div class="kpi-trend trend-up">
-                <q-icon name="star" size="14px" />
-                de 5.0
+              <div class="item-name">{{ prestador.nome }}</div>
+              <div class="item-value">{{ formatNumber(prestador.total_pedidos) }} pedidos</div>
+              <div class="item-rating">
+                <q-rating v-model="prestador.avaliacao" readonly size="14px" max="5" />
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="row q-col-gutter-lg q-mt-lg">
-        <div class="col-12 col-md-6">
-          <q-card class="stats-card">
-            <q-card-section>
-              <div class="card-header">
-                <div class="text-h6">
-                  <q-icon name="group" class="q-mr-sm" />
-                  Utilizadores por Mês
-                </div>
-                <q-chip size="sm" color="primary" text-color="white">
-                  {{ periodoAtual }}
-                </q-chip>
-              </div>
-            </q-card-section>
-            <q-card-section>
-              <div v-if="dadosUsuariosPorMes.length > 0" class="stats-list">
-                <div v-for="item in dadosUsuariosPorMes" :key="item.mes" class="stats-item">
-                  <div class="stats-label">
-                    <span class="stats-month">{{ item.mes }}</span>
-                    <span class="stats-count">{{ formatNumber(item.valor) }}</span>
-                  </div>
-                  <q-linear-progress
-                    :value="item.percentual"
-                    size="24px"
-                    color="primary"
-                    class="stats-progress"
-                  >
-                    <div class="progress-value">{{ Math.round(item.percentual * 100) }}%</div>
-                  </q-linear-progress>
-                </div>
-              </div>
-              <div v-else class="text-center q-pa-xl">
-                <q-icon name="group" size="48px" color="grey-4" />
-                <div class="text-subtitle1 q-mt-sm text-grey">Carregando dados...</div>
-              </div>
-            </q-card-section>
-          </q-card>
+      <!-- Distribuição de Pedidos por Status -->
+      <div class="status-card" v-if="estatisticasStore.dados?.pedidos_por_status">
+        <div class="card-header">
+          <h3>📊 Distribuição de Pedidos por Status</h3>
+          <q-icon name="pie_chart" size="20px" color="primary" />
         </div>
-
-        <div class="col-12 col-md-6">
-          <q-card class="stats-card">
-            <q-card-section>
-              <div class="card-header">
-                <div class="text-h6">
-                  <q-icon name="category" class="q-mr-sm" />
-                  Serviços por Categoria
-                </div>
-                <q-chip size="sm" color="secondary" text-color="white">
-                  Top {{ dadosServicosPorCategoria.length }}
-                </q-chip>
-              </div>
-            </q-card-section>
-            <q-card-section>
-              <div v-if="dadosServicosPorCategoria.length > 0" class="stats-list">
-                <div v-for="item in dadosServicosPorCategoria" :key="item.categoria" class="stats-item">
-                  <div class="stats-label">
-                    <div class="stats-categoria">
-                      <q-icon :name="item.icone" size="16px" class="q-mr-xs" :color="item.cor" />
-                      <span>{{ item.categoria }}</span>
-                    </div>
-                    <span class="stats-count">{{ formatNumber(item.valor) }}</span>
-                  </div>
-                  <q-linear-progress
-                    :value="item.percentual"
-                    size="24px"
-                    :color="item.cor"
-                    class="stats-progress"
-                  >
-                    <div class="progress-value">{{ Math.round(item.percentual * 100) }}%</div>
-                  </q-linear-progress>
-                </div>
-              </div>
-              <div v-else class="text-center q-pa-xl">
-                <q-icon name="category" size="48px" color="grey-4" />
-                <div class="text-subtitle1 q-mt-sm text-grey">Carregando dados...</div>
-              </div>
-            </q-card-section>
-          </q-card>
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="status-label">Pendentes</div>
+            <div class="status-value">{{ formatNumber(estatisticasStore.pedidosPendentes) }}</div>
+            <div class="status-bar">
+              <div
+                class="status-fill"
+                :style="{
+                  width:
+                    (estatisticasStore.pedidosPendentes / estatisticasStore.totalPedidos) * 100 +
+                    '%',
+                  background: '#F59E0B',
+                }"
+              ></div>
+            </div>
+            <div class="status-percent">
+              {{
+                Math.round(
+                  (estatisticasStore.pedidosPendentes / estatisticasStore.totalPedidos) * 100,
+                )
+              }}%
+            </div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Em Andamento</div>
+            <div class="status-value">{{ formatNumber(estatisticasStore.pedidosEmAndamento) }}</div>
+            <div class="status-bar">
+              <div
+                class="status-fill"
+                :style="{
+                  width:
+                    (estatisticasStore.pedidosEmAndamento / estatisticasStore.totalPedidos) * 100 +
+                    '%',
+                  background: '#667EEA',
+                }"
+              ></div>
+            </div>
+            <div class="status-percent">
+              {{
+                Math.round(
+                  (estatisticasStore.pedidosEmAndamento / estatisticasStore.totalPedidos) * 100,
+                )
+              }}%
+            </div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Concluídos</div>
+            <div class="status-value">{{ formatNumber(estatisticasStore.pedidosConcluidos) }}</div>
+            <div class="status-bar">
+              <div
+                class="status-fill"
+                :style="{
+                  width:
+                    (estatisticasStore.pedidosConcluidos / estatisticasStore.totalPedidos) * 100 +
+                    '%',
+                  background: '#10B981',
+                }"
+              ></div>
+            </div>
+            <div class="status-percent">
+              {{
+                Math.round(
+                  (estatisticasStore.pedidosConcluidos / estatisticasStore.totalPedidos) * 100,
+                )
+              }}%
+            </div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Cancelados</div>
+            <div class="status-value">{{ formatNumber(estatisticasStore.pedidosCancelados) }}</div>
+            <div class="status-bar">
+              <div
+                class="status-fill"
+                :style="{
+                  width:
+                    (estatisticasStore.pedidosCancelados / estatisticasStore.totalPedidos) * 100 +
+                    '%',
+                  background: '#EF4444',
+                }"
+              ></div>
+            </div>
+            <div class="status-percent">
+              {{
+                Math.round(
+                  (estatisticasStore.pedidosCancelados / estatisticasStore.totalPedidos) * 100,
+                )
+              }}%
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div class="col-12">
-          <q-card class="stats-card">
-            <q-card-section>
-              <div class="text-h6">
-                <q-icon name="payments" class="q-mr-sm" />
-                Resumo Financeiro
-              </div>
-            </q-card-section>
-            <q-card-section>
-              <div class="row q-col-gutter-md">
-                <div class="col-12 col-sm-6 col-md-3">
-                  <div class="financial-card">
-                    <div class="financial-icon" style="background: rgba(46, 125, 50, 0.1)">
-                      <q-icon name="account_balance" size="28px" color="positive" />
-                    </div>
-                    <div class="financial-content">
-                      <div class="financial-label">Receita Total</div>
-                      <div class="financial-value">{{ formatMoney(dashboardStore.estatisticas.receita_total) }}</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 col-sm-6 col-md-3">
-                  <div class="financial-card">
-                    <div class="financial-icon" style="background: rgba(25, 118, 210, 0.1)">
-                      <q-icon name="percent" size="28px" color="primary" />
-                    </div>
-                    <div class="financial-content">
-                      <div class="financial-label">Comissões</div>
-                      <div class="financial-value">{{ formatMoney(financeiroStore.resumoFinanceiro.comissoes) }}</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 col-sm-6 col-md-3">
-                  <div class="financial-card">
-                    <div class="financial-icon" style="background: rgba(156, 39, 176, 0.1)">
-                      <q-icon name="receipt" size="28px" color="secondary" />
-                    </div>
-                    <div class="financial-content">
-                      <div class="financial-label">Ticket Médio</div>
-                      <div class="financial-value">{{ formatMoney(ticketMedio) }}</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 col-sm-6 col-md-3">
-                  <div class="financial-card">
-                    <div class="financial-icon" style="background: rgba(237, 108, 2, 0.1)">
-                      <q-icon name="trending_up" size="28px" color="warning" />
-                    </div>
-                    <div class="financial-content">
-                      <div class="financial-label">Crescimento</div>
-                      <div class="financial-value text-positive">+{{ calculoTrend.receita }}%</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
+      <!-- Últimas Atividades -->
+      <div class="activities-card">
+        <div class="card-header">
+          <h3>🔄 Últimas Atividades</h3>
+          <q-icon name="history" size="20px" color="primary" />
         </div>
-
-        <div class="col-12">
-          <q-card class="stats-card">
-            <q-card-section>
-              <div class="text-h6">
-                <q-icon name="history" class="q-mr-sm" />
-                Serviços Recentes
-              </div>
-            </q-card-section>
-            <q-card-section>
-              <q-table
-                :rows="conteudoStore.servicosRecentes"
-                :columns="servicosColumns"
-                row-key="id"
-                :loading="dashboardStore.loading"
-                :rows-per-page-options="[5, 10]"
-                flat
-                bordered
-              >
-                <template v-slot:body-cell-valor="props">
-                  <q-td :props="props">
-                    <span class="text-primary">{{ formatMoney(props.row.valor) }}</span>
-                  </q-td>
-                </template>
-                <template v-slot:body-cell-status="props">
-                  <q-td :props="props">
-                    <q-badge :color="props.row.statusCor" outline>
-                      <q-icon :name="props.row.icone" size="12px" class="q-mr-xs" />
-                      {{ props.row.status }}
-                    </q-badge>
-                  </q-td>
-                </template>
-                <template v-slot:no-data>
-                  <div class="text-center q-pa-md">
-                    <q-icon name="history" size="32px" color="grey" />
-                    <div class="text-subtitle2 q-mt-sm">Nenhum serviço recente</div>
-                  </div>
-                </template>
-              </q-table>
-            </q-card-section>
-          </q-card>
+        <div class="activities-list">
+          <div
+            v-for="(atividade, index) in estatisticasStore.dados?.ultimas_atividades?.slice(
+              0,
+              10,
+            ) || []"
+            :key="index"
+            class="activity-item"
+          >
+            <div class="activity-icon" :class="getActivityIconClass(atividade.tipo)">
+              <q-icon :name="getActivityIcon(atividade.tipo)" size="16px" />
+            </div>
+            <div class="activity-content">
+              <div class="activity-description">{{ atividade.descricao }}</div>
+              <div class="activity-time">{{ formatarDataRelativa(atividade.created_at) }}</div>
+            </div>
+          </div>
+          <div v-if="!estatisticasStore.dados?.ultimas_atividades?.length" class="no-activities">
+            <q-icon name="history" size="32px" color="grey-4" />
+            <p>Nenhuma atividade recente</p>
+          </div>
         </div>
       </div>
     </template>
-  </q-page>
+  </div>
 </template>
-
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useQuasar, type QTableColumn } from 'quasar';
-// ✅ IMPORTS CORRETOS - Stores separados
-import { useAdminDashboardStore } from 'src/stores/admin/admin-dashboard-store';
-import { useAdminFinanceiroStore } from 'src/stores/admin/admin-financeiro-store';
-import { useAdminConteudoStore } from 'src/stores/admin/admin-conteudo-store';
-import type { CategoriaData } from 'src/stores/admin/admin-conteudo-store';
+import { ref, onMounted, watch } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useAdminEstatisticasStore } from 'src/stores/admin/admin-estatisticas-store';
+import { Chart, registerables } from 'chart.js';
 
-defineOptions({
-  name: 'AdminEstatisticas',
-});
+Chart.register(...registerables);
 
-const $q = useQuasar();
-// ✅ USANDO OS STORES CORRETOS
-const dashboardStore = useAdminDashboardStore();
-const financeiroStore = useAdminFinanceiroStore();
-const conteudoStore = useAdminConteudoStore();
+defineOptions({ name: 'AdminEstatisticas' });
 
-// Estados
-const periodoSelecionado = ref('6meses');
+const estatisticasStore = useAdminEstatisticasStore();
+const { isLoading, dados } = storeToRefs(estatisticasStore);
 
-// Opções de período
+const periodoSelecionado = ref('mes');
 const periodos = [
-  { label: 'Últimos 6 meses', value: '6meses' },
-  { label: 'Últimos 12 meses', value: '12meses' },
-  { label: 'Ano atual', value: 'ano' },
+  { label: 'Este Mês', value: 'mes' },
+  { label: 'Últimos 3 Meses', value: 'trimestre' },
+  { label: 'Este Ano', value: 'ano' },
+  { label: 'Todos', value: 'todos' },
 ];
 
-// Computed para o período atual
-const periodoAtual = computed(() => {
-  const periodo = periodos.find(p => p.value === periodoSelecionado.value);
-  return periodo?.label || 'Últimos 6 meses';
-});
+const chartCanvasGanhos = ref<HTMLCanvasElement | null>(null);
+const chartCanvasPedidos = ref<HTMLCanvasElement | null>(null);
+let chartGanhos: Chart | null = null;
+let chartPedidos: Chart | null = null;
 
-// Ticket médio
-const ticketMedio = computed(() => {
-  const totalServicos = dashboardStore.estatisticas.total_pedidos;
-  const receitaTotal = dashboardStore.estatisticas.receita_total;
-  if (totalServicos === 0) return 0;
-  return receitaTotal / totalServicos;
-});
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('pt-PT').format(num || 0);
+};
 
-// Cálculo de tendências
-const calculoTrend = computed(() => {
-  const totalUsers = dashboardStore.dashboard.total_users;
-  const totalPrestadores = dashboardStore.dashboard.total_prestadores;
-  const totalPedidos = dashboardStore.estatisticas.total_pedidos;
-  const receitaTotal = dashboardStore.estatisticas.receita_total;
+const formatMoney = (num: number): string => {
+  return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(num || 0);
+};
 
-  return {
-    totalUsers: Math.min(Math.round((totalUsers / 100) * 12), 25),
-    prestadores: Math.min(Math.round((totalPrestadores / 100) * 8), 20),
-    servicos: Math.min(Math.round((totalPedidos / 100) * 15), 30),
-    receita: Math.min(Math.round((receitaTotal / 1000) * 18), 25),
+const formatarDataRelativa = (dataString: string): string => {
+  if (!dataString) return '—';
+  const date = new Date(dataString);
+  const hoje = new Date();
+  const diffDias = Math.floor((hoje.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDias === 0) return 'Hoje';
+  if (diffDias === 1) return 'Ontem';
+  if (diffDias < 7) return `${diffDias} dias atrás`;
+  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
+const getAvatarUrl = (nome: string): string => {
+  return `https://ui-avatars.com/api/?background=667EEA&color=fff&bold=true&size=60&name=${encodeURIComponent(nome)}`;
+};
+
+const getActivityIcon = (tipo: string): string => {
+  const icons: Record<string, string> = {
+    pedido: 'shopping_cart',
+    usuario: 'person_add',
+    prestador: 'handyman',
+    avaliacao: 'star',
+    pagamento: 'payments',
   };
-});
+  return icons[tipo] || 'info';
+};
 
-// Dados de usuários por mês
-const dadosUsuariosPorMes = computed(() => {
-  const totalUsers = dashboardStore.dashboard.total_users;
-  const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const getActivityIconClass = (tipo: string): string => {
+  const classes: Record<string, string> = {
+    pedido: 'icon-pedido',
+    usuario: 'icon-usuario',
+    prestador: 'icon-prestador',
+    avaliacao: 'icon-avaliacao',
+    pagamento: 'icon-pagamento',
+  };
+  return classes[tipo] || 'icon-default';
+};
 
-  const valores = meses.map((_, index) => {
-    const percentual = (index + 1) / meses.length;
-    return Math.floor(totalUsers * percentual);
+const atualizarGraficoGanhos = (): void => {
+  const ganhosPorMes = dados.value?.ganhos_por_mes;
+
+  if (!chartCanvasGanhos.value || !ganhosPorMes || ganhosPorMes.length === 0) return;
+
+  const ctx = chartCanvasGanhos.value.getContext('2d');
+  if (!ctx) return;
+
+  if (chartGanhos) {
+    chartGanhos.destroy();
+  }
+
+  const meses = ganhosPorMes.map((item) => item.mes);
+  const valores = ganhosPorMes.map((item) => item.total);
+
+  chartGanhos = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: meses,
+      datasets: [
+        {
+          label: 'Ganhos',
+          data: valores,
+          borderColor: '#667EEA',
+          backgroundColor: 'rgba(102, 126, 234, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#667EEA',
+          pointBorderColor: '#fff',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const value = context.raw as number;
+              return `Ganhos: ${formatMoney(value)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: (value) => {
+              const numValue = value as number;
+              return formatMoney(numValue);
+            },
+          },
+        },
+      },
+    },
   });
+};
 
-  const maxValor = Math.max(...valores, 1);
+const atualizarGraficoPedidos = (): void => {
+  const pedidosPorMes = dados.value?.pedidos_por_mes;
 
-  const mesesCount = periodoSelecionado.value === '6meses' ? 6
-    : periodoSelecionado.value === '12meses' ? 12
-    : new Date().getMonth() + 1;
+  if (!chartCanvasPedidos.value || !pedidosPorMes || pedidosPorMes.length === 0) return;
 
-  const ultimosMeses = [];
-  const inicio = Math.max(0, meses.length - mesesCount);
-  for (let i = inicio; i < meses.length; i++) {
-    const valor = valores[i] ?? 0;
-    ultimosMeses.push({
-      mes: meses[i] ?? '',
-      valor: valor,
-      percentual: valor / maxValor,
-    });
+  const ctx = chartCanvasPedidos.value.getContext('2d');
+  if (!ctx) return;
+
+  if (chartPedidos) {
+    chartPedidos.destroy();
   }
-  return ultimosMeses;
+
+  const meses = pedidosPorMes.map((item) => item.mes);
+  const valores = pedidosPorMes.map((item) => item.total);
+
+  chartPedidos = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: meses,
+      datasets: [
+        {
+          label: 'Pedidos',
+          data: valores,
+          backgroundColor: '#10B981',
+          borderRadius: 8,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const value = context.raw as number;
+              return `Pedidos: ${value}`;
+            },
+          },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1,
+            callback: (value) => {
+              const numValue = value as number;
+              return String(numValue);
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
+const carregarEstatisticas = async (): Promise<void> => {
+  await estatisticasStore.carregarEstatisticas(periodoSelecionado.value);
+  atualizarGraficoGanhos();
+  atualizarGraficoPedidos();
+};
+
+const mudarPeriodo = async (valor: string): Promise<void> => {
+  periodoSelecionado.value = valor;
+  await carregarEstatisticas();
+};
+
+const recarregar = (): void => {
+  void carregarEstatisticas();
+};
+
+watch(periodoSelecionado, () => {
+  void carregarEstatisticas();
 });
 
-// ✅ Dados de serviços por categoria (usando conteudoStore com tipagem correta)
-const dadosServicosPorCategoria = computed(() => {
-  const categorias: CategoriaData[] = [...conteudoStore.categorias]
-    .filter((c: CategoriaData) => c.servicos_count > 0)
-    .sort((a: CategoriaData, b: CategoriaData) => b.servicos_count - a.servicos_count)
-    .slice(0, 5);
-
-  const maxValor = categorias.length > 0 ? Math.max(...categorias.map((c: CategoriaData) => c.servicos_count)) : 1;
-
-  return categorias.map((cat: CategoriaData) => ({
-    categoria: cat.nome,
-    valor: cat.servicos_count,
-    percentual: cat.servicos_count / maxValor,
-    icone: cat.icone || 'category',
-    cor: cat.cor || 'primary',
-  }));
-});
-
-// Colunas para a tabela de serviços recentes
-const servicosColumns: QTableColumn[] = [
-  { name: 'servico', label: 'Serviço', field: 'servico', align: 'left', sortable: true },
-  { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'left', sortable: true },
-  { name: 'prestador', label: 'Prestador', field: 'prestador', align: 'left', sortable: true },
-  { name: 'valor', label: 'Valor', field: 'valor', align: 'center', sortable: true },
-  { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: false },
-];
-
-// Funções auxiliares
-const formatNumber = (value: number): string => {
-  return new Intl.NumberFormat('pt-PT').format(value);
-};
-
-const formatMoney = (value: number): string => {
-  return new Intl.NumberFormat('pt-PT', {
-    style: 'currency',
-    currency: 'MZN',
-    minimumFractionDigits: 0,
-  }).format(value);
-};
-
-// ✅ Carregar dados
-const carregarDados = async (): Promise<void> => {
-  try {
-    await Promise.all([
-      dashboardStore.fetchDashboard(),
-      dashboardStore.fetchStats(),
-      financeiroStore.fetchResumoFinanceiro(),
-      conteudoStore.fetchCategorias(),
-      conteudoStore.fetchServicosRecentes(10),
-    ]);
-  } catch (error) {
-    console.error('Erro ao carregar dados:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar dados estatísticos',
-      position: 'top',
-    });
-  }
-};
-
-// Carregar dados ao montar
 onMounted(() => {
-  void carregarDados();
+  void carregarEstatisticas();
 });
 </script>
 
 <style scoped lang="scss">
-.admin-estatisticas {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 20px;
-  background: #f5f7fa;
+.page-container {
+  background: #f3f4f6;
   min-height: 100vh;
+  padding: 20px;
 }
 
 .page-header {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  .page-title-section {
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      display: flex;
-      align-items: center;
-    }
-
-    .page-subtitle {
-      font-size: 0.875rem;
-      color: #6c757d;
-      margin-top: 4px;
-    }
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .header-actions {
@@ -573,404 +638,463 @@ onMounted(() => {
   }
 }
 
-// Skeleton Loading
-.skeleton-container {
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  background: white;
+  border-radius: 16px;
+
+  p {
+    margin-top: 12px;
+    color: #6b7280;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
   position: relative;
   overflow: hidden;
-}
-
-.skeleton-kpi-card {
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.skeleton-kpi-icon {
-  width: 60px;
-  height: 60px;
-  background: #e0e0e0;
-  border-radius: 16px;
-}
-
-.skeleton-kpi-content {
-  flex: 1;
-}
-
-.skeleton-kpi-label {
-  width: 100px;
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
-
-.skeleton-kpi-value {
-  width: 80px;
-  height: 28px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 6px;
-}
-
-.skeleton-kpi-trend {
-  width: 100px;
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-stats-card {
-  background: white;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  margin-bottom: 20px;
-}
-
-.skeleton-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #eeeeee;
-}
-
-.skeleton-title {
-  width: 180px;
-  height: 24px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-chip {
-  width: 80px;
-  height: 24px;
-  background: #e0e0e0;
-  border-radius: 16px;
-}
-
-.skeleton-stats-list {
-  padding: 20px;
-}
-
-.skeleton-stats-item {
-  margin-bottom: 20px;
-}
-
-.skeleton-stats-label {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.skeleton-stats-month {
-  width: 50px;
-  height: 14px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-stats-count {
-  width: 50px;
-  height: 14px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-stats-categoria {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.skeleton-icon-small {
-  width: 16px;
-  height: 16px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-text-small {
-  width: 80px;
-  height: 14px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-progress-bar {
-  height: 28px;
-  background: #e0e0e0;
-  border-radius: 14px;
-}
-
-.skeleton-financial-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: white;
-  border-radius: 16px;
-  border: 1px solid #eeeeee;
-}
-
-.skeleton-financial-icon {
-  width: 48px;
-  height: 48px;
-  background: #e0e0e0;
-  border-radius: 12px;
-}
-
-.skeleton-financial-content {
-  flex: 1;
-}
-
-.skeleton-financial-label {
-  width: 80px;
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
-
-.skeleton-financial-value {
-  width: 100px;
-  height: 20px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-table {
-  padding: 0 20px 20px 20px;
-}
-
-.skeleton-table-header-row {
-  display: flex;
-  background: #f8f9fa;
-  padding: 12px 0;
-  border-bottom: 2px solid #eeeeee;
-}
-
-.skeleton-header-cell {
-  flex: 1;
-  height: 16px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin: 0 8px;
-}
-
-.skeleton-table-row {
-  display: flex;
-  padding: 16px 0;
-  border-bottom: 1px solid #eeeeee;
-}
-
-.skeleton-cell {
-  flex: 1;
-  margin: 0 8px;
-}
-
-.skeleton-text {
-  width: 80%;
-  height: 12px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-shimmer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  animation: shimmer 1.5s infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-// Estilos principais
-.kpi-card {
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
   }
 
-  .kpi-icon {
-    width: 60px;
-    height: 60px;
+  .stat-icon {
+    width: 52px;
+    height: 52px;
     border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1;
+
+    &.blue {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+    }
+    &.green {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+    }
+    &.gold {
+      background: rgba(245, 158, 11, 0.1);
+      color: #f59e0b;
+    }
+    &.purple {
+      background: rgba(118, 75, 162, 0.1);
+      color: #764ba2;
+    }
   }
 
-  .kpi-content {
+  .stat-info {
     flex: 1;
+    z-index: 1;
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .stat-trend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      margin-top: 4px;
+      &.positive {
+        color: #10b981;
+      }
+    }
   }
 
-  .kpi-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: #6c757d;
-    letter-spacing: 0.5px;
-  }
-
-  .kpi-value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #1a1a2e;
-    line-height: 1.2;
-  }
-
-  .kpi-trend {
-    font-size: 0.7rem;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    margin-top: 4px;
-    &.trend-up { color: #2e7d32; }
+  .stat-bg-icon {
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+    opacity: 0.06;
+    z-index: 0;
+    :deep(.q-icon) {
+      font-size: 80px;
+    }
   }
 }
 
-.stats-card {
+.stats-grid-secondary {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card-small {
+  background: white;
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  .stat-icon-small {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.cyan {
+      background: rgba(6, 182, 212, 0.1);
+      color: #06b6d4;
+    }
+    &.teal {
+      background: rgba(20, 184, 166, 0.1);
+      color: #14b8a6;
+    }
+    &.orange {
+      background: rgba(245, 158, 11, 0.1);
+      color: #f59e0b;
+    }
+    &.pink {
+      background: rgba(236, 72, 153, 0.1);
+      color: #ec4899;
+    }
+    &.indigo {
+      background: rgba(99, 102, 241, 0.1);
+      color: #6366f1;
+    }
+    &.red {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+  }
+
+  .stat-info-small {
+    .stat-value-small {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .stat-label-small {
+      font-size: 10px;
+      color: #6b7280;
+    }
+  }
+}
+
+.charts-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  background: white;
   border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+
+  .chart-container {
+    height: 280px;
   }
 }
 
-.stats-list {
-  .stats-item {
-    margin-bottom: 20px;
-    &:last-child { margin-bottom: 0; }
-  }
+.top-list-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  .stats-label {
+  .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    font-size: 0.875rem;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
 
-    .stats-month, .stats-categoria {
-      display: flex;
-      align-items: center;
-      font-weight: 500;
-    }
-
-    .stats-count {
+    h3 {
+      font-size: 16px;
       font-weight: 600;
-      color: #1a1a2e;
+      margin: 0;
     }
   }
 
-  .stats-progress {
-    height: 28px;
-    border-radius: 14px;
-    position: relative;
+  .top-list {
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
 
-    :deep(.q-linear-progress__track) {
-      opacity: 0.2;
-      border-radius: 14px;
-    }
-
-    :deep(.q-linear-progress__model) {
-      border-radius: 14px;
-    }
-
-    .progress-value {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: white;
-      text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+      .item-rank {
+        width: 32px;
+        font-weight: 700;
+        color: #667eea;
+      }
+      .item-name {
+        width: 120px;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .item-bar-container {
+        flex: 1;
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
+        .item-bar {
+          height: 100%;
+          background: linear-gradient(90deg, #667eea, #764ba2);
+          border-radius: 4px;
+        }
+      }
+      .item-count {
+        width: 50px;
+        text-align: right;
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .item-percent {
+        width: 45px;
+        text-align: right;
+        color: #6b7280;
+        font-size: 11px;
+      }
+      .item-value {
+        font-size: 13px;
+        font-weight: 500;
+        color: #374151;
+        min-width: 80px;
+      }
+      .item-rating {
+        min-width: 80px;
+      }
     }
   }
 }
 
-.financial-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
+.status-card {
   background: white;
-  border-radius: 16px;
-  transition: all 0.2s ease;
-  border: 1px solid #e9ecef;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  &:hover {
-    border-color: #1976d2;
-    transform: translateY(-2px);
-  }
-
-  .financial-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+  .card-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
   }
 
-  .financial-content {
-    flex: 1;
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+
+    .status-item {
+      .status-label {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 4px;
+      }
+      .status-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 8px;
+      }
+      .status-bar {
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
+        .status-fill {
+          height: 100%;
+          border-radius: 4px;
+        }
+      }
+      .status-percent {
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 4px;
+        text-align: right;
+      }
+    }
+  }
+}
+
+.activities-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
   }
 
-  .financial-label {
-    font-size: 0.7rem;
-    color: #6c757d;
-    text-transform: uppercase;
-  }
+  .activities-list {
+    max-height: 300px;
+    overflow-y: auto;
 
-  .financial-value {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #1a1a2e;
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .activity-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &.icon-pedido {
+          background: rgba(16, 185, 129, 0.1);
+          color: #10b981;
+        }
+        &.icon-usuario {
+          background: rgba(102, 126, 234, 0.1);
+          color: #667eea;
+        }
+        &.icon-prestador {
+          background: rgba(118, 75, 162, 0.1);
+          color: #764ba2;
+        }
+        &.icon-avaliacao {
+          background: rgba(245, 158, 11, 0.1);
+          color: #f59e0b;
+        }
+        &.icon-pagamento {
+          background: rgba(6, 182, 212, 0.1);
+          color: #06b6d4;
+        }
+        &.icon-default {
+          background: #f3f4f6;
+          color: #6b7280;
+        }
+      }
+
+      .activity-content {
+        flex: 1;
+        .activity-description {
+          font-size: 13px;
+          color: #374151;
+        }
+        .activity-time {
+          font-size: 11px;
+          color: #9ca3af;
+          margin-top: 2px;
+        }
+      }
+    }
+
+    .no-activities {
+      text-align: center;
+      padding: 40px;
+      color: #9ca3af;
+    }
+  }
+}
+
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .stats-grid-secondary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .status-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .admin-estatisticas {
-    padding: 16px;
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .stats-grid-secondary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+  .status-grid {
+    grid-template-columns: 1fr;
   }
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
-  }
-  .kpi-card .kpi-value {
-    font-size: 1.3rem;
-  }
-  .financial-card .financial-value {
-    font-size: 1rem;
-  }
-  .stats-progress .progress-value {
-    font-size: 0.6rem;
-    right: 8px;
+    align-items: stretch;
   }
 }
 </style>

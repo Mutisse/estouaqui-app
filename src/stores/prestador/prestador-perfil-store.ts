@@ -1,483 +1,510 @@
-// src/stores/prestador/prestador-perfil-store.ts
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { useQuasar } from 'quasar';
+import { ref, computed } from 'vue';
 import { api } from 'src/boot/axios';
-import { useAuthStore } from '../auth-store';
-import { usePrestadorCacheStore, PRESTADOR_CACHE_TTL } from './prestador-cache-store';
-import { PRESTADOR_ENDPOINTS } from 'src/router/Api/prestador-endpoints';
+import type { AxiosError } from 'axios';
+import { useAuthStore } from 'src/stores/login-store';
 
-// ==========================================
-// TIPOS
-// ==========================================
-
-export interface PrestadorPerfilData {
-  id: number;
-  nome: string;
-  email: string;
-  telefone: string;
-  endereco: string | null;
-  foto: string | null;
-  tipo: string;
-  sobre: string | null;
-  profissao: string | null;
-  media_avaliacao: number;
-  total_avaliacoes: number;
-  verificado: boolean;
-  ativo: boolean;
-  preferences: Record<string, unknown> | null;
-  portfolio: string[];
-  created_at: string;
-}
+// ===================== INTERFACES =====================
 
 export interface CategoriaPrestadorData {
   id: number;
   nome: string;
-  icone: string;
-  cor: string;
+  icone?: string;
+  cor?: string;
   slug?: string;
-}
-
-export interface DisponibilidadeConfig {
-  tempo_minimo_agendamento: number;
-  tempo_entre_servicos: number;
-  notificar_antes: number;
-  aceitar_agendamento_automatico: boolean;
-  dias_antecedencia: number;
+  descricao?: string;
 }
 
 export interface DisponibilidadeData {
-  id: number;
-  prestador_id: number;
-  configuracoes: DisponibilidadeConfig;
   horarios_padrao: Record<string, string[]>;
-  intervalos_padrao: Array<{
-    dias: string[];
-    inicio: string;
-    fim: string;
-    descricao: string;
-  }>;
-  ativo: boolean;
-  created_at: string;
-  updated_at: string;
+  disponivel_fim_de_semana?: boolean;
 }
 
-export interface IntervaloData {
+export interface ServicoData {
   id: number;
-  prestador_id: number;
-  dias: string[];
-  inicio: string;
-  fim: string;
-  descricao: string | null;
-  ativo: boolean;
-  created_at: string;
-  updated_at: string;
+  nome: string;
+  descricao: string;
+  preco: number;
+  duracao: number;
+  icone?: string;
 }
 
-// ==========================================
-// STORE
-// ==========================================
+export interface PerfilPrestadorData {
+  id: number;
+  nome: string;
+  email: string;
+  telefone: string;
+  foto: string | null;
+  profissao: string;
+  sobre: string;
+  endereco: string;
+  media_avaliacao: number;
+  total_avaliacoes: number;
+  portfolio: string[];
+  categorias: CategoriaPrestadorData[];
+  servicos: ServicoData[];
+  disponibilidade: DisponibilidadeData | null;
+  documento_verificado: boolean;
+}
+
+export interface StatsData {
+  servicos: number;
+  pedidos_pendentes: number;
+  avaliacao_media: number;
+}
+
+export interface UpdateProfileData {
+  nome?: string;
+  telefone?: string;
+  email?: string;
+  profissao?: string;
+  sobre?: string;
+  endereco?: string;
+}
+
+// Opções de horários para disponibilidade
+export const opcoesHorarios = [
+  { label: '08:00 - 09:00', value: '08:00-09:00' },
+  { label: '09:00 - 10:00', value: '09:00-10:00' },
+  { label: '10:00 - 11:00', value: '10:00-11:00' },
+  { label: '11:00 - 12:00', value: '11:00-12:00' },
+  { label: '12:00 - 13:00', value: '12:00-13:00' },
+  { label: '13:00 - 14:00', value: '13:00-14:00' },
+  { label: '14:00 - 15:00', value: '14:00-15:00' },
+  { label: '15:00 - 16:00', value: '15:00-16:00' },
+  { label: '16:00 - 17:00', value: '16:00-17:00' },
+  { label: '17:00 - 18:00', value: '17:00-18:00' },
+  { label: '18:00 - 19:00', value: '18:00-19:00' },
+  { label: '19:00 - 20:00', value: '19:00-20:00' },
+];
+
+// Opções de ícones para serviços
+export const iconeOptions = [
+  { label: '🛠️ Ferramentas', value: 'handyman' },
+  { label: '🔧 Chave Inglesa', value: 'build' },
+  { label: '⚡ Eletricista', value: 'bolt' },
+  { label: '💧 Canalizador', value: 'water_drop' },
+  { label: '🎨 Pintor', value: 'brush' },
+  { label: '🧹 Limpeza', value: 'cleaning_services' },
+  { label: '📦 Mudanças', value: 'moving' },
+  { label: '🔒 Segurança', value: 'security' },
+];
+
+export const diasDaSemana = [
+  { key: 'monday', label: 'Segunda-feira' },
+  { key: 'tuesday', label: 'Terça-feira' },
+  { key: 'wednesday', label: 'Quarta-feira' },
+  { key: 'thursday', label: 'Quinta-feira' },
+  { key: 'friday', label: 'Sexta-feira' },
+  { key: 'saturday', label: 'Sábado' },
+  { key: 'sunday', label: 'Domingo' },
+];
+
+// ===================== STORE =====================
 
 export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
-  const $q = useQuasar();
   const authStore = useAuthStore();
-  const cacheStore = usePrestadorCacheStore();
 
-  // STATE
-  const loading = ref(false);
-  const perfilCompleto = ref<PrestadorPerfilData | null>(null);
+  // ===================== ESTADOS =====================
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
+
+  // Dados do perfil
+  const perfil = ref<PerfilPrestadorData | null>(null);
+  const portfolio = ref<string[]>([]);
+  const servicos = ref<ServicoData[]>([]);
   const minhasCategorias = ref<CategoriaPrestadorData[]>([]);
   const disponibilidade = ref<DisponibilidadeData | null>(null);
-  const intervalos = ref<IntervaloData[]>([]);
+  const documentoVerificado = ref(false);
 
-  // ==========================================
-  // AUXILIARES
-  // ==========================================
+  // Estatísticas
+  const stats = ref<StatsData>({
+    servicos: 0,
+    pedidos_pendentes: 0,
+    avaliacao_media: 0,
+  });
 
-  function getCurrentUserId(): number {
-    return authStore.user?.id || 0;
-  }
+  // Controle de dados carregados
+  const dadosCarregados = ref(false);
+  const ultimaAtualizacao = ref<Date | null>(null);
 
-  function initializeCache(): void {
-    const userId = getCurrentUserId();
-    if (userId) {
-      cacheStore.setPrestadorId(userId);
-    }
-  }
+  // ===================== GETTERS =====================
 
-  function extractDataFromResponse<T>(response: unknown): T {
-    if (!response) return [] as T;
-    if (Array.isArray(response)) return response as T;
-    if (typeof response === 'object' && response !== null) {
-      const obj = response as Record<string, unknown>;
-      if (obj.success === true && obj.data !== undefined) {
-        return obj.data as T;
-      }
-      if (obj.data !== undefined) {
-        return obj.data as T;
-      }
-    }
-    return [] as T;
-  }
+  const nomeCompleto = computed(() => perfil.value?.nome || authStore.user?.nome || 'Prestador');
+  const email = computed(() => perfil.value?.email || authStore.user?.email || '');
+  const telefone = computed(() => perfil.value?.telefone || authStore.user?.telefone || '');
+  const profissao = computed(() => perfil.value?.profissao || 'Prestador de Serviços');
+  const sobre = computed(() => perfil.value?.sobre || '');
+  const endereco = computed(() => perfil.value?.endereco || '');
+  const rating = computed(() => perfil.value?.media_avaliacao || 0);
+  const totalAvaliacoes = computed(() => perfil.value?.total_avaliacoes || 0);
+  const foto = computed(() => perfil.value?.foto || authStore.user?.foto || null);
 
-  function showNotification(type: 'positive' | 'negative' | 'warning' | 'info', message: string): void {
-    $q.notify({ type, message, position: 'top', timeout: 3000 });
-  }
+  const disponibilidadeHorariosFormatados = computed(() => {
+    if (!disponibilidade.value?.horarios_padrao) return [];
 
-  function showError(error: unknown): void {
-    const message = error instanceof Error ? error.message : 'Erro ao processar requisição';
-    showNotification('negative', message);
-  }
+    const diasMap: Record<string, string> = {
+      monday: 'Segunda', tuesday: 'Terça', wednesday: 'Quarta',
+      thursday: 'Quinta', friday: 'Sexta', saturday: 'Sábado', sunday: 'Domingo'
+    };
 
-  // ==========================================
-  // PERFIL
-  // ==========================================
+    return Object.entries(disponibilidade.value.horarios_padrao)
+      .filter(([, horarios]) => horarios.length > 0)
+      .map(([dia, horarios]) => ({
+        dia: diasMap[dia] || dia.charAt(0).toUpperCase() + dia.slice(1),
+        horario: horarios.join(', '),
+      }));
+  });
 
-  async function fetchPerfilCompleto(forceRefresh: boolean = false): Promise<PrestadorPerfilData | null> {
-    initializeCache();
+  // ===================== READ =====================
 
-    const data = await cacheStore.fetchWithCache<PrestadorPerfilData | null>(
-      'perfil_completo',
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.GET_PROFILE);
-          if (response.data?.success && response.data.data) {
-            const userData = response.data.data;
-            const portfolioUrls = userData.portfolio || userData.preferences?.portfolio || [];
+  const fetchPerfilCompleto = async (forceRefresh = false): Promise<PerfilPrestadorData | null> => {
+    if (dadosCarregados.value && !forceRefresh) return perfil.value;
 
-            const perfil: PrestadorPerfilData = {
-              id: userData.id,
-              nome: userData.nome,
-              email: userData.email,
-              telefone: userData.telefone,
-              endereco: userData.endereco || null,
-              foto: userData.foto || null,
-              tipo: userData.tipo,
-              sobre: userData.sobre || null,
-              profissao: userData.profissao || null,
-              media_avaliacao: userData.media_avaliacao || 0,
-              total_avaliacoes: userData.total_avaliacoes || 0,
-              verificado: userData.verificado || false,
-              ativo: userData.ativo || true,
-              preferences: userData.preferences || null,
-              portfolio: portfolioUrls,
-              created_at: userData.created_at,
-            };
+    isLoading.value = true;
+    error.value = null;
 
-            perfilCompleto.value = perfil;
-            return perfil;
-          }
-          return null;
-        } finally {
-          loading.value = false;
-        }
-      },
-      PRESTADOR_CACHE_TTL.MEDIUM,
-      forceRefresh
-    );
-
-    return data;
-  }
-
-  // ✅ MÉTODO: Atualizar foto de perfil
-  async function updateAvatar(file: File): Promise<string | null> {
-    loading.value = true;
     try {
-      const formData = new FormData();
-      formData.append('foto', file);
-      const response = await api.post(PRESTADOR_ENDPOINTS.UPDATE_AVATAR, formData, {
+      const response = await api.get('/prestador/perfil');
+
+      if (response.data?.success && response.data.data) {
+        perfil.value = response.data.data;
+        portfolio.value = response.data.data.portfolio || [];
+        servicos.value = response.data.data.servicos || [];
+        minhasCategorias.value = response.data.data.categorias || [];
+        disponibilidade.value = response.data.data.disponibilidade || null;
+        documentoVerificado.value = response.data.data.documento_verificado || false;
+        dadosCarregados.value = true;
+        ultimaAtualizacao.value = new Date();
+        return perfil.value;
+      }
+      return null;
+    } catch (err) {
+      console.error('Erro ao buscar perfil:', err);
+      error.value = (err as AxiosError).message || 'Erro ao carregar perfil';
+      return null;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const fetchStats = async (forceRefresh = false): Promise<StatsData> => {
+    if (dadosCarregados.value && !forceRefresh && stats.value.servicos > 0) {
+      return stats.value;
+    }
+
+    try {
+      const response = await api.get('/prestador/perfil/stats');
+      if (response.data?.success && response.data.data) {
+        stats.value = {
+          servicos: response.data.data.servicos || 0,
+          pedidos_pendentes: response.data.data.pedidos_pendentes || 0,
+          avaliacao_media: response.data.data.avaliacao_media || 0,
+        };
+      }
+      return stats.value;
+    } catch (err) {
+      console.error('Erro ao buscar stats:', err);
+      return stats.value;
+    }
+  };
+
+  const fetchMinhasCategorias = async (forceRefresh = false): Promise<CategoriaPrestadorData[]> => {
+    if (dadosCarregados.value && !forceRefresh && minhasCategorias.value.length > 0) {
+      return minhasCategorias.value;
+    }
+
+    try {
+      const response = await api.get('/prestador/perfil/categorias');
+      if (response.data?.success && response.data.data) {
+        minhasCategorias.value = response.data.data;
+      }
+      return minhasCategorias.value;
+    } catch (err) {
+      console.error('Erro ao buscar categorias:', err);
+      return [];
+    }
+  };
+
+  const fetchDisponibilidade = async (forceRefresh = false): Promise<DisponibilidadeData | null> => {
+    if (dadosCarregados.value && !forceRefresh && disponibilidade.value) {
+      return disponibilidade.value;
+    }
+
+    try {
+      const response = await api.get('/prestador/perfil/disponibilidade');
+      if (response.data?.success && response.data.data) {
+        disponibilidade.value = response.data.data;
+      }
+      return disponibilidade.value;
+    } catch (err) {
+      console.error('Erro ao buscar disponibilidade:', err);
+      return null;
+    }
+  };
+
+  // ===================== SERVIÇOS CRUD =====================
+
+  const adicionarServico = async (servico: Omit<ServicoData, 'id'>): Promise<boolean> => {
+    try {
+      const response = await api.post('/prestador/servicos', servico);
+      if (response.data?.success) {
+        await fetchPerfilCompleto(true);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Erro ao adicionar serviço:', err);
+      return false;
+    }
+  };
+
+  const atualizarServico = async (id: number, servico: Partial<ServicoData>): Promise<boolean> => {
+    try {
+      const response = await api.put(`/prestador/servicos/${id}`, servico);
+      if (response.data?.success) {
+        await fetchPerfilCompleto(true);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Erro ao atualizar serviço:', err);
+      return false;
+    }
+  };
+
+  const removerServico = async (id: number): Promise<boolean> => {
+    try {
+      const response = await api.delete(`/prestador/servicos/${id}`);
+      if (response.data?.success) {
+        await fetchPerfilCompleto(true);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Erro ao remover serviço:', err);
+      return false;
+    }
+  };
+
+  // ===================== DISPONIBILIDADE =====================
+
+  const updateDisponibilidade = async (data: DisponibilidadeData): Promise<boolean> => {
+    try {
+      const response = await api.put('/prestador/perfil/disponibilidade', data);
+      if (response.data?.success) {
+        disponibilidade.value = data;
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Erro ao atualizar disponibilidade:', err);
+      return false;
+    }
+  };
+
+  // ===================== CATEGORIAS =====================
+
+  const addCategoria = async (categoriaId: number): Promise<boolean> => {
+    try {
+      const response = await api.post('/prestador/perfil/categorias', { categoria_id: categoriaId });
+      if (response.data?.success) {
+        await fetchMinhasCategorias(true);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Erro ao adicionar categoria:', err);
+      return false;
+    }
+  };
+
+  const removeCategoria = async (categoriaId: number): Promise<boolean> => {
+    try {
+      const response = await api.delete(`/prestador/perfil/categorias/${categoriaId}`);
+      if (response.data?.success) {
+        await fetchMinhasCategorias(true);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Erro ao remover categoria:', err);
+      return false;
+    }
+  };
+
+  // ===================== PORTFÓLIO =====================
+
+  const addPortfolio = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('foto', file);
+
+    try {
+      const response = await api.post('/prestador/perfil/portfolio', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      if (response.data.success && response.data.data?.foto) {
-        cacheStore.invalidatePattern('perfil_completo');
+
+      if (response.data?.success && response.data.data?.url) {
+        portfolio.value.push(response.data.data.url);
+        return response.data.data.url;
+      }
+      return null;
+    } catch (err) {
+      console.error('Erro ao adicionar ao portfólio:', err);
+      return null;
+    }
+  };
+
+  const removePortfolio = async (index: number): Promise<boolean> => {
+    try {
+      const fotoUrl = portfolio.value[index];
+      if (!fotoUrl) return false;
+
+      const response = await api.delete('/prestador/perfil/portfolio', {
+        data: { url: fotoUrl }
+      });
+
+      if (response.data?.success) {
+        portfolio.value.splice(index, 1);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Erro ao remover do portfólio:', err);
+      return false;
+    }
+  };
+
+  // ===================== FOTO =====================
+
+  const updateAvatar = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('foto', file);
+
+    try {
+      const response = await api.post('/prestador/perfil/foto', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (response.data?.success && response.data.data?.foto) {
+        const fotoUrl = response.data.data.foto;
+        if (perfil.value) perfil.value.foto = fotoUrl;
+        if (authStore.user) authStore.user.foto = fotoUrl;
+        return fotoUrl;
+      }
+      return null;
+    } catch (err) {
+      console.error('Erro ao atualizar foto:', err);
+      return null;
+    }
+  };
+
+  // ===================== PERFIL =====================
+
+  const updateProfile = async (data: UpdateProfileData): Promise<boolean> => {
+    try {
+      const response = await api.put('/prestador/perfil', data);
+      if (response.data?.success) {
         await fetchPerfilCompleto(true);
-        showNotification('positive', 'Foto atualizada!');
-        return response.data.data.foto;
-      }
-      return null;
-    } catch (error) {
-      console.error('Erro ao atualizar foto:', error);
-      showNotification('negative', 'Erro ao atualizar foto');
-      return null;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  // ✅ MÉTODO: Atualizar perfil
-  async function updateProfile(data: { nome?: string; telefone?: string; endereco?: string }): Promise<boolean> {
-    loading.value = true;
-    try {
-      const response = await api.put(PRESTADOR_ENDPOINTS.UPDATE_PROFILE, data);
-      if (response.data.success === true) {
-        cacheStore.invalidatePattern('perfil_completo');
-        await fetchPerfilCompleto(true);
-        showNotification('positive', 'Perfil atualizado!');
         return true;
       }
       return false;
-    } catch (error) {
-      console.error('Erro ao atualizar perfil:', error);
-      showNotification('negative', 'Erro ao atualizar perfil');
+    } catch (err) {
+      console.error('Erro ao atualizar perfil:', err);
       return false;
-    } finally {
-      loading.value = false;
     }
-  }
+  };
 
-  // ==========================================
-  // CATEGORIAS DO PRESTADOR
-  // ==========================================
+  // ===================== LOGOUT E EXCLUSÃO =====================
 
-  async function fetchMinhasCategorias(forceRefresh: boolean = false): Promise<CategoriaPrestadorData[]> {
-    initializeCache();
-
-    const data = await cacheStore.fetchWithCache<CategoriaPrestadorData[]>(
-      'minhas_categorias',
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.MINHAS_CATEGORIAS);
-          const result = extractDataFromResponse<CategoriaPrestadorData[]>(response.data);
-          minhasCategorias.value = Array.isArray(result) ? result : [];
-          return minhasCategorias.value;
-        } finally {
-          loading.value = false;
-        }
-      },
-      PRESTADOR_CACHE_TTL.LONG,
-      forceRefresh
-    );
-
-    return data;
-  }
-
-  async function addCategoria(categoriaId: number): Promise<boolean> {
-    loading.value = true;
+  const logout = async (): Promise<boolean> => {
     try {
-      const response = await api.post(PRESTADOR_ENDPOINTS.ADICIONAR_CATEGORIA(categoriaId.toString()));
-      if (response.data.success) {
-        cacheStore.invalidatePattern('minhas_categorias');
-        await fetchMinhasCategorias(true);
-        showNotification('positive', 'Categoria adicionada!');
+      await authStore.logout();
+      limparStore();
+      return true;
+    } catch (err) {
+      console.error('Erro ao fazer logout:', err);
+      return false;
+    }
+  };
+
+  const deleteAccount = async (): Promise<boolean> => {
+    try {
+      const response = await api.delete('/prestador/perfil/conta');
+      if (response.data?.success) {
+        limparStore();
+        await authStore.logout();
         return true;
       }
       return false;
-    } catch {
-      showNotification('negative', 'Erro ao adicionar categoria');
+    } catch (err) {
+      console.error('Erro ao excluir conta:', err);
       return false;
-    } finally {
-      loading.value = false;
     }
-  }
+  };
 
-  async function removeCategoria(categoriaId: number): Promise<boolean> {
-    loading.value = true;
+  const limparStore = (): void => {
+    perfil.value = null;
+    portfolio.value = [];
+    servicos.value = [];
+    minhasCategorias.value = [];
+    disponibilidade.value = null;
+    documentoVerificado.value = false;
+    stats.value = { servicos: 0, pedidos_pendentes: 0, avaliacao_media: 0 };
+    dadosCarregados.value = false;
+    ultimaAtualizacao.value = null;
+    error.value = null;
+  };
+
+  const carregarTodosDados = async (): Promise<void> => {
+    isLoading.value = true;
     try {
-      const response = await api.delete(PRESTADOR_ENDPOINTS.REMOVER_CATEGORIA(categoriaId.toString()));
-      if (response.data.success) {
-        minhasCategorias.value = minhasCategorias.value.filter(c => c.id !== categoriaId);
-        cacheStore.invalidatePattern('minhas_categorias');
-        showNotification('positive', 'Categoria removida!');
-        return true;
-      }
-      return false;
-    } catch {
-      showNotification('negative', 'Erro ao remover categoria');
-      return false;
+      await Promise.all([
+        fetchPerfilCompleto(true),
+        fetchStats(true),
+        fetchMinhasCategorias(true),
+        fetchDisponibilidade(true),
+      ]);
+    } catch (err) {
+      console.error('Erro ao carregar dados do perfil:', err);
     } finally {
-      loading.value = false;
+      isLoading.value = false;
     }
-  }
-
-  // ==========================================
-  // DISPONIBILIDADE
-  // ==========================================
-
-  async function fetchDisponibilidade(forceRefresh: boolean = false): Promise<DisponibilidadeData | null> {
-    initializeCache();
-
-    const data = await cacheStore.fetchWithCache<DisponibilidadeData | null>(
-      'disponibilidade',
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.DISPONIBILIDADE);
-          disponibilidade.value = extractDataFromResponse<DisponibilidadeData>(response.data);
-          return disponibilidade.value;
-        } catch {
-          disponibilidade.value = null;
-          return null;
-        } finally {
-          loading.value = false;
-        }
-      },
-      PRESTADOR_CACHE_TTL.MEDIUM,
-      forceRefresh
-    );
-
-    return data;
-  }
-
-  async function updateDisponibilidade(data: Partial<DisponibilidadeData>): Promise<DisponibilidadeData | null> {
-    loading.value = true;
-    try {
-      const response = await api.put(PRESTADOR_ENDPOINTS.ATUALIZAR_DISPONIBILIDADE, data);
-      if (response.data.success) {
-        disponibilidade.value = extractDataFromResponse<DisponibilidadeData>(response.data);
-        cacheStore.invalidatePattern('disponibilidade');
-        showNotification('positive', 'Configurações atualizadas!');
-        return disponibilidade.value;
-      }
-      return null;
-    } catch {
-      showNotification('negative', 'Erro ao atualizar disponibilidade');
-      return null;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  // ==========================================
-  // INTERVALOS
-  // ==========================================
-
-  async function fetchIntervalos(forceRefresh: boolean = false): Promise<IntervaloData[]> {
-    initializeCache();
-
-    const data = await cacheStore.fetchWithCache<IntervaloData[]>(
-      'intervalos',
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(PRESTADOR_ENDPOINTS.INTERVALOS);
-          const result = extractDataFromResponse<IntervaloData[]>(response.data);
-          intervalos.value = Array.isArray(result) ? result : [];
-          return intervalos.value;
-        } finally {
-          loading.value = false;
-        }
-      },
-      PRESTADOR_CACHE_TTL.MEDIUM,
-      forceRefresh
-    );
-
-    return data;
-  }
-
-  async function criarIntervalo(data: { dias: string[]; inicio: string; fim: string; descricao?: string }): Promise<IntervaloData | null> {
-    loading.value = true;
-    try {
-      const payload: { dias: string[]; inicio: string; fim: string; descricao?: string } = {
-        dias: data.dias,
-        inicio: data.inicio,
-        fim: data.fim,
-      };
-
-      if (data.descricao && data.descricao.trim() !== '') {
-        payload.descricao = data.descricao.trim();
-      }
-
-      const response = await api.post(PRESTADOR_ENDPOINTS.CRIAR_INTERVALO, payload);
-      if (response.data.success) {
-        const novo = extractDataFromResponse<IntervaloData>(response.data);
-        intervalos.value.push(novo);
-        cacheStore.invalidatePattern('intervalos');
-        showNotification('positive', 'Intervalo criado!');
-        return novo;
-      }
-      return null;
-    } catch (error) {
-      showError(error);
-      return null;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function atualizarIntervalo(id: number, data: { dias: string[]; inicio: string; fim: string; descricao?: string }): Promise<IntervaloData | null> {
-    loading.value = true;
-    try {
-      const payload: { dias: string[]; inicio: string; fim: string; descricao?: string } = {
-        dias: data.dias,
-        inicio: data.inicio,
-        fim: data.fim,
-      };
-
-      if (data.descricao && data.descricao.trim() !== '') {
-        payload.descricao = data.descricao.trim();
-      }
-
-      const response = await api.put(PRESTADOR_ENDPOINTS.ATUALIZAR_INTERVALO(id.toString()), payload);
-      if (response.data.success) {
-        const atualizado = extractDataFromResponse<IntervaloData>(response.data);
-        const index = intervalos.value.findIndex(i => i.id === id);
-        if (index !== -1) {
-          intervalos.value[index] = atualizado;
-        }
-        cacheStore.invalidatePattern('intervalos');
-        showNotification('positive', 'Intervalo atualizado!');
-        return atualizado;
-      }
-      return null;
-    } catch (error) {
-      showError(error);
-      return null;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function deletarIntervalo(id: number): Promise<boolean> {
-    loading.value = true;
-    try {
-      const response = await api.delete(PRESTADOR_ENDPOINTS.DELETAR_INTERVALO(id.toString()));
-      if (response.data.success) {
-        intervalos.value = intervalos.value.filter(i => i.id !== id);
-        cacheStore.invalidatePattern('intervalos');
-        showNotification('positive', 'Intervalo removido!');
-        return true;
-      }
-      return false;
-    } catch (error) {
-      showError(error);
-      return false;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  // ==========================================
-  // RETORNO
-  // ==========================================
+  };
 
   return {
-    // State
-    loading,
-    perfilCompleto,
-    minhasCategorias,
-    disponibilidade,
-    intervalos,
+    // Estados
+    isLoading, error, perfil, portfolio, servicos, minhasCategorias,
+    disponibilidade, documentoVerificado, stats, dadosCarregados, ultimaAtualizacao,
 
-    // Actions - Perfil
-    fetchPerfilCompleto,
+    // Getters
+    nomeCompleto, email, telefone, profissao, sobre, endereco,
+    rating, totalAvaliacoes, foto, disponibilidadeHorariosFormatados,
+
+    // READ
+    fetchPerfilCompleto, fetchStats, fetchMinhasCategorias, fetchDisponibilidade,
+
+    // SERVIÇOS
+    adicionarServico, atualizarServico, removerServico,
+
+    // CATEGORIAS
+    addCategoria, removeCategoria,
+
+    // PORTFÓLIO
+    addPortfolio, removePortfolio,
+
+    // FOTO
     updateAvatar,
+
+    // PERFIL
     updateProfile,
 
-    // Actions - Categorias
-    fetchMinhasCategorias,
-    addCategoria,
-    removeCategoria,
-
-    // Actions - Disponibilidade
-    fetchDisponibilidade,
+    // DISPONIBILIDADE
     updateDisponibilidade,
 
-    // Actions - Intervalos
-    fetchIntervalos,
-    criarIntervalo,
-    atualizarIntervalo,
-    deletarIntervalo,
+    // LOGOUT
+    logout, deleteAccount, limparStore, carregarTodosDados,
   };
 });
+
+export default usePrestadorPerfilStore;

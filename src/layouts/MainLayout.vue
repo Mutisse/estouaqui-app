@@ -168,6 +168,10 @@
           <div class="ea-footer__legal">
             <a href="/privacidade" class="ea-footer__legal-link">Privacidade</a>
             <a href="/termos" class="ea-footer__legal-link">Termos</a>
+            <!-- ✅ LINK ADMIN DISCRETO -->
+            <router-link to="/admin/login" class="ea-footer__legal-link ea-footer__admin-link">
+              Admin
+            </router-link>
           </div>
         </div>
       </div>
@@ -398,7 +402,7 @@ $radius-lg: 20px;
 }
 
 // =====================
-//  DRAWER - CORRIGIDO (SEM FUNDO BRANCO)
+//  DRAWER
 // =====================
 .ea-drawer {
   background: $ink !important;
@@ -646,6 +650,7 @@ $radius-lg: 20px;
   &__legal {
     display: flex;
     gap: 20px;
+    align-items: center;
   }
 
   &__legal-link {
@@ -653,7 +658,26 @@ $radius-lg: 20px;
     text-decoration: none;
     font-size: 0.8rem;
     transition: color 0.2s;
-    &:hover { color: rgba(255,255,255,0.6); }
+
+    &:hover {
+      color: rgba(255,255,255,0.6);
+    }
+  }
+
+  // ✅ LINK ADMIN DISCRETO
+  &__admin-link {
+    margin-left: 4px;
+    padding-left: 20px;
+    border-left: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+    opacity: 0.5;
+    transition: opacity 0.2s, color 0.2s;
+
+    &:hover {
+      opacity: 1;
+      color: $accent;
+    }
   }
 }
 

@@ -1,19 +1,32 @@
 <template>
   <div class="prestador-agenda">
-
     <!-- ===== CABEÇALHO ===== -->
     <div class="page-header">
       <button class="back-btn" @click="() => void router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M15 18l-6-6 6-6"/>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M15 18l-6-6 6-6" />
         </svg>
       </button>
       <h1 class="page-title">Minha Agenda</h1>
       <button class="help-btn" @click="ajuda">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
       </button>
     </div>
@@ -46,26 +59,46 @@
 
     <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
-
       <!-- ===== SELECTOR DE SEMANA ===== -->
       <div class="week-selector">
         <button class="week-nav" @click="semanaAnterior">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M15 18l-6-6 6-6"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
         <div class="week-range">{{ semanaRange }}</div>
         <button class="week-nav" @click="proximaSemana">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 18l6-6-6-6"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M9 18l6-6-6-6" />
           </svg>
         </button>
         <button class="today-btn" @click="irParaHoje">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
           Hoje
         </button>
@@ -99,32 +132,46 @@
         </div>
 
         <!-- Linhas de horários -->
-        <div
-          v-for="horario in horariosDoDia"
-          :key="horario.horario"
-          class="grid-row"
-        >
+        <div v-for="horario in horariosDoDia" :key="horario.horario" class="grid-row">
           <div class="hora-label">{{ horario.horario }}</div>
           <div
             v-for="dia in diasDaSemana"
             :key="dia.data"
             class="grid-cell"
             :class="{
-              'cell-disponivel': getHorarioStatus(dia.data, horario.horario).disponivel && !getHorarioStatus(dia.data, horario.horario).ocupado,
+              'cell-disponivel':
+                getHorarioStatus(dia.data, horario.horario).disponivel &&
+                !getHorarioStatus(dia.data, horario.horario).ocupado,
               'cell-ocupado': getHorarioStatus(dia.data, horario.horario).ocupado,
               'cell-bloqueado': getHorarioStatus(dia.data, horario.horario).bloqueado,
             }"
             @click="toggleHorario(dia.data, horario.horario)"
           >
-            <svg v-if="getHorarioStatus(dia.data, horario.horario).bloqueado" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="18" y1="6" x2="6" y2="18"/>
+            <svg
+              v-if="getHorarioStatus(dia.data, horario.horario).bloqueado"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="18" y1="6" x2="6" y2="18" />
             </svg>
-            <svg v-else-if="getHorarioStatus(dia.data, horario.horario).ocupado" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
+            <svg
+              v-else-if="getHorarioStatus(dia.data, horario.horario).ocupado"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
           </div>
         </div>
@@ -133,17 +180,32 @@
       <!-- ===== BOTÕES DE AÇÃO ===== -->
       <div class="acoes">
         <button class="btn-outline" @click="abrirModalIntervalos">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
           </svg>
           Intervalos
         </button>
         <button class="btn-primary" @click="salvarAlteracoes" :disabled="salvando">
-          <svg v-if="!salvando" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
+          <svg
+            v-if="!salvando"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
           </svg>
           <div v-else class="btn-spinner-small"></div>
           <span>Salvar Alterações</span>
@@ -152,43 +214,84 @@
     </template>
 
     <!-- ===== MODAL DE INTERVALOS ===== -->
-    <div class="modal-overlay" v-if="modalIntervalos.visivel" @click="modalIntervalos.visivel = false">
+    <div
+      class="modal-overlay"
+      v-if="modalIntervalos.visivel"
+      @click="modalIntervalos.visivel = false"
+    >
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3>Intervalos de Disponibilidade</h3>
           <button class="modal-close" @click="modalIntervalos.visivel = false">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
         <div class="modal-body">
           <p class="modal-subtitle">Configure períodos em que não estará disponível</p>
 
-          <div v-for="(intervalo, idx) in intervalosList" :key="intervalo.id || idx" class="intervalo-item">
+          <div
+            v-for="(intervalo, idx) in intervalosList"
+            :key="intervalo.id || idx"
+            class="intervalo-item"
+          >
             <div class="intervalo-inputs">
               <select v-model="intervalo.diasSelecionados" class="intervalo-select" multiple>
                 <option v-for="dia in diasOptionsList" :key="dia.value" :value="dia.value">
                   {{ dia.label }}
                 </option>
               </select>
-              <input type="time" v-model="intervalo.inicio" class="intervalo-time" placeholder="Início" />
+              <input
+                type="time"
+                v-model="intervalo.inicio"
+                class="intervalo-time"
+                placeholder="Início"
+              />
               <input type="time" v-model="intervalo.fim" class="intervalo-time" placeholder="Fim" />
-              <input type="text" v-model="intervalo.descricao" class="intervalo-desc" placeholder="Descrição (opcional)" />
+              <input
+                type="text"
+                v-model="intervalo.descricao"
+                class="intervalo-desc"
+                placeholder="Descrição (opcional)"
+              />
             </div>
             <button class="intervalo-remove" @click="removerIntervalo(intervalo.id || 0, idx)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="3 6 5 6 21 6" />
+                <path
+                  d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                />
               </svg>
             </button>
           </div>
 
           <button class="btn-add" @click="adicionarIntervalo">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             Adicionar Intervalo
           </button>
@@ -204,14 +307,12 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { useAuthStore } from 'src/stores/auth-store';
-import { usePrestadorServicosStore } from 'src/stores/prestador/prestador-servicos-store';
-import { usePrestadorPerfilStore } from 'src/stores/prestador/prestador-perfil-store';
+import { useAuthStore } from 'src/stores/login-store';
+import { usePrestadorAgendaStore } from 'src/stores/prestador/prestador-agenda-store';
 
 defineOptions({ name: 'PrestadorAgenda' });
 
@@ -244,17 +345,6 @@ interface IntervaloLocal {
   ativo: boolean;
 }
 
-// Interface estendida para AgendaData com ocupado
-interface AgendaDataExtended {
-  id: number;
-  data: string;
-  horario_inicio: string;
-  horario_fim: string;
-  bloqueado: boolean;
-  motivo?: string;
-  ocupado?: boolean;
-}
-
 // ==========================================
 // SETUP
 // ==========================================
@@ -263,21 +353,28 @@ const router = useRouter();
 const $q = useQuasar();
 const authStore = useAuthStore();
 
-const servicosStore = usePrestadorServicosStore();
-const perfilStore = usePrestadorPerfilStore();
+// ✅ APENAS UM STORE!
+const agendaStore = usePrestadorAgendaStore();
 
 const carregamentoInicial = ref(true);
 const salvando = ref(false);
 const salvandoIntervalos = ref(false);
-const agendaData = ref<AgendaDataExtended[]>([]);
 const intervalosList = ref<IntervaloLocal[]>([]);
 const currentWeekOffset = ref(0);
 
 const horariosDoDia = ref<HorarioItem[]>([
-  { horario: '08:00' }, { horario: '09:00' }, { horario: '10:00' },
-  { horario: '11:00' }, { horario: '12:00' }, { horario: '13:00' },
-  { horario: '14:00' }, { horario: '15:00' }, { horario: '16:00' },
-  { horario: '17:00' }, { horario: '18:00' }, { horario: '19:00' },
+  { horario: '08:00' },
+  { horario: '09:00' },
+  { horario: '10:00' },
+  { horario: '11:00' },
+  { horario: '12:00' },
+  { horario: '13:00' },
+  { horario: '14:00' },
+  { horario: '15:00' },
+  { horario: '16:00' },
+  { horario: '17:00' },
+  { horario: '18:00' },
+  { horario: '19:00' },
 ]);
 
 const modalIntervalos = reactive({
@@ -304,7 +401,20 @@ function obterNomeDiaCurto(dia: number): string {
 }
 
 function obterNomeMesCurto(mes: number): string {
-  const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const meses = [
+    'Jan',
+    'Fev',
+    'Mar',
+    'Abr',
+    'Mai',
+    'Jun',
+    'Jul',
+    'Ago',
+    'Set',
+    'Out',
+    'Nov',
+    'Dez',
+  ];
   return meses[mes - 1] || '---';
 }
 
@@ -361,7 +471,9 @@ const semanaRange = computed(() => {
 // ==========================================
 
 function getHorarioStatus(data: string, horario: string): HorarioStatus {
-  const encontrado = agendaData.value.find((h) => h.data === data && h.horario_inicio === horario);
+  const encontrado = agendaStore.agenda.find(
+    (h) => h.data === data && h.horario_inicio === horario,
+  );
   if (encontrado) {
     return {
       disponivel: !encontrado.bloqueado && !encontrado.ocupado,
@@ -374,18 +486,17 @@ function getHorarioStatus(data: string, horario: string): HorarioStatus {
 
 function toggleHorario(data: string, horario: string): void {
   const status = getHorarioStatus(data, horario);
-  const existingIndex = agendaData.value.findIndex(
-    (h) => h.data === data && h.horario_inicio === horario
+  const existingIndex = agendaStore.agenda.findIndex(
+    (h) => h.data === data && h.horario_inicio === horario,
   );
 
   if (status.bloqueado) {
     // Se está bloqueado, desbloquear
-    if (existingIndex !== -1 && agendaData.value[existingIndex]) {
-      agendaData.value[existingIndex].bloqueado = false;
-      agendaData.value[existingIndex].ocupado = false;
+    if (existingIndex !== -1 && agendaStore.agenda[existingIndex]) {
+      agendaStore.agenda[existingIndex].bloqueado = false;
+      agendaStore.agenda[existingIndex].ocupado = false;
     }
   } else if (status.ocupado) {
-    // Se está ocupado, não pode alterar (pedido já agendado)
     $q.notify({
       type: 'warning',
       message: 'Este horário já possui um serviço agendado',
@@ -393,10 +504,10 @@ function toggleHorario(data: string, horario: string): void {
     });
   } else if (status.disponivel) {
     // Se está disponível, bloquear
-    if (existingIndex !== -1 && agendaData.value[existingIndex]) {
-      agendaData.value[existingIndex].bloqueado = true;
+    if (existingIndex !== -1 && agendaStore.agenda[existingIndex]) {
+      agendaStore.agenda[existingIndex].bloqueado = true;
     } else {
-      agendaData.value.push({
+      agendaStore.agenda.push({
         id: Date.now(),
         data,
         horario_inicio: horario,
@@ -415,23 +526,7 @@ function toggleHorario(data: string, horario: string): void {
 
 async function carregarAgenda(): Promise<void> {
   try {
-    await servicosStore.fetchAgenda({ semana: currentWeekOffset.value });
-    // Mapear para adicionar campo ocupado (padrão false)
-    agendaData.value = servicosStore.agenda.map((item) => {
-      const base: AgendaDataExtended = {
-        id: item.id,
-        data: item.data,
-        horario_inicio: item.horario_inicio,
-        horario_fim: item.horario_fim,
-        bloqueado: item.bloqueado,
-        ocupado: false,
-      };
-      // Só adicionar motivo se existir
-      if (item.motivo) {
-        base.motivo = item.motivo;
-      }
-      return base;
-    });
+    await agendaStore.fetchAgendaPorSemana(currentWeekOffset.value);
   } catch (error) {
     console.error('Erro ao carregar agenda:', error);
     $q.notify({ type: 'negative', message: 'Erro ao carregar agenda', position: 'top' });
@@ -440,8 +535,8 @@ async function carregarAgenda(): Promise<void> {
 
 async function carregarIntervalos(): Promise<void> {
   try {
-    await perfilStore.fetchIntervalos();
-    intervalosList.value = perfilStore.intervalos.map((i) => ({
+    await agendaStore.fetchIntervalos();
+    intervalosList.value = agendaStore.intervalos.map((i) => ({
       id: i.id,
       diasSelecionados: i.dias || [],
       inicio: i.inicio || '',
@@ -480,21 +575,23 @@ function irParaHoje(): void {
 async function salvarAlteracoes(): Promise<void> {
   salvando.value = true;
   try {
-    const bloqueiosParaSalvar = agendaData.value.filter((h) => h.bloqueado && h.id && h.id > 0);
-    const novosBloqueios = agendaData.value.filter((h) => h.bloqueado && (!h.id || h.id === 0));
+    const bloqueiosParaSalvar = agendaStore.agenda.filter((h) => h.bloqueado && h.id && h.id > 0);
+    const novosBloqueios = agendaStore.agenda.filter((h) => h.bloqueado && (!h.id || h.id === 0));
 
-    for (const bloqueio of bloqueiosParaSalvar) {
-      await servicosStore.desbloquearHorario(bloqueio.id);
-    }
-
-    for (const bloqueio of novosBloqueios) {
-      await servicosStore.bloquearHorario({
+    const bloquearPromises = novosBloqueios.map((bloqueio) =>
+      agendaStore.bloquearHorario({
         data: bloqueio.data,
         horario_inicio: bloqueio.horario_inicio,
         horario_fim: bloqueio.horario_fim,
         motivo: 'Bloqueio manual',
-      });
-    }
+      }),
+    );
+
+    const desbloquearPromises = bloqueiosParaSalvar.map((bloqueio) =>
+      agendaStore.desbloquearHorario(bloqueio.id),
+    );
+
+    await Promise.all([...bloquearPromises, ...desbloquearPromises]);
 
     $q.notify({ type: 'positive', message: 'Alterações salvas com sucesso!', position: 'top' });
     await carregarAgenda();
@@ -525,7 +622,6 @@ function adicionarIntervalo(): void {
   });
 }
 
-// Função para confirmar e executar remoção
 function removerIntervalo(id: number, idx: number): void {
   if (id === 0) {
     intervalosList.value.splice(idx, 1);
@@ -538,12 +634,15 @@ function removerIntervalo(id: number, idx: number): void {
     cancel: { label: 'Cancelar', flat: true },
     ok: { label: 'Remover', color: 'negative', unelevated: true },
   }).onOk(() => {
-    // Chamar a função async separadamente
     void (async () => {
       try {
-        await perfilStore.deletarIntervalo(id);
-        intervalosList.value = intervalosList.value.filter((i) => i.id !== id);
-        $q.notify({ type: 'positive', message: 'Intervalo removido', position: 'top' });
+        const success = await agendaStore.deletarIntervalo(id);
+        if (success) {
+          intervalosList.value = intervalosList.value.filter((i) => i.id !== id);
+          $q.notify({ type: 'positive', message: 'Intervalo removido', position: 'top' });
+        } else {
+          $q.notify({ type: 'negative', message: 'Erro ao remover intervalo', position: 'top' });
+        }
       } catch (error) {
         console.error('Erro ao remover intervalo:', error);
         $q.notify({ type: 'negative', message: 'Erro ao remover intervalo', position: 'top' });
@@ -556,22 +655,20 @@ async function salvarIntervalos(): Promise<void> {
   salvandoIntervalos.value = true;
   try {
     for (const intervalo of intervalosList.value) {
-      // Construir payload corretamente - descricao opcional
       const payload: { dias: string[]; inicio: string; fim: string; descricao?: string } = {
         dias: intervalo.diasSelecionados,
         inicio: intervalo.inicio,
         fim: intervalo.fim,
       };
 
-      // Só adicionar descricao se tiver valor
       if (intervalo.descricao && intervalo.descricao.trim() !== '') {
         payload.descricao = intervalo.descricao.trim();
       }
 
       if (intervalo.id === 0) {
-        await perfilStore.criarIntervalo(payload);
+        await agendaStore.criarIntervalo(payload);
       } else {
-        await perfilStore.atualizarIntervalo(intervalo.id, payload);
+        await agendaStore.atualizarIntervalo(intervalo.id, payload);
       }
     }
     $q.notify({ type: 'positive', message: 'Intervalos salvos com sucesso!', position: 'top' });
@@ -606,6 +703,22 @@ function ajuda(): void {
 // INICIALIZAÇÃO
 // ==========================================
 
+const carregarDadosIniciais = async (): Promise<void> => {
+  carregamentoInicial.value = true;
+  try {
+    await Promise.all([
+      agendaStore.carregarTodosDados(currentWeekOffset.value),
+      carregarIntervalos(),
+    ]);
+  } catch (error) {
+    console.error('Erro na inicialização:', error);
+  } finally {
+    setTimeout(() => {
+      carregamentoInicial.value = false;
+    }, 500);
+  }
+};
+
 onMounted(async () => {
   if (!authStore.isAuthenticated) {
     await router.push('/auth/login');
@@ -615,17 +728,7 @@ onMounted(async () => {
     await router.push('/mobile/prestador/dashboard');
     return;
   }
-
-  carregamentoInicial.value = true;
-  try {
-    await Promise.all([carregarAgenda(), carregarIntervalos()]);
-  } catch (error) {
-    console.error('Erro na inicialização:', error);
-  } finally {
-    setTimeout(() => {
-      carregamentoInicial.value = false;
-    }, 500);
-  }
+  void carregarDadosIniciais();
 });
 </script>
 
@@ -633,20 +736,20 @@ onMounted(async () => {
 // =====================
 // VARIABLES
 // =====================
-$accent: #5B4BF5;
+$accent: #5b4bf5;
 $accent-light: rgba(91, 75, 245, 0.1);
-$success: #10B981;
+$success: #10b981;
 $success-light: rgba(16, 185, 129, 0.15);
-$warning: #F59E0B;
+$warning: #f59e0b;
 $warning-light: rgba(245, 158, 11, 0.15);
-$danger: #EF4444;
+$danger: #ef4444;
 $danger-light: rgba(239, 68, 68, 0.15);
-$dark: #0A0A0F;
-$gray: #6B7280;
-$gray-light: #F3F4F6;
-$border: #E5E7EB;
-$white: #FFFFFF;
-$bg: #F4F4F8;
+$dark: #0a0a0f;
+$gray: #6b7280;
+$gray-light: #f3f4f6;
+$border: #e5e7eb;
+$white: #ffffff;
+$bg: #f4f4f8;
 $radius: 16px;
 $radius-sm: 12px;
 $radius-xs: 8px;
@@ -655,8 +758,12 @@ $radius-xs: 8px;
 // SKELETON LOADING
 // =====================
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .skeleton-container {
@@ -725,7 +832,11 @@ $radius-xs: 8px;
       background: $white;
       border-right: 1px solid $border;
 
-      &:first-child { width: 60px; flex: none; background: $gray-light; }
+      &:first-child {
+        width: 60px;
+        flex: none;
+        background: $gray-light;
+      }
     }
   }
 }
@@ -747,7 +858,8 @@ $radius-xs: 8px;
   padding: 12px 16px;
   border-bottom: 1px solid $border;
 
-  .back-btn, .help-btn {
+  .back-btn,
+  .help-btn {
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -759,7 +871,10 @@ $radius-xs: 8px;
     cursor: pointer;
     color: $gray;
     transition: all 0.2s;
-    &:hover { background: $accent-light; color: $accent; }
+    &:hover {
+      background: $accent-light;
+      color: $accent;
+    }
   }
 
   .page-title {
@@ -796,7 +911,10 @@ $radius-xs: 8px;
     cursor: pointer;
     color: $gray;
     transition: all 0.2s;
-    &:hover { background: $accent-light; color: $accent; }
+    &:hover {
+      background: $accent-light;
+      color: $accent;
+    }
   }
 
   .week-range {
@@ -820,7 +938,10 @@ $radius-xs: 8px;
     color: $gray;
     cursor: pointer;
     transition: all 0.2s;
-    &:hover { background: $accent-light; color: $accent; }
+    &:hover {
+      background: $accent-light;
+      color: $accent;
+    }
   }
 }
 
@@ -849,9 +970,15 @@ $radius-xs: 8px;
       height: 16px;
       border-radius: 4px;
 
-      &.disponivel { background: $success; }
-      &.ocupado { background: $warning; }
-      &.bloqueado { background: $danger; }
+      &.disponivel {
+        background: $success;
+      }
+      &.ocupado {
+        background: $warning;
+      }
+      &.bloqueado {
+        background: $danger;
+      }
     }
   }
 }
@@ -877,7 +1004,9 @@ $radius-xs: 8px;
       padding: 12px 4px;
       border-right: 1px solid $border;
 
-      &:last-child { border-right: none; }
+      &:last-child {
+        border-right: none;
+      }
 
       &.hora-header {
         flex: none;
@@ -902,7 +1031,9 @@ $radius-xs: 8px;
     display: flex;
     border-bottom: 1px solid $border;
 
-    &:last-child { border-bottom: none; }
+    &:last-child {
+      border-bottom: none;
+    }
 
     .hora-label {
       width: 70px;
@@ -925,22 +1056,30 @@ $radius-xs: 8px;
       cursor: pointer;
       transition: all 0.15s ease;
 
-      &:last-child { border-right: none; }
+      &:last-child {
+        border-right: none;
+      }
 
       &.cell-disponivel {
         background: $success-light;
-        &:hover { background: rgba($success, 0.25); }
+        &:hover {
+          background: rgba($success, 0.25);
+        }
       }
 
       &.cell-ocupado {
         background: $warning-light;
         cursor: not-allowed;
-        &:hover { background: rgba($warning, 0.25); }
+        &:hover {
+          background: rgba($warning, 0.25);
+        }
       }
 
       &.cell-bloqueado {
         background: $danger-light;
-        &:hover { background: rgba($danger, 0.3); }
+        &:hover {
+          background: rgba($danger, 0.3);
+        }
       }
     }
   }
@@ -969,7 +1108,10 @@ $radius-xs: 8px;
     color: $gray;
     cursor: pointer;
     transition: all 0.2s;
-    &:hover { background: $gray-light; border-color: $gray; }
+    &:hover {
+      background: $gray-light;
+      border-color: $gray;
+    }
   }
 
   .btn-primary {
@@ -985,22 +1127,30 @@ $radius-xs: 8px;
     color: $white;
     cursor: pointer;
     transition: all 0.2s;
-    &:hover:not(:disabled) { background: lighten($accent, 6%); transform: translateY(-1px); }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:hover:not(:disabled) {
+      background: lighten($accent, 6%);
+      transform: translateY(-1px);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 }
 
 .btn-spinner-small {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 // =====================
@@ -1037,7 +1187,11 @@ $radius-xs: 8px;
   padding: 16px 20px;
   border-bottom: 1px solid $border;
 
-  h3 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+  }
 
   .modal-close {
     width: 32px;
@@ -1050,7 +1204,9 @@ $radius-xs: 8px;
     border: none;
     cursor: pointer;
     color: $gray;
-    &:hover { background: $border; }
+    &:hover {
+      background: $border;
+    }
   }
 }
 
@@ -1119,7 +1275,9 @@ $radius-xs: 8px;
     border: none;
     cursor: pointer;
     color: $danger;
-    &:hover { background: $danger-light; }
+    &:hover {
+      background: $danger-light;
+    }
   }
 }
 
@@ -1135,7 +1293,10 @@ $radius-xs: 8px;
   color: $accent;
   cursor: pointer;
   margin-top: 8px;
-  &:hover { background: $accent-light; border-color: $accent; }
+  &:hover {
+    background: $accent-light;
+    border-color: $accent;
+  }
 }
 
 .modal-footer {
@@ -1152,7 +1313,9 @@ $radius-xs: 8px;
     font-size: 0.85rem;
     color: $gray;
     cursor: pointer;
-    &:hover { color: $dark; }
+    &:hover {
+      color: $dark;
+    }
   }
 
   .btn-save {
@@ -1164,8 +1327,12 @@ $radius-xs: 8px;
     font-weight: 500;
     color: $white;
     cursor: pointer;
-    &:hover:not(:disabled) { background: lighten($accent, 6%); }
-    &:disabled { opacity: 0.5; }
+    &:hover:not(:disabled) {
+      background: lighten($accent, 6%);
+    }
+    &:disabled {
+      opacity: 0.5;
+    }
   }
 }
 </style>

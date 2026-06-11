@@ -1,8 +1,7 @@
 ﻿<template>
   <div class="perfil-prestador-page">
-
     <!-- ===== SKELETON LOADING ===== -->
-    <div v-if="carregamentoInicial" class="skeleton-loading">
+    <div v-if="prestadorStore.carregamentoInicial" class="skeleton-loading">
       <div class="skeleton-header">
         <div class="skeleton-back-btn"></div>
         <div class="skeleton-cover"></div>
@@ -39,8 +38,7 @@
 
     <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
-      <template v-if="prestador">
-
+      <template v-if="prestadorStore.prestador">
         <!-- Header com imagem de capa -->
         <div class="profile-header">
           <button class="back-btn" @click="() => void router.back()">
@@ -55,14 +53,14 @@
           <div class="profile-info">
             <div class="profile-avatar">
               <img
-                :src="prestador.foto || obterAvatarFallback(prestador.nome)"
-                :alt="prestador.nome"
-                @error="handleAvatarError"
+                :src="prestadorStore.avatarUrl"
+                :alt="prestadorStore.prestador.nome"
+                @error="prestadorStore.avatarError = true"
               />
             </div>
             <div class="profile-name-wrapper">
-              <h2 class="profile-name">{{ prestador.nome }}</h2>
-              <svg v-if="prestador.verificado" width="20" height="20" viewBox="0 0 24 24" fill="#5B4BF5" class="verified-icon">
+              <h2 class="profile-name">{{ prestadorStore.prestador.nome }}</h2>
+              <svg v-if="prestadorStore.prestador.verificado" width="20" height="20" viewBox="0 0 24 24" fill="#5B4BF5" class="verified-icon">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
               </svg>
             </div>
@@ -70,19 +68,24 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#F59E0B" stroke="none">
                 <polygon points="12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.63 12 2 9.19 8.63 2 9.24 7.46 13.97 5.82 21 12 17.27"/>
               </svg>
-              <span class="rating-value">{{ mediaFormatada }}</span>
-              <span class="rating-count">({{ prestador.total_avaliacoes || 0 }} avaliações)</span>
+              <span class="rating-value">{{ prestadorStore.mediaFormatada }}</span>
+              <span class="rating-count">({{ prestadorStore.prestador.total_avaliacoes || 0 }} avaliações)</span>
             </div>
           </div>
         </div>
 
         <!-- Botão de favorito -->
         <div class="favorite-btn-wrapper">
-          <button class="favorite-btn" :class="{ active: isFavorito }" :disabled="favoritoLoading" @click="() => void toggleFavorito()">
-            <svg width="18" height="18" viewBox="0 0 24 24" :fill="isFavorito ? '#EF4444' : 'none'" stroke="currentColor" stroke-width="2">
+          <button
+            class="favorite-btn"
+            :class="{ active: prestadorStore.isFavorito }"
+            :disabled="prestadorStore.favoritoLoading"
+            @click="() => void toggleFavorito()"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" :fill="prestadorStore.isFavorito ? '#EF4444' : 'none'" stroke="currentColor" stroke-width="2">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
-            <span>{{ isFavorito ? 'Favorito' : 'Adicionar aos favoritos' }}</span>
+            <span>{{ prestadorStore.isFavorito ? 'Favorito' : 'Adicionar aos favoritos' }}</span>
           </button>
         </div>
 
@@ -92,7 +95,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
               <path d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
             </svg>
-            <div class="info-value">{{ prestador.profissao || 'Profissional' }}</div>
+            <div class="info-value">{{ prestadorStore.prestador.profissao || 'Profissional' }}</div>
             <div class="info-label">profissão</div>
           </div>
           <div class="info-card">
@@ -100,14 +103,14 @@
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
               <polyline points="22 4 12 14.01 9 11.01"/>
             </svg>
-            <div class="info-value">{{ prestador.disponivel !== false ? 'Disponível' : 'Indisponível' }}</div>
+            <div class="info-value" :style="{ color: prestadorStore.statusCor }">{{ prestadorStore.statusFormatado }}</div>
             <div class="info-label">status</div>
           </div>
           <div class="info-card">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            <div class="info-value">{{ prestador.verificado ? 'Verificado' : 'Não verificado' }}</div>
+            <div class="info-value">{{ prestadorStore.prestador.verificado ? 'Verificado' : 'Não verificado' }}</div>
             <div class="info-label">verificação</div>
           </div>
           <div class="info-card">
@@ -115,38 +118,38 @@
               <circle cx="12" cy="12" r="10"/>
               <path d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
             </svg>
-            <div class="info-value">{{ prestador.raio || 10 }} km</div>
+            <div class="info-value">{{ prestadorStore.prestador.raio || 10 }} km</div>
             <div class="info-label">raio de ação</div>
           </div>
         </div>
 
         <!-- Sobre -->
-        <div v-if="prestador.sobre" class="section">
+        <div v-if="prestadorStore.prestador.sobre" class="section">
           <h3 class="section-title">Sobre</h3>
-          <p class="section-text">{{ prestador.sobre }}</p>
+          <p class="section-text">{{ prestadorStore.prestador.sobre }}</p>
         </div>
 
         <!-- Especialidades -->
         <div class="section">
           <h3 class="section-title">Especialidades</h3>
           <div class="categorias-list">
-            <div v-for="categoria in prestador.categorias" :key="categoria.id" class="categoria-chip" :style="getChipStyle(categoria.cor)">
+            <div v-for="categoria in prestadorStore.prestador.categorias" :key="categoria.id" class="categoria-chip" :style="prestadorStore.getChipStyle(categoria.cor)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
               </svg>
               {{ categoria.nome }}
             </div>
-            <div v-if="!prestador.categorias?.length" class="empty-chip">
+            <div v-if="!prestadorStore.prestador.categorias?.length" class="empty-chip">
               Nenhuma categoria definida
             </div>
           </div>
         </div>
 
         <!-- Serviços oferecidos -->
-        <div v-if="prestador.servicos && prestador.servicos.length" class="section">
+        <div v-if="prestadorStore.servicosOrdenados.length" class="section">
           <h3 class="section-title">Serviços oferecidos</h3>
           <div class="servicos-list">
-            <div v-for="servico in prestador.servicos" :key="servico.id" class="servico-item">
+            <div v-for="servico in prestadorStore.servicosOrdenados" :key="servico.id" class="servico-item">
               <div class="servico-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
                   <path d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
@@ -154,7 +157,7 @@
               </div>
               <div class="servico-info">
                 <div class="servico-nome">{{ servico.nome }}</div>
-                <div class="servico-preco">{{ formatarPreco(servico.preco) }}</div>
+                <div class="servico-preco">{{ prestadorStore.formatarPreco(servico.preco) }}</div>
               </div>
               <div class="servico-duracao">{{ servico.duracao }} min</div>
             </div>
@@ -162,10 +165,10 @@
         </div>
 
         <!-- Portfólio -->
-        <div v-if="prestador.portfolio && prestador.portfolio.length" class="section">
+        <div v-if="prestadorStore.prestador.portfolio?.length" class="section">
           <h3 class="section-title">Portfólio</h3>
           <div class="portfolio-grid">
-            <div v-for="(img, idx) in prestador.portfolio.slice(0, 6)" :key="idx" class="portfolio-item" @click="() => void verImagem(img)">
+            <div v-for="(img, idx) in prestadorStore.prestador.portfolio.slice(0, 6)" :key="idx" class="portfolio-item" @click="() => void verImagem(img)">
               <img :src="img" :alt="`Portfólio ${idx + 1}`" />
               <div class="portfolio-overlay">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
@@ -181,30 +184,30 @@
         <div class="section">
           <h3 class="section-title">Contato</h3>
           <div class="contato-list">
-            <div v-if="prestador.telefone" class="contato-item" @click="ligar">
+            <div v-if="prestadorStore.prestador.telefone" class="contato-item" @click="ligar">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
               </svg>
-              <span>{{ prestador.telefone }}</span>
+              <span>{{ prestadorStore.prestador.telefone }}</span>
             </div>
-            <div v-if="prestador.email" class="contato-item" @click="enviarEmail">
+            <div v-if="prestadorStore.prestador.email" class="contato-item" @click="enviarEmail">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                 <polyline points="22,6 12,13 2,6"/>
               </svg>
-              <span>{{ prestador.email }}</span>
+              <span>{{ prestadorStore.prestador.email }}</span>
             </div>
           </div>
         </div>
 
         <!-- Últimas avaliações -->
-        <div v-if="prestador.avaliacoes && prestador.avaliacoes.length" class="section">
+        <div v-if="prestadorStore.ultimasAvaliacoes.length" class="section">
           <h3 class="section-title">Últimas avaliações</h3>
           <div class="avaliacoes-list">
-            <div v-for="avaliacao in prestador.avaliacoes.slice(0, 3)" :key="avaliacao.id" class="avaliacao-item">
+            <div v-for="avaliacao in prestadorStore.ultimasAvaliacoes" :key="avaliacao.id" class="avaliacao-item">
               <div class="avaliacao-header">
-                <div class="avaliacao-avatar" :style="getAvatarStyle(avaliacao.cliente?.nome || '')">
-                  {{ getInitials(avaliacao.cliente?.nome || 'C') }}
+                <div class="avaliacao-avatar" :style="prestadorStore.getAvatarStyle(avaliacao.cliente?.nome || '')">
+                  {{ prestadorStore.getInitials(avaliacao.cliente?.nome || 'C') }}
                 </div>
                 <div class="avaliacao-info">
                   <div class="avaliacao-nome">{{ avaliacao.cliente?.nome || 'Cliente' }}</div>
@@ -219,12 +222,12 @@
                     </template>
                   </div>
                 </div>
-                <div class="avaliacao-data">{{ formatarData(avaliacao.created_at) }}</div>
+                <div class="avaliacao-data">{{ prestadorStore.formatarData(avaliacao.created_at) }}</div>
               </div>
               <p v-if="avaliacao.comentario" class="avaliacao-comentario">{{ avaliacao.comentario }}</p>
             </div>
           </div>
-          <button v-if="prestador.total_avaliacoes > 3" class="view-all-btn" @click="() => void verTodasAvaliacoes()">
+          <button v-if="prestadorStore.prestador.total_avaliacoes > 3" class="view-all-btn" @click="() => void verTodasAvaliacoes()">
             Ver todas as avaliações
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -242,13 +245,13 @@
           <line x1="12" y1="8" x2="12" y2="12"/>
           <circle cx="12" cy="16" r="1" fill="#EF4444" stroke="none"/>
         </svg>
-        <h3>Prestador não encontrado</h3>
+        <h3>{{ prestadorStore.erro || 'Prestador não encontrado' }}</h3>
         <button class="back-action" @click="() => void router.back()">Voltar</button>
       </div>
     </template>
 
     <!-- Botão flutuante do chat -->
-    <button v-if="prestador" class="chat-fab" @click="() => void abrirChat()">
+    <button v-if="prestadorStore.prestador" class="chat-fab" @click="() => void abrirChat()">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
       </svg>
@@ -257,11 +260,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { useClientePublicStore, type PrestadorData } from 'src/stores/client/cliente-public-store';
-import { useClienteComunicacaoStore } from 'src/stores/client/cliente-comunicacao-store';
+import { usePrestadorStore } from 'src/stores/client/cliente-prestador-store';
 
 defineOptions({ name: 'PerfilPrestadorPage' });
 
@@ -269,102 +271,41 @@ const router = useRouter();
 const route = useRoute();
 const $q = useQuasar();
 
-const publicStore = useClientePublicStore();
-const comunicacaoStore = useClienteComunicacaoStore();
-
-const carregamentoInicial = ref(true);
-const prestador = ref<PrestadorData | null>(null);
-const isFavorito = ref(false);
-const favoritoLoading = ref(false);
-const avatarError = ref(false);
+const prestadorStore = usePrestadorStore();
 
 const prestadorId = computed(() => Number(route.params.id));
-
 const coverImage = 'https://images.unsplash.com/photo-1577412647305-991150c7d163?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
 
-const avatarGradients = [
-  'linear-gradient(135deg, #5B4BF5, #9F7AEA)',
-  'linear-gradient(135deg, #10B981, #34D399)',
-  'linear-gradient(135deg, #F59E0B, #FBBF24)',
-  'linear-gradient(135deg, #EF4444, #F87171)',
-  'linear-gradient(135deg, #3B82F6, #60A5FA)',
-  'linear-gradient(135deg, #8B5CF6, #A78BFA)',
-];
+const toggleFavorito = async () => {
+  if (!prestadorStore.prestador) return;
 
-const getAvatarStyle = (nome: string) => {
-  const idx = Math.abs(nome.charCodeAt(0) || 0) % avatarGradients.length;
-  return { background: avatarGradients[idx] };
-};
+  const success = await prestadorStore.toggleFavorito(prestadorId.value);
 
-const getChipStyle = (cor?: string) => ({
-  background: cor ? `${cor}15` : 'rgba(91, 75, 245, 0.1)',
-  color: cor || '#5B4BF5',
-});
-
-const getInitials = (nome: string): string => {
-  if (!nome || nome.trim() === '') return '??';
-  const partes = nome.trim().split(' ');
-  const primeiraParte = partes[0];
-  if (!primeiraParte) return '??';
-  if (partes.length === 1) {
-    if (primeiraParte.length >= 2) return primeiraParte.substring(0, 2).toUpperCase();
-    return (primeiraParte[0] || '?') + '?';
+  if (success) {
+    $q.notify({
+      type: 'positive',
+      message: prestadorStore.isFavorito ? 'Adicionado aos favoritos' : 'Removido dos favoritos',
+      position: 'top',
+      timeout: 2000
+    });
+  } else {
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao alterar favorito',
+      position: 'top'
+    });
   }
-  const ultimaParte = partes[partes.length - 1];
-  if (!ultimaParte) {
-    if (primeiraParte.length >= 2) return primeiraParte.substring(0, 2).toUpperCase();
-    return (primeiraParte[0] || '?') + '?';
-  }
-  const primeiraLetra = primeiraParte[0] || '';
-  const ultimaLetra = ultimaParte[0] || '';
-  if (!primeiraLetra && !ultimaLetra) return '??';
-  if (!primeiraLetra) return (ultimaLetra + '?').toUpperCase();
-  if (!ultimaLetra) return (primeiraLetra + '?').toUpperCase();
-  return (primeiraLetra + ultimaLetra).toUpperCase();
-};
-
-const obterAvatarFallback = (nome: string): string => {
-  const iniciais = getInitials(nome);
-  return `https://ui-avatars.com/api/?background=5B4BF5&color=fff&bold=true&size=100&name=${encodeURIComponent(iniciais)}`;
-};
-
-const handleAvatarError = (event: Event) => {
-  const img = event.target as HTMLImageElement;
-  if (!avatarError.value && prestador.value) {
-    avatarError.value = true;
-    const iniciais = getInitials(prestador.value.nome);
-    img.src = `https://ui-avatars.com/api/?background=5B4BF5&color=fff&bold=true&size=100&name=${encodeURIComponent(iniciais)}`;
-  }
-};
-
-const mediaFormatada = computed(() => {
-  const media = prestador.value?.media_avaliacao;
-  if (media === null || media === undefined) return '0';
-  const num = typeof media === 'string' ? parseFloat(media) : media;
-  if (isNaN(num)) return '0';
-  return num.toFixed(1);
-});
-
-const formatarPreco = (preco: number) => {
-  if (!preco && preco !== 0) return 'A combinar';
-  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'MZN' }).format(preco);
-};
-
-const formatarData = (data: string) => {
-  if (!data) return '';
-  const date = new Date(data);
-  return date.toLocaleDateString('pt-PT');
 };
 
 const ligar = () => {
-  if (prestador.value?.telefone) {
-    window.location.href = `tel:${prestador.value.telefone}`;
+  if (prestadorStore.prestador?.telefone) {
+    window.location.href = `tel:${prestadorStore.prestador.telefone}`;
   }
 };
 
 const enviarEmail = () => {
-  if (prestador.value?.email) {
-    window.location.href = `mailto:${prestador.value.email}`;
+  if (prestadorStore.prestador?.email) {
+    window.location.href = `mailto:${prestadorStore.prestador.email}`;
   }
 };
 
@@ -383,61 +324,26 @@ const verTodasAvaliacoes = () => {
   void router.push(`/mobile/prestador/${prestadorId.value}/avaliacoes`);
 };
 
-const toggleFavorito = async () => {
-  if (!prestador.value) return;
-
-  favoritoLoading.value = true;
+const carregarDados = async () => {
   try {
-    if (isFavorito.value) {
-      const success = await comunicacaoStore.removerFavorito(prestadorId.value);
-      if (success) {
-        isFavorito.value = false;
-        $q.notify({ type: 'positive', message: 'Removido dos favoritos', position: 'top', timeout: 2000 });
-      }
-    } else {
-      const success = await comunicacaoStore.adicionarFavorito(prestadorId.value);
-      if (success) {
-        isFavorito.value = true;
-        $q.notify({ type: 'positive', message: 'Adicionado aos favoritos', position: 'top', timeout: 2000 });
-      }
-    }
+    await prestadorStore.fetchPrestadorDetalhes(prestadorId.value);
+    await prestadorStore.verificarFavorito(prestadorId.value);
   } catch (error) {
-    console.error('Erro ao alterar favorito:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao alterar favorito', position: 'top' });
-  } finally {
-    favoritoLoading.value = false;
-  }
-};
-
-const verificarFavorito = async () => {
-  try {
-    isFavorito.value = await comunicacaoStore.checkFavorito(prestadorId.value);
-  } catch (error) {
-    console.error('Erro ao verificar favorito:', error);
-  }
-};
-
-const carregarPrestador = async () => {
-  carregamentoInicial.value = true;
-  avatarError.value = false;
-  try {
-    const data = await publicStore.fetchPrestadorDetalhes(prestadorId.value);
-    if (data) {
-      prestador.value = data;
-      await verificarFavorito();
-    } else {
-      $q.notify({ type: 'negative', message: 'Prestador não encontrado', position: 'top' });
-    }
-  } catch (error) {
-    console.error('Erro ao carregar prestador:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar perfil do prestador', position: 'top' });
-  } finally {
-    setTimeout(() => { carregamentoInicial.value = false; }, 500);
+    console.error('Erro ao carregar dados:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar perfil do prestador',
+      position: 'top'
+    });
   }
 };
 
 onMounted(() => {
-  void carregarPrestador();
+  void carregarDados();
+});
+
+onUnmounted(() => {
+  prestadorStore.limparStore();
 });
 </script>
 

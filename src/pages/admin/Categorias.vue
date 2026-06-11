@@ -1,1013 +1,1053 @@
 <template>
-  <q-page class="admin-categorias q-pa-md">
+  <div class="page-container">
     <div class="page-header">
-      <div class="page-title-section">
-        <div class="page-title">
-          <q-icon name="category" size="32px" class="q-mr-sm" />
-          Gestão de Categorias
-        </div>
-        <div class="page-subtitle">Gerencie as categorias de serviços da plataforma</div>
-      </div>
+      <h1>Categorias</h1>
       <div class="header-actions">
-        <q-btn
-          label="Atualizar"
-          icon="refresh"
-          color="grey-7"
-          outline
-          @click="carregarCategorias"
-          :loading="conteudoStore.loading"
-        />
-        <q-btn label="Nova Categoria" icon="add" color="primary" glossy @click="novaCategoria" />
-      </div>
-    </div>
-
-    <!-- Skeleton Loading -->
-    <div v-if="conteudoStore.loading" class="skeleton-container">
-      <div class="skeleton-card">
-        <div class="skeleton-header">
-          <div class="skeleton-title"></div>
-          <div class="skeleton-total"></div>
-        </div>
-        <div class="skeleton-table">
-          <div class="skeleton-table-header">
-            <div v-for="i in 7" :key="i" class="skeleton-header-cell"></div>
-          </div>
-          <div v-for="row in 5" :key="row" class="skeleton-table-row">
-            <div class="skeleton-cell">
-              <div class="skeleton-image"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-icon-circle"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-text"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-text"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-chip"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-badge"></div>
-            </div>
-            <div class="skeleton-cell">
-              <div class="skeleton-actions">
-                <div class="skeleton-action-icon"></div>
-                <div class="skeleton-action-icon"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="skeleton-shimmer"></div>
-    </div>
-
-    <!-- Conteúdo real -->
-    <template v-else>
-      <q-card class="categorias-card">
-        <q-card-section>
-          <div class="row justify-between items-center">
-            <div class="text-h6">Lista de Categorias</div>
-            <div class="text-caption text-grey">Total: {{ conteudoStore.categorias.length }}</div>
-          </div>
-        </q-card-section>
-
-        <q-table
-          :rows="conteudoStore.categorias"
-          :columns="colunas"
-          row-key="id"
-          :loading="conteudoStore.loading"
-          :rows-per-page-options="[10, 20, 50]"
-          class="categorias-table"
+        <q-input
+          v-model="filtros.search"
+          placeholder="Pesquisar..."
+          dense
+          outlined
+          class="search-input"
+          @update:model-value="onSearchChange"
         >
-          <!-- Coluna: Imagem -->
-          <template v-slot:body-cell-imagem="props">
-            <q-td :props="props">
-              <div v-if="props.row.imagem_url" class="imagem-tabela">
-                <img :src="props.row.imagem_url" :alt="props.row.nome" />
-                <div class="imagem-overlay">
-                  <q-icon name="image" size="14px" color="white" />
-                </div>
-              </div>
-              <q-icon v-else name="image" size="32px" color="grey-4" />
-            </q-td>
+          <template v-slot:append>
+            <q-icon name="search" />
           </template>
+        </q-input>
+      </div>
+    </div>
 
-          <!-- Coluna: Ícone -->
-          <template v-slot:body-cell-icone="props">
-            <q-td :props="props">
-              <div class="icon-wrapper" :style="{ backgroundColor: getCorClara(props.row.cor) }">
-                <q-icon
-                  :name="props.row.icone"
-                  size="28px"
-                  :color="props.row.cor"
-                  class="icon-animated"
-                />
-              </div>
-            </q-td>
-          </template>
+    <!-- Cards de Estatísticas -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <q-icon name="category" size="28px" />
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ formatNumber(totalCategorias) }}</div>
+          <div class="stat-label">Total Categorias</div>
+        </div>
+      </div>
 
-          <!-- Coluna: Nome -->
-          <template v-slot:body-cell-nome="props">
-            <q-td :props="props">
-              <div class="nome-wrapper">
-                <span class="nome-text" :style="{ color: getCorEscura(props.row.cor) }">
-                  {{ props.row.nome }}
-                </span>
-              </div>
-            </q-td>
-          </template>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <q-icon name="check_circle" size="28px" />
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ formatNumber(categoriasAtivas.length) }}</div>
+          <div class="stat-label">Ativas</div>
+        </div>
+      </div>
 
-          <!-- Coluna: Descrição -->
-          <template v-slot:body-cell-descricao="props">
-            <q-td :props="props">
-              <div class="descricao-text">
-                {{ props.row.descricao || 'Sem descrição' }}
-              </div>
-            </q-td>
-          </template>
+      <div class="stat-card">
+        <div class="stat-icon red">
+          <q-icon name="cancel" size="28px" />
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ formatNumber(categoriasInativas.length) }}</div>
+          <div class="stat-label">Inativas</div>
+        </div>
+      </div>
 
-          <!-- Coluna: Total de serviços -->
-          <template v-slot:body-cell-servicos_count="props">
-            <q-td :props="props">
-              <q-chip size="sm" :color="props.row.cor" text-color="white" dense>
-                {{ props.row.servicos_count || 0 }} serviços
-              </q-chip>
-            </q-td>
-          </template>
+      <div class="stat-card">
+        <div class="stat-icon purple">
+          <q-icon name="work" size="28px" />
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ formatNumber(totalServicos) }}</div>
+          <div class="stat-label">Total Serviços</div>
+        </div>
+      </div>
+    </div>
 
-          <!-- Coluna: Status -->
-          <template v-slot:body-cell-ativo="props">
-            <q-td :props="props">
-              <q-badge :color="props.row.ativo ? props.row.cor : 'grey'" class="status-badge">
-                <q-icon
-                  :name="props.row.ativo ? 'check_circle' : 'cancel'"
-                  size="12px"
-                  class="q-mr-xs"
-                />
-                {{ props.row.ativo ? 'Ativo' : 'Inativo' }}
-              </q-badge>
-            </q-td>
-          </template>
+    <div class="filters-bar">
+      <q-select
+        v-model="filtros.ativo"
+        :options="statusOptions"
+        label="Status"
+        dense
+        outlined
+        clearable
+        class="filter-select"
+        @update:model-value="onFiltroChange"
+      />
+      <q-btn flat label="Limpar filtros" @click="handleLimparFiltros" class="clear-btn" />
+    </div>
 
-          <!-- Coluna: Ações -->
-          <template v-slot:body-cell-acoes="props">
-            <q-td :props="props">
-              <div class="action-buttons">
-                <q-btn
-                  flat
-                  round
-                  icon="edit"
-                  size="sm"
-                  :color="props.row.cor"
-                  @click="editarCategoria(props.row)"
-                >
-                  <q-tooltip>Editar categoria</q-tooltip>
-                </q-btn>
-                <q-btn
-                  flat
-                  round
-                  icon="delete"
-                  size="sm"
-                  color="negative"
-                  @click="removerCategoria(props.row)"
-                >
-                  <q-tooltip>Remover categoria</q-tooltip>
-                </q-btn>
-              </div>
-            </q-td>
-          </template>
+    <div class="actions-bar">
+      <q-btn color="primary" icon="add" label="Nova Categoria" @click="abrirModalNovo" />
+      <q-btn
+        flat
+        icon="swap_vert"
+        label="Reordenar"
+        @click="toggleReorderMode"
+        v-if="!reorderMode"
+      />
+      <q-btn flat icon="refresh" label="Atualizar" @click="handleRecarregar" :loading="isLoading" />
+    </div>
 
-          <template v-slot:no-data>
-            <div class="text-center q-pa-md">
-              <q-icon name="category" size="48px" color="grey" />
-              <div class="text-subtitle1 q-mt-sm">Nenhuma categoria encontrada</div>
-              <div class="text-caption text-grey">Clique em "Nova Categoria" para adicionar</div>
-            </div>
-          </template>
-        </q-table>
-      </q-card>
-    </template>
+    <div v-if="isLoading" class="loading-container">
+      <q-spinner size="40px" color="primary" />
+      <p>Carregando categorias...</p>
+    </div>
 
-    <!-- Dialog para nova/editar categoria -->
-    <q-dialog v-model="mostrarDialog" persistent transition="scale">
-      <q-card style="min-width: 550px; max-width: 90vw" class="categoria-dialog">
-        <q-card-section class="dialog-header" :class="form.cor">
-          <div class="text-h6 text-white">
-            <q-icon :name="editando ? 'edit' : 'add'" class="q-mr-sm" />
-            {{ editando ? 'Editar' : 'Nova' }} Categoria
+    <!-- Modo de Reordenação -->
+    <div v-else-if="reorderMode" class="reorder-container">
+      <div class="reorder-header">
+        <span>Arraste os ícones ↕️ para reordenar as categorias</span>
+        <div>
+          <q-btn flat label="Cancelar" @click="toggleReorderMode" />
+          <q-btn
+            flat
+            label="Salvar ordem"
+            color="primary"
+            @click="handleSalvarOrdem"
+            :loading="isSaving"
+          />
+        </div>
+      </div>
+      <div class="reorder-list">
+        <div
+          v-for="(categoria, index) in categoriasOrdenadas"
+          :key="categoria.id"
+          class="reorder-item"
+          draggable="true"
+          @dragstart="dragStart($event, index)"
+          @dragover="dragOver($event)"
+          @drop="drop($event, index)"
+          @dragend="dragEnd"
+        >
+          <div class="drag-handle">
+            <q-icon name="drag_indicator" size="20px" />
           </div>
-          <q-btn flat round dense icon="close" v-close-popup text-color="white" />
+          <div class="reorder-icon" :style="{ color: categoria.cor }">
+            <q-icon :name="categoria.icone || 'category'" size="24px" />
+          </div>
+          <div class="reorder-info">
+            <div class="reorder-name">{{ categoria.nome }}</div>
+            <div class="reorder-id">ID: {{ categoria.id }}</div>
+            <div class="reorder-servicos" v-if="categoria.servicos_count !== undefined">
+              <q-icon name="work" size="12px" />
+              {{ categoria.servicos_count }} serviços
+            </div>
+          </div>
+          <div class="reorder-order">
+            <span class="order-badge">{{ index + 1 }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela de Categorias -->
+    <q-table
+      v-else
+      :rows="categoriasFiltradas"
+      :columns="tableColumns"
+      row-key="id"
+      flat
+      bordered
+    >
+      <template v-slot:body-cell-icone="props">
+        <q-td :props="props">
+          <div class="icon-preview" :style="{ color: props.row.cor }">
+            <q-icon :name="props.row.icone || 'category'" size="24px" />
+          </div>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-cor="props">
+        <q-td :props="props">
+          <div class="color-preview" :style="{ background: props.row.cor }"></div>
+          <span class="color-code">{{ props.row.cor }}</span>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-servicos="props">
+        <q-td :props="props">
+          <div class="servicos-cell">
+            <q-icon name="work" size="14px" class="q-mr-xs" />
+            <span>{{ props.row.servicos_count || 0 }}</span>
+          </div>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-ativo="props">
+        <q-td :props="props">
+          <q-badge :color="props.row.ativo ? 'green' : 'red'">
+            {{ props.row.ativo ? 'Ativo' : 'Inativo' }}
+          </q-badge>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-ordem="props">
+        <q-td :props="props">
+          <span class="order-badge">{{ props.row.ordem }}</span>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-acoes="props">
+        <q-td :props="props">
+          <q-btn
+            flat
+            round
+            icon="visibility"
+            color="info"
+            size="sm"
+            @click="() => verCategoria(props.row)"
+            title="Ver detalhes"
+          />
+          <q-btn
+            flat
+            round
+            icon="edit"
+            color="primary"
+            size="sm"
+            @click="() => editarCategoria(props.row)"
+            title="Editar"
+          />
+          <q-btn
+            flat
+            round
+            icon="delete"
+            color="negative"
+            size="sm"
+            @click="() => confirmarExclusao(props.row)"
+            title="Excluir"
+          />
+        </q-td>
+      </template>
+
+      <template v-slot:no-data>
+        <div class="no-data">
+          <q-icon name="category" size="48px" color="grey-5" />
+          <p>Nenhuma categoria encontrada</p>
+          <q-btn flat color="primary" label="Criar primeira categoria" @click="abrirModalNovo" />
+        </div>
+      </template>
+    </q-table>
+
+    <!-- Modal Nova/Editar Categoria -->
+    <q-dialog v-model="modalVisible" persistent>
+      <q-card style="min-width: 500px">
+        <q-card-section>
+          <div class="text-h6">{{ editando ? 'Editar Categoria' : 'Nova Categoria' }}</div>
         </q-card-section>
 
-        <q-card-section class="q-gutter-md q-pt-lg">
+        <q-card-section class="q-pt-none">
           <q-input
             v-model="form.nome"
-            label="Nome da categoria"
-            outlined
+            label="Nome *"
             dense
-            :rules="[(val) => !!val || 'Nome é obrigatório']"
-            counter
-            maxlength="50"
-            autofocus
-          >
-            <template v-slot:prepend>
-              <q-icon name="title" :color="form.cor" />
-            </template>
-          </q-input>
+            outlined
+            :error="!!errors.nome"
+            :error-message="errors.nome"
+            @update:model-value="onNomeChange"
+          />
+
+          <div v-if="slugPreview" class="slug-preview">
+            <span class="slug-label">Slug:</span>
+            <span class="slug-value">{{ slugPreview }}</span>
+          </div>
+
+          <div class="form-row">
+            <q-select
+              v-model="form.icone"
+              :options="iconesDisponiveis"
+              label="Ícone"
+              dense
+              outlined
+              class="col"
+              emit-value
+              map-options
+            />
+            <q-select
+              v-model="form.cor"
+              :options="coresDisponiveis"
+              label="Cor"
+              dense
+              outlined
+              class="col"
+              emit-value
+              map-options
+            >
+              <template v-slot:selected>
+                <div class="flex items-center">
+                  <div class="color-preview-small" :style="{ background: form.cor }"></div>
+                  <span class="q-ml-sm">{{ form.cor }}</span>
+                </div>
+              </template>
+              <template v-slot:option="scope">
+                <div class="flex items-center">
+                  <div class="color-preview-small" :style="{ background: scope.opt.value }"></div>
+                  <span class="q-ml-sm">{{ scope.opt.label }}</span>
+                </div>
+              </template>
+            </q-select>
+          </div>
 
           <q-input
             v-model="form.descricao"
             label="Descrição"
-            outlined
-            dense
             type="textarea"
-            autogrow
-            rows="2"
-          >
-            <template v-slot:prepend>
-              <q-icon name="description" :color="form.cor" />
-            </template>
-          </q-input>
+            dense
+            outlined
+            class="q-mt-md"
+            rows="3"
+          />
 
-          <div class="row q-col-gutter-md">
-            <div class="col-6">
-              <q-select
-                v-model="form.icone"
-                :options="iconeOptions"
-                label="Ícone"
-                outlined
-                dense
-                options-dense
-                emit-value
-                map-options
-                use-input
-                hide-selected
-                fill-input
-                input-debounce="0"
-                behavior="menu"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="grid_view" :color="form.cor" />
-                </template>
-                <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
-                  <q-item v-bind="itemProps" clickable @click="toggleOption(opt)">
-                    <q-item-section avatar>
-                      <q-icon :name="opt.value" size="20px" :color="form.cor" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ opt.label }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section v-if="selected" side>
-                      <q-icon name="check" color="positive" size="16px" />
-                    </q-item-section>
-                  </q-item>
-                </template>
-                <template v-slot:selected>
-                  <div class="row items-center">
-                    <q-icon :name="form.icone" size="18px" :color="form.cor" class="q-mr-sm" />
-                    {{ iconeOptions.find((opt) => opt.value === form.icone)?.label || form.icone }}
-                  </div>
-                </template>
-              </q-select>
-            </div>
-
-            <div class="col-6">
-              <q-select
-                v-model="form.cor"
-                :options="corOptions"
-                label="Cor"
-                outlined
-                dense
-                options-dense
-                emit-value
-                map-options
-                behavior="menu"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="palette" :color="form.cor" />
-                </template>
-                <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
-                  <q-item v-bind="itemProps" clickable @click="toggleOption(opt)">
-                    <q-item-section avatar>
-                      <div
-                        class="color-preview"
-                        :style="{ backgroundColor: getCorValue(opt.value) }"
-                      />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ opt.label }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section v-if="selected" side>
-                      <q-icon name="check" color="positive" size="16px" />
-                    </q-item-section>
-                  </q-item>
-                </template>
-                <template v-slot:selected>
-                  <div class="row items-center">
-                    <div
-                      class="color-preview-small"
-                      :style="{ backgroundColor: getCorValue(form.cor) }"
-                    />
-                    {{ corOptions.find((opt) => opt.value === form.cor)?.label || form.cor }}
-                  </div>
-                </template>
-              </q-select>
-            </div>
-          </div>
-
-          <q-toggle v-model="form.ativo" label="Categoria ativa" left-label :color="form.cor" />
-
-          <q-separator class="q-my-sm" />
-
-          <!-- SEÇÃO DE FOTO -->
-          <div class="foto-section" :style="{ borderColor: form.cor }">
-            <div class="foto-header">
-              <q-icon name="photo_camera" size="20px" :color="form.cor" />
-              <span class="foto-title">Imagem da Categoria</span>
-              <span class="foto-opcional">(opcional)</span>
-            </div>
-
-            <div class="foto-container">
-              <div class="foto-preview-wrapper">
-                <div
-                  class="foto-preview"
-                  :class="{ 'has-image': imagemPreview || form.imagem_url }"
-                  :style="{ borderColor: form.cor }"
-                  @click="triggerFileInput"
-                >
-                  <div v-if="imagemPreview || form.imagem_url" class="preview-image">
-                    <img :src="imagemPreview || form.imagem_url" alt="Preview" />
-                    <div class="preview-overlay">
-                      <q-icon name="edit" size="16px" :color="form.cor" />
-                    </div>
-                  </div>
-                  <div v-else class="preview-placeholder">
-                    <q-icon name="add_a_photo" size="28px" :color="form.cor" />
-                  </div>
-                </div>
-              </div>
-              <div class="foto-actions">
-                <q-btn
-                  :color="form.cor"
-                  icon="upload"
-                  label="Selecionar"
-                  @click="triggerFileInput"
-                  outline
-                  dense
-                  size="sm"
-                />
-                <q-btn
-                  v-if="imagemPreview || form.imagem_url"
-                  color="negative"
-                  icon="delete"
-                  label="Remover"
-                  @click="removerImagem"
-                  flat
-                  dense
-                  size="sm"
-                />
-              </div>
-            </div>
-
-            <div class="foto-info">
-              <q-icon name="info" size="12px" color="grey-6" />
-              <span>Formatos: JPG, PNG, GIF, WEBP • Tamanho máximo: 2MB</span>
-            </div>
-
-            <div v-if="erroImagem" class="foto-error">
-              <q-icon name="error" size="14px" />
-              {{ erroImagem }}
-            </div>
-
-            <div v-if="uploadProgress" class="upload-progress" :style="{ color: form.cor }">
-              <q-spinner-dots :color="form.cor" size="20px" />
-              <span>A fazer upload da imagem...</span>
-            </div>
-          </div>
+          <q-toggle v-model="form.ativo" label="Ativo" class="q-mt-md" />
         </q-card-section>
 
-        <q-card-actions align="right" class="dialog-actions">
-          <q-btn flat label="Cancelar" color="grey-7" v-close-popup />
-          <q-btn
-            unelevated
-            label="Salvar"
-            :color="form.cor"
-            @click="salvarCategoria"
-            :disable="!form.nome"
-            :loading="salvando"
-          />
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" v-close-popup @click="fecharModal" />
+          <q-btn flat label="Salvar" color="primary" @click="salvarCategoria" :loading="isSaving" />
         </q-card-actions>
       </q-card>
     </q-dialog>
 
-    <input
-      ref="fileInput"
-      type="file"
-      accept="image/jpeg,image/png,image/gif,image/webp"
-      style="display: none"
-      @change="onFileSelected"
-    />
-  </q-page>
+    <!-- Modal Visualizar Categoria -->
+    <q-dialog v-model="viewModalVisible">
+      <q-card style="min-width: 400px">
+        <q-card-section
+          class="view-header"
+          :style="{
+            background: `linear-gradient(135deg, ${categoriaVisualizacao?.cor || '#667EEA'}, #1a1a2e)`,
+          }"
+        >
+          <div class="view-icon">
+            <q-icon :name="categoriaVisualizacao?.icone || 'category'" size="48px" />
+          </div>
+          <div class="view-nome">{{ categoriaVisualizacao?.nome }}</div>
+          <q-badge :color="categoriaVisualizacao?.ativo ? 'green' : 'red'" class="view-status">
+            {{ categoriaVisualizacao?.ativo ? 'Ativo' : 'Inativo' }}
+          </q-badge>
+        </q-card-section>
+
+        <q-card-section class="view-body">
+          <div class="info-row"><strong>ID:</strong> {{ categoriaVisualizacao?.id }}</div>
+          <div class="info-row"><strong>Slug:</strong> {{ categoriaVisualizacao?.slug }}</div>
+          <div class="info-row">
+            <strong>Cor:</strong>
+            <div class="color-preview" :style="{ background: categoriaVisualizacao?.cor }"></div>
+            <span>{{ categoriaVisualizacao?.cor }}</span>
+          </div>
+          <div class="info-row" v-if="categoriaVisualizacao?.descricao">
+            <strong>Descrição:</strong> {{ categoriaVisualizacao.descricao }}
+          </div>
+          <div class="info-row"><strong>Ordem:</strong> {{ categoriaVisualizacao?.ordem }}</div>
+          <div class="info-row" v-if="categoriaVisualizacao?.servicos_count !== undefined">
+            <strong>Serviços:</strong> {{ categoriaVisualizacao.servicos_count }}
+          </div>
+          <div class="info-row">
+            <strong>Criado em:</strong> {{ formatarData(categoriaVisualizacao?.created_at) }}
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Fechar" v-close-popup />
+          <q-btn flat label="Editar" color="primary" @click="editarDoView" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
-import { useQuasar, type QTableColumn } from 'quasar';
-import { useAdminConteudoStore, type CategoriaData } from 'src/stores/admin/admin-conteudo-store';
-import { api } from 'src/boot/axios';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
+import { storeToRefs } from 'pinia';
+import {
+  useAdminCategoriasStore,
+  coresDisponiveis,
+  iconesDisponiveis,
+} from 'src/stores/admin/admin-categorias-store';
+import type { Categoria, CategoriaForm } from 'src/stores/admin/admin-categorias-store';
 
-defineOptions({
-  name: 'AdminCategorias',
-});
+defineOptions({ name: 'AdminCategorias' });
 
 const $q = useQuasar();
-const conteudoStore = useAdminConteudoStore();
+const categoriasStore = useAdminCategoriasStore();
 
-// Estados
-const mostrarDialog = ref(false);
+const { isLoading, isSaving, categorias, filtros, categoriasFiltradas, categoriasAtivas, categoriasInativas, totalCategorias } =
+  storeToRefs(categoriasStore);
+
+const {
+  carregarTodasCategorias,
+  criarCategoria,
+  atualizarCategoria,
+  excluirCategoria,
+  reordenarCategorias,
+  setFiltro,
+  limparFiltros,
+  recarregarDados,
+} = categoriasStore;
+
+// Estados locais
+const modalVisible = ref(false);
+const viewModalVisible = ref(false);
 const editando = ref(false);
-const salvando = ref(false);
-const categoriaEditandoId = ref<number | null>(null);
-const fileInput = ref<HTMLInputElement | null>(null);
-const imagemPreview = ref<string>('');
-const imagemArquivo = ref<File | null>(null);
-const erroImagem = ref<string>('');
-const uploadProgress = ref(false);
+const editandoId = ref<number | null>(null);
+const reorderMode = ref(false);
+const categoriasOrdenadas = ref<Categoria[]>([]);
+const dragStartIndex = ref<number | null>(null);
+const categoriaVisualizacao = ref<Categoria | null>(null);
+const slugPreview = ref('');
 
-// ✅ OPÇÕES DE ÍCONES (APENAS MATERIAL ICONS)
-const iconeOptions = [
-  { label: '⚡ Raio', value: 'bolt' },
-  { label: '💧 Água', value: 'water_drop' },
-  { label: '🖌️ Pincel', value: 'brush' },
-  { label: '💻 Computador', value: 'computer' },
-  { label: '✂️ Tesoura', value: 'content_cut' },
-  { label: '🤝 Aperto de mão', value: 'handshake' },
-  { label: '🧹 Limpeza', value: 'cleaning_services' },
-  { label: '🚕 Táxi', value: 'local_taxi' },
-  { label: '🔨 Construção', value: 'build' },
-  { label: '🛠️ Reparos', value: 'handyman' },
-  { label: '🌿 Jardinagem', value: 'yard' },
-  { label: '📷 Fotografia', value: 'photo_camera' },
-  { label: '🎉 Eventos', value: 'celebration' },
-  { label: '❤️ Saúde', value: 'favorite' },
-  { label: '📚 Educação', value: 'school' },
-  { label: '🎵 Música', value: 'music_note' },
-  { label: '🚗 Automóvel', value: 'directions_car' },
-  { label: '🏠 Casa', value: 'home' },
-  { label: '🐾 Pets', value: 'pets' },
-  { label: '🔧 Ferramentas', value: 'build_circle' },
-  { label: '💡 Lâmpada', value: 'lightbulb' },
-  { label: '🔌 Tomada', value: 'power' },
-  { label: '📱 Smartphone', value: 'phone_android' },
-  { label: '🖥️ Computador', value: 'desktop_windows' },
-  { label: '📦 Entrega', value: 'local_shipping' },
-  { label: '🎨 Arte', value: 'palette' },
-  { label: '🏋️ Esporte', value: 'fitness_center' },
-  { label: '🍽️ Comida', value: 'restaurant' },
-  { label: '🍺 Bebida', value: 'local_bar' },
-  { label: '👔 Roupa', value: 'checkroom' },
-  { label: '💍 Joalheria', value: 'diamond' },
-  { label: '🏥 Saúde', value: 'local_hospital' },
-  { label: '🏫 Educação', value: 'local_library' },
-  { label: '🏪 Loja', value: 'store' },
-  { label: '📞 Suporte', value: 'support_agent' },
-];
-
-// Opções de cores
-const corOptions = [
-  { label: '🔵 Azul', value: 'primary' },
-  { label: '🟣 Roxo', value: 'secondary' },
-  { label: '🟢 Verde', value: 'positive' },
-  { label: '🟡 Laranja', value: 'warning' },
-  { label: '🔷 Ciano', value: 'info' },
-  { label: '🌸 Rosa', value: 'pink' },
-  { label: '🟣 Violeta', value: 'purple' },
-  { label: '🟢 Turquesa', value: 'cyan' },
-  { label: '🟢 Verde água', value: 'teal' },
-  { label: '🔴 Vermelho', value: 'red' },
-  { label: '🔵 Azul claro', value: 'light-blue' },
-  { label: '🟢 Verde limão', value: 'lime' },
-  { label: '🟠 Marrom', value: 'brown' },
-  { label: '🟣 Índigo', value: 'indigo' },
-];
-
-// Colunas da tabela
-const colunas: QTableColumn[] = [
-  { name: 'imagem', label: 'Imagem', field: 'imagem_url', align: 'center', sortable: false },
-  { name: 'icone', label: 'Ícone', field: 'icone', align: 'center', sortable: false },
-  { name: 'nome', label: 'Nome', field: 'nome', align: 'left', sortable: true },
-  { name: 'descricao', label: 'Descrição', field: 'descricao', align: 'left', sortable: false },
-  {
-    name: 'servicos_count',
-    label: 'Serviços',
-    field: 'servicos_count',
-    align: 'center',
-    sortable: true,
-  },
-  { name: 'ativo', label: 'Status', field: 'ativo', align: 'center', sortable: false },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center', sortable: false },
-];
-
-// Formulário
-const form = reactive({
+const errors = reactive({
   nome: '',
-  descricao: '',
-  icone: 'bolt',
-  cor: 'primary',
-  ativo: true,
-  imagem_url: '',
 });
 
-// Funções de cor
-const getCorValue = (corNome: string): string => {
-  const cores: Record<string, string> = {
-    primary: '#1976d2',
-    secondary: '#9c27b0',
-    positive: '#2e7d32',
-    warning: '#ed6c02',
-    info: '#0288d1',
-    pink: '#c2185b',
-    purple: '#7b1fa2',
-    cyan: '#0097a7',
-    teal: '#00796b',
-    red: '#d32f2f',
-    'light-blue': '#0288d1',
-    lime: '#afb42b',
-    brown: '#795548',
-    indigo: '#3f51b5',
-  };
-  return cores[corNome] || corNome;
+const form = reactive<CategoriaForm>({
+  nome: '',
+  icone: 'category',
+  cor: '#667EEA',
+  descricao: '',
+  ativo: true,
+});
+
+const statusOptions = [
+  { label: 'Todos', value: '' },
+  { label: 'Ativos', value: 'sim' },
+  { label: 'Inativos', value: 'nao' },
+];
+
+const tableColumns = [
+  { name: 'id', label: 'ID', field: 'id', align: 'left' as const, sortable: true },
+  { name: 'icone', label: 'Ícone', field: 'icone', align: 'center' as const },
+  { name: 'nome', label: 'Nome', field: 'nome', align: 'left' as const, sortable: true },
+  { name: 'cor', label: 'Cor', field: 'cor', align: 'left' as const },
+  { name: 'servicos', label: 'Serviços', field: 'servicos_count', align: 'center' as const },
+  { name: 'ordem', label: 'Ordem', field: 'ordem', align: 'center' as const, sortable: true },
+  { name: 'ativo', label: 'Status', field: 'ativo', align: 'center' as const },
+  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' as const },
+];
+
+// Computed
+const totalServicos = computed(() => {
+  return categorias.value.reduce((total, cat) => total + (cat.servicos_count || 0), 0);
+});
+
+// Funções auxiliares
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('pt-PT').format(num);
 };
 
-const getCorClara = (corNome: string): string => {
-  const cores: Record<string, string> = {
-    primary: 'rgba(25, 118, 210, 0.1)',
-    secondary: 'rgba(156, 39, 176, 0.1)',
-    positive: 'rgba(46, 125, 50, 0.1)',
-    warning: 'rgba(237, 108, 2, 0.1)',
-    info: 'rgba(2, 136, 209, 0.1)',
-    pink: 'rgba(194, 24, 91, 0.1)',
-    purple: 'rgba(123, 31, 162, 0.1)',
-    cyan: 'rgba(0, 151, 167, 0.1)',
-    teal: 'rgba(0, 121, 107, 0.1)',
-    red: 'rgba(211, 47, 47, 0.1)',
-    'light-blue': 'rgba(2, 136, 209, 0.1)',
-    lime: 'rgba(175, 180, 43, 0.1)',
-    brown: 'rgba(121, 85, 72, 0.1)',
-    indigo: 'rgba(63, 81, 181, 0.1)',
-  };
-  return cores[corNome] || 'rgba(0, 0, 0, 0.05)';
+const formatarData = (dataString?: string): string => {
+  if (!dataString) return '—';
+  const date = new Date(dataString);
+  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-const getCorEscura = (corNome: string): string => {
-  const cores: Record<string, string> = {
-    primary: '#1565c0',
-    secondary: '#7b1fa2',
-    positive: '#2b5e2e',
-    warning: '#e65c00',
-    info: '#0277bd',
-    pink: '#ad1457',
-    purple: '#6a1b9a',
-    cyan: '#00838f',
-    teal: '#00695c',
-    red: '#c62828',
-    'light-blue': '#0277bd',
-    lime: '#9e9d24',
-    brown: '#6d4c41',
-    indigo: '#3949ab',
-  };
-  return cores[corNome] || '#2c3e50';
+const gerarSlug = (nome: string): string => {
+  return nome
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 };
 
-// Carregar categorias
-const carregarCategorias = async (): Promise<void> => {
-  try {
-    await conteudoStore.fetchCategorias();
-  } catch (error) {
-    console.error('Erro ao carregar categorias:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar categorias', position: 'top' });
+const onNomeChange = (): void => {
+  slugPreview.value = gerarSlug(form.nome);
+};
+
+const validarForm = (): boolean => {
+  let isValid = true;
+  errors.nome = '';
+
+  if (!form.nome.trim()) {
+    errors.nome = 'Nome é obrigatório';
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+// Drag and drop nativo
+const dragStart = (event: DragEvent, index: number): void => {
+  dragStartIndex.value = index;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
   }
 };
 
-// Funções para imagem
-const triggerFileInput = (): void => {
-  erroImagem.value = '';
-  fileInput.value?.click();
-};
-
-const onFileSelected = (event: Event): void => {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) return;
-
-  erroImagem.value = '';
-
-  const tiposPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  if (!tiposPermitidos.includes(file.type)) {
-    erroImagem.value = 'Formato não suportado. Use JPG, PNG, GIF ou WEBP';
-    $q.notify({ type: 'negative', message: erroImagem.value, position: 'top' });
-    return;
-  }
-
-  if (file.size > 2 * 1024 * 1024) {
-    erroImagem.value = 'Imagem muito grande. Máximo 2MB';
-    $q.notify({ type: 'negative', message: erroImagem.value, position: 'top' });
-    return;
-  }
-
-  imagemArquivo.value = file;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    imagemPreview.value = e.target?.result as string;
-  };
-  reader.readAsDataURL(file);
-};
-
-const removerImagem = (): void => {
-  imagemPreview.value = '';
-  imagemArquivo.value = null;
-  form.imagem_url = '';
-  erroImagem.value = '';
-  if (fileInput.value) fileInput.value.value = '';
-};
-
-const uploadImagem = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append('imagem', file);
-
-  try {
-    const response = await api.post('/admin/categorias/upload-imagem', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    if (response.data.success && response.data.url) return response.data.url;
-    throw new Error('Resposta inválida do servidor');
-  } catch (error) {
-    console.error('Erro no upload:', error);
-    throw new Error('Falha no upload da imagem');
+const dragOver = (event: DragEvent): void => {
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
   }
 };
 
-const novaCategoria = (): void => {
-  editando.value = false;
-  categoriaEditandoId.value = null;
-  form.nome = '';
-  form.descricao = '';
-  form.icone = 'bolt';
-  form.cor = 'primary';
-  form.ativo = true;
-  form.imagem_url = '';
-  removerImagem();
-  mostrarDialog.value = true;
-};
+const drop = (event: DragEvent, dropIndex: number): void => {
+  event.preventDefault();
+  const startIndex = dragStartIndex.value;
+  if (startIndex === null || startIndex === dropIndex) return;
 
-const editarCategoria = (categoria: CategoriaData): void => {
-  editando.value = true;
-  categoriaEditandoId.value = categoria.id;
-  form.nome = categoria.nome;
-  form.descricao = categoria.descricao || '';
-  form.icone = categoria.icone || 'bolt';
-  form.cor = categoria.cor || 'primary';
-  form.ativo = categoria.ativo;
-  form.imagem_url = categoria.imagem_url || '';
-  imagemPreview.value = '';
-  imagemArquivo.value = null;
-  erroImagem.value = '';
-  mostrarDialog.value = true;
-};
+  const newItems = [...categoriasOrdenadas.value];
 
-const salvarCategoria = async (): Promise<void> => {
-  if (!form.nome) {
-    $q.notify({ type: 'warning', message: 'Nome é obrigatório', position: 'top' });
-    return;
-  }
-
-  salvando.value = true;
-
-  try {
-    let imagemUrl = form.imagem_url;
-
-    if (imagemArquivo.value) {
-      uploadProgress.value = true;
-      try {
-        imagemUrl = await uploadImagem(imagemArquivo.value);
-      } catch {
-        $q.notify({ type: 'negative', message: 'Erro ao fazer upload da imagem', position: 'top' });
-        salvando.value = false;
-        uploadProgress.value = false;
-        return;
-      }
-      uploadProgress.value = false;
+  if (
+    startIndex >= 0 &&
+    startIndex < newItems.length &&
+    dropIndex >= 0 &&
+    dropIndex < newItems.length
+  ) {
+    const itemToMove = newItems[startIndex];
+    if (itemToMove) {
+      const filtered = newItems.filter((_, idx) => idx !== startIndex);
+      filtered.splice(dropIndex, 0, itemToMove);
+      categoriasOrdenadas.value = filtered;
     }
-
-    const dadosCategoria = {
-      nome: form.nome,
-      descricao: form.descricao,
-      icone: form.icone,
-      cor: form.cor,
-      ativo: form.ativo,
-      imagem_url: imagemUrl,
-    };
-
-    let result = null;
-
-    if (editando.value && categoriaEditandoId.value) {
-      result = await conteudoStore.updateCategoria(categoriaEditandoId.value, dadosCategoria);
-      if (result) $q.notify({ type: 'positive', message: 'Categoria atualizada!', position: 'top' });
-    } else {
-      result = await conteudoStore.createCategoria(dadosCategoria);
-      if (result) $q.notify({ type: 'positive', message: 'Categoria criada!', position: 'top' });
-    }
-
-    if (result) {
-      await carregarCategorias();
-      mostrarDialog.value = false;
-      removerImagem();
-    } else {
-      $q.notify({ type: 'negative', message: 'Erro ao salvar categoria', position: 'top' });
-    }
-  } catch {
-    $q.notify({ type: 'negative', message: 'Erro ao salvar categoria', position: 'top' });
-  } finally {
-    salvando.value = false;
-    uploadProgress.value = false;
   }
+  dragStartIndex.value = null;
 };
 
-const removerCategoria = (categoria: CategoriaData): void => {
-  $q.dialog({
-    title: 'Confirmar remoção',
-    message: `Remover a categoria "${categoria.nome}"?`,
-    cancel: { label: 'Cancelar', flat: true },
-    persistent: true,
-  }).onOk(() => {
-    void (async () => {
-      try {
-        const result = await conteudoStore.deleteCategoria(categoria.id);
-        if (result) {
-          $q.notify({ type: 'positive', message: 'Categoria removida!', position: 'top' });
-          await carregarCategorias();
-        }
-      } catch {
-        $q.notify({ type: 'negative', message: 'Erro ao remover categoria', position: 'top' });
-      }
-    })();
+const dragEnd = (): void => {
+  dragStartIndex.value = null;
+};
+
+// Ações de filtro
+const onSearchChange = (value: string | number | null): void => {
+  setFiltro('search', String(value ?? ''));
+};
+
+const onFiltroChange = (): void => {
+  setFiltro('ativo', filtros.value.ativo);
+};
+
+const handleLimparFiltros = (): void => {
+  limparFiltros();
+};
+
+// Handlers com .then().catch() para evitar promessas flutuantes
+const handleRecarregar = (): void => {
+  recarregarDados().catch(() => {
+    $q.notify({ type: 'negative', message: 'Erro ao recarregar dados' });
   });
 };
 
+// Ações de modal
+const abrirModalNovo = (): void => {
+  editando.value = false;
+  editandoId.value = null;
+  form.nome = '';
+  form.icone = 'category';
+  form.cor = '#667EEA';
+  form.descricao = '';
+  form.ativo = true;
+  slugPreview.value = '';
+  errors.nome = '';
+  modalVisible.value = true;
+};
+
+const editarCategoria = (categoria: Categoria): void => {
+  editando.value = true;
+  editandoId.value = categoria.id;
+  form.nome = categoria.nome;
+  form.icone = categoria.icone || 'category';
+  form.cor = categoria.cor || '#667EEA';
+  form.descricao = categoria.descricao || '';
+  form.ativo = categoria.ativo;
+  slugPreview.value = categoria.slug;
+  errors.nome = '';
+  modalVisible.value = true;
+};
+
+const verCategoria = (categoria: Categoria): void => {
+  categoriaVisualizacao.value = categoria;
+  viewModalVisible.value = true;
+};
+
+const editarDoView = (): void => {
+  if (categoriaVisualizacao.value) {
+    viewModalVisible.value = false;
+    editarCategoria(categoriaVisualizacao.value);
+  }
+};
+
+const salvarCategoria = (): void => {
+  if (!validarForm()) return;
+
+  if (editando.value && editandoId.value) {
+    atualizarCategoria(editandoId.value, {
+      nome: form.nome,
+      icone: form.icone,
+      cor: form.cor,
+      descricao: form.descricao,
+      ativo: form.ativo,
+    })
+      .then((result) => {
+        if (result) {
+          $q.notify({ type: 'positive', message: 'Categoria atualizada com sucesso!' });
+          modalVisible.value = false;
+          return recarregarDados();
+        }
+        $q.notify({ type: 'negative', message: 'Erro ao atualizar categoria' });
+        return null;
+      })
+      .catch(() => {
+        $q.notify({ type: 'negative', message: 'Erro ao atualizar categoria' });
+      });
+  } else {
+    criarCategoria({
+      nome: form.nome,
+      icone: form.icone,
+      cor: form.cor,
+      descricao: form.descricao,
+      ativo: form.ativo,
+    })
+      .then((result) => {
+        if (result) {
+          $q.notify({ type: 'positive', message: 'Categoria criada com sucesso!' });
+          modalVisible.value = false;
+          return recarregarDados();
+        }
+        $q.notify({ type: 'negative', message: 'Erro ao criar categoria' });
+        return null;
+      })
+      .catch(() => {
+        $q.notify({ type: 'negative', message: 'Erro ao criar categoria' });
+      });
+  }
+};
+
+const confirmarExclusao = (categoria: Categoria): void => {
+  $q.dialog({
+    title: 'Confirmar exclusão',
+    message: `Tem certeza que deseja excluir a categoria "${categoria.nome}"? Esta ação não pode ser desfeita.`,
+    cancel: true,
+    ok: { label: 'Excluir', color: 'negative' },
+  }).onOk(() => {
+    excluirCategoria(categoria.id)
+      .then((success) => {
+        if (success) {
+          $q.notify({ type: 'positive', message: 'Categoria excluída com sucesso!' });
+          return recarregarDados();
+        }
+        $q.notify({ type: 'negative', message: 'Erro ao excluir categoria' });
+        return null;
+      })
+      .catch(() => {
+        $q.notify({ type: 'negative', message: 'Erro ao excluir categoria' });
+      });
+  });
+};
+
+// Reordenação
+const toggleReorderMode = (): void => {
+  reorderMode.value = !reorderMode.value;
+  if (reorderMode.value) {
+    categoriasOrdenadas.value = [...categorias.value].sort(
+      (a, b) => (a.ordem || 0) - (b.ordem || 0),
+    );
+  }
+};
+
+const handleSalvarOrdem = (): void => {
+  const ordens = categoriasOrdenadas.value.map((cat, index) => ({
+    id: cat.id,
+    ordem: index + 1,
+  }));
+
+  reordenarCategorias(ordens)
+    .then((success) => {
+      if (success) {
+        $q.notify({ type: 'positive', message: 'Ordem atualizada com sucesso!' });
+        reorderMode.value = false;
+        return recarregarDados();
+      }
+      $q.notify({ type: 'negative', message: 'Erro ao atualizar ordem' });
+      return null;
+    })
+    .catch(() => {
+      $q.notify({ type: 'negative', message: 'Erro ao atualizar ordem' });
+    });
+};
+
+const fecharModal = (): void => {
+  modalVisible.value = false;
+  editando.value = false;
+  editandoId.value = null;
+};
+
+// Lifecycle
 onMounted(() => {
-  void carregarCategorias();
+  carregarTodasCategorias().catch(() => {
+    $q.notify({ type: 'negative', message: 'Erro ao carregar categorias' });
+  });
 });
 </script>
 
 <style scoped lang="scss">
-// Styles mantidos iguais ao original
-.admin-categorias {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 20px;
-  background: #f5f7fa;
+.page-container {
+  background: #f3f4f6;
   min-height: 100vh;
+  padding: 20px;
 }
 
 .page-header {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  .page-title-section {
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      display: flex;
-      align-items: center;
-    }
-    .page-subtitle {
-      font-size: 0.875rem;
-      color: #6c757d;
-      margin-top: 4px;
-    }
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
+
   .header-actions {
     display: flex;
     gap: 12px;
+
+    .search-input {
+      width: 250px;
+    }
   }
 }
 
-// Skeleton Loading
-.skeleton-container {
-  position: relative;
-  overflow: hidden;
+// Cards de Estatísticas
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
 }
-.skeleton-card {
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
   background: white;
   border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.blue { background: rgba(102, 126, 234, 0.1); color: #667eea; }
+    &.green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    &.red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    &.purple { background: rgba(118, 75, 162, 0.1); color: #764ba2; }
+  }
+
+  .stat-info {
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .stat-label {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+  }
 }
-.skeleton-header {
+
+.filters-bar {
   display: flex;
-  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  background: white;
+  padding: 16px 20px;
+  border-radius: 16px;
+
+  .filter-select {
+    min-width: 150px;
+  }
+
+  .clear-btn {
+    color: #6b7280;
+  }
+}
+
+.actions-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #eee;
+  justify-content: center;
+  padding: 60px;
+  background: white;
+  border-radius: 16px;
+
+  p {
+    margin-top: 12px;
+    color: #6b7280;
+  }
 }
-.skeleton-title {
-  width: 150px;
-  height: 24px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-.skeleton-total {
-  width: 60px;
-  height: 16px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-.skeleton-table {
-  padding: 0 20px 20px 20px;
-}
-.skeleton-table-header {
-  display: flex;
-  background: #f8f9fa;
-  padding: 12px 0;
-  border-bottom: 2px solid #eee;
-}
-.skeleton-header-cell {
-  flex: 1;
-  height: 16px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin: 0 8px;
-}
-.skeleton-table-row {
-  display: flex;
-  padding: 16px 0;
-  border-bottom: 1px solid #eee;
-}
-.skeleton-cell {
-  flex: 1;
-  margin: 0 8px;
+
+.icon-preview {
   display: flex;
   justify-content: center;
-  align-items: center;
 }
-.skeleton-image, .skeleton-icon-circle {
-  width: 40px;
-  height: 40px;
-  background: #e0e0e0;
-  border-radius: 8px;
+
+.color-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+  border: 1px solid #e5e7eb;
 }
-.skeleton-text {
-  width: 80%;
-  height: 12px;
-  background: #e0e0e0;
+
+.color-preview-small {
+  width: 20px;
+  height: 20px;
   border-radius: 4px;
+  display: inline-block;
+  border: 1px solid #e5e7eb;
 }
-.skeleton-chip {
-  width: 70px;
-  height: 24px;
-  background: #e0e0e0;
-  border-radius: 16px;
+
+.color-code {
+  font-size: 12px;
+  color: #6b7280;
 }
-.skeleton-badge {
-  width: 60px;
-  height: 24px;
-  background: #e0e0e0;
+
+.order-badge {
+  display: inline-block;
+  min-width: 28px;
+  padding: 2px 8px;
+  background: #f3f4f6;
   border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: #374151;
 }
-.skeleton-actions {
+
+.servicos-cell {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #6b7280;
+}
+
+.no-data {
+  text-align: center;
+  padding: 48px;
+  color: #9ca3af;
+
+  p {
+    margin-top: 12px;
+  }
+}
+
+// Estilos de Reordenação
+.reorder-container {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+
+  .reorder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 16px;
+
+    span {
+      color: #6b7280;
+      font-size: 14px;
+    }
+  }
+}
+
+.reorder-list {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-}
-.skeleton-action-icon {
-  width: 32px;
-  height: 32px;
-  background: #e0e0e0;
-  border-radius: 50%;
-}
-.skeleton-shimmer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  animation: shimmer 1.5s infinite;
-  pointer-events: none;
-}
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  max-height: 500px;
+  overflow-y: auto;
 }
 
-.categorias-card {
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-  :deep(.q-card__section) { padding: 20px; }
-}
-.categorias-table :deep(.q-table) {
-  thead tr th { background: #f8f9fa; font-weight: 600; color: #495057; border-bottom: 2px solid #e9ecef; }
-  tbody tr { transition: background 0.2s ease; &:hover { background: #f8f9fa; } }
-  td { padding: 12px 16px; vertical-align: middle; }
-}
+.reorder-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
 
-.imagem-tabela {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  overflow: hidden;
-  margin: 0 auto;
-  img { width: 100%; height: 100%; object-fit: cover; }
-  .imagem-overlay {
-    position: absolute; bottom: 0; right: 0;
-    background: rgba(0,0,0,0.5); border-radius: 4px 0 0 0; padding: 2px;
+  .drag-handle {
+    cursor: grab;
+    color: #9ca3af;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .reorder-icon {
+    width: 40px;
+    text-align: center;
+  }
+
+  .reorder-info {
+    flex: 1;
+
+    .reorder-name {
+      font-weight: 500;
+      color: #1a1a2e;
+    }
+
+    .reorder-id {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .reorder-servicos {
+      font-size: 11px;
+      color: #10b981;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+  }
+
+  .reorder-order {
+    .order-badge {
+      background: #667eea;
+      color: white;
+    }
   }
 }
 
-.icon-wrapper {
-  display: flex; justify-content: center; align-items: center;
-  width: 40px; height: 40px; border-radius: 10px; margin: 0 auto;
-  transition: all 0.3s ease;
-  &:hover { transform: scale(1.05); }
+// Modal Visualizar
+.view-header {
+  text-align: center;
+  padding: 24px;
+  color: white;
+
+  .view-icon {
+    margin-bottom: 12px;
+  }
+
+  .view-nome {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .view-status {
+    font-size: 11px;
+  }
 }
 
-.nome-wrapper .nome-text { font-weight: 600; font-size: 0.95rem; }
-.descricao-text { color: #6c757d; font-size: 0.8rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 500; display: inline-flex; align-items: center; }
-.action-buttons { display: flex; gap: 4px; justify-content: center; }
+.view-body {
+  padding: 20px;
 
-.foto-section {
-  background: #f8f9fa; border-radius: 12px; padding: 12px 16px; border: 1px solid #e9ecef;
-  .foto-header {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
-    .foto-title { font-size: 0.85rem; font-weight: 600; color: #2c3e50; }
-    .foto-opcional { font-size: 0.7rem; color: #6c757d; }
+  .info-row {
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e7eb;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    strong {
+      display: inline-block;
+      width: 80px;
+      color: #374151;
+    }
   }
-  .foto-container {
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    .foto-preview-wrapper .foto-preview {
-      width: 70px; height: 70px; border-radius: 12px; border: 2px dashed #cbd5e1;
-      overflow: hidden; cursor: pointer; transition: all 0.2s ease; background: white;
-      &:hover { transform: scale(1.02); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-      &.has-image { border-style: solid; border-width: 2px; }
-      .preview-image {
-        position: relative; width: 100%; height: 100%;
-        img { width: 100%; height: 100%; object-fit: cover; }
-        .preview-overlay {
-          position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
-          opacity: 0; transition: opacity 0.2s ease;
-        }
-        &:hover .preview-overlay { opacity: 1; }
-      }
-      .preview-placeholder {
-        width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.slug-preview {
+  margin-top: 4px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  padding: 4px 8px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  display: inline-block;
+
+  .slug-label {
+    color: #6b7280;
+    margin-right: 8px;
+  }
+
+  .slug-value {
+    color: #667eea;
+    font-family: monospace;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .reorder-item {
+    flex-wrap: wrap;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+
+    .header-actions {
+      flex-direction: column;
+
+      .search-input {
+        width: 100%;
       }
     }
   }
-  .foto-info { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 0.7rem; color: #868e96; }
-  .foto-error { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: #ef4444; font-size: 0.7rem; }
-  .upload-progress { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 10px; background: #e3f2fd; border-radius: 8px; font-size: 0.7rem; }
-}
 
-.categoria-dialog {
-  border-radius: 16px; overflow: hidden;
-  .dialog-header {
-    display: flex; justify-content: space-between; align-items: center; padding: 14px 20px;
-    &.primary { background: linear-gradient(135deg, #1976d2, #64b5f6); }
-    &.secondary { background: linear-gradient(135deg, #9c27b0, #ce93d8); }
-    &.positive { background: linear-gradient(135deg, #2e7d32, #81c784); }
-    &.warning { background: linear-gradient(135deg, #ed6c02, #ffb74d); }
-    &.info { background: linear-gradient(135deg, #0288d1, #4fc3f7); }
-    &.pink { background: linear-gradient(135deg, #c2185b, #f48fb1); }
-    &.purple { background: linear-gradient(135deg, #7b1fa2, #ba68c8); }
-    &.cyan { background: linear-gradient(135deg, #0097a7, #4dd0e1); }
-    &.teal { background: linear-gradient(135deg, #00796b, #4db6ac); }
-    &.red { background: linear-gradient(135deg, #d32f2f, #ef9a9a); }
-    &.light-blue { background: linear-gradient(135deg, #0288d1, #81d4fa); }
-    &.lime { background: linear-gradient(135deg, #afb42b, #e6ee9c); }
-    &.brown { background: linear-gradient(135deg, #795548, #bcaaa4); }
-    &.indigo { background: linear-gradient(135deg, #3f51b5, #9fa8da); }
+  .filters-bar {
+    flex-direction: column;
+
+    .filter-select {
+      width: 100%;
+    }
   }
-  .dialog-actions { padding: 12px 20px; border-top: 1px solid #e9ecef; }
-}
-
-.color-preview { width: 20px; height: 20px; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-.color-preview-small { width: 16px; height: 16px; border-radius: 50%; margin-right: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-
-@media (max-width: 768px) {
-  .admin-categorias { padding: 16px; }
-  .page-header { flex-direction: column; align-items: flex-start; }
-  .categoria-dialog { min-width: 90vw; max-width: 90vw; }
-  .foto-section .foto-container { flex-direction: column; align-items: flex-start; }
 }
 </style>

@@ -1,796 +1,725 @@
 <template>
-  <q-page class="admin-perfil q-pa-md">
+  <div class="page-container">
     <div class="page-header">
-      <div class="page-title-section">
-        <div class="page-title">
-          <q-icon name="account_circle" size="32px" class="q-mr-sm" />
-          Meu Perfil
-        </div>
-        <div class="page-subtitle">Gerencie suas informações pessoais</div>
+      <h1>Meu Perfil</h1>
+      <div class="header-actions">
+        <q-btn flat icon="refresh" label="Atualizar" @click="handleRecarregar" :loading="isLoading" />
       </div>
-      <q-btn
-        label="Atualizar"
-        icon="refresh"
-        color="grey-7"
-        outline
-        @click="carregarPerfil"
-        :loading="carregando"
-      />
     </div>
 
-    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
-    <div v-if="carregando" class="skeleton-container">
-      <!-- Profile header skeleton -->
-      <div class="skeleton-profile-header">
-        <div class="row items-center q-col-gutter-md">
-          <div class="col-auto">
-            <div class="skeleton-avatar-large"></div>
-          </div>
-          <div class="col">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-text"></div>
-            <div class="skeleton-badge"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Form skeleton -->
-      <div class="skeleton-card">
-        <div class="skeleton-section-title"></div>
-        <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-6">
-            <div class="skeleton-input"></div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="skeleton-input"></div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="skeleton-input"></div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="skeleton-input"></div>
-          </div>
-          <div class="col-12">
-            <div class="skeleton-textarea"></div>
-          </div>
-        </div>
-        <div class="row justify-end q-mt-md">
-          <div class="skeleton-button"></div>
-          <div class="skeleton-button primary q-ml-sm"></div>
-        </div>
-      </div>
-
-      <!-- Password section skeleton -->
-      <div class="skeleton-card q-mt-md">
-        <div class="skeleton-section-title small"></div>
-        <div class="skeleton-input"></div>
-        <div class="skeleton-input q-mt-md"></div>
-        <div class="skeleton-input q-mt-md"></div>
-        <div class="row justify-end q-mt-md">
-          <div class="skeleton-button secondary"></div>
-        </div>
-      </div>
-
-      <!-- Shimmer animation -->
-      <div class="skeleton-shimmer"></div>
+    <div v-if="isLoading && !perfil" class="loading-container">
+      <q-spinner size="40px" color="primary" />
+      <p>Carregando seu perfil...</p>
     </div>
 
-    <!-- Conteúdo real (apenas quando não está carregando) -->
-    <template v-else>
-      <q-card class="perfil-card">
-        <q-card-section>
-          <div class="row items-center">
-            <q-avatar size="100px" class="avatar-container">
-              <img :src="authStore.userFoto || 'https://cdn.quasar.dev/img/avatar.png'" />
-              <div class="avatar-edit" @click="editarFoto">
-                <q-icon name="edit" size="16px" color="white" />
-              </div>
+    <div v-else>
+      <div class="profile-grid">
+        <!-- Coluna da Foto -->
+        <div class="profile-avatar-section">
+          <div class="avatar-container">
+            <q-avatar size="140px" class="profile-avatar">
+              <img :src="fotoPerfil" :alt="userNome" />
             </q-avatar>
-            <div class="q-ml-md">
-              <div class="text-h5">{{ authStore.userNome || 'Administrador' }}</div>
-              <div class="text-grey-7">{{ authStore.user?.email }}</div>
-              <q-badge :color="getTipoColor(authStore.user?.tipo)" class="q-mt-sm">
-                <q-icon :name="getTipoIcon(authStore.user?.tipo)" size="12px" class="q-mr-xs" />
-                {{ getTipoLabel(authStore.user?.tipo) }}
+            <q-btn
+              round
+              dense
+              color="primary"
+              icon="photo_camera"
+              size="sm"
+              class="change-photo-btn"
+              @click="trocarFoto"
+              :loading="isSaving"
+            />
+          </div>
+          <div class="avatar-info">
+            <h3>{{ userNome }}</h3>
+            <p class="user-role">
+              <q-badge :color="userTipo === 'root' ? 'red' : 'primary'">
+                {{ getTipoLabel(userTipo) }}
               </q-badge>
-            </div>
+            </p>
+            <p class="user-email">{{ userEmail }}</p>
           </div>
-        </q-card-section>
+        </div>
 
-        <q-card-section>
-          <div class="text-h6 q-mb-md">Informações Pessoais</div>
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-md-6">
-              <q-input
-                v-model="perfil.nome"
-                label="Nome completo"
-                outlined
-                dense
-                :loading="salvandoPerfil"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="person" color="primary" />
-                </template>
-              </q-input>
+        <!-- Coluna do Formulário -->
+        <div class="profile-form-section">
+          <q-tabs v-model="tab" align="left" narrow-indicator class="profile-tabs">
+            <q-tab name="dados" icon="person" label="Dados Pessoais" />
+            <q-tab name="seguranca" icon="lock" label="Segurança" />
+          </q-tabs>
+
+          <q-separator />
+
+          <q-tab-panels v-model="tab" animated>
+            <!-- Dados Pessoais -->
+            <q-tab-panel name="dados">
+              <div class="form-row">
+                <q-input
+                  v-model="form.nome"
+                  label="Nome Completo"
+                  outlined
+                  dense
+                  :error="!!errors.nome"
+                  :error-message="errors.nome"
+                />
+              </div>
+              <div class="form-row">
+                <q-input
+                  v-model="form.email"
+                  label="Email"
+                  type="email"
+                  outlined
+                  dense
+                  :error="!!errors.email"
+                  :error-message="errors.email"
+                />
+              </div>
+              <div class="form-row">
+                <q-input
+                  v-model="form.telefone"
+                  label="Telefone"
+                  outlined
+                  dense
+                  mask="(##) #####-####"
+                  hint="Formato: (84) 91234-5678"
+                />
+              </div>
+              <div class="form-actions">
+                <q-btn color="primary" label="Salvar Alterações" @click="salvarPerfil" :loading="isSaving" />
+              </div>
+            </q-tab-panel>
+
+            <!-- Segurança -->
+            <q-tab-panel name="seguranca">
+              <div class="form-row">
+                <q-input
+                  v-model="senhaForm.senha_atual"
+                  label="Senha Atual"
+                  type="password"
+                  outlined
+                  dense
+                  :error="!!errors.senha_atual"
+                  :error-message="errors.senha_atual"
+                />
+              </div>
+              <div class="form-row">
+                <q-input
+                  v-model="senhaForm.nova_senha"
+                  label="Nova Senha"
+                  type="password"
+                  outlined
+                  dense
+                  :error="!!errors.nova_senha"
+                  :error-message="errors.nova_senha"
+                  hint="Mínimo 6 caracteres"
+                />
+              </div>
+              <div class="form-row">
+                <q-input
+                  v-model="senhaForm.nova_senha_confirmation"
+                  label="Confirmar Nova Senha"
+                  type="password"
+                  outlined
+                  dense
+                  :error="!!errors.nova_senha_confirmation"
+                  :error-message="errors.nova_senha_confirmation"
+                />
+              </div>
+              <div class="form-actions">
+                <q-btn color="primary" label="Alterar Senha" @click="alterarSenha" :loading="isSavingSenha" />
+              </div>
+            </q-tab-panel>
+          </q-tab-panels>
+        </div>
+      </div>
+
+      <!-- Atividade Recente -->
+      <div class="activity-card" v-if="atividades.length > 0">
+        <div class="card-header">
+          <h3>Atividade Recente</h3>
+          <q-icon name="history" size="20px" color="grey" />
+        </div>
+        <div class="activity-list">
+          <div v-for="item in atividades.slice(0, 5)" :key="item.id" class="activity-item">
+            <div class="activity-icon" :class="item.tipo">
+              <q-icon :name="getIconAtividade(item.tipo)" size="16px" />
             </div>
-            <div class="col-12 col-md-6">
-              <q-input
-                v-model="perfil.email"
-                label="Email"
-                outlined
-                dense
-                type="email"
-                :loading="salvandoPerfil"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="email" color="primary" />
-                </template>
-              </q-input>
+            <div class="activity-info">
+              <div class="activity-desc">{{ item.descricao }}</div>
+              <div class="activity-date">{{ formatarDataRelativa(item.created_at) }}</div>
             </div>
-            <div class="col-12 col-md-6">
-              <q-input
-                v-model="perfil.telefone"
-                label="Telefone"
-                outlined
-                dense
-                :loading="salvandoPerfil"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="phone" color="primary" />
-                </template>
-              </q-input>
-            </div>
-            <div class="col-12 col-md-6">
-              <q-input
-                v-model="perfil.cargo"
-                label="Cargo"
-                outlined
-                dense
-                readonly
-                disable
-              >
-                <template v-slot:prepend>
-                  <q-icon name="work" color="primary" />
-                </template>
-                <template v-slot:append>
-                  <q-icon name="lock" size="16px" color="grey" />
-                </template>
-              </q-input>
-            </div>
-            <div class="col-12">
-              <q-input
-                v-model="perfil.bio"
-                label="Bio"
-                outlined
-                dense
-                type="textarea"
-                autogrow
-                rows="3"
-                :loading="salvandoPerfil"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="description" color="primary" />
-                </template>
-              </q-input>
-            </div>
+            <div class="activity-ip">{{ item.ip }}</div>
           </div>
-        </q-card-section>
+        </div>
+      </div>
 
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat label="Cancelar" color="grey-7" @click="resetarFormulario" />
-          <q-btn
-            unelevated
-            label="Salvar alterações"
-            color="primary"
-            @click="salvarPerfil"
-            :loading="salvandoPerfil"
-          />
-        </q-card-actions>
-      </q-card>
-
-      <q-card class="senha-card q-mt-md">
-        <q-card-section>
-          <div class="text-h6">
-            <q-icon name="lock" size="20px" class="q-mr-sm" />
-            Alterar palavra-passe
+      <!-- Informações da Sessão -->
+      <div class="info-card">
+        <div class="card-header">
+          <h3>Informações da Sessão</h3>
+          <q-icon name="security" size="20px" color="grey" />
+        </div>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Última atualização:</span>
+            <span class="info-value">{{ formatarDataCompleta(perfil?.updated_at) }}</span>
           </div>
-        </q-card-section>
-
-        <q-card-section>
-          <q-input
-            v-model="senha.atual"
-            label="Palavra-passe atual"
-            outlined
-            dense
-            type="password"
-            :loading="alterandoSenha"
-          >
-            <template v-slot:prepend>
-              <q-icon name="lock" color="secondary" />
-            </template>
-          </q-input>
-
-          <q-input
-            v-model="senha.nova"
-            label="Nova palavra-passe"
-            outlined
-            dense
-            type="password"
-            class="q-mt-md"
-            :loading="alterandoSenha"
-          >
-            <template v-slot:prepend>
-              <q-icon name="vpn_key" color="secondary" />
-            </template>
-          </q-input>
-
-          <q-input
-            v-model="senha.confirmar"
-            label="Confirmar nova palavra-passe"
-            outlined
-            dense
-            type="password"
-            class="q-mt-md"
-            :loading="alterandoSenha"
-          >
-            <template v-slot:prepend>
-              <q-icon name="verified" color="secondary" />
-            </template>
-            <template v-slot:append>
-              <q-icon
-                v-if="senha.nova && senha.confirmar"
-                :name="senha.nova === senha.confirmar ? 'check_circle' : 'error'"
-                :color="senha.nova === senha.confirmar ? 'positive' : 'negative'"
-                size="20px"
-              />
-            </template>
-          </q-input>
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn
-            unelevated
-            label="Alterar palavra-passe"
-            color="secondary"
-            @click="alterarSenha"
-            :loading="alterandoSenha"
-          />
-        </q-card-actions>
-      </q-card>
-    </template>
-
-    <!-- Dialog para editar foto -->
-    <q-dialog v-model="mostrarDialogFoto" persistent>
-      <q-card style="min-width: 400px" class="foto-dialog">
-        <q-card-section class="dialog-header bg-primary text-white">
-          <div class="text-h6">
-            <q-icon name="photo_camera" class="q-mr-sm" />
-            Editar Foto de Perfil
+          <div class="info-item">
+            <span class="info-label">Conta criada:</span>
+            <span class="info-value">{{ formatarDataCompleta(perfil?.created_at) }}</span>
           </div>
-          <q-btn flat round dense icon="close" v-close-popup text-color="white" />
-        </q-card-section>
+          <div class="info-item">
+            <span class="info-label">Status:</span>
+            <q-badge :color="perfil?.verificado ? 'green' : 'orange'">
+              {{ perfil?.verificado ? 'Verificado' : 'Pendente' }}
+            </q-badge>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <q-card-section class="q-pa-md text-center">
-          <q-avatar size="150px" class="q-mb-md">
-            <img :src="novaFotoPreview || authStore.userFoto || 'https://cdn.quasar.dev/img/avatar.png'" />
-          </q-avatar>
-
-          <q-file
-            v-model="novaFoto"
-            label="Selecionar imagem"
-            accept="image/*"
-            outlined
-            dense
-            @update:model-value="previewFoto"
-          >
-            <template v-slot:prepend>
-              <q-icon name="image" />
-            </template>
-          </q-file>
-          <div class="text-caption text-grey q-mt-sm">Formatos aceitos: JPG, PNG. Máx 2MB</div>
-        </q-card-section>
-
-        <q-card-actions align="right" class="dialog-actions">
-          <q-btn flat label="Cancelar" color="grey-7" v-close-popup />
-          <q-btn unelevated label="Salvar" color="primary" @click="salvarFoto" :loading="salvandoFoto" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-  </q-page>
+    <!-- Loading overlay -->
+    <q-inner-loading :showing="isSaving || isSavingSenha">
+      <q-spinner size="40px" color="primary" />
+    </q-inner-loading>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useQuasar } from 'quasar'
-import { useAuthStore } from 'src/stores/auth-store'
+import { ref, computed, reactive, onMounted, watch } from 'vue';
+import { useQuasar } from 'quasar';
+import { storeToRefs } from 'pinia';
+import { useAdminPerfilStore, type AtualizarPerfilData, type AlterarSenhaData } from 'src/stores/admin/admin-perfil-store';
+import { useAuthStore } from 'src/stores/login-store';
 
-defineOptions({
-  name: 'AdminPerfil'
-})
+defineOptions({ name: 'AdminPerfil' });
 
-const $q = useQuasar()
-const authStore = useAuthStore()
+const $q = useQuasar();
+const perfilStore = useAdminPerfilStore();
+const authStore = useAuthStore();
 
-// Estados
-const carregando = ref(true)
-const salvandoPerfil = ref(false)
-const alterandoSenha = ref(false)
-const salvandoFoto = ref(false)
-const mostrarDialogFoto = ref(false)
-const novaFoto = ref<File | null>(null)
-const novaFotoPreview = ref<string | null>(null)
+const {
+  isLoading,
+  isSaving,
+  isSavingSenha,
+  perfil,
+  atividades,
+} = storeToRefs(perfilStore);
 
-// Formulário de perfil
-const perfil = reactive({
+const {
+  carregarPerfil,
+  carregarAtividades,
+  atualizarPerfil,
+  alterarSenha: alterarSenhaStore,
+  atualizarFoto,
+  recarregarDados,
+} = perfilStore;
+
+// ===================== ESTADOS =====================
+
+const tab = ref('dados');
+const fotoTimestamp = ref(Date.now());
+
+const form = reactive({
   nome: '',
   email: '',
   telefone: '',
-  cargo: 'Administrador do Sistema',
-  bio: 'Responsável pela gestão da plataforma EstouAqui.'
-})
+});
 
-// Formulário de senha
-const senha = reactive({
-  atual: '',
-  nova: '',
-  confirmar: ''
-})
+const senhaForm = reactive({
+  senha_atual: '',
+  nova_senha: '',
+  nova_senha_confirmation: '',
+});
 
-// Funções auxiliares
-const getTipoLabel = (tipo?: string) => {
+const errors = reactive({
+  nome: '',
+  email: '',
+  senha_atual: '',
+  nova_senha: '',
+  nova_senha_confirmation: '',
+});
+
+// ===================== FOTO - SIMPLES E DIRETA =====================
+
+// Força atualização da foto quando ela mudar
+watch(
+  () => perfil.value?.foto,
+  () => {
+    fotoTimestamp.value = Date.now();
+  }
+);
+
+const fotoPerfil = computed(() => {
+  const foto = perfil.value?.foto || authStore.user?.foto;
+
+  if (foto && foto !== '') {
+    // Se já for URL completa, usa direto
+    if (foto.startsWith('http')) {
+      return `${foto}?t=${fotoTimestamp.value}`;
+    }
+    // Se for caminho relativo, constrói URL
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const caminho = foto.startsWith('/') ? foto : `/${foto}`;
+    return `${baseUrl}${caminho}?t=${fotoTimestamp.value}`;
+  }
+
+  // Fallback
+  return `https://ui-avatars.com/api/?background=667EEA&color=fff&bold=true&size=140&name=${encodeURIComponent(userNome.value)}`;
+});
+
+const userNome = computed(() => perfil.value?.nome || authStore.user?.nome || 'Administrador');
+const userEmail = computed(() => perfil.value?.email || authStore.user?.email || '');
+const userTipo = computed(() => perfil.value?.tipo || authStore.user?.tipo || 'admin');
+
+// ===================== FUNÇÕES AUXILIARES =====================
+
+const getTipoLabel = (tipo: string): string => {
   const labels: Record<string, string> = {
+    root: 'Root Admin',
     admin: 'Administrador',
     prestador: 'Prestador',
-    cliente: 'Cliente'
-  }
-  return labels[tipo || ''] || 'Usuário'
-}
+    cliente: 'Cliente',
+  };
+  return labels[tipo] || tipo;
+};
 
-const getTipoColor = (tipo?: string) => {
-  const colors: Record<string, string> = {
-    admin: 'primary',
-    prestador: 'secondary',
-    cliente: 'info'
-  }
-  return colors[tipo || ''] || 'grey'
-}
-
-const getTipoIcon = (tipo?: string) => {
+const getIconAtividade = (tipo: string): string => {
   const icons: Record<string, string> = {
-    admin: 'admin_panel_settings',
-    prestador: 'handyman',
-    cliente: 'person'
+    login: 'login',
+    atualizacao: 'edit',
+    criacao: 'add',
+    exclusao: 'delete',
+  };
+  return icons[tipo] || 'info';
+};
+
+const formatarDataRelativa = (dataString: string): string => {
+  if (!dataString) return '—';
+  const date = new Date(dataString);
+  const hoje = new Date();
+  const diffDias = Math.floor((hoje.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDias === 0) return 'Hoje';
+  if (diffDias === 1) return 'Ontem';
+  if (diffDias < 7) return `${diffDias} dias atrás`;
+  return date.toLocaleDateString('pt-PT');
+};
+
+const formatarDataCompleta = (dataString?: string): string => {
+  if (!dataString) return '—';
+  return new Date(dataString).toLocaleString('pt-PT');
+};
+
+// ===================== VALIDAÇÕES =====================
+
+const validarFormulario = (): boolean => {
+  let isValid = true;
+  errors.nome = '';
+  errors.email = '';
+
+  if (!form.nome.trim()) {
+    errors.nome = 'Nome é obrigatório';
+    isValid = false;
   }
-  return icons[tipo || ''] || 'person'
-}
 
-// Carregar perfil com skeleton
-const carregarPerfil = async () => {
-  carregando.value = true
-  try {
-    // Simular carregamento de dados (substituir por API real)
-    await new Promise(resolve => setTimeout(resolve, 800))
+  if (!form.email.trim()) {
+    errors.email = 'Email é obrigatório';
+    isValid = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errors.email = 'Email inválido';
+    isValid = false;
+  }
 
-    const tokenValido = authStore.verifyToken()
+  return isValid;
+};
 
-    if (tokenValido && authStore.user) {
-      perfil.nome = authStore.user.nome || ''
-      perfil.email = authStore.user.email || ''
-      perfil.telefone = authStore.user.telefone || ''
-    } else if (!tokenValido) {
-      $q.notify({
-        type: 'warning',
-        message: 'Sessão expirada. Faça login novamente.',
-        position: 'top'
-      })
+const validarSenha = (): boolean => {
+  let isValid = true;
+  errors.senha_atual = '';
+  errors.nova_senha = '';
+  errors.nova_senha_confirmation = '';
+
+  if (!senhaForm.senha_atual) {
+    errors.senha_atual = 'Senha atual é obrigatória';
+    isValid = false;
+  }
+
+  if (!senhaForm.nova_senha) {
+    errors.nova_senha = 'Nova senha é obrigatória';
+    isValid = false;
+  } else if (senhaForm.nova_senha.length < 6) {
+    errors.nova_senha = 'A nova senha deve ter pelo menos 6 caracteres';
+    isValid = false;
+  }
+
+  if (senhaForm.nova_senha !== senhaForm.nova_senha_confirmation) {
+    errors.nova_senha_confirmation = 'As senhas não coincidem';
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+// ===================== AÇÕES =====================
+
+const carregarDados = async (): Promise<void> => {
+  const dados = await carregarPerfil();
+  if (dados) {
+    form.nome = dados.nome;
+    form.email = dados.email;
+    form.telefone = dados.telefone || '';
+  }
+  await carregarAtividades();
+};
+
+const handleRecarregar = (): void => {
+  void recarregarDados().then(() => {
+    if (perfil.value) {
+      form.nome = perfil.value.nome;
+      form.email = perfil.value.email;
+      form.telefone = perfil.value.telefone || '';
     }
-  } catch (error) {
-    console.error('Erro ao carregar perfil:', error)
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar perfil',
-      position: 'top'
-    })
-  } finally {
-    carregando.value = false
-  }
-}
+    $q.notify({ type: 'positive', message: 'Dados atualizados!' });
+  });
+};
 
-// Resetar formulário
-const resetarFormulario = () => {
-  if (authStore.user) {
-    perfil.nome = authStore.user.nome || ''
-    perfil.email = authStore.user.email || ''
-    perfil.telefone = authStore.user.telefone || ''
-  }
-  $q.notify({
-    type: 'info',
-    message: 'Alterações canceladas',
-    position: 'top'
-  })
-}
+const salvarPerfil = async (): Promise<void> => {
+  if (!validarFormulario()) return;
 
-// Salvar perfil
-const salvarPerfil = async () => {
-  if (!perfil.nome || !perfil.email) {
-    $q.notify({
-      type: 'warning',
-      message: 'Nome e email são obrigatórios',
-      position: 'top'
-    })
-    return
+  const data: AtualizarPerfilData = {
+    nome: form.nome,
+    email: form.email,
+  };
+
+  if (form.telefone && form.telefone.trim() !== '') {
+    data.telefone = form.telefone;
   }
 
-  salvandoPerfil.value = true
-  try {
-    // TODO: Implementar endpoint de atualização de perfil
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // Atualizar o store localmente
-    if (authStore.user) {
-      authStore.user.nome = perfil.nome
-      authStore.user.email = perfil.email
-      authStore.user.telefone = perfil.telefone
-      // Atualizar localStorage
-      localStorage.setItem('auth_user', JSON.stringify(authStore.user))
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: 'Perfil atualizado com sucesso!',
-      position: 'top'
-    })
-  } catch (error) {
-    console.error('Erro ao salvar perfil:', error)
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao salvar perfil',
-      position: 'top'
-    })
-  } finally {
-    salvandoPerfil.value = false
-  }
-}
-
-// Editar foto
-const editarFoto = () => {
-  novaFoto.value = null
-  novaFotoPreview.value = null
-  mostrarDialogFoto.value = true
-}
-
-// Preview da foto
-const previewFoto = (file: File | null) => {
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      novaFotoPreview.value = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
+  const result = await atualizarPerfil(data);
+  if (result) {
+    $q.notify({ type: 'positive', message: 'Perfil atualizado com sucesso!' });
+    await carregarAtividades();
   } else {
-    novaFotoPreview.value = null
+    $q.notify({ type: 'negative', message: 'Erro ao atualizar perfil' });
   }
-}
+};
 
-// Salvar foto
-const salvarFoto = async () => {
-  if (!novaFoto.value) {
-    mostrarDialogFoto.value = false
-    return
+const alterarSenha = async (): Promise<void> => {
+  if (!validarSenha()) return;
+
+  const data: AlterarSenhaData = {
+    senha_atual: senhaForm.senha_atual,
+    nova_senha: senhaForm.nova_senha,
+    nova_senha_confirmation: senhaForm.nova_senha_confirmation,
+  };
+
+  const success = await alterarSenhaStore(data);
+  if (success) {
+    $q.notify({ type: 'positive', message: 'Senha alterada com sucesso!' });
+    senhaForm.senha_atual = '';
+    senhaForm.nova_senha = '';
+    senhaForm.nova_senha_confirmation = '';
+  } else {
+    $q.notify({ type: 'negative', message: 'Erro ao alterar senha. Verifique sua senha atual.' });
   }
+};
 
-  salvandoFoto.value = true
-  try {
-    const formData = new FormData()
-    formData.append('avatar', novaFoto.value)
+const trocarFoto = (): void => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        $q.notify({ type: 'negative', message: 'A imagem deve ter no máximo 5MB' });
+        return;
+      }
 
-    // TODO: Implementar endpoint de upload de foto
-    await new Promise(resolve => setTimeout(resolve, 1000))
+      const result = await atualizarFoto(file);
+      if (result) {
+        // Atualizar timestamp para forçar recarregar a imagem
+        fotoTimestamp.value = Date.now();
+        $q.notify({ type: 'positive', message: 'Foto atualizada com sucesso!' });
+        await carregarDados();
+      } else {
+        $q.notify({ type: 'negative', message: 'Erro ao atualizar foto' });
+      }
+    }
+  };
+  input.click();
+};
 
-    $q.notify({
-      type: 'positive',
-      message: 'Foto atualizada com sucesso!',
-      position: 'top'
-    })
-    mostrarDialogFoto.value = false
-    await carregarPerfil()
-  } catch (error) {
-    console.error('Erro ao salvar foto:', error)
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao salvar foto',
-      position: 'top'
-    })
-  } finally {
-    salvandoFoto.value = false
-  }
-}
-
-// Alterar senha
-const alterarSenha = async () => {
-  if (!senha.atual || !senha.nova || !senha.confirmar) {
-    $q.notify({
-      type: 'warning',
-      message: 'Preencha todos os campos',
-      position: 'top'
-    })
-    return
-  }
-
-  if (senha.nova !== senha.confirmar) {
-    $q.notify({
-      type: 'warning',
-      message: 'As palavras-passe não coincidem',
-      position: 'top'
-    })
-    return
-  }
-
-  if (senha.nova.length < 6) {
-    $q.notify({
-      type: 'warning',
-      message: 'A nova palavra-passe deve ter no mínimo 6 caracteres',
-      position: 'top'
-    })
-    return
-  }
-
-  alterandoSenha.value = true
-  try {
-    // TODO: Implementar endpoint de alteração de senha
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    $q.notify({
-      type: 'positive',
-      message: 'Palavra-passe alterada com sucesso!',
-      position: 'top'
-    })
-
-    senha.atual = ''
-    senha.nova = ''
-    senha.confirmar = ''
-  } catch (error) {
-    console.error('Erro ao alterar senha:', error)
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao alterar palavra-passe',
-      position: 'top'
-    })
-  } finally {
-    alterandoSenha.value = false
-  }
-}
-
-// Carregar dados ao montar
 onMounted(() => {
-  void carregarPerfil()
-})
+  void carregarDados();
+});
 </script>
 
 <style scoped lang="scss">
-$primary-color: #667eea;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
-$gray-600: #757575;
-
-.admin-perfil {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-  background: #f5f7fa;
+.page-container {
+  background: #f3f4f6;
   min-height: 100vh;
+  padding: 20px;
 }
 
 .page-header {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  .page-title-section {
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      display: flex;
-      align-items: center;
-    }
-
-    .page-subtitle {
-      font-size: 0.875rem;
-      color: #6c757d;
-      margin-top: 4px;
-    }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
   }
 }
 
-// ==========================================
-// SKELETON LOADING (Facebook/Instagram style)
-// ==========================================
-
-.skeleton-container {
-  position: relative;
-  overflow: hidden;
-}
-
-.skeleton-profile-header {
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
   background: white;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-}
-
-.skeleton-avatar-large {
-  width: 100px;
-  height: 100px;
-  background: $gray-200;
-  border-radius: 50%;
-}
-
-.skeleton-title {
-  width: 200px;
-  height: 24px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin-bottom: 12px;
-}
-
-.skeleton-text {
-  width: 250px;
-  height: 16px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin-bottom: 12px;
-}
-
-.skeleton-badge {
-  width: 100px;
-  height: 24px;
-  background: $gray-200;
   border-radius: 12px;
+
+  p {
+    margin-top: 12px;
+    color: #6b7280;
+  }
 }
 
-.skeleton-card {
+.profile-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.profile-avatar-section {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  .avatar-container {
+    position: relative;
+    display: inline-block;
+
+    .profile-avatar {
+      border: 4px solid #e5e7eb;
+    }
+
+    .change-photo-btn {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .avatar-info {
+    margin-top: 20px;
+
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+    }
+
+    .user-role {
+      margin-bottom: 8px;
+    }
+
+    .user-email {
+      font-size: 13px;
+      color: #6b7280;
+    }
+  }
+}
+
+.profile-form-section {
   background: white;
   border-radius: 16px;
   padding: 20px;
-  position: relative;
-  overflow: hidden;
-}
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-.skeleton-section-title {
-  width: 180px;
-  height: 24px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin-bottom: 20px;
-
-  &.small {
-    width: 200px;
-    height: 20px;
-  }
-}
-
-.skeleton-input {
-  width: 100%;
-  height: 48px;
-  background: $gray-100;
-  border-radius: 8px;
-}
-
-.skeleton-textarea {
-  width: 100%;
-  height: 80px;
-  background: $gray-100;
-  border-radius: 8px;
-}
-
-.skeleton-button {
-  width: 120px;
-  height: 36px;
-  background: $gray-200;
-  border-radius: 8px;
-
-  &.primary {
-    background: $gray-200;
+  .profile-tabs {
+    margin-bottom: 16px;
   }
 
-  &.secondary {
-    background: $gray-200;
+  .form-row {
+    margin-bottom: 20px;
   }
-}
 
-.skeleton-shimmer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  animation: shimmer 1.5s infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-// ==========================================
-// ESTILOS PRINCIPAIS
-// ==========================================
-
-.perfil-card,
-.senha-card {
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-
-  :deep(.q-card__section) {
-    padding: 20px;
-  }
-}
-
-.avatar-container {
-  position: relative;
-  cursor: pointer;
-
-  .avatar-edit {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
+  .form-actions {
+    margin-top: 24px;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    cursor: pointer;
-  }
-
-  &:hover .avatar-edit {
-    opacity: 1;
+    justify-content: flex-end;
   }
 }
 
-.foto-dialog {
+.activity-card {
+  background: white;
   border-radius: 16px;
-  overflow: hidden;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  .dialog-header {
+  .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
   }
 
-  .dialog-actions {
-    padding: 12px 20px;
-    border-top: 1px solid #e9ecef;
+  .activity-list {
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .activity-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &.login {
+          background: rgba(16, 185, 129, 0.1);
+          color: #10b981;
+        }
+
+        &.atualizacao {
+          background: rgba(102, 126, 234, 0.1);
+          color: #667eea;
+        }
+
+        &.criacao {
+          background: rgba(16, 185, 129, 0.1);
+          color: #10b981;
+        }
+
+        &.exclusao {
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+        }
+      }
+
+      .activity-info {
+        flex: 1;
+
+        .activity-desc {
+          font-size: 14px;
+          color: #1f2937;
+        }
+
+        .activity-date {
+          font-size: 11px;
+          color: #9ca3af;
+          margin-top: 2px;
+        }
+      }
+
+      .activity-ip {
+        font-size: 11px;
+        color: #9ca3af;
+        font-family: monospace;
+        background: #f3f4f6;
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+    }
+  }
+}
+
+.info-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .info-label {
+        font-size: 12px;
+        color: #6b7280;
+      }
+
+      .info-value {
+        font-size: 14px;
+        font-weight: 500;
+        color: #1f2937;
+      }
+    }
   }
 }
 
 @media (max-width: 768px) {
-  .admin-perfil {
-    padding: 16px;
+  .profile-grid {
+    grid-template-columns: 1fr;
   }
 
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .info-grid {
+    grid-template-columns: 1fr !important;
   }
 
-  .foto-dialog {
-    min-width: 90vw;
-    max-width: 90vw;
+  .activity-item {
+    flex-wrap: wrap;
+
+    .activity-ip {
+      margin-left: 52px;
+    }
   }
 }
 </style>

@@ -1,4 +1,4 @@
-// src/router/index.ts - VERSÃO CORRIGIDA (sem async desnecessário)
+// src/router/index.ts
 
 import { defineRouter } from '#q-app/wrappers';
 import {
@@ -8,9 +8,9 @@ import {
   createWebHistory,
 } from 'vue-router';
 import routes from './web/routes';
-import { useAuthStore } from 'src/stores/auth-store';
+import { useAuthStore } from 'src/stores/login-store';
 
-export default defineRouter(function (/* { store, ssrContext } */) {
+export default defineRouter(function () {
   const createHistory = process.env.SERVER
     ? createMemoryHistory
     : process.env.VUE_ROUTER_MODE === 'history'
@@ -23,33 +23,34 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     history: createHistory(process.env.VUE_ROUTER_BASE),
   });
 
-  // ✅ GUARDA DE AUTENTICAÇÃO - CORRIGIDA (sem async e sem await)
-  Router.beforeEach((to) => {  // ← Removeu o 'async'
+  // ✅ GUARDA DE AUTENTICAÇÃO
+  Router.beforeEach((to) => {
     const authStore = useAuthStore();
 
-    // Inicializar store se necessário (operação síncrona)
     if (!authStore.initialized) {
       authStore.initialize();
     }
 
-    // 🔓 REGRA ESPECIAL: Rota de login do admin
+    // 🔓 Rota de login do ADMIN (Root e Admin usam esta tela)
     if (to.path === '/admin/login') {
-      // Se já estiver autenticado como admin, redirecionar para dashboard
-      if (authStore.isAuthenticated && authStore.isAdmin) {
+      if (authStore.isAuthenticated && (authStore.isAdmin || authStore.user?.tipo === 'root')) {
         return '/admin/dashboard';
       }
       return true;
     }
 
-    // 🔓 REGRA: Rota de login comum
+    // 🔓 Rota de login do APP (Cliente e Prestador usam esta tela)
     if (to.path === '/auth/login') {
       if (authStore.isAuthenticated) {
-        if (authStore.isAdmin) {
+        // Se for admin/root, vai para admin
+        if (authStore.isAdmin || authStore.user?.tipo === 'root') {
           return '/admin/dashboard';
         }
+        // Se for prestador, vai para dashboard prestador
         if (authStore.isPrestador) {
           return '/mobile/prestador/dashboard';
         }
+        // Se for cliente, vai para inicio
         return '/mobile/inicio';
       }
       return true;
@@ -61,37 +62,50 @@ export default defineRouter(function (/* { store, ssrContext } */) {
       return true;
     }
 
-    // 🔒 Verificar rotas protegidas
+    // 🔒 Verificar se a rota requer autenticação
     const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth === true);
     const requiresAdmin = to.matched.some((record) => record.meta?.requiresAdmin === true);
     const requiresPrestador = to.matched.some((record) => record.meta?.requiresPrestador === true);
 
     // Rota requer autenticação mas usuário não está logado
     if (requiresAuth && !authStore.isAuthenticated) {
-      // Se for rota admin, redirecionar para login admin
       if (to.path.startsWith('/admin')) {
         return '/admin/login';
       }
-
-      // Se for rota mobile, redirecionar para login comum
       if (to.path.startsWith('/mobile')) {
         return '/auth/login';
       }
-
       return '/auth/login';
     }
 
-    // Rota requer admin mas usuário não é admin
-    if (requiresAdmin && !authStore.isAdmin) {
-      return '/auth/login';
+    // ✅ Rota requer ADMIN (Root e Admin têm acesso)
+    if (requiresAdmin) {
+      const isAdminOrRoot = authStore.isAdmin || authStore.user?.tipo === 'root';
+      if (!isAdminOrRoot) {
+        return '/auth/login';
+      }
     }
 
-    // Rota requer prestador mas usuário não é prestador
+    // Rota requer prestador
     if (requiresPrestador && !authStore.isPrestador) {
       return '/auth/login';
     }
 
-    // Prestador tentando acessar rota de cliente
+    // ✅ Garantir que Root/Admin não acedem a rotas mobile
+    const isAdminOrRoot = authStore.isAdmin || authStore.user?.tipo === 'root';
+    if (to.path.startsWith('/mobile') && isAdminOrRoot) {
+      return '/admin/dashboard';
+    }
+
+    // ✅ Garantir que Cliente/Prestador não acedem a rotas admin
+    if (to.path.startsWith('/admin') && !isAdminOrRoot) {
+      if (authStore.isAuthenticated) {
+        return authStore.isPrestador ? '/mobile/prestador/dashboard' : '/mobile/inicio';
+      }
+      return '/auth/login';
+    }
+
+    // Prestador tentando aceder rota de cliente
     if (
       to.path.startsWith('/mobile') &&
       !to.path.includes('/prestador') &&
@@ -101,7 +115,7 @@ export default defineRouter(function (/* { store, ssrContext } */) {
       return '/mobile/prestador/dashboard';
     }
 
-    // Cliente tentando acessar rota de prestador
+    // Cliente tentando aceder rota de prestador
     if (
       to.path.startsWith('/mobile/prestador') &&
       authStore.isAuthenticated &&
@@ -110,7 +124,6 @@ export default defineRouter(function (/* { store, ssrContext } */) {
       return '/mobile/inicio';
     }
 
-    // Permitir navegação
     return true;
   });
 

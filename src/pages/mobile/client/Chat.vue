@@ -2,7 +2,7 @@
   <div class="chat-page">
 
     <!-- ===== SKELETON LOADING ===== -->
-    <div v-if="carregamentoInicial" class="skeleton-loading">
+    <div v-if="store.carregamentoInicial" class="skeleton-loading">
       <div class="skeleton-header">
         <div class="skeleton-back-btn"></div>
         <div class="skeleton-header-info">
@@ -41,13 +41,13 @@
 
         <div class="chat-header__info">
           <div class="chat-avatar">
-            <img :src="prestador?.foto || getAvatarUrl(prestador?.nome || '')" :alt="prestador?.nome" />
-            <div class="status-dot" :class="{ online: prestador?.disponivel }"></div>
+            <img :src="store.prestadorAvatar" :alt="store.prestadorNome" />
+            <div class="status-dot" :class="{ online: store.prestadorOnline }"></div>
           </div>
           <div class="chat-header__details">
-            <div class="chat-name">{{ prestador?.nome }}</div>
-            <div class="chat-status" :class="{ online: prestador?.disponivel }">
-              {{ prestador?.disponivel ? 'Online' : 'Offline' }}
+            <div class="chat-name">{{ store.prestadorNome }}</div>
+            <div class="chat-status" :class="{ online: store.prestadorOnline }">
+              {{ store.prestadorOnline ? 'Online' : 'Offline' }}
             </div>
           </div>
         </div>
@@ -63,12 +63,12 @@
 
       <!-- Área de mensagens -->
       <div class="messages-area" ref="messagesArea">
-        <div v-for="msg in mensagens" :key="msg.id" class="message-group">
-          <div class="message-date">{{ formatarData(msg.created_at) }}</div>
+        <div v-for="msg in store.mensagens" :key="msg.id" class="message-group">
+          <div class="message-date">{{ store.formatarData(msg.created_at) }}</div>
           <div class="message-row" :class="{ own: msg.is_owner }">
             <div class="message-bubble" :class="{ own: msg.is_owner }">
-              <div class="message-text">{{ msg.message }}</div>
-              <div class="message-time">{{ formatarHora(msg.created_at) }}</div>
+              <div class="message-text">{{ msg.mensagem }}</div>
+              <div class="message-time">{{ store.formatarHora(msg.created_at) }}</div>
             </div>
           </div>
         </div>
@@ -82,12 +82,12 @@
             type="text"
             placeholder="Escreva uma mensagem..."
             class="message-input"
-            :disabled="enviando"
+            :disabled="store.enviando"
             @keyup.enter="enviarMensagem"
           />
           <button
             class="send-btn"
-            :disabled="!novaMensagem.trim() || enviando"
+            :disabled="!novaMensagem.trim() || store.enviando"
             @click="enviarMensagem"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -102,58 +102,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { useClientePublicStore, type PrestadorData } from 'src/stores/client/cliente-public-store';
-import { useClienteComunicacaoStore, type MensagemData } from 'src/stores/client/cliente-comunicacao-store';
+import { useChatStore } from 'src/stores/client/cliente-chat-store';
 
 defineOptions({ name: 'ChatPage' });
 
 const router = useRouter();
 const route = useRoute();
 const $q = useQuasar();
+const store = useChatStore();
 
-const publicStore = useClientePublicStore();
-const comunicacaoStore = useClienteComunicacaoStore();
-
-const carregamentoInicial = ref(true);
-const enviando = ref(false);
 const novaMensagem = ref('');
 const messagesArea = ref<HTMLElement | null>(null);
-const prestador = ref<PrestadorData | null>(null);
-const mensagens = ref<MensagemData[]>([]);
 const prestadorId = ref<number>(0);
-let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-const ultimoId = computed(() => {
-  return mensagens.value[mensagens.value.length - 1]?.id || 0;
-});
-
-const getAvatarUrl = (nome: string) => {
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=5B4BF5&color=fff&size=40`;
-};
-
-const formatarData = (data: string) => {
-  const date = new Date(data);
-  const hoje = new Date();
-  const ontem = new Date(hoje);
-  ontem.setDate(hoje.getDate() - 1);
-
-  if (date.toDateString() === hoje.toDateString()) {
-    return 'Hoje';
-  } else if (date.toDateString() === ontem.toDateString()) {
-    return 'Ontem';
-  }
-  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
-
-const formatarHora = (data: string) => {
-  const date = new Date(data);
-  return date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
-};
-
-const scrollToBottom = async () => {
+const scrollToBottom = async (): Promise<void> => {
   await nextTick();
   setTimeout(() => {
     if (messagesArea.value) {
@@ -162,128 +127,57 @@ const scrollToBottom = async () => {
   }, 100);
 };
 
-const carregarPrestador = async () => {
-  const id = route.params.id as string;
-  if (!id) return;
+const enviarMensagem = async (): Promise<void> => {
+  if (!novaMensagem.value.trim() || store.enviando || !prestadorId.value) return;
 
-  prestadorId.value = parseInt(id, 10);
+  const success = await store.sendMessage(prestadorId.value, novaMensagem.value.trim());
 
-  try {
-    const data = await publicStore.fetchPrestadorDetalhes(prestadorId.value);
-    if (data) {
-      prestador.value = data;
-    }
-  } catch (error) {
-    console.error('Erro ao carregar prestador:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar dados do prestador', position: 'top' });
+  if (success) {
+    novaMensagem.value = '';
+    await scrollToBottom();
+  } else {
+    $q.notify({
+      type: 'negative',
+      message: store.erro || 'Erro ao enviar mensagem',
+      position: 'top'
+    });
   }
 };
 
-const carregarMensagens = async () => {
+const marcarComoLidas = async (): Promise<void> => {
   if (!prestadorId.value) return;
-
-  try {
-    const data = await comunicacaoStore.fetchMensagens(prestadorId.value);
-    if (data) {
-      mensagens.value = data;
-      await scrollToBottom();
-    }
-  } catch (error) {
-    console.error('Erro ao carregar mensagens:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar mensagens', position: 'top' });
-  }
+  await store.markMessagesAsRead(prestadorId.value);
 };
 
-const enviarMensagem = async () => {
-  if (!novaMensagem.value.trim() || enviando.value || !prestadorId.value) return;
-
-  enviando.value = true;
-
-  try {
-    const mensagem = await comunicacaoStore.sendMessage(prestadorId.value, novaMensagem.value.trim());
-
-    if (mensagem) {
-      mensagens.value.push(mensagem);
-      novaMensagem.value = '';
-      await scrollToBottom();
-    }
-  } catch (error) {
-    console.error('Erro ao enviar mensagem:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao enviar mensagem', position: 'top' });
-  } finally {
-    enviando.value = false;
-  }
-};
-
-const marcarComoLidas = async () => {
-  if (!prestadorId.value) return;
-  await comunicacaoStore.markMessagesAsRead(prestadorId.value);
-};
-
-const buscarNovasMensagens = () => {
-  if (!prestadorId.value) return;
-
-  void (async () => {
-    try {
-      const novasMensagens = await comunicacaoStore.fetchLatestMessages(
-        prestadorId.value,
-        ultimoId.value,
-      );
-
-      if (novasMensagens && novasMensagens.length > 0) {
-        mensagens.value = [...mensagens.value, ...novasMensagens];
-        await scrollToBottom();
-
-        if (document.hasFocus()) {
-          await marcarComoLidas();
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao buscar novas mensagens:', error);
-    }
-  })();
-};
-
-const iniciarChat = async () => {
-  carregamentoInicial.value = true;
-  try {
-    await carregarPrestador();
-    await carregarMensagens();
-    await marcarComoLidas();
-  } catch (error) {
-    console.error('Erro ao iniciar chat:', error);
-  } finally {
-    setTimeout(() => { carregamentoInicial.value = false; }, 500);
-  }
-};
-
-const iniciarPolling = () => {
-  if (pollingInterval) clearInterval(pollingInterval);
-  pollingInterval = setInterval(() => {
-    buscarNovasMensagens();
-  }, 5000);
-};
-
-const pararPolling = () => {
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    pollingInterval = null;
-  }
-};
-
-const handleFocus = () => {
+const handleFocus = (): void => {
   void marcarComoLidas();
+};
+
+const iniciarChat = async (): Promise<void> => {
+  const idParam = route.params.id;
+  const id = Array.isArray(idParam) ? idParam[0] : idParam;
+
+  if (!id) {
+    return;
+  }
+
+  prestadorId.value = Number(id);
+
+  await store.carregarChat(prestadorId.value);
+  await scrollToBottom();
+  await marcarComoLidas();
+  store.iniciarPolling(prestadorId.value, 5000);
 };
 
 onMounted(() => {
   void iniciarChat();
-  iniciarPolling();
   window.addEventListener('focus', handleFocus);
 });
 
 onUnmounted(() => {
-  pararPolling();
+  store.pararPolling();
   window.removeEventListener('focus', handleFocus);
+  store.limparStore();
 });
 </script>
 

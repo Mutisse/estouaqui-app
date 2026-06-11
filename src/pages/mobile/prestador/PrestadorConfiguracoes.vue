@@ -69,6 +69,14 @@
           </div>
           <div class="skeleton-chevron"></div>
         </div>
+        <div class="skeleton-section"></div>
+        <div class="skeleton-item">
+          <div class="skeleton-icon"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-line w-50"></div>
+          </div>
+          <div class="skeleton-badge"></div>
+        </div>
       </div>
       <div class="skeleton-save"></div>
     </div>
@@ -77,7 +85,7 @@
     <template v-else>
 
       <!-- Loading overlay -->
-      <div v-if="loading" class="loading-overlay">
+      <div v-if="configStore.isLoading" class="loading-overlay">
         <div class="loader"></div>
         <p>Carregando configurações...</p>
       </div>
@@ -106,7 +114,7 @@
               <div class="config-desc">Receber alertas de novos pedidos</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" v-model="config.notificacoesPush" @change="configuracaoAlterada">
+              <input type="checkbox" v-model="configStore.configuracoes.notificacoes_push" @change="configStore.hasChanges = true">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -124,7 +132,7 @@
               <div class="config-desc">Receber alertas via mensagem</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" v-model="config.notificacoesSMS" @change="configuracaoAlterada">
+              <input type="checkbox" v-model="configStore.configuracoes.notificacoes_sms" @change="configStore.hasChanges = true">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -141,7 +149,7 @@
               <div class="config-desc">Receber resumos semanais</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" v-model="config.notificacoesEmail" @change="configuracaoAlterada">
+              <input type="checkbox" v-model="configStore.configuracoes.notificacoes_email" @change="configStore.hasChanges = true">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -171,7 +179,7 @@
               <div class="config-desc">Novos pedidos são aceitos automaticamente</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" v-model="config.aceitarAutomatico" @change="configuracaoAlterada">
+              <input type="checkbox" v-model="configStore.configuracoes.aceitar_automatico" @change="configStore.hasChanges = true">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -188,7 +196,7 @@
               <div class="config-desc">Não receber novos pedidos</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" v-model="config.modoNaoPerturbe" @change="configuracaoAlterada">
+              <input type="checkbox" v-model="configStore.configuracoes.modo_nao_perturbe" @change="configStore.hasChanges = true">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -216,7 +224,7 @@
               <div class="config-desc">Aparecer nas buscas de clientes</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" v-model="config.perfilPublico" @change="configuracaoAlterada">
+              <input type="checkbox" v-model="configStore.configuracoes.perfil_publico" @change="configStore.hasChanges = true">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -233,7 +241,7 @@
               <div class="config-desc">Apenas após aceitar pedido</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" v-model="config.mostrarLocalizacao" @change="configuracaoAlterada">
+              <input type="checkbox" v-model="configStore.configuracoes.mostrar_localizacao" @change="configStore.hasChanges = true">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -260,8 +268,8 @@
               <div class="config-title">M-Pesa</div>
               <div class="config-desc">Configurar número para saques</div>
             </div>
-            <div class="config-badge" :class="config.mpesaConfigurado ? 'success' : 'grey'">
-              {{ config.mpesaConfigurado ? 'Configurado' : 'Não configurado' }}
+            <div class="config-badge" :class="configStore.mpesaEstaConfigurado ? 'success' : 'grey'">
+              {{ configStore.mpesaEstaConfigurado ? 'Configurado' : 'Não configurado' }}
             </div>
             <svg class="config-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 18l6-6-6-6"/>
@@ -279,8 +287,8 @@
               <div class="config-title">Conta bancária</div>
               <div class="config-desc">Dados para transferência</div>
             </div>
-            <div class="config-badge" :class="config.contaConfigurada ? 'success' : 'grey'">
-              {{ config.contaConfigurada ? 'Configurado' : 'Não configurado' }}
+            <div class="config-badge" :class="configStore.contaEstaConfigurada ? 'success' : 'grey'">
+              {{ configStore.contaEstaConfigurada ? 'Configurado' : 'Não configurado' }}
             </div>
             <svg class="config-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 18l6-6-6-6"/>
@@ -308,7 +316,7 @@
             <div class="config-info">
               <div class="config-title">Idioma do app</div>
             </div>
-            <select class="config-select" v-model="config.idioma" @change="configuracaoAlterada">
+            <select class="config-select" v-model="configStore.configuracoes.idioma" @change="configStore.hasChanges = true">
               <option value="pt">Português</option>
               <option value="en">English</option>
               <option value="fr">Français</option>
@@ -375,10 +383,37 @@
           </div>
         </div>
 
+        <!-- ===== SEÇÃO: EXCLUIR CONTA ===== -->
+        <div class="config-section delete-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            <h2 style="color: #EF4444;">Conta</h2>
+          </div>
+
+          <div class="config-item clickable delete-item" @click="confirmarExcluirConta">
+            <div class="config-icon danger">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>
+              </svg>
+            </div>
+            <div class="config-info">
+              <div class="config-title" style="color: #EF4444;">Excluir minha conta</div>
+              <div class="config-desc">Remover permanentemente sua conta e todos os dados</div>
+            </div>
+            <svg class="config-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
+        </div>
+
         <!-- ===== BOTÃO SALVAR ===== -->
         <div class="save-container">
-          <button class="save-btn" @click="salvarConfiguracoes" :disabled="salvando || !hasChanges">
-            <div v-if="salvando" class="btn-spinner"></div>
+          <button class="save-btn" @click="salvarConfiguracoes" :disabled="configStore.isSaving || !configStore.hasChanges">
+            <div v-if="configStore.isSaving" class="btn-spinner"></div>
             <span v-else>Salvar configurações</span>
           </button>
         </div>
@@ -459,128 +494,47 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorPerfilStore } from 'src/stores/prestador/prestador-perfil-store';
-import type { DisponibilidadeConfig } from 'src/stores/prestador/prestador-perfil-store';
-import { api } from 'src/boot/axios';
+import { usePrestadorConfiguracoesStore } from 'src/stores/prestador/prestador-configuracoes-store';
 
 defineOptions({ name: 'PrestadorConfiguracoes' });
 
 const router = useRouter();
 const $q = useQuasar();
-const perfilStore = usePrestadorPerfilStore();
+
+// ✅ APENAS UM STORE!
+const configStore = usePrestadorConfiguracoesStore();
 
 const carregamentoInicial = ref(true);
-const loading = ref(true);
-const salvando = ref(false);
-const salvandoMpesa = ref(false);
-const salvandoConta = ref(false);
 const showMpesaDialog = ref(false);
 const showContaDialog = ref(false);
-const configuracaoModificada = ref(false);
+const salvandoMpesa = ref(false);
+const salvandoConta = ref(false);
 
+// Dados temporários dos modais
 const mpesaNumero = ref('');
 const mpesaNome = ref('');
-
 const contaBanco = ref('');
 const contaNumero = ref('');
 const contaTitular = ref('');
 
-const config = ref({
-  notificacoesPush: true,
-  notificacoesSMS: false,
-  notificacoesEmail: true,
-  aceitarAutomatico: false,
-  modoNaoPerturbe: false,
-  perfilPublico: true,
-  mostrarLocalizacao: true,
-  mpesaConfigurado: false,
-  contaConfigurada: false,
-  idioma: 'pt',
-});
-
-const hasChanges = computed(() => configuracaoModificada.value);
-
-const configuracaoAlterada = () => {
-  configuracaoModificada.value = true;
-};
-
-const carregarConfiguracoes = async () => {
-  loading.value = true;
-  try {
-    const response = await api.get('/preferences');
-    if (response.data.success && response.data.data) {
-      const prefs = response.data.data;
-      config.value = {
-        notificacoesPush: prefs.notificacoes_push ?? true,
-        notificacoesSMS: prefs.notificacoes_sms ?? false,
-        notificacoesEmail: prefs.notificacoes_email ?? true,
-        aceitarAutomatico: prefs.aceitar_automatico ?? false,
-        modoNaoPerturbe: prefs.modo_nao_perturbe ?? false,
-        perfilPublico: prefs.perfil_publico ?? true,
-        mostrarLocalizacao: prefs.mostrar_localizacao ?? true,
-        mpesaConfigurado: prefs.mpesa_configurado ?? false,
-        contaConfigurada: prefs.conta_configurada ?? false,
-        idioma: prefs.idioma ?? 'pt',
-      };
-    }
-
-    await perfilStore.fetchDisponibilidade();
-    if (perfilStore.disponibilidade) {
-      config.value.aceitarAutomatico = perfilStore.disponibilidade.configuracoes?.aceitar_agendamento_automatico ?? false;
-    }
-  } catch (error) {
-    console.error('Erro ao carregar configurações:', error);
-  } finally {
-    loading.value = false;
-  }
-};
+// ===================== SALVAR CONFIGURAÇÕES =====================
 
 const salvarConfiguracoes = async () => {
-  if (!hasChanges.value) {
-    $q.notify({ type: 'info', message: 'Nenhuma alteração para salvar', position: 'top' });
-    return;
-  }
-
-  salvando.value = true;
-  try {
-    await api.put('/preferences', {
-      notificacoes_push: config.value.notificacoesPush,
-      notificacoes_sms: config.value.notificacoesSMS,
-      notificacoes_email: config.value.notificacoesEmail,
-      aceitar_automatico: config.value.aceitarAutomatico,
-      modo_nao_perturbe: config.value.modoNaoPerturbe,
-      perfil_publico: config.value.perfilPublico,
-      mostrar_localizacao: config.value.mostrarLocalizacao,
-      idioma: config.value.idioma,
-    });
-
-    const configuracoesAtuais = perfilStore.disponibilidade?.configuracoes;
-    const configuracoesCompletas: DisponibilidadeConfig = {
-      tempo_minimo_agendamento: configuracoesAtuais?.tempo_minimo_agendamento ?? 60,
-      tempo_entre_servicos: configuracoesAtuais?.tempo_entre_servicos ?? 15,
-      notificar_antes: configuracoesAtuais?.notificar_antes ?? 30,
-      aceitar_agendamento_automatico: config.value.aceitarAutomatico,
-      dias_antecedencia: configuracoesAtuais?.dias_antecedencia ?? 30,
-    };
-
-    await perfilStore.updateDisponibilidade({ configuracoes: configuracoesCompletas });
-
-    configuracaoModificada.value = false;
+  const success = await configStore.salvarConfiguracoes();
+  if (success) {
     $q.notify({ type: 'positive', message: 'Configurações salvas com sucesso!', position: 'top' });
-  } catch (error) {
-    console.error('Erro ao salvar configurações:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao salvar configurações', position: 'top' });
-  } finally {
-    salvando.value = false;
+  } else {
+    $q.notify({ type: 'negative', message: configStore.error || 'Erro ao salvar configurações', position: 'top' });
   }
 };
+// ===================== FUNÇÕES =====================
 
 const configurarMPesa = () => {
-  mpesaNumero.value = '';
-  mpesaNome.value = '';
+  mpesaNumero.value = configStore.mpesaData.numero;
+  mpesaNome.value = configStore.mpesaData.nome;
   showMpesaDialog.value = true;
 };
 
@@ -592,18 +546,17 @@ const salvarMpesa = async () => {
 
   salvandoMpesa.value = true;
   try {
-    await api.put('/preferences', {
-      mpesa_numero: mpesaNumero.value,
-      mpesa_nome: mpesaNome.value,
-      mpesa_configurado: true,
+    const success = await configStore.salvarMpesa({
+      numero: mpesaNumero.value,
+      nome: mpesaNome.value,
     });
-
-    config.value.mpesaConfigurado = true;
-    configuracaoModificada.value = true;
-    showMpesaDialog.value = false;
-    $q.notify({ type: 'positive', message: 'M-Pesa configurado com sucesso!', position: 'top' });
-  } catch (error) {
-    console.error('Erro ao salvar M-Pesa:', error);
+    if (success) {
+      $q.notify({ type: 'positive', message: 'M-Pesa configurado com sucesso!', position: 'top' });
+      showMpesaDialog.value = false;
+    } else {
+      $q.notify({ type: 'negative', message: 'Erro ao configurar M-Pesa', position: 'top' });
+    }
+  } catch {
     $q.notify({ type: 'negative', message: 'Erro ao configurar M-Pesa', position: 'top' });
   } finally {
     salvandoMpesa.value = false;
@@ -611,9 +564,9 @@ const salvarMpesa = async () => {
 };
 
 const configurarConta = () => {
-  contaBanco.value = '';
-  contaNumero.value = '';
-  contaTitular.value = '';
+  contaBanco.value = configStore.contaData.banco;
+  contaNumero.value = configStore.contaData.numero;
+  contaTitular.value = configStore.contaData.titular;
   showContaDialog.value = true;
 };
 
@@ -625,23 +578,44 @@ const salvarConta = async () => {
 
   salvandoConta.value = true;
   try {
-    await api.put('/preferences', {
-      conta_banco: contaBanco.value,
-      conta_numero: contaNumero.value,
-      conta_titular: contaTitular.value,
-      conta_configurada: true,
+    const success = await configStore.salvarConta({
+      banco: contaBanco.value,
+      numero: contaNumero.value,
+      titular: contaTitular.value,
     });
-
-    config.value.contaConfigurada = true;
-    configuracaoModificada.value = true;
-    showContaDialog.value = false;
-    $q.notify({ type: 'positive', message: 'Conta bancária configurada com sucesso!', position: 'top' });
-  } catch (error) {
-    console.error('Erro ao salvar conta:', error);
+    if (success) {
+      $q.notify({ type: 'positive', message: 'Conta bancária configurada com sucesso!', position: 'top' });
+      showContaDialog.value = false;
+    } else {
+      $q.notify({ type: 'negative', message: 'Erro ao configurar conta', position: 'top' });
+    }
+  } catch {
     $q.notify({ type: 'negative', message: 'Erro ao configurar conta', position: 'top' });
   } finally {
     salvandoConta.value = false;
   }
+};
+
+const confirmarExcluirConta = () => {
+  $q.dialog({
+    title: 'Excluir conta',
+    message: 'Tem certeza que deseja excluir permanentemente sua conta? Esta ação não pode ser desfeita e todos os seus dados serão removidos.',
+    cancel: { label: 'Cancelar', flat: true },
+    ok: { label: 'Excluir', color: 'negative', unelevated: true },
+    persistent: true,
+  }).onOk(() => {
+    void (async () => {
+      $q.loading.show({ message: 'Excluindo conta...' });
+      const success = await configStore.excluirConta();
+      $q.loading.hide();
+      if (success) {
+        $q.notify({ type: 'positive', message: 'Conta excluída com sucesso!', position: 'top' });
+        await router.push('/auth/login');
+      } else {
+        $q.notify({ type: 'negative', message: configStore.error || 'Erro ao excluir conta', position: 'top' });
+      }
+    })();
+  });
 };
 
 const opcoes = () => {
@@ -660,10 +634,14 @@ const versao = () => {
   $q.notify({ type: 'info', message: 'Versão 1.0.0', position: 'top' });
 };
 
+// ===================== CARREGAMENTO INICIAL =====================
+
 onMounted(async () => {
   carregamentoInicial.value = true;
   try {
-    await carregarConfiguracoes();
+    await configStore.carregarTodosDados();
+  } catch (error) {
+    console.error('Erro ao carregar configurações:', error);
   } finally {
     setTimeout(() => { carregamentoInicial.value = false; }, 500);
   }
@@ -678,6 +656,7 @@ $success-light: rgba(16, 185, 129, 0.1);
 $warning: #F59E0B;
 $warning-light: rgba(245, 158, 11, 0.1);
 $danger: #EF4444;
+$danger-light: rgba(239, 68, 68, 0.1);
 $info: #3B82F6;
 $info-light: rgba(59, 130, 246, 0.1);
 $dark: #0A0A0F;
@@ -762,9 +741,7 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
-// SKELETON
-// =====================
+// ===================== SKELETON =====================
 .skeleton-container {
   .skeleton-header {
     display: flex;
@@ -850,15 +827,17 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
-// CONFIG SECTIONS
-// =====================
+// ===================== CONFIG SECTIONS =====================
 .config-section {
   background: $white;
   margin: 16px;
   border-radius: $radius;
   border: 1px solid $border;
   overflow: hidden;
+
+  &.delete-section {
+    border-color: rgba($danger, 0.3);
+  }
 }
 
 .section-header {
@@ -886,6 +865,10 @@ $radius-xs: 8px;
     cursor: pointer;
     &:hover { background: $gray-light; }
   }
+
+  &.delete-item:hover {
+    background: rgba($danger, 0.05);
+  }
 }
 
 .config-icon {
@@ -904,6 +887,7 @@ $radius-xs: 8px;
   &.success { background: $success-light; color: $success; }
   &.warning { background: $warning-light; color: $warning; }
   &.grey { background: rgba($gray, 0.1); color: $gray; }
+  &.danger { background: $danger-light; color: $danger; }
 }
 
 .config-info {
@@ -947,9 +931,7 @@ $radius-xs: 8px;
   &:focus { border-color: $accent; }
 }
 
-// =====================
-// TOGGLE SWITCH
-// =====================
+// ===================== TOGGLE SWITCH =====================
 .toggle-switch {
   position: relative;
   display: inline-block;
@@ -996,9 +978,7 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
-// SAVE BUTTON
-// =====================
+// ===================== SAVE BUTTON =====================
 .save-container {
   padding: 16px;
   margin-top: 8px;
@@ -1037,9 +1017,7 @@ $radius-xs: 8px;
   animation: spin 0.6s linear infinite;
 }
 
-// =====================
-// MODAL
-// =====================
+// ===================== MODAL =====================
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1047,6 +1025,7 @@ $radius-xs: 8px;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,612 +1,981 @@
 <template>
-  <q-page class="admin-configuracoes q-pa-md">
+  <div class="page-container">
     <div class="page-header">
-      <div class="page-title-section">
-        <div class="page-title">
-          <q-icon name="settings" size="32px" class="q-mr-sm" />
-          Configurações do Sistema
-        </div>
-        <div class="page-subtitle">Gerencie as configurações da plataforma</div>
+      <h1>Configurações</h1>
+      <div class="header-actions">
+        <q-btn flat icon="refresh" label="Atualizar" @click="recarregarDados" :loading="isLoading" />
       </div>
-      <q-btn
-        label="Atualizar"
-        icon="refresh"
-        color="grey-7"
-        outline
-        @click="carregarConfiguracoes"
-        :loading="financeiroStore.loading"
-      />
     </div>
 
-    <!-- Skeleton Loading -->
-    <div v-if="financeiroStore.loading" class="skeleton-container">
-      <div class="skeleton-card">
-        <div class="skeleton-tabs">
-          <div v-for="i in 4" :key="i" class="skeleton-tab"></div>
-        </div>
-        <div class="skeleton-separator"></div>
-        <div class="skeleton-content">
-          <div class="skeleton-form">
-            <div v-for="i in 5" :key="i" class="skeleton-field">
-              <div class="skeleton-input"></div>
-            </div>
+    <!-- Abas -->
+    <q-tabs v-model="tab" align="left" narrow-indicator class="main-tabs">
+      <q-tab name="geral" icon="settings" label="Geral" />
+      <q-tab name="prestadores" icon="handyman" label="Prestadores" />
+      <q-tab name="pagamentos" icon="payments" label="Pagamentos" />
+      <q-tab name="permissoes" icon="security" label="Permissões" />
+    </q-tabs>
+
+    <q-separator />
+
+    <q-tab-panels v-model="tab" animated>
+      <!-- ==================== ABA GERAL ==================== -->
+      <q-tab-panel name="geral" class="tab-panel">
+        <div class="form-section">
+          <!-- Identificação -->
+          <div class="section-header">
+            <h3>🏢 Identificação</h3>
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model="configuracoesGerais.nome_sistema"
+              label="Nome do Sistema"
+              outlined
+              dense
+            />
+            <q-file
+              v-model="logoFile"
+              label="Logo do Sistema"
+              outlined
+              dense
+              accept="image/*"
+            >
+              <template v-slot:prepend>
+                <q-icon name="image" />
+              </template>
+            </q-file>
+          </div>
+
+          <!-- Contato -->
+          <div class="section-header q-mt-xl">
+            <h3>📞 Contato</h3>
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model="configuracoesGerais.email_contato"
+              label="Email de Contato"
+              type="email"
+              outlined
+              dense
+            />
+            <q-input
+              v-model="configuracoesGerais.telefone_contato"
+              label="Telefone de Contato"
+              outlined
+              dense
+            />
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model="configuracoesGerais.whatsapp_contato"
+              label="WhatsApp"
+              outlined
+              dense
+            />
+            <q-input
+              v-model="configuracoesGerais.endereco"
+              label="Endereço"
+              outlined
+              dense
+            />
+          </div>
+
+          <!-- Manutenção -->
+          <div class="section-header q-mt-xl">
+            <h3>🔧 Manutenção</h3>
+          </div>
+          <div class="form-row">
+            <q-toggle v-model="configuracoesGerais.manutencao" label="Modo Manutenção" />
+          </div>
+          <div class="form-row" v-if="configuracoesGerais.manutencao">
+            <q-input
+              v-model="configuracoesGerais.mensagem_manutencao"
+              label="Mensagem de Manutenção"
+              type="textarea"
+              outlined
+              dense
+              rows="2"
+            />
+          </div>
+
+          <!-- Segurança -->
+          <div class="section-header q-mt-xl">
+            <h3>🔐 Segurança</h3>
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model.number="configuracoesGerais.tempo_sessao"
+              label="Tempo de Sessão (minutos)"
+              type="number"
+              outlined
+              dense
+              min="1"
+              max="480"
+            />
+            <q-input
+              v-model.number="configuracoesGerais.max_tentativas_login"
+              label="Máx. Tentativas Login"
+              type="number"
+              outlined
+              dense
+              min="3"
+              max="10"
+            />
+          </div>
+          <div class="form-row">
+            <q-toggle v-model="configuracoesGerais.registro_automatico" label="Registro Automático" />
+            <q-toggle v-model="configuracoesGerais.verificacao_email" label="Verificação de Email" />
+          </div>
+
+          <!-- Notificações -->
+          <div class="section-header q-mt-xl">
+            <h3>🔔 Notificações</h3>
+          </div>
+          <div class="form-row">
+            <q-toggle v-model="configuracoesGerais.notificacoes_email" label="Notificações por Email" />
+            <q-toggle v-model="configuracoesGerais.notificacoes_push" label="Notificações Push" />
+          </div>
+
+          <!-- Email SMTP -->
+          <div class="section-header q-mt-xl">
+            <h3>📧 Servidor de Email</h3>
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model="configuracoesGerais.smtp_host"
+              label="SMTP Host"
+              outlined
+              dense
+            />
+            <q-input
+              v-model.number="configuracoesGerais.smtp_porta"
+              label="SMTP Porta"
+              type="number"
+              outlined
+              dense
+            />
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model="configuracoesGerais.smtp_usuario"
+              label="SMTP Usuário"
+              outlined
+              dense
+            />
+            <q-input
+              v-model="configuracoesGerais.smtp_senha"
+              label="SMTP Senha"
+              type="password"
+              outlined
+              dense
+            />
+          </div>
+          <div class="form-row">
+            <q-select
+              v-model="configuracoesGerais.smtp_criptografia"
+              :options="opcoesCriptografia"
+              label="Criptografia"
+              outlined
+              dense
+              emit-value
+              map-options
+            />
+          </div>
+
+          <!-- Financeiro -->
+          <div class="section-header q-mt-xl">
+            <h3>💰 Financeiro</h3>
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model.number="configuracoesGerais.comissao"
+              label="Comissão (%)"
+              type="number"
+              outlined
+              dense
+              min="0"
+              max="100"
+              suffix="%"
+            />
+            <q-input
+              v-model.number="configuracoesGerais.valor_minimo_saque"
+              label="Valor Mínimo Saque"
+              type="number"
+              outlined
+              dense
+              min="0"
+              suffix="MZN"
+            />
+          </div>
+          <div class="form-row">
+            <q-select
+              v-model="configuracoesGerais.moeda"
+              :options="opcoesMoeda"
+              label="Moeda"
+              outlined
+              dense
+              emit-value
+              map-options
+            />
+            <q-select
+              v-model="configuracoesGerais.fuso_horario"
+              :options="opcoesFusoHorario"
+              label="Fuso Horário"
+              outlined
+              dense
+              emit-value
+              map-options
+            />
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model.number="configuracoesGerais.limite_pedidos_por_dia"
+              label="Limite Pedidos/Dia"
+              type="number"
+              outlined
+              dense
+              min="0"
+            />
+            <q-input
+              v-model.number="configuracoesGerais.tempo_cancelamento_pedido"
+              label="Tempo Cancelamento (min)"
+              type="number"
+              outlined
+              dense
+              min="0"
+            />
+          </div>
+          <div class="form-row">
+            <q-toggle v-model="configuracoesGerais.pagamento_automatico" label="Pagamento Automático" />
+          </div>
+
+          <div class="form-actions">
+            <q-btn color="primary" label="Salvar Configurações" @click="salvarGerais" :loading="isSaving" />
           </div>
         </div>
-        <div class="skeleton-actions">
-          <div class="skeleton-button-cancel"></div>
-          <div class="skeleton-button-save"></div>
-        </div>
-      </div>
-      <div class="skeleton-shimmer"></div>
-    </div>
+      </q-tab-panel>
 
-    <!-- Conteúdo real -->
-    <template v-else>
-      <q-card class="config-card">
-        <q-tabs v-model="tab" class="config-tabs" dense>
-          <q-tab name="geral" label="Geral" icon="info" />
-          <q-tab name="comissoes" label="Comissões" icon="percent" />
-          <q-tab name="notificacoes" label="Notificações" icon="notifications" />
-          <q-tab name="integracao" label="Integração" icon="api" />
-        </q-tabs>
+      <!-- ==================== ABA PRESTADORES ==================== -->
+      <q-tab-panel name="prestadores" class="tab-panel">
+        <div class="form-section">
+          <div class="section-header">
+            <h3>👨‍🔧 Configurações de Prestadores</h3>
+          </div>
 
-        <q-separator />
+          <!-- Raios e Distâncias -->
+          <div class="sub-section-header">
+            <h4>📍 Localização e Distâncias</h4>
+          </div>
+          <div class="form-row">
+            <q-select
+              v-model="configuracoesPrestador.raios_atendimento"
+              :options="opcoesRaios"
+              label="Raios de Atendimento (km)"
+              multiple
+              use-chips
+              outlined
+              dense
+              emit-value
+              map-options
+            />
+          </div>
+          <div class="form-row">
+            <q-select
+              v-model="configuracoesPrestador.raio_padrao"
+              :options="opcoesRaios"
+              label="Raio Padrão (km)"
+              outlined
+              dense
+              emit-value
+              map-options
+            />
+            <q-input
+              v-model.number="configuracoesPrestador.distancia_maxima"
+              label="Distância Máxima (km)"
+              type="number"
+              outlined
+              dense
+              min="0"
+              suffix="km"
+            />
+          </div>
 
-        <q-tab-panels v-model="tab" animated>
-          <!-- Geral -->
-          <q-tab-panel name="geral" class="q-pa-lg">
-            <div class="q-gutter-md">
+          <!-- Disponibilidade -->
+          <div class="sub-section-header q-mt-xl">
+            <h4>📅 Disponibilidade</h4>
+          </div>
+          <div class="form-row">
+            <q-select
+              v-model="configuracoesPrestador.dias_semana"
+              :options="opcoesDiasSemana"
+              label="Dias de Trabalho"
+              multiple
+              use-chips
+              outlined
+              dense
+              emit-value
+              map-options
+            />
+          </div>
+          <div class="form-row">
+            <div class="time-group">
               <q-input
-                v-model="configForm.nome"
-                label="Nome da plataforma"
+                v-model="configuracoesPrestador.disponibilidade_padrao.inicio"
+                label="Horário Início"
+                type="time"
                 outlined
                 dense
-                :loading="salvando"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="business" color="primary" />
-                </template>
-              </q-input>
-
+              />
               <q-input
-                v-model="configForm.email"
-                label="Email de contato"
+                v-model="configuracoesPrestador.disponibilidade_padrao.fim"
+                label="Horário Fim"
+                type="time"
                 outlined
                 dense
-                type="email"
-                :loading="salvando"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="email" color="primary" />
-                </template>
-              </q-input>
-
+              />
               <q-input
-                v-model="configForm.telefone"
-                label="Telefone"
-                outlined
-                dense
-                :loading="salvando"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="phone" color="primary" />
-                </template>
-              </q-input>
-
-              <q-input
-                v-model="configForm.endereco"
-                label="Endereço"
-                outlined
-                dense
-                type="textarea"
-                autogrow
-                rows="2"
-                :loading="salvando"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="location_on" color="primary" />
-                </template>
-              </q-input>
-            </div>
-          </q-tab-panel>
-
-          <!-- Comissões -->
-          <q-tab-panel name="comissoes" class="q-pa-lg">
-            <div class="q-gutter-md">
-              <q-input
-                v-model.number="configForm.comissao_padrao"
-                label="Comissão padrão"
+                v-model.number="configuracoesPrestador.disponibilidade_padrao.intervalo"
+                label="Intervalo (minutos)"
                 type="number"
                 outlined
                 dense
-                suffix="%"
-                :loading="salvando"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="percent" color="primary" />
-                </template>
-                <template v-slot:append>
-                  <q-icon name="info" size="16px" color="grey">
-                    <q-tooltip>Valor percentual cobrado sobre cada serviço</q-tooltip>
-                  </q-icon>
-                </template>
-              </q-input>
-
-              <q-select
-                v-model="configForm.tipo_comissao"
-                :options="tipoComissaoOptions"
-                label="Tipo de comissão"
-                outlined
-                dense
-                :loading="salvando"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="category" color="primary" />
-                </template>
-              </q-select>
-
-              <q-checkbox
-                v-model="configForm.comissao_prestador"
-                label="Aplicar comissão para prestadores"
-                :loading="salvando"
-              />
-
-              <q-checkbox
-                v-model="configForm.comissao_cliente"
-                label="Aplicar taxa para clientes"
-                :loading="salvando"
+                min="15"
+                step="15"
               />
             </div>
-          </q-tab-panel>
+          </div>
 
-          <!-- Notificações -->
-          <q-tab-panel name="notificacoes" class="q-pa-lg">
-            <div class="q-gutter-md">
-              <div class="text-subtitle1 q-mb-sm">
-                <q-icon name="notifications_active" size="18px" class="q-mr-sm" />
-                Canais de Notificação
-              </div>
+          <!-- Documentos -->
+          <div class="sub-section-header q-mt-xl">
+            <h4>📋 Documentos</h4>
+          </div>
+          <div class="form-row">
+            <q-select
+              v-model="configuracoesPrestador.documentos_aceitos"
+              :options="opcoesDocumentos"
+              label="Documentos Aceitos"
+              multiple
+              use-chips
+              outlined
+              dense
+              emit-value
+              map-options
+            />
+          </div>
 
-              <q-checkbox
-                v-model="configForm.notif_email"
-                label="Notificações por email"
-                :loading="salvando"
-              />
-              <q-checkbox
-                v-model="configForm.notif_sms"
-                label="Notificações por SMS"
-                :loading="salvando"
-              />
-              <q-checkbox
-                v-model="configForm.notif_push"
-                label="Notificações push"
-                :loading="salvando"
-              />
+          <!-- Portfólio -->
+          <div class="sub-section-header q-mt-xl">
+            <h4>🖼️ Portfólio</h4>
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model.number="configuracoesPrestador.max_file_size"
+              label="Tamanho Máximo Arquivo (MB)"
+              type="number"
+              outlined
+              dense
+              min="1"
+              max="20"
+              suffix="MB"
+            />
+            <q-input
+              v-model.number="configuracoesPrestador.max_portfolio_photos"
+              label="Máx. Fotos no Portfólio"
+              type="number"
+              outlined
+              dense
+              min="1"
+              max="50"
+            />
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model.number="configuracoesPrestador.min_portfolio_photos"
+              label="Mín. Fotos no Portfólio"
+              type="number"
+              outlined
+              dense
+              min="0"
+              max="10"
+            />
+          </div>
 
-              <q-input
-                v-model="configForm.email_notificacao"
-                label="Email para notificações"
-                outlined
-                dense
-                type="email"
-                class="q-mt-md"
-                :loading="salvando"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="mail" color="primary" />
-                </template>
-              </q-input>
-            </div>
-          </q-tab-panel>
+          <!-- Regras de Negócio -->
+          <div class="sub-section-header q-mt-xl">
+            <h4>⚙️ Regras de Negócio</h4>
+          </div>
+          <div class="form-row">
+            <q-toggle v-model="configuracoesPrestador.precisa_aprovacao" label="Precisa Aprovação Manual" />
+            <q-input
+              v-model.number="configuracoesPrestador.tempo_resposta_maximo"
+              label="Tempo Máximo Resposta (horas)"
+              type="number"
+              outlined
+              dense
+              min="0"
+            />
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model.number="configuracoesPrestador.comissao_especial"
+              label="Comissão Especial (%)"
+              type="number"
+              outlined
+              dense
+              min="0"
+              max="100"
+              suffix="%"
+            />
+            <q-input
+              v-model.number="configuracoesPrestador.bonus_avaliacao"
+              label="Bônus por Avaliação 5★ (MZN)"
+              type="number"
+              outlined
+              dense
+              min="0"
+              suffix="MZN"
+            />
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model.number="configuracoesPrestador.tempo_minimo_servico"
+              label="Tempo Mínimo Serviço (min)"
+              type="number"
+              outlined
+              dense
+              min="0"
+            />
+          </div>
 
-          <!-- Integração -->
-          <q-tab-panel name="integracao" class="q-pa-lg">
-            <div class="q-gutter-md">
-              <div class="text-subtitle1 q-mb-sm">
-                <q-icon name="security" size="18px" class="q-mr-sm" />
-                Chaves de API
-              </div>
+          <div class="form-actions">
+            <q-btn color="primary" label="Salvar Configurações" @click="salvarPrestador" :loading="isSaving" />
+          </div>
+        </div>
+      </q-tab-panel>
 
-              <q-input
-                v-model="configForm.api_mpesa"
-                label="API Key M-Pesa"
-                outlined
-                dense
-                :type="showMpesa ? 'text' : 'password'"
-                :loading="salvando"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="smartphone" color="primary" />
-                </template>
-                <template v-slot:append>
-                  <q-icon
-                    :name="showMpesa ? 'visibility_off' : 'visibility'"
-                    class="cursor-pointer"
-                    @click="showMpesa = !showMpesa"
-                  />
-                </template>
-              </q-input>
+      <!-- ==================== ABA PAGAMENTOS ==================== -->
+      <q-tab-panel name="pagamentos" class="tab-panel">
+        <div class="form-section">
+          <div class="section-header">
+            <h3>💳 Métodos de Pagamento</h3>
+          </div>
 
-              <q-input
-                v-model="configForm.api_maps"
-                label="API Key Google Maps"
-                outlined
-                dense
-                :type="showMaps ? 'text' : 'password'"
-                :loading="salvando"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="map" color="primary" />
-                </template>
-                <template v-slot:append>
-                  <q-icon
-                    :name="showMaps ? 'visibility_off' : 'visibility'"
-                    class="cursor-pointer"
-                    @click="showMaps = !showMaps"
-                  />
-                </template>
-              </q-input>
+          <!-- M-Pesa -->
+          <div class="sub-section-header">
+            <h4>📱 M-Pesa</h4>
+          </div>
+          <div class="form-row">
+            <q-toggle v-model="configuracoesPagamento.mpesa_ativo" label="Ativar M-Pesa" />
+          </div>
+          <div class="form-row" v-if="configuracoesPagamento.mpesa_ativo">
+            <q-input
+              v-model="configuracoesPagamento.mpesa_numero"
+              label="Número M-Pesa"
+              outlined
+              dense
+              placeholder="84 XXX XXXX"
+            />
+            <q-input
+              v-model="configuracoesPagamento.mpesa_chave"
+              label="Chave API M-Pesa"
+              type="password"
+              outlined
+              dense
+            />
+          </div>
 
-              <q-input
-                v-model="configForm.api_sms"
-                label="API Key SMS"
-                outlined
-                dense
-                :type="showSms ? 'text' : 'password'"
-                :loading="salvando"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="sms" color="primary" />
-                </template>
-                <template v-slot:append>
-                  <q-icon
-                    :name="showSms ? 'visibility_off' : 'visibility'"
-                    class="cursor-pointer"
-                    @click="showSms = !showSms"
-                  />
-                </template>
-              </q-input>
-            </div>
-          </q-tab-panel>
-        </q-tab-panels>
+          <!-- Cartões de Crédito -->
+          <div class="sub-section-header q-mt-xl">
+            <h4>💳 Cartões de Crédito</h4>
+          </div>
+          <div class="form-row">
+            <q-toggle v-model="configuracoesPagamento.visa_ativo" label="Visa" />
+            <q-toggle v-model="configuracoesPagamento.mastercard_ativo" label="Mastercard" />
+          </div>
 
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat label="Cancelar" color="grey-7" @click="resetarFormulario" />
-          <q-btn
-            unelevated
-            label="Salvar configurações"
-            color="primary"
-            @click="salvarConfiguracoes"
-            :loading="salvando"
-          />
-        </q-card-actions>
-      </q-card>
-    </template>
-  </q-page>
+          <!-- PayPal -->
+          <div class="sub-section-header q-mt-xl">
+            <h4>🌐 PayPal</h4>
+          </div>
+          <div class="form-row">
+            <q-toggle v-model="configuracoesPagamento.paypal_ativo" label="Ativar PayPal" />
+          </div>
+          <div class="form-row" v-if="configuracoesPagamento.paypal_ativo">
+            <q-input
+              v-model="configuracoesPagamento.paypal_email"
+              label="Email PayPal"
+              type="email"
+              outlined
+              dense
+            />
+          </div>
+
+          <!-- Transferência Bancária -->
+          <div class="sub-section-header q-mt-xl">
+            <h4>🏦 Transferência Bancária</h4>
+          </div>
+          <div class="form-row">
+            <q-toggle v-model="configuracoesPagamento.transferencia_ativo" label="Ativar Transferência Bancária" />
+            <q-toggle v-model="configuracoesPagamento.deposito_ativo" label="Ativar Depósito Bancário" />
+          </div>
+
+          <!-- Parcelamento -->
+          <div class="sub-section-header q-mt-xl">
+            <h4>📦 Parcelamento</h4>
+          </div>
+          <div class="form-row">
+            <q-input
+              v-model.number="configuracoesPagamento.parcelamento_maximo"
+              label="Máx. Parcelas"
+              type="number"
+              outlined
+              dense
+              min="1"
+              max="12"
+            />
+            <q-input
+              v-model.number="configuracoesPagamento.juros_parcelamento"
+              label="Juros por Parcela (%)"
+              type="number"
+              outlined
+              dense
+              min="0"
+              max="10"
+              suffix="%"
+            />
+          </div>
+
+          <div class="form-actions">
+            <q-btn color="primary" label="Salvar Configurações" @click="salvarPagamento" :loading="isSaving" />
+          </div>
+        </div>
+      </q-tab-panel>
+
+      <!-- ==================== ABA PERMISSÕES ==================== -->
+      <q-tab-panel name="permissoes" class="tab-panel">
+        <div class="permissions-section">
+          <div class="section-header">
+            <h3>🔒 Permissões por Perfil</h3>
+          </div>
+
+          <!-- Filtros -->
+          <div class="filters-bar">
+            <q-input
+              v-model="filtrosPermissoes.search"
+              placeholder="Pesquisar permissão..."
+              dense
+              outlined
+              class="search-input"
+              @update:model-value="onFiltroPermissaoChange"
+            >
+              <template v-slot:append>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+            <q-select
+              v-model="filtrosPermissoes.modulo"
+              :options="opcoesModulos"
+              label="Módulo"
+              dense
+              outlined
+              clearable
+              class="filter-select"
+              @update:model-value="onFiltroPermissaoChange"
+            />
+          </div>
+
+          <!-- Tabela de Permissões -->
+          <q-table
+            :rows="permissoesFiltradas"
+            :columns="permissoesColumns"
+            row-key="id"
+            flat
+            bordered
+            class="permissions-table"
+          >
+            <template v-slot:body-cell-nome="props">
+              <q-td :props="props">
+                <div class="permissao-nome">
+                  <strong>{{ props.row.nome }}</strong>
+                  <span class="permissao-desc">{{ props.row.descricao }}</span>
+                </div>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-modulo="props">
+              <q-td :props="props">
+                <q-badge :color="getModuloColor(props.row.modulo)">
+                  {{ getModuloLabel(props.row.modulo) }}
+                </q-badge>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-root="props">
+              <q-td :props="props">
+                <q-checkbox
+                  v-model="props.row.root"
+                  :true-value="true"
+                  :false-value="false"
+                  @update:model-value="() => togglePermissao(props.row.id, 'root')"
+                  color="red"
+                />
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-admin="props">
+              <q-td :props="props">
+                <q-checkbox
+                  v-model="props.row.admin"
+                  :true-value="true"
+                  :false-value="false"
+                  @update:model-value="() => togglePermissao(props.row.id, 'admin')"
+                  color="primary"
+                />
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-prestador="props">
+              <q-td :props="props">
+                <q-checkbox
+                  v-model="props.row.prestador"
+                  :true-value="true"
+                  :false-value="false"
+                  @update:model-value="() => togglePermissao(props.row.id, 'prestador')"
+                  color="green"
+                />
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-cliente="props">
+              <q-td :props="props">
+                <q-checkbox
+                  v-model="props.row.cliente"
+                  :true-value="true"
+                  :false-value="false"
+                  @update:model-value="() => togglePermissao(props.row.id, 'cliente')"
+                  color="blue"
+                />
+              </q-td>
+            </template>
+          </q-table>
+
+          <div class="form-actions q-mt-md">
+            <q-btn color="primary" label="Salvar Permissões" @click="salvarPermissoesGeral" :loading="isSaving" />
+          </div>
+        </div>
+      </q-tab-panel>
+    </q-tab-panels>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-// ✅ IMPORT CORRETO - usando financeiroStore
-import { useAdminFinanceiroStore, type ConfiguracoesData } from 'src/stores/admin/admin-financeiro-store';
+import { storeToRefs } from 'pinia';
+import { useAdminConfiguracoesStore } from 'src/stores/admin/admin-configuracoes-store';
 
-defineOptions({
-  name: 'AdminConfiguracoes',
-});
+defineOptions({ name: 'AdminConfiguracoes' });
 
 const $q = useQuasar();
-// ✅ USANDO O STORE CORRETO
-const financeiroStore = useAdminFinanceiroStore();
+const configStore = useAdminConfiguracoesStore();
 
-// Estados
+const {
+  isLoading,
+  isSaving,
+  configuracoesGerais,
+  configuracoesPrestador,
+  configuracoesPagamento,
+  permissoes,
+  opcoesModulos,
+  opcoesRaios,
+  opcoesDiasSemana,
+  opcoesDocumentos,
+  opcoesFusoHorario,
+  opcoesMoeda,
+  opcoesCriptografia,
+} = storeToRefs(configStore);
+
+const {
+  salvarConfiguracoesGerais,
+  salvarConfiguracoesPrestador,
+  salvarConfiguracoesPagamento,
+  recarregarDados,
+} = configStore;
+
+// Estados locais
 const tab = ref('geral');
-const salvando = ref(false);
-const showMpesa = ref(false);
-const showMaps = ref(false);
-const showSms = ref(false);
+const logoFile = ref<File | null>(null);
 
-// Tipos de comissão
-const tipoComissaoOptions = ['Porcentagem', 'Valor fixo'];
-
-// Formulário de configurações
-const configForm = reactive({
-  nome: '',
-  email: '',
-  telefone: '',
-  endereco: '',
-  comissao_padrao: 0,
-  tipo_comissao: '',
-  comissao_prestador: true,
-  comissao_cliente: false,
-  notif_email: true,
-  notif_sms: false,
-  notif_push: true,
-  email_notificacao: '',
-  api_mpesa: '',
-  api_maps: '',
-  api_sms: '',
+// Filtros para permissões
+const filtrosPermissoes = ref({
+  search: '',
+  modulo: '',
 });
 
-// ✅ Carregar configurações usando financeiroStore
-const carregarConfiguracoes = async (): Promise<void> => {
-  try {
-    const data = await financeiroStore.fetchConfiguracoes();
-    if (data) {
-      configForm.nome = data.nome || '';
-      configForm.email = data.email || '';
-      configForm.telefone = data.telefone || '';
-      configForm.endereco = data.endereco || '';
-      configForm.comissao_padrao = data.comissao_padrao || 0;
-      configForm.tipo_comissao = data.tipo_comissao || 'Porcentagem';
-    }
-    carregarConfiguracoesExtras();
-  } catch (error) {
-    console.error('Erro ao carregar configurações:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar configurações',
-      position: 'top',
-    });
+// Permissões para tabela
+const permissoesFiltradas = computed(() => {
+  let resultado = [...permissoes.value];
+
+  if (filtrosPermissoes.value.search) {
+    const searchLower = filtrosPermissoes.value.search.toLowerCase();
+    resultado = resultado.filter(
+      (p) =>
+        p.nome.toLowerCase().includes(searchLower) ||
+        p.descricao.toLowerCase().includes(searchLower)
+    );
   }
+
+  if (filtrosPermissoes.value.modulo) {
+    resultado = resultado.filter((p) => p.modulo === filtrosPermissoes.value.modulo);
+  }
+
+  return resultado.map((p) => ({
+    ...p,
+    root: p.roles.includes('root'),
+    admin: p.roles.includes('admin'),
+    prestador: p.roles.includes('prestador'),
+    cliente: p.roles.includes('cliente'),
+  }));
+});
+
+const permissoesColumns = [
+  { name: 'nome', label: 'Permissão', field: 'nome', align: 'left' as const },
+  { name: 'modulo', label: 'Módulo', field: 'modulo', align: 'left' as const },
+  { name: 'root', label: 'Root', field: 'root', align: 'center' as const, style: 'width: 80px' },
+  { name: 'admin', label: 'Admin', field: 'admin', align: 'center' as const, style: 'width: 80px' },
+  { name: 'prestador', label: 'Prestador', field: 'prestador', align: 'center' as const, style: 'width: 80px' },
+  { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'center' as const, style: 'width: 80px' },
+];
+
+// Funções auxiliares
+const getModuloLabel = (modulo: string): string => {
+  const labels: Record<string, string> = {
+    dashboard: 'Dashboard',
+    pedidos: 'Pedidos',
+    prestadores: 'Prestadores',
+    clientes: 'Clientes',
+    categorias: 'Categorias',
+    promocoes: 'Promoções',
+    avaliacoes: 'Avaliações',
+    financeiro: 'Financeiro',
+    relatorios: 'Relatórios',
+    configuracoes: 'Configurações',
+    usuarios: 'Usuários',
+  };
+  return labels[modulo] || modulo;
 };
 
-// Carregar configurações extras
-const carregarConfiguracoesExtras = (): void => {
-  configForm.comissao_prestador = true;
-  configForm.comissao_cliente = false;
-  configForm.notif_email = true;
-  configForm.notif_sms = false;
-  configForm.notif_push = true;
-  configForm.email_notificacao = 'notificacoes@estouaqui.co.mz';
-  configForm.api_mpesa = '********';
-  configForm.api_maps = '********';
-  configForm.api_sms = '********';
+const getModuloColor = (modulo: string): string => {
+  const colors: Record<string, string> = {
+    dashboard: 'primary',
+    pedidos: 'orange',
+    prestadores: 'green',
+    clientes: 'blue',
+    categorias: 'purple',
+    promocoes: 'pink',
+    avaliacoes: 'amber',
+    financeiro: 'teal',
+    relatorios: 'indigo',
+    configuracoes: 'grey',
+    usuarios: 'cyan',
+  };
+  return colors[modulo] || 'grey';
 };
 
-// Resetar formulário
-const resetarFormulario = (): void => {
-  void carregarConfiguracoes();
-  $q.notify({
-    type: 'info',
-    message: 'Alterações canceladas',
-    position: 'top',
-  });
-};
-
-// ✅ Salvar configurações usando financeiroStore
-const salvarConfiguracoes = async (): Promise<void> => {
-  salvando.value = true;
-
-  try {
-    const dadosPrincipais: Partial<ConfiguracoesData> = {
-      nome: configForm.nome,
-      email: configForm.email,
-      telefone: configForm.telefone,
-      endereco: configForm.endereco,
-      comissao_padrao: configForm.comissao_padrao,
-      tipo_comissao: configForm.tipo_comissao,
-    };
-
-    const result = await financeiroStore.updateConfiguracoes(dadosPrincipais);
-
-    if (result) {
-      salvarConfiguracoesExtras();
-      $q.notify({
-        type: 'positive',
-        message: 'Configurações salvas com sucesso!',
-        position: 'top',
-      });
+const togglePermissao = (permissaoId: number, role: string): void => {
+  const permissao = permissoes.value.find((p) => p.id === permissaoId);
+  if (permissao) {
+    const roleIndex = permissao.roles.indexOf(role);
+    if (roleIndex === -1) {
+      permissao.roles.push(role);
     } else {
-      throw new Error('Erro ao salvar');
+      permissao.roles.splice(roleIndex, 1);
     }
-  } catch (error) {
-    console.error('Erro ao salvar configurações:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao salvar configurações',
-      position: 'top',
-    });
-  } finally {
-    salvando.value = false;
   }
 };
 
-// Salvar configurações extras
-const salvarConfiguracoesExtras = (): void => {
-  console.log('Configurações extras salvas:', {
-    comissao_prestador: configForm.comissao_prestador,
-    comissao_cliente: configForm.comissao_cliente,
-    notif_email: configForm.notif_email,
-    notif_sms: configForm.notif_sms,
-    notif_push: configForm.notif_push,
-    email_notificacao: configForm.email_notificacao,
-  });
+// Ações de filtro
+const onFiltroPermissaoChange = (): void => {};
+
+// Ações de salvamento
+const salvarGerais = async (): Promise<void> => {
+  const success = await salvarConfiguracoesGerais();
+  if (success) {
+    $q.notify({ type: 'positive', message: 'Configurações gerais salvas com sucesso!' });
+  } else {
+    $q.notify({ type: 'negative', message: 'Erro ao salvar configurações gerais' });
+  }
 };
 
-// Carregar dados ao montar
+const salvarPrestador = async (): Promise<void> => {
+  const success = await salvarConfiguracoesPrestador();
+  if (success) {
+    $q.notify({ type: 'positive', message: 'Configurações de prestadores salvas com sucesso!' });
+  } else {
+    $q.notify({ type: 'negative', message: 'Erro ao salvar configurações de prestadores' });
+  }
+};
+
+const salvarPagamento = async (): Promise<void> => {
+  const success = await salvarConfiguracoesPagamento();
+  if (success) {
+    $q.notify({ type: 'positive', message: 'Configurações de pagamento salvas com sucesso!' });
+  } else {
+    $q.notify({ type: 'negative', message: 'Erro ao salvar configurações de pagamento' });
+  }
+};
+
+const salvarPermissoesGeral = async (): Promise<void> => {
+  // TODO: Implementar salvamento em lote das permissões
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  $q.notify({ type: 'info', message: 'Funcionalidade em desenvolvimento' });
+};
+
+// Lifecycle
 onMounted(() => {
-  void carregarConfiguracoes();
+  void recarregarDados();
 });
 </script>
 
 <style scoped lang="scss">
-.admin-configuracoes {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
-  background: #f5f7fa;
+.page-container {
+  background: #f3f4f6;
   min-height: 100vh;
+  padding: 20px;
 }
 
 .page-header {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  .page-title-section {
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      display: flex;
-      align-items: center;
-    }
-    .page-subtitle {
-      font-size: 0.875rem;
-      color: #6c757d;
-      margin-top: 4px;
-    }
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
 
-// Skeleton Loading
-.skeleton-container {
-  position: relative;
-  overflow: hidden;
-}
-
-.skeleton-card {
+.main-tabs {
   background: white;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 12px 12px 0 0;
+  padding: 0 16px;
 }
 
-.skeleton-tabs {
-  display: flex;
-  background: #f8f9fa;
-  padding: 8px 16px;
-  gap: 8px;
-}
-
-.skeleton-tab {
-  width: 100px;
-  height: 36px;
-  background: #e0e0e0;
-  border-radius: 8px;
-}
-
-.skeleton-separator {
-  height: 1px;
-  background: #eeeeee;
-}
-
-.skeleton-content {
+.tab-panel {
+  background: white;
+  border-radius: 0 0 12px 12px;
   padding: 24px;
 }
 
-.skeleton-form .skeleton-field {
-  margin-bottom: 20px;
-}
+.form-section {
+  max-width: 1000px;
 
-.skeleton-input {
-  height: 48px;
-  background: #e0e0e0;
-  border-radius: 8px;
-  width: 100%;
-}
+  .section-header {
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
 
-.skeleton-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid #eeeeee;
-}
-
-.skeleton-button-cancel {
-  width: 100px;
-  height: 36px;
-  background: #e0e0e0;
-  border-radius: 8px;
-}
-
-.skeleton-button-save {
-  width: 160px;
-  height: 36px;
-  background: #e0e0e0;
-  border-radius: 8px;
-}
-
-.skeleton-shimmer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  animation: shimmer 1.5s infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-// Estilos principais
-.config-card {
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-
-  .config-tabs {
-    background: #f8f9fa;
-    :deep(.q-tab) {
-      font-size: 0.9rem;
-      padding: 12px 24px;
-      &.q-tab--active {
-        color: #1976d2;
-        .q-tab__indicator {
-          background-color: #1976d2;
-        }
-      }
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+      color: #1a1a2e;
     }
   }
 
-  :deep(.q-tab-panels) {
-    background: white;
-  }
-
-  :deep(.q-tab-panel) {
-    padding: 24px;
-  }
-
-  :deep(.q-field) {
+  .sub-section-header {
     margin-bottom: 16px;
+    margin-top: 8px;
+
+    h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
+      color: #4b5563;
+    }
   }
 
-  :deep(.q-checkbox) {
-    margin: 8px 0;
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .time-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+  }
+}
+
+.form-actions {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.permissions-section {
+  .filters-bar {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+
+    .search-input {
+      width: 300px;
+    }
+
+    .filter-select {
+      width: 200px;
+    }
+  }
+
+  .permissions-table {
+    .permissao-nome {
+      display: flex;
+      flex-direction: column;
+
+      strong {
+        font-size: 14px;
+      }
+
+      .permissao-desc {
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 2px;
+      }
+    }
   }
 }
 
 @media (max-width: 768px) {
-  .admin-configuracoes {
-    padding: 16px;
+  .form-section .form-row,
+  .time-group {
+    grid-template-columns: 1fr;
   }
-  .page-header {
+
+  .permissions-section .filters-bar {
     flex-direction: column;
-    align-items: flex-start;
-  }
-  .config-card .config-tabs :deep(.q-tab) {
-    padding: 8px 12px;
-    font-size: 0.8rem;
-  }
-  .config-card :deep(.q-tab-panel) {
-    padding: 16px;
-  }
-  .skeleton-tab {
-    width: 80px;
-    height: 32px;
-  }
-  .skeleton-button-cancel,
-  .skeleton-button-save {
-    width: 80px;
+
+    .search-input,
+    .filter-select {
+      width: 100%;
+    }
   }
 }
 </style>

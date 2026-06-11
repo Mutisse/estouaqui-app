@@ -1,11 +1,17 @@
 <template>
   <div class="prestador-servicos">
-
     <!-- ===== CABEÇALHO MODERNO ===== -->
     <header class="modern-header">
       <button class="header-btn" @click="() => void router.back()">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M15 18l-6-6 6-6"/>
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M15 18l-6-6 6-6" />
         </svg>
       </button>
       <div class="header-center">
@@ -13,15 +19,22 @@
         <p>Gerencie seus serviços e preços</p>
       </div>
       <button class="header-btn add-btn" @click="adicionarServico">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </button>
     </header>
 
     <!-- ===== SKELETON LOADING ===== -->
-    <div v-if="loadingServicos" class="skeleton-container">
+    <div v-if="servicosStore.isLoading" class="skeleton-container">
       <div class="skeleton-grid">
         <div v-for="i in 4" :key="i" class="skeleton-card-modern">
           <div class="skeleton-icon"></div>
@@ -40,16 +53,22 @@
 
     <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
-
       <!-- ===== LISTA DE SERVIÇOS ===== -->
       <div class="servicos-container">
-        <div v-if="servicos.length === 0" class="empty-state-modern">
+        <div v-if="servicosStore.servicos.length === 0" class="empty-state-modern">
           <div class="empty-icon">
-            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="12" y1="18" x2="12" y2="12"/>
-              <line x1="9" y1="15" x2="15" y2="15"/>
+            <svg
+              width="80"
+              height="80"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#D1D5DB"
+              stroke-width="1.2"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="12" y1="18" x2="12" y2="12" />
+              <line x1="9" y1="15" x2="15" y2="15" />
             </svg>
           </div>
           <h3>Nenhum serviço cadastrado</h3>
@@ -57,8 +76,12 @@
         </div>
 
         <div v-else class="servicos-grid-modern">
-          <div v-for="servico in servicos" :key="servico.id" class="servico-card-modern" :class="{ inactive: !servico.ativo }">
-
+          <div
+            v-for="servico in servicosStore.servicos"
+            :key="servico.id"
+            class="servico-card-modern"
+            :class="{ inactive: !servico.ativo }"
+          >
             <!-- Badge de status -->
             <div class="status-chip" :class="servico.ativo ? 'active' : 'inactive'">
               <span class="status-dot"></span>
@@ -67,12 +90,24 @@
 
             <!-- Conteúdo do card -->
             <div class="card-content">
-              <div class="icon-wrapper" :style="{ background: servico.ativo ? getGradientForIcon(servico.icone) : '#E5E7EB' }">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <line x1="12" y1="18" x2="12" y2="12"/>
-                  <line x1="9" y1="15" x2="15" y2="15"/>
+              <div
+                class="icon-wrapper"
+                :style="{
+                  background: servico.ativo ? getGradientForIcon(servico.icone) : '#E5E7EB',
+                }"
+              >
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  stroke-width="2"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
                 </svg>
               </div>
 
@@ -83,9 +118,16 @@
                   <span class="preco-valor">{{ formatarValor(servico.preco) }} MZN</span>
                 </div>
                 <div class="servico-duracao">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
                   </svg>
                   <span>{{ servico.duracao }} minutos</span>
                 </div>
@@ -94,12 +136,19 @@
 
             <!-- Descrição -->
             <div class="servico-descricao" v-if="servico.descricao">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10 9 9 9 8 9"/>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
               </svg>
               <p>{{ servico.descricao }}</p>
             </div>
@@ -107,14 +156,25 @@
             <!-- Ações -->
             <div class="card-actions">
               <button class="action-btn edit" @click="editarServico(servico)">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/>
-                  <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34" />
+                  <polygon points="18 2 22 6 12 16 8 16 8 12 18 2" />
                 </svg>
                 Editar
               </button>
               <label class="toggle-switch-modern">
-                <input type="checkbox" :checked="servico.ativo" @change="toggleServico(servico)" :disabled="loadingAcao === servico.id">
+                <input
+                  type="checkbox"
+                  :checked="servico.ativo"
+                  @change="() => toggleServico(servico)"
+                />
                 <span class="toggle-slider-modern"></span>
               </label>
             </div>
@@ -126,42 +186,75 @@
       <div class="categorias-section-modern">
         <div class="section-header-modern">
           <div class="section-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="8" height="8" rx="1"/>
-              <rect x="13" y="3" width="8" height="8" rx="1"/>
-              <rect x="3" y="13" width="8" height="8" rx="1"/>
-              <rect x="13" y="13" width="8" height="8" rx="1"/>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="3" y="3" width="8" height="8" rx="1" />
+              <rect x="13" y="3" width="8" height="8" rx="1" />
+              <rect x="3" y="13" width="8" height="8" rx="1" />
+              <rect x="13" y="13" width="8" height="8" rx="1" />
             </svg>
             Categorias que atendo
           </div>
           <button class="edit-cat-btn" @click="editarCategorias">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/>
-              <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34" />
+              <polygon points="18 2 22 6 12 16 8 16 8 12 18 2" />
             </svg>
             Editar
           </button>
         </div>
 
-        <div v-if="loadingCategorias" class="skeleton-categories">
+        <div v-if="carregandoCategorias" class="skeleton-categories">
           <div class="skeleton-chip" v-for="i in 5" :key="i"></div>
         </div>
 
         <div v-else class="categorias-scroll">
-          <div v-for="cat in minhasCategorias" :key="cat.id" class="categoria-chip" :style="{ background: cat.cor || '#667eea' + '15', color: cat.cor || '#667eea' }">
+          <div
+            v-for="cat in servicosStore.minhasCategorias"
+            :key="cat.id"
+            class="categoria-chip"
+            :style="{ background: cat.cor || '#667eea' + '15', color: cat.cor || '#667eea' }"
+          >
             <span class="chip-icon">{{ cat.icone || '🏷️' }}</span>
             <span>{{ cat.nome }}</span>
             <button class="chip-remove" @click="removerCategoria(cat)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
           <button class="add-chip" @click="adicionarCategoria">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             Adicionar
           </button>
@@ -169,16 +262,23 @@
       </div>
     </template>
 
-    <!-- ===== MODAL DE SERVIÇO MODERNO ===== -->
+    <!-- ===== MODAL DE SERVIÇO ===== -->
     <div class="modal-overlay" v-if="showServicoDialog" @click="showServicoDialog = false">
       <div class="modal-content-modern" @click.stop>
         <div class="modal-header-modern">
           <div class="modal-icon" :style="{ background: getGradientForIcon('handyman') }">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              stroke-width="2"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
             </svg>
           </div>
           <div>
@@ -186,9 +286,16 @@
             <p>Preencha os dados do serviço</p>
           </div>
           <button class="modal-close" @click="showServicoDialog = false">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
@@ -196,14 +303,23 @@
         <div class="modal-body-modern">
           <div class="input-group-modern">
             <label class="input-label-modern">Nome do serviço</label>
-            <input type="text" v-model="servicoForm.nome" placeholder="Ex: Limpeza Residencial" class="modern-input" />
+            <input
+              type="text"
+              v-model="servicoForm.nome"
+              placeholder="Ex: Limpeza Residencial"
+              class="modern-input"
+            />
           </div>
 
           <div class="input-group-modern">
             <label class="input-label-modern">Categoria</label>
             <select v-model="servicoForm.categoria_id" class="modern-select">
               <option :value="null">Selecione uma categoria</option>
-              <option v-for="cat in categoriasDisponiveis" :key="cat.id" :value="cat.id">
+              <option
+                v-for="cat in servicosStore.todasCategoriasDisponiveis"
+                :key="cat.id"
+                :value="cat.id"
+              >
                 {{ cat.nome }}
               </option>
             </select>
@@ -232,30 +348,51 @@
 
           <div class="input-group-modern">
             <label class="input-label-modern">Descrição</label>
-            <textarea v-model="servicoForm.descricao" rows="3" placeholder="Descreva o serviço..." class="modern-textarea"></textarea>
+            <textarea
+              v-model="servicoForm.descricao"
+              rows="3"
+              placeholder="Descreva o serviço..."
+              class="modern-textarea"
+            ></textarea>
           </div>
         </div>
 
         <div class="modal-footer-modern">
           <button class="cancel-btn" @click="showServicoDialog = false">Cancelar</button>
-          <button class="save-btn" @click="salvarServico" :disabled="!servicoForm.nome || !servicoForm.preco || !servicoForm.duracao || !servicoForm.categoria_id">
-            <div v-if="loadingSalvar" class="spinner-small"></div>
+          <button
+            class="save-btn"
+            @click="salvarServico"
+            :disabled="
+              !servicoForm.nome ||
+              !servicoForm.preco ||
+              !servicoForm.duracao ||
+              !servicoForm.categoria_id
+            "
+          >
+            <div v-if="servicosStore.isSaving" class="spinner-small"></div>
             <span v-else>{{ editandoServico ? 'Atualizar' : 'Adicionar' }}</span>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- ===== MODAL DE CATEGORIA MODERNO ===== -->
+    <!-- ===== MODAL DE CATEGORIA ===== -->
     <div class="modal-overlay" v-if="showCategoriaDialog" @click="showCategoriaDialog = false">
       <div class="modal-content-modern small" @click.stop>
         <div class="modal-header-modern">
           <div class="modal-icon small">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-              <rect x="3" y="3" width="8" height="8" rx="1"/>
-              <rect x="13" y="3" width="8" height="8" rx="1"/>
-              <rect x="3" y="13" width="8" height="8" rx="1"/>
-              <rect x="13" y="13" width="8" height="8" rx="1"/>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              stroke-width="2"
+            >
+              <rect x="3" y="3" width="8" height="8" rx="1" />
+              <rect x="13" y="3" width="8" height="8" rx="1" />
+              <rect x="3" y="13" width="8" height="8" rx="1" />
+              <rect x="13" y="13" width="8" height="8" rx="1" />
             </svg>
           </div>
           <div>
@@ -263,9 +400,16 @@
             <p>Selecione uma categoria para atender</p>
           </div>
           <button class="modal-close" @click="showCategoriaDialog = false">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
@@ -275,7 +419,11 @@
             <label class="input-label-modern">Categoria</label>
             <select v-model="categoriaSelecionada" class="modern-select">
               <option :value="null">Selecione uma categoria</option>
-              <option v-for="cat in categoriasParaAdicionar" :key="cat.id" :value="cat.id">
+              <option
+                v-for="cat in servicosStore.categoriasParaAdicionar"
+                :key="cat.id"
+                :value="cat.id"
+              >
                 {{ cat.nome }}
               </option>
             </select>
@@ -284,8 +432,12 @@
 
         <div class="modal-footer-modern">
           <button class="cancel-btn" @click="showCategoriaDialog = false">Cancelar</button>
-          <button class="save-btn" @click="adicionarCategoriaConfirmar" :disabled="!categoriaSelecionada">
-            <div v-if="loadingAdicionarCategoria" class="spinner-small"></div>
+          <button
+            class="save-btn"
+            @click="adicionarCategoriaConfirmar"
+            :disabled="!categoriaSelecionada"
+          >
+            <div v-if="adicionandoCategoria" class="spinner-small"></div>
             <span v-else>Adicionar</span>
           </button>
         </div>
@@ -295,46 +447,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorServicosStore } from 'src/stores/prestador/prestador-servicos-store';
-import { usePrestadorPerfilStore } from 'src/stores/prestador/prestador-perfil-store';
-import type { ServicoData } from 'src/stores/prestador/prestador-servicos-store';
-import type { CategoriaPrestadorData } from 'src/stores/prestador/prestador-perfil-store';
-import { api } from 'src/boot/axios';
+import {
+  usePrestadorServicosStore,
+  type ServicoData,
+  type CategoriaPrestadorData,
+  getGradientForIcon,
+} from 'src/stores/prestador/prestador-servicos-store';
 
 defineOptions({ name: 'PrestadorServicos' });
 
 const router = useRouter();
 const $q = useQuasar();
 
+// ✅ APENAS UM STORE!
 const servicosStore = usePrestadorServicosStore();
-const perfilStore = usePrestadorPerfilStore();
 
+// Estados locais
 const showServicoDialog = ref(false);
 const showCategoriaDialog = ref(false);
 const editandoServico = ref(false);
 const servicoEditandoId = ref<number | null>(null);
 const categoriaSelecionada = ref<number | null>(null);
-const loadingSalvar = ref(false);
-const loadingAcao = ref<number | null>(null);
-const loadingCategorias = ref(false);
-const loadingAdicionarCategoria = ref(false);
+const carregandoCategorias = ref(false);
+const adicionandoCategoria = ref(false);
 
-const servicos = computed(() => servicosStore.servicos);
-const minhasCategorias = computed(() => perfilStore.minhasCategorias);
-const loadingServicos = computed(() => servicosStore.loading);
-
-const todasCategorias = ref<CategoriaPrestadorData[]>([]);
-
-const categoriasParaAdicionar = computed(() => {
-  const minhasIds = new Set(minhasCategorias.value.map((c: CategoriaPrestadorData) => c.id));
-  return todasCategorias.value.filter((c: CategoriaPrestadorData) => !minhasIds.has(c.id));
-});
-
-const categoriasDisponiveis = computed(() => todasCategorias.value);
-
+// Formulário de serviço
 const servicoForm = ref({
   nome: '',
   categoria_id: null as number | null,
@@ -344,36 +484,70 @@ const servicoForm = ref({
   icone: 'handyman',
 });
 
-const gradients: string[] = [
-  'linear-gradient(135deg, #5B4BF5, #9F7AEA)',
-  'linear-gradient(135deg, #10B981, #34D399)',
-  'linear-gradient(135deg, #F59E0B, #FBBF24)',
-  'linear-gradient(135deg, #EF4444, #F87171)',
-  'linear-gradient(135deg, #3B82F6, #60A5FA)',
-  'linear-gradient(135deg, #8B5CF6, #A78BFA)',
-];
-
-const getGradientForIcon = (icon?: string): string => {
-  const defaultGradient = 'linear-gradient(135deg, #5B4BF5, #9F7AEA)';
-  if (!icon) return defaultGradient;
-  const idx = Math.abs(icon.charCodeAt(0)) % gradients.length;
-  return gradients[idx] || defaultGradient;
-};
-
 const formatarValor = (valor: number): string => {
   return valor.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-const carregarTodasCategorias = async (): Promise<void> => {
+// ===================== CATEGORIAS =====================
+
+const editarCategorias = (): void => {
+  $q.notify({
+    type: 'info',
+    message: 'Clique no + para adicionar novas categorias',
+    position: 'top',
+  });
+};
+
+const adicionarCategoria = (): void => {
+  categoriaSelecionada.value = null;
+  showCategoriaDialog.value = true;
+};
+
+const adicionarCategoriaConfirmar = async (): Promise<void> => {
+  if (!categoriaSelecionada.value) return;
+
+  adicionandoCategoria.value = true;
   try {
-    const response = await api.get('/prestadores/categorias');
-    if (response.data.success && Array.isArray(response.data.data)) {
-      todasCategorias.value = response.data.data;
+    const success = await servicosStore.addCategoria(categoriaSelecionada.value);
+    if (success) {
+      // ✅ CORRIGIDO: categoriasParaAdicionar já é um computed, use diretamente
+      const cat = servicosStore.categoriasParaAdicionar.find(
+        (c: CategoriaPrestadorData) => c.id === categoriaSelecionada.value,
+      );
+      if (cat)
+        $q.notify({
+          type: 'positive',
+          message: `Categoria ${cat.nome} adicionada`,
+          position: 'top',
+        });
+      showCategoriaDialog.value = false;
+    } else {
+      $q.notify({ type: 'negative', message: 'Erro ao adicionar categoria', position: 'top' });
     }
-  } catch (error) {
-    console.error('Erro ao carregar categorias:', error);
+  } catch {
+    $q.notify({ type: 'negative', message: 'Erro ao adicionar categoria', position: 'top' });
+  } finally {
+    adicionandoCategoria.value = false;
   }
 };
+
+const removerCategoria = (categoria: CategoriaPrestadorData): void => {
+  $q.dialog({
+    title: 'Confirmar',
+    message: `Remover categoria ${categoria.nome}?`,
+    cancel: { label: 'Cancelar', flat: true },
+    ok: { label: 'Remover', color: 'negative', unelevated: true },
+  }).onOk(() => {
+    servicosStore
+      .removeCategoria(categoria.id)
+      .then(() => $q.notify({ type: 'positive', message: 'Categoria removida', position: 'top' }))
+      .catch(() =>
+        $q.notify({ type: 'negative', message: 'Erro ao remover categoria', position: 'top' }),
+      );
+  });
+};
+
+// ===================== SERVIÇOS =====================
 
 const adicionarServico = (): void => {
   editandoServico.value = false;
@@ -403,13 +577,16 @@ const editarServico = (servico: ServicoData): void => {
   showServicoDialog.value = true;
 };
 
-const salvarServico = (): void => {
-  if (!servicoForm.value.categoria_id || !servicoForm.value.preco || !servicoForm.value.duracao || !servicoForm.value.nome) {
+const salvarServico = async (): Promise<void> => {
+  if (
+    !servicoForm.value.categoria_id ||
+    !servicoForm.value.preco ||
+    !servicoForm.value.duracao ||
+    !servicoForm.value.nome
+  ) {
     $q.notify({ type: 'warning', message: 'Preencha todos os campos', position: 'top' });
     return;
   }
-
-  loadingSalvar.value = true;
 
   const dados = {
     nome: servicoForm.value.nome,
@@ -420,114 +597,97 @@ const salvarServico = (): void => {
     icone: servicoForm.value.icone,
   };
 
-  if (editandoServico.value && servicoEditandoId.value) {
-    servicosStore.updateServico(servicoEditandoId.value, dados)
-      .then(() => {
-        $q.notify({ type: 'positive', message: 'Serviço atualizado', position: 'top' });
-        showServicoDialog.value = false;
-      })
-      .catch(() => $q.notify({ type: 'negative', message: 'Erro ao atualizar serviço', position: 'top' }))
-      .finally(() => { loadingSalvar.value = false; });
-  } else {
-    servicosStore.createServico(dados)
-      .then(() => {
-        $q.notify({ type: 'positive', message: 'Serviço adicionado', position: 'top' });
-        showServicoDialog.value = false;
-      })
-      .catch(() => $q.notify({ type: 'negative', message: 'Erro ao adicionar serviço', position: 'top' }))
-      .finally(() => { loadingSalvar.value = false; });
+  try {
+    let success = false;
+    if (editandoServico.value && servicoEditandoId.value) {
+      const result = await servicosStore.updateServico(servicoEditandoId.value, dados);
+      success = !!result;
+    } else {
+      const result = await servicosStore.createServico(dados);
+      success = !!result;
+    }
+
+    if (success) {
+      $q.notify({
+        type: 'positive',
+        message: editandoServico.value ? 'Serviço atualizado' : 'Serviço adicionado',
+        position: 'top',
+      });
+      showServicoDialog.value = false;
+    } else {
+      $q.notify({ type: 'negative', message: 'Erro ao salvar serviço', position: 'top' });
+    }
+  } catch {
+    $q.notify({ type: 'negative', message: 'Erro ao salvar serviço', position: 'top' });
   }
 };
 
-const toggleServico = (servico: ServicoData): void => {
-  loadingAcao.value = servico.id;
-  servicosStore.toggleServico(servico.id)
-    .then((success: boolean) => {
-      if (success) {
-        servico.ativo = !servico.ativo;
-        $q.notify({ type: 'positive', message: `Serviço ${servico.ativo ? 'ativado' : 'desativado'}`, position: 'top' });
-      }
-    })
-    .catch(() => $q.notify({ type: 'negative', message: 'Erro ao alterar status', position: 'top' }))
-    .finally(() => { loadingAcao.value = null; });
+const toggleServico = async (servico: ServicoData): Promise<void> => {
+  try {
+    const success = await servicosStore.toggleServico(servico.id);
+    if (success) {
+      servico.ativo = !servico.ativo;
+      $q.notify({
+        type: 'positive',
+        message: `Serviço ${servico.ativo ? 'ativado' : 'desativado'}`,
+        position: 'top',
+      });
+    } else {
+      $q.notify({ type: 'negative', message: 'Erro ao alterar status', position: 'top' });
+    }
+  } catch {
+    $q.notify({ type: 'negative', message: 'Erro ao alterar status', position: 'top' });
+  }
 };
 
-const editarCategorias = (): void => {
-  $q.notify({ type: 'info', message: 'Clique no + para adicionar novas categorias', position: 'top' });
+// ===================== CARREGAMENTO INICIAL =====================
+
+const carregarDadosIniciais = async (): Promise<void> => {
+  carregandoCategorias.value = true;
+  try {
+    await servicosStore.carregarTodosDados();
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
+  } finally {
+    carregandoCategorias.value = false;
+  }
 };
 
-const adicionarCategoria = (): void => {
-  categoriaSelecionada.value = null;
-  showCategoriaDialog.value = true;
-};
-
-const adicionarCategoriaConfirmar = (): void => {
-  if (!categoriaSelecionada.value) return;
-
-  loadingAdicionarCategoria.value = true;
-
-  perfilStore.addCategoria(categoriaSelecionada.value)
-    .then((success: boolean) => {
-      if (success) {
-        const cat = categoriasParaAdicionar.value.find((c: CategoriaPrestadorData) => c.id === categoriaSelecionada.value);
-        if (cat) $q.notify({ type: 'positive', message: `Categoria ${cat.nome} adicionada`, position: 'top' });
-        showCategoriaDialog.value = false;
-      }
-    })
-    .catch(() => $q.notify({ type: 'negative', message: 'Erro ao adicionar categoria', position: 'top' }))
-    .finally(() => { loadingAdicionarCategoria.value = false; });
-};
-
-const removerCategoria = (categoria: CategoriaPrestadorData): void => {
-  $q.dialog({
-    title: 'Confirmar',
-    message: `Remover categoria ${categoria.nome}?`,
-    cancel: { label: 'Cancelar', flat: true },
-    ok: { label: 'Remover', color: 'negative', unelevated: true },
-  }).onOk(() => {
-    perfilStore.removeCategoria(categoria.id)
-      .then(() => $q.notify({ type: 'positive', message: 'Categoria removida', position: 'top' }))
-      .catch(() => $q.notify({ type: 'negative', message: 'Erro ao remover categoria', position: 'top' }));
-  });
-};
-
-const carregarDados = async (): Promise<void> => {
-  loadingCategorias.value = true;
-  await Promise.all([
-    servicosStore.fetchServicos(),
-    perfilStore.fetchMinhasCategorias(),
-    carregarTodasCategorias(),
-  ]);
-  loadingCategorias.value = false;
-};
-
-onMounted(() => { void carregarDados(); });
+onMounted(() => {
+  void carregarDadosIniciais();
+});
 </script>
 
 <style scoped lang="scss">
-$accent: #5B4BF5;
+$accent: #5b4bf5;
 $accent-light: rgba(91, 75, 245, 0.1);
-$success: #10B981;
+$success: #10b981;
 $success-light: rgba(16, 185, 129, 0.1);
-$warning: #F59E0B;
-$danger: #EF4444;
-$dark: #1A1A2E;
-$gray: #6B7280;
-$gray-light: #F9FAFB;
-$border: #E5E7EB;
-$white: #FFFFFF;
-$bg: #F3F4F6;
+$warning: #f59e0b;
+$danger: #ef4444;
+$dark: #1a1a2e;
+$gray: #6b7280;
+$gray-light: #f9fafb;
+$border: #e5e7eb;
+$white: #ffffff;
+$bg: #f3f4f6;
 $radius: 20px;
 $radius-sm: 14px;
 $radius-xs: 10px;
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .prestador-servicos {
@@ -614,7 +774,9 @@ $radius-xs: 10px;
       background: $gray-light;
     }
 
-    .skeleton-content { flex: 1; }
+    .skeleton-content {
+      flex: 1;
+    }
     .skeleton-line {
       height: 14px;
       background: $gray-light;
@@ -627,25 +789,54 @@ $radius-xs: 10px;
       gap: 12px;
       align-items: center;
 
-      .skeleton-btn { width: 60px; height: 32px; background: $gray-light; border-radius: 8px; }
-      .skeleton-toggle { width: 44px; height: 24px; background: $gray-light; border-radius: 12px; }
+      .skeleton-btn {
+        width: 60px;
+        height: 32px;
+        background: $gray-light;
+        border-radius: 8px;
+      }
+      .skeleton-toggle {
+        width: 44px;
+        height: 24px;
+        background: $gray-light;
+        border-radius: 12px;
+      }
     }
   }
 }
 
-.w-40 { width: 40%; }
-.w-50 { width: 50%; }
-.w-60 { width: 60%; }
+.w-40 {
+  width: 40%;
+}
+.w-50 {
+  width: 50%;
+}
+.w-60 {
+  width: 60%;
+}
 
-.servicos-container { padding: 16px; }
+.servicos-container {
+  padding: 16px;
+}
 
 .empty-state-modern {
   text-align: center;
   padding: 60px 24px;
 
-  .empty-icon { margin-bottom: 24px; opacity: 0.5; }
-  h3 { font-size: 1.1rem; font-weight: 600; color: $dark; margin-bottom: 8px; }
-  p { font-size: 0.85rem; color: $gray; }
+  .empty-icon {
+    margin-bottom: 24px;
+    opacity: 0.5;
+  }
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $dark;
+    margin-bottom: 8px;
+  }
+  p {
+    font-size: 0.85rem;
+    color: $gray;
+  }
 }
 
 .servicos-grid-modern {
@@ -693,13 +884,17 @@ $radius-xs: 10px;
     &.active {
       background: $success-light;
       color: $success;
-      .status-dot { background: $success; }
+      .status-dot {
+        background: $success;
+      }
     }
 
     &.inactive {
       background: rgba($gray, 0.1);
       color: $gray;
-      .status-dot { background: $gray; }
+      .status-dot {
+        background: $gray;
+      }
     }
   }
 
@@ -718,7 +913,9 @@ $radius-xs: 10px;
       flex-shrink: 0;
     }
 
-    .servico-info { flex: 1; }
+    .servico-info {
+      flex: 1;
+    }
 
     .servico-nome {
       font-size: 1rem;
@@ -761,7 +958,10 @@ $radius-xs: 10px;
     border-top: 1px solid $border;
     margin-bottom: 12px;
 
-    svg { color: $gray; flex-shrink: 0; }
+    svg {
+      color: $gray;
+      flex-shrink: 0;
+    }
     p {
       font-size: 0.75rem;
       color: $gray;
@@ -832,7 +1032,7 @@ $radius-xs: 10px;
 
     &:before {
       position: absolute;
-      content: "";
+      content: '';
       height: 20px;
       width: 20px;
       left: 2px;
@@ -903,7 +1103,9 @@ $radius-xs: 10px;
   background: rgba(91, 75, 245, 0.1);
   color: $accent;
 
-  .chip-icon { font-size: 1rem; }
+  .chip-icon {
+    font-size: 1rem;
+  }
 
   .chip-remove {
     display: flex;
@@ -917,7 +1119,9 @@ $radius-xs: 10px;
     cursor: pointer;
     color: currentColor;
 
-    &:hover { background: rgba(0, 0, 0, 0.2); }
+    &:hover {
+      background: rgba(0, 0, 0, 0.2);
+    }
   }
 }
 
@@ -970,12 +1174,20 @@ $radius-xs: 10px;
   overflow: hidden;
   animation: slideUp 0.3s ease;
 
-  &.small { max-width: 400px; }
+  &.small {
+    max-width: 400px;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modal-header-modern {
@@ -1029,11 +1241,15 @@ $radius-xs: 10px;
     color: $white;
     transition: all 0.2s;
 
-    &:hover { background: rgba(255, 255, 255, 0.3); }
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
   }
 }
 
-.modal-body-modern { padding: 20px; }
+.modal-body-modern {
+  padding: 20px;
+}
 
 .input-group-modern {
   margin-bottom: 16px;
@@ -1047,7 +1263,9 @@ $radius-xs: 10px;
   }
 }
 
-.modern-input, .modern-select, .modern-textarea {
+.modern-input,
+.modern-select,
+.modern-textarea {
   width: 100%;
   padding: 12px;
   border: 1px solid $border;
@@ -1056,7 +1274,9 @@ $radius-xs: 10px;
   outline: none;
   transition: all 0.2s;
 
-  &:focus { border-color: $accent; }
+  &:focus {
+    border-color: $accent;
+  }
 }
 
 .row-modern {
@@ -1064,10 +1284,13 @@ $radius-xs: 10px;
   gap: 12px;
   margin-bottom: 16px;
 
-  .col-modern { flex: 1; }
+  .col-modern {
+    flex: 1;
+  }
 }
 
-.price-input, .duration-input {
+.price-input,
+.duration-input {
   display: flex;
   align-items: center;
   border: 1px solid $border;
@@ -1119,7 +1342,9 @@ $radius-xs: 10px;
     color: $gray;
     cursor: pointer;
 
-    &:hover { background: $gray-light; }
+    &:hover {
+      background: $gray-light;
+    }
   }
 
   .save-btn {
@@ -1133,8 +1358,13 @@ $radius-xs: 10px;
     color: $white;
     cursor: pointer;
 
-    &:hover:not(:disabled) { background: lighten($accent, 6%); }
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
+    &:hover:not(:disabled) {
+      background: lighten($accent, 6%);
+    }
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 }
 

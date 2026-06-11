@@ -1,6 +1,5 @@
 <template>
   <div class="prestador-dashboard">
-
     <!-- Skeleton Loading -->
     <div v-if="carregamentoInicial" class="skeleton-loading">
       <div class="skeleton-header">
@@ -39,7 +38,6 @@
 
     <!-- Conteúdo real -->
     <template v-else>
-
       <!-- Cabeçalho -->
       <div class="dashboard-header">
         <div class="dashboard-header__greeting">
@@ -48,7 +46,14 @@
             {{ primeiroNome }}<span class="greeting-name--accent"> {{ ultimoNome }}</span>
           </h1>
         </div>
-        <q-btn flat round class="refresh-btn" @click="recarregarDados" :loading="recarregando" aria-label="Atualizar dados">
+        <q-btn
+          flat
+          round
+          class="refresh-btn"
+          @click="recarregarDados"
+          :loading="recarregando"
+          aria-label="Atualizar dados"
+        >
           <q-icon name="refresh" size="20px" />
           <q-tooltip>Atualizar dados</q-tooltip>
         </q-btn>
@@ -114,7 +119,14 @@
       <div v-if="proximosServicosList.length > 0" class="dashboard-section">
         <div class="section-header">
           <h2 class="section-title">Próximos serviços</h2>
-          <q-btn flat dense no-caps label="Ver todos →" class="section-link" to="/mobile/prestador/agenda" />
+          <q-btn
+            flat
+            dense
+            no-caps
+            label="Ver todos →"
+            class="section-link"
+            to="/mobile/prestador/agenda"
+          />
         </div>
 
         <div class="services-card">
@@ -179,7 +191,14 @@
       <div v-if="avaliacoesRecentesList.length > 0" class="dashboard-section">
         <div class="section-header">
           <h2 class="section-title">Avaliações recentes</h2>
-          <q-btn flat dense no-caps label="Ver todas →" class="section-link" to="/mobile/prestador/avaliacoes" />
+          <q-btn
+            flat
+            dense
+            no-caps
+            label="Ver todas →"
+            class="section-link"
+            to="/mobile/prestador/avaliacoes"
+          />
         </div>
 
         <div class="reviews-card">
@@ -190,9 +209,18 @@
             <div class="review-item__info">
               <div class="review-item__name">
                 {{ avaliacao.cliente?.nome || 'Cliente' }}
-                <span class="review-item__date">{{ formatarDataAvaliacao(avaliacao.created_at) }}</span>
+                <span class="review-item__date">{{
+                  formatarDataAvaliacao(avaliacao.created_at)
+                }}</span>
               </div>
-              <q-rating v-model="avaliacao.nota" size="13px" :max="5" color="amber-6" readonly class="review-item__rating" />
+              <q-rating
+                v-model="avaliacao.nota"
+                size="13px"
+                :max="5"
+                color="amber-6"
+                readonly
+                class="review-item__rating"
+              />
               <div class="review-item__comment">"{{ avaliacao.comentario }}"</div>
             </div>
           </div>
@@ -200,22 +228,22 @@
       </div>
 
       <!-- Estado vazio -->
-      <div v-if="!proximosServicosList.length && !avaliacoesRecentesList.length" class="empty-state">
+      <div
+        v-if="!proximosServicosList.length && !avaliacoesRecentesList.length"
+        class="empty-state"
+      >
         <q-icon name="dashboard" size="56px" class="empty-state__icon" />
         <h3 class="empty-state__title">Bem-vindo ao seu dashboard!</h3>
         <p class="empty-state__text">Você ainda não tem serviços agendados.</p>
       </div>
-
     </template>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from 'src/stores/auth-store';
-import { usePrestadorServicosStore } from 'src/stores/prestador/prestador-servicos-store';
-import { usePrestadorFinanceiroStore } from 'src/stores/prestador/prestador-financeiro-store';
+import { useAuthStore } from 'src/stores/login-store';
+import { usePrestadorDashboardStore } from 'src/stores/prestador/prestador-dashboard-store';
 import { useQuasar } from 'quasar';
 
 defineOptions({ name: 'PrestadorDashboard' });
@@ -223,8 +251,9 @@ defineOptions({ name: 'PrestadorDashboard' });
 const router = useRouter();
 const authStore = useAuthStore();
 const $q = useQuasar();
-const servicosStore = usePrestadorServicosStore();
-const financeiroStore = usePrestadorFinanceiroStore();
+
+// ✅ Usando APENAS o store específico do dashboard
+const dashboardStore = usePrestadorDashboardStore();
 
 // Estado de loading
 const carregamentoInicial = ref(true);
@@ -243,28 +272,19 @@ const ultimoNome = computed(() => {
   return partes.slice(1).join(' ') || '';
 });
 
-// Stores data
-const stats = computed(() => financeiroStore.stats || {
-  pedidos_pendentes: 0,
-  servicos_hoje: 0,
-  avaliacao_media: 0,
-});
-
-const ganhos = computed(() => financeiroStore.ganhos || {
-  total: 0,
-  mes: 0,
-  semana: 0,
-  pendente: 0,
-});
-
-const proximosServicosList = computed(() => servicosStore.proximosServicos || []);
-const avaliacoesRecentesList = computed(() => servicosStore.avaliacoesRecentes || []);
+// ✅ Dados vindos do store específico
+const stats = computed(() => dashboardStore.stats);
+const ganhos = computed(() => dashboardStore.ganhos);
+const proximosServicosList = computed(() => dashboardStore.proximosServicos);
+const avaliacoesRecentesList = computed(() => dashboardStore.avaliacoesRecentes);
 
 // Datas formatadas
 const dataHoje = computed(() => {
   const hoje = new Date();
   return hoje.toLocaleDateString('pt-PT', {
-    weekday: 'long', day: 'numeric', month: 'long',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
   });
 });
 
@@ -293,7 +313,7 @@ const getInitials = (nome: string) => {
   return nome
     .split(' ')
     .slice(0, 2)
-    .map(n => n.charAt(0))
+    .map((n) => n.charAt(0))
     .join('')
     .toUpperCase();
 };
@@ -321,7 +341,10 @@ const formatarData = (data: string) => {
       return `Amanhã, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
     }
     return date.toLocaleDateString('pt-PT', {
-      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   } catch {
     return data;
@@ -346,16 +369,24 @@ const formatarDataAvaliacao = (data: string) => {
 // Status helpers
 const getStatusTexto = (status: string) => {
   const map: Record<string, string> = {
-    pendente: 'Pendente', aceito: 'Aceito', confirmado: 'Confirmado',
-    em_andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado',
+    pendente: 'Pendente',
+    aceito: 'Aceito',
+    confirmado: 'Confirmado',
+    em_andamento: 'Em andamento',
+    concluido: 'Concluído',
+    cancelado: 'Cancelado',
   };
   return map[status] || status;
 };
 
 const getStatusCor = (status: string) => {
   const map: Record<string, string> = {
-    pendente: 'warning', aceito: 'info', confirmado: 'primary',
-    em_andamento: 'primary', concluido: 'success', cancelado: 'danger',
+    pendente: 'warning',
+    aceito: 'info',
+    confirmado: 'primary',
+    em_andamento: 'primary',
+    concluido: 'success',
+    cancelado: 'danger',
   };
   return map[status] || 'default';
 };
@@ -364,22 +395,17 @@ const getStatusCor = (status: string) => {
 const irPara = (rota: string) => void router.push(`/mobile/prestador/${rota}`);
 const verPedido = (id: number) => void router.push(`/mobile/prestador/pedidos/${id}`);
 
-// Recarregar
+// ✅ Recarregar usando o store específico
 const recarregarDados = async () => {
   recarregando.value = true;
-  await carregarDados();
+  await dashboardStore.recarregarDados();
   recarregando.value = false;
 };
 
 const carregarDados = async () => {
   carregamentoInicial.value = true;
   try {
-    await Promise.all([
-      financeiroStore.fetchStats(),
-      financeiroStore.fetchGanhos(),
-      servicosStore.fetchProximosServicos(5),
-      servicosStore.fetchAvaliacoesRecentes(5),
-    ]);
+    await dashboardStore.carregarTodosDados();
   } catch (error) {
     console.error('Erro ao carregar dados:', error);
     $q.notify({
@@ -404,31 +430,35 @@ onMounted(() => {
 // =====================
 // TOKENS DO SISTEMA
 // =====================
-$accent:       #5B4BF5;
+$accent: #5b4bf5;
 $accent-light: rgba(91, 75, 245, 0.08);
-$accent-mid:   rgba(91, 75, 245, 0.15);
-$green:        #10B981;
-$green-light:  rgba(16, 185, 129, 0.1);
-$gold:         #F59E0B;
-$gold-light:   rgba(245, 158, 11, 0.1);
-$purple:       #9F7AEA;
+$accent-mid: rgba(91, 75, 245, 0.15);
+$green: #10b981;
+$green-light: rgba(16, 185, 129, 0.1);
+$gold: #f59e0b;
+$gold-light: rgba(245, 158, 11, 0.1);
+$purple: #9f7aea;
 $purple-light: rgba(159, 122, 234, 0.1);
-$ink:          #0A0A0F;
-$ink-2:        #3D3D4E;
-$muted:        #9898A8;
-$line:         rgba(0, 0, 0, 0.06);
-$surface:      #FFFFFF;
-$bg:           #F4F4F8;
-$radius:       16px;
-$radius-sm:    10px;
-$radius-xs:    8px;
+$ink: #0a0a0f;
+$ink-2: #3d3d4e;
+$muted: #9898a8;
+$line: rgba(0, 0, 0, 0.06);
+$surface: #ffffff;
+$bg: #f4f4f8;
+$radius: 16px;
+$radius-sm: 10px;
+$radius-xs: 8px;
 
 // =====================
 // SKELETON LOADING
 // =====================
 @keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 %shimmer {
@@ -450,55 +480,98 @@ $radius-xs:    8px;
   margin-bottom: 24px;
 }
 
-.skeleton-greeting { flex: 1; }
+.skeleton-greeting {
+  flex: 1;
+}
 .skeleton-refresh-btn {
-  width: 40px; height: 40px; border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   @extend %shimmer;
 }
 
 .skeleton-banner {
-  height: 100px; border-radius: $radius; margin-bottom: 20px;
+  height: 100px;
+  border-radius: $radius;
+  margin-bottom: 20px;
   @extend %shimmer;
 }
 
-.skeleton-cards { margin-bottom: 24px; }
+.skeleton-cards {
+  margin-bottom: 24px;
+}
 .skeleton-card {
-  height: 100px; border-radius: $radius; background: $surface;
+  height: 100px;
+  border-radius: $radius;
+  background: $surface;
   @extend %shimmer;
 }
 
-.skeleton-section { margin-bottom: 24px; }
+.skeleton-section {
+  margin-bottom: 24px;
+}
 .skeleton-section-header {
-  display: flex; justify-content: space-between; margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
 }
 
 .skeleton-list {
-  background: $surface; border-radius: $radius; overflow: hidden;
+  background: $surface;
+  border-radius: $radius;
+  overflow: hidden;
 }
 
 .skeleton-list-item {
-  display: flex; align-items: center; gap: 12px; padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
   border-bottom: 1px solid $line;
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .skeleton-avatar {
-  width: 44px; height: 44px; border-radius: $radius-sm; flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: $radius-sm;
+  flex-shrink: 0;
   @extend %shimmer;
 }
 
-.skeleton-list-info { flex: 1; }
+.skeleton-list-info {
+  flex: 1;
+}
 .skeleton-badge {
-  width: 64px; height: 22px; border-radius: 20px;
+  width: 64px;
+  height: 22px;
+  border-radius: 20px;
   @extend %shimmer;
 }
 
 .skeleton-line {
-  height: 13px; border-radius: 6px; margin: 5px 0;
+  height: 13px;
+  border-radius: 6px;
+  margin: 5px 0;
   @extend %shimmer;
 }
-.w-20 { width: 20%; } .w-30 { width: 30%; } .w-40 { width: 40%; }
-.w-50 { width: 50%; } .w-60 { width: 60%; }
+.w-20 {
+  width: 20%;
+}
+.w-30 {
+  width: 30%;
+}
+.w-40 {
+  width: 40%;
+}
+.w-50 {
+  width: 50%;
+}
+.w-60 {
+  width: 60%;
+}
 
 // =====================
 // DASHBOARD LAYOUT
@@ -534,7 +607,9 @@ $radius-xs:    8px;
       margin: 0;
       line-height: 1.15;
 
-      &--accent { color: $accent; }
+      &--accent {
+        color: $accent;
+      }
     }
   }
 
@@ -563,13 +638,26 @@ $radius-xs:    8px;
   margin-bottom: 20px;
 
   .status-dot {
-    width: 7px; height: 7px; border-radius: 50%;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
     background: $green;
     box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
   }
-  .status-text { font-size: 12px; color: $green; font-weight: 500; }
-  .status-sep { width: 1px; height: 12px; background: $line; }
-  .status-date { font-size: 12px; color: $muted; }
+  .status-text {
+    font-size: 12px;
+    color: $green;
+    font-weight: 500;
+  }
+  .status-sep {
+    width: 1px;
+    height: 12px;
+    background: $line;
+  }
+  .status-date {
+    font-size: 12px;
+    color: $muted;
+  }
 }
 
 // =====================
@@ -586,15 +674,27 @@ $radius-xs:    8px;
   position: relative;
   overflow: hidden;
 
-  &::after, &::before {
+  &::after,
+  &::before {
     content: '';
     position: absolute;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.07);
     pointer-events: none;
   }
-  &::after  { right: -20px; top: -20px; width: 100px; height: 100px; }
-  &::before { right: 30px; bottom: -30px; width: 80px; height: 80px; background: rgba(255,255,255,0.05); }
+  &::after {
+    right: -20px;
+    top: -20px;
+    width: 100px;
+    height: 100px;
+  }
+  &::before {
+    right: 30px;
+    bottom: -30px;
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.05);
+  }
 
   &__sub {
     font-size: 11px;
@@ -650,32 +750,59 @@ $radius-xs:    8px;
   overflow: hidden;
   transition: transform 0.2s;
 
-  &:hover { transform: translateY(-2px); }
+  &:hover {
+    transform: translateY(-2px);
+  }
 
   &::before {
     content: '';
     position: absolute;
-    top: 0; right: 0;
-    width: 60px; height: 60px;
+    top: 0;
+    right: 0;
+    width: 60px;
+    height: 60px;
     border-radius: 0 $radius 0 60px;
     opacity: 0.08;
     pointer-events: none;
   }
-  &--primary::before { background: $accent; }
-  &--green::before   { background: $green; }
-  &--gold::before    { background: $gold; }
-  &--purple::before  { background: $purple; }
+  &--primary::before {
+    background: $accent;
+  }
+  &--green::before {
+    background: $green;
+  }
+  &--gold::before {
+    background: $gold;
+  }
+  &--purple::before {
+    background: $purple;
+  }
 
   &__icon {
-    width: 36px; height: 36px;
+    width: 36px;
+    height: 36px;
     border-radius: $radius-xs;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-bottom: 14px;
 
-    &--primary { background: $accent-light; color: $accent; }
-    &--green   { background: $green-light;  color: $green; }
-    &--gold    { background: $gold-light;   color: $gold; }
-    &--purple  { background: $purple-light; color: $purple; }
+    &--primary {
+      background: $accent-light;
+      color: $accent;
+    }
+    &--green {
+      background: $green-light;
+      color: $green;
+    }
+    &--gold {
+      background: $gold-light;
+      color: $gold;
+    }
+    &--purple {
+      background: $purple-light;
+      color: $purple;
+    }
   }
 
   &__value {
@@ -695,7 +822,9 @@ $radius-xs:    8px;
 // =====================
 // SECTION
 // =====================
-.dashboard-section { margin-bottom: 28px; }
+.dashboard-section {
+  margin-bottom: 28px;
+}
 
 .section-header {
   display: flex;
@@ -715,7 +844,9 @@ $radius-xs:    8px;
     font-weight: 500;
     padding: 4px 8px !important;
     border-radius: $radius-xs !important;
-    &:hover { background: $accent-light !important; }
+    &:hover {
+      background: $accent-light !important;
+    }
   }
 }
 
@@ -738,44 +869,89 @@ $radius-xs:    8px;
   cursor: pointer;
   transition: background 0.15s;
 
-  &:last-child { border-bottom: none; }
-  &:hover { background: $accent-light; }
+  &:last-child {
+    border-bottom: none;
+  }
+  &:hover {
+    background: $accent-light;
+  }
 
   &__avatar {
-    width: 44px; height: 44px;
+    width: 44px;
+    height: 44px;
     border-radius: $radius-sm;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px; font-weight: 700;
-    color: #fff; flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
     letter-spacing: 0.02em;
   }
-  &__info { flex: 1; min-width: 0; }
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
   &__name {
-    font-size: 14px; font-weight: 500; color: $ink;
+    font-size: 14px;
+    font-weight: 500;
+    color: $ink;
     margin-bottom: 2px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   &__date {
-    font-size: 11px; color: $muted;
-    display: flex; align-items: center; gap: 3px;
+    font-size: 11px;
+    color: $muted;
+    display: flex;
+    align-items: center;
+    gap: 3px;
     margin-bottom: 2px;
   }
-  &__type { font-size: 11px; color: $accent; font-weight: 500; }
+  &__type {
+    font-size: 11px;
+    color: $accent;
+    font-weight: 500;
+  }
 }
 
 // Status badges
 .status-badge {
-  font-size: 10px; font-weight: 600;
-  padding: 3px 9px; border-radius: 20px;
-  white-space: nowrap; flex-shrink: 0;
-  text-transform: uppercase; letter-spacing: 0.04em;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 
-  &--primary { background: $accent-light;  color: $accent; }
-  &--warning { background: $gold-light;    color: darken($gold, 20%); }
-  &--info    { background: rgba(59,130,246,0.1); color: #1D4ED8; }
-  &--success { background: $green-light;   color: darken($green, 15%); }
-  &--danger  { background: rgba(239,68,68,0.1); color: #B91C1C; }
-  &--default { background: rgba(0,0,0,0.05); color: $muted; }
+  &--primary {
+    background: $accent-light;
+    color: $accent;
+  }
+  &--warning {
+    background: $gold-light;
+    color: darken($gold, 20%);
+  }
+  &--info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1d4ed8;
+  }
+  &--success {
+    background: $green-light;
+    color: darken($green, 15%);
+  }
+  &--danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+  }
+  &--default {
+    background: rgba(0, 0, 0, 0.05);
+    color: $muted;
+  }
 }
 
 // =====================
@@ -794,28 +970,54 @@ $radius-xs:    8px;
   padding: 18px 16px;
   cursor: pointer;
   transition: all 0.2s;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
 
   &:hover {
     transform: translateY(-2px);
     border-color: $accent;
     background: $accent-light;
 
-    .action-card__icon { background: $accent; color: #fff; }
+    .action-card__icon {
+      background: $accent;
+      color: #fff;
+    }
   }
 
   &__icon {
-    width: 44px; height: 44px;
+    width: 44px;
+    height: 44px;
     border-radius: $radius-sm;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s;
 
-    &--1 { background: $accent-light;  color: $accent; }
-    &--2 { background: $purple-light;  color: $purple; }
-    &--3 { background: $green-light;   color: $green; }
-    &--4 { background: $gold-light;    color: $gold; }
+    &--1 {
+      background: $accent-light;
+      color: $accent;
+    }
+    &--2 {
+      background: $purple-light;
+      color: $purple;
+    }
+    &--3 {
+      background: $green-light;
+      color: $green;
+    }
+    &--4 {
+      background: $gold-light;
+      color: $gold;
+    }
   }
-  &__label { font-size: 13px; font-weight: 500; color: $ink; line-height: 1.3; }
+  &__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: $ink;
+    line-height: 1.3;
+  }
 }
 
 // =====================
@@ -833,26 +1035,45 @@ $radius-xs:    8px;
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid $line;
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 
   &__avatar {
-    width: 40px; height: 40px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 700;
-    color: #fff; flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
   }
-  &__info { flex: 1; }
+  &__info {
+    flex: 1;
+  }
   &__name {
-    font-size: 13px; font-weight: 500; color: $ink;
+    font-size: 13px;
+    font-weight: 500;
+    color: $ink;
     margin-bottom: 4px;
   }
   &__date {
-    font-size: 10px; color: $muted; margin-left: 6px; font-weight: 400;
+    font-size: 10px;
+    color: $muted;
+    margin-left: 6px;
+    font-weight: 400;
   }
-  &__rating { margin-bottom: 5px; }
+  &__rating {
+    margin-bottom: 5px;
+  }
   &__comment {
-    font-size: 12px; color: $ink-2; line-height: 1.5; font-style: italic;
+    font-size: 12px;
+    color: $ink-2;
+    line-height: 1.5;
+    font-style: italic;
   }
 }
 
@@ -867,29 +1088,61 @@ $radius-xs:    8px;
   text-align: center;
   margin-top: 8px;
 
-  &__icon { color: #d0d0dc; margin-bottom: 16px; }
-  &__title {
-    font-size: 1.1rem; font-weight: 600; color: $ink; margin-bottom: 8px;
+  &__icon {
+    color: #d0d0dc;
+    margin-bottom: 16px;
   }
-  &__text { color: $muted; font-size: 14px; }
+  &__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $ink;
+    margin-bottom: 8px;
+  }
+  &__text {
+    color: $muted;
+    font-size: 14px;
+  }
 }
 
 // =====================
 // RESPONSIVIDADE
 // =====================
 @media (max-width: 480px) {
-  .stats-grid { gap: 8px; }
-  .stat-card { padding: 12px; }
-  .stat-card__value { font-size: 20px; }
+  .stats-grid {
+    gap: 8px;
+  }
+  .stat-card {
+    padding: 12px;
+  }
+  .stat-card__value {
+    font-size: 20px;
+  }
 
-  .earnings-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .earnings-banner__badge { align-self: flex-start; }
+  .earnings-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .earnings-banner__badge {
+    align-self: flex-start;
+  }
 
-  .actions-grid { gap: 8px; }
-  .action-card { padding: 14px; }
-  .action-card__icon { width: 38px; height: 38px; }
+  .actions-grid {
+    gap: 8px;
+  }
+  .action-card {
+    padding: 14px;
+  }
+  .action-card__icon {
+    width: 38px;
+    height: 38px;
+  }
 
-  .service-item { padding: 12px; }
-  .review-item { padding: 12px; }
+  .service-item {
+    padding: 12px;
+  }
+  .review-item {
+    padding: 12px;
+  }
 }
 </style>

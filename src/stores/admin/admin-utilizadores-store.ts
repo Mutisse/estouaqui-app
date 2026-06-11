@@ -1,509 +1,350 @@
 // src/stores/admin/admin-utilizadores-store.ts
+
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { useQuasar } from 'quasar';
+import { ref, computed } from 'vue';
 import { api } from 'src/boot/axios';
-import { ADMIN_ENDPOINTS } from 'src/router/Api/admin-endpoints';
-import { useAuthStore } from '../auth-store';
-import { useAdminCacheStore, ADMIN_CACHE_TTL } from './admin-cache-store';
 import type { AxiosError } from 'axios';
+import { useAuthStore } from 'src/stores/login-store';
 
-// ==========================================
-// INTERFACES
-// ==========================================
+// ===================== INTERFACES =====================
 
-export interface UserData {
+export interface Utilizador {
   id: number;
   nome: string;
   email: string;
   telefone: string;
-  tipo: string;
-  avatar?: string;
-  data?: string;
-  created_at?: string;
-  blocked_at?: string | null;
-  verificado?: boolean;
-  ativo?: boolean;
+  tipo: 'cliente' | 'prestador' | 'admin' | 'root';
+  verificado: boolean;
+  disponivel: boolean;
+  foto: string | null;
+  profissao?: string;
+  sobre?: string;
   media_avaliacao?: number;
   total_avaliacoes?: number;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface PrestadorCategoria {
-  id: number;
-  nome: string;
-  icone?: string;
-}
-
-export interface PrestadorData {
-  id: number;
+export interface UtilizadorForm {
   nome: string;
   email: string;
-  telefone: string;
-  verificado: boolean;
-  media_avaliacao: number;
-  total_avaliacoes: number;
-  categorias?: PrestadorCategoria[];
-  ativo?: boolean;
-  blocked_at?: string | null;
-  created_at?: string;
-  avatar?: string;
+  telefone?: string;
+  tipo: string;
+  password?: string;
+  profissao?: string;
+  sobre?: string;
 }
 
-// Interface para resposta paginada
-interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  last_page: number;
+export interface FiltrosUtilizadores {
+  search: string;
+  tipo: string;
+  verificado: string;
+  page: number;
+  perPage: number;
+}
+
+export interface PaginacaoData {
   current_page: number;
+  last_page: number;
   per_page: number;
+  total: number;
 }
 
-// Interface para dados brutos da API
-interface RawPrestadorData {
-  id: number;
-  nome: string;
-  email: string;
-  telefone: string;
-  verificado: boolean;
-  media_avaliacao: number;
-  total_avaliacoes: number;
-  categorias?: PrestadorCategoria[];
-  ativo?: boolean;
-  blocked_at?: string | null;
-  created_at?: string;
+interface ApiParams {
+  page: number;
+  per_page: number;
+  search?: string;
+  tipo?: string;
+  verificado?: boolean;
 }
 
-// ==========================================
-// STORE
-// ==========================================
+// ===================== STORE =====================
 
 export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => {
-  const $q = useQuasar();
   const authStore = useAuthStore();
-  const cacheStore = useAdminCacheStore();
 
-  // ==========================================
-  // STATE
-  // ==========================================
+  // Estados
+  const isLoading = ref(false);
+  const isSaving = ref(false);
+  const error = ref<string | null>(null);
+  const dadosCarregados = ref(false);
+  const ultimaAtualizacao = ref<Date | null>(null);
 
-  const loading = ref(false);
-  const ultimosUtilizadores = ref<UserData[]>([]);
-  const utilizadores = ref<UserData[]>([]);
-  const utilizadorDetalhes = ref<UserData | null>(null);
-  const prestadores = ref<PrestadorData[]>([]);
-  const prestadoresPendentes = ref<PrestadorData[]>([]);
+  const utilizadores = ref<Utilizador[]>([]);
+  const paginacao = ref<PaginacaoData>({
+    current_page: 1,
+    last_page: 1,
+    per_page: 15,
+    total: 0,
+  });
 
-  // ==========================================
-  // MÉTODOS AUXILIARES
-  // ==========================================
+  const filtros = ref<FiltrosUtilizadores>({
+    search: '',
+    tipo: '',
+    verificado: '',
+    page: 1,
+    perPage: 15,
+  });
 
-  function getCurrentAdminId(): number {
-    return authStore.user?.id || 0;
-  }
+  const utilizadorSelecionado = ref<Utilizador | null>(null);
 
-  function initializeCache(): void {
-    const adminId = getCurrentAdminId();
-    if (adminId) {
-      cacheStore.setAdminId(adminId);
+  // Getters
+  const totalUtilizadores = computed(() => paginacao.value.total);
+  const temUtilizadores = computed(() => utilizadores.value.length > 0);
+  const temProximaPagina = computed(() => paginacao.value.current_page < paginacao.value.last_page);
+  const temPaginaAnterior = computed(() => paginacao.value.current_page > 1);
+
+  const utilizadoresFiltrados = computed(() => {
+    let resultado = [...utilizadores.value];
+
+    if (filtros.value.search) {
+      const searchLower = filtros.value.search.toLowerCase();
+      resultado = resultado.filter(
+        (u) =>
+          u.nome.toLowerCase().includes(searchLower) ||
+          u.email.toLowerCase().includes(searchLower) ||
+          (u.telefone && u.telefone.includes(searchLower))
+      );
     }
-  }
 
-  function extractDataFromResponse<T>(response: unknown): T {
-    if (!response) return [] as T;
-    if (Array.isArray(response)) return response as T;
-    if (typeof response === 'object' && response !== null) {
-      const obj = response as Record<string, unknown>;
-      if (obj.success === true && obj.data !== undefined) {
-        return obj.data as T;
-      }
-      if (obj.data !== undefined) {
-        return obj.data as T;
-      }
+    if (filtros.value.tipo) {
+      resultado = resultado.filter((u) => u.tipo === filtros.value.tipo);
     }
-    return [] as T;
-  }
 
-  function showError(error: unknown): void {
-    const err = error as AxiosError<{ error?: string; message?: string }>;
-    const message =
-      err.response?.data?.error ||
-      err.response?.data?.message ||
-      err.message ||
-      'Erro ao carregar dados';
-    $q.notify({ type: 'negative', message, position: 'top', timeout: 3000 });
-  }
+    if (filtros.value.verificado) {
+      const verificado = filtros.value.verificado === 'sim';
+      resultado = resultado.filter((u) => u.verificado === verificado);
+    }
 
-  function gerarAvatarUrl(nome: string): string {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=667eea&color=fff&size=56`;
-  }
+    return resultado;
+  });
 
-  // ==========================================
-  // UTILIZADORES
-  // ==========================================
+  // ===================== AÇÕES =====================
 
-  async function fetchUltimosUtilizadores(
-    limit: number = 5,
-    forceRefresh: boolean = false,
-  ): Promise<UserData[]> {
-    initializeCache();
-    const cacheKey = `ultimos_utilizadores_${limit}`;
+  const carregarUtilizadores = async (resetPage = true): Promise<void> => {
+    if (!authStore.isAuthenticated) return;
 
-    const data = await cacheStore.fetchWithCache<UserData[]>(
-      cacheKey,
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.USERS, { params: { per_page: limit } });
-          const result = extractDataFromResponse<{ data: UserData[] }>(response.data);
-          ultimosUtilizadores.value = result.data || [];
-          return ultimosUtilizadores.value;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.SHORT,
-      forceRefresh,
-    );
-    return data;
-  }
+    isLoading.value = true;
+    error.value = null;
 
-  async function fetchUtilizadores(
-    params?: {
-      tipo?: string;
-      status?: string;
-      busca?: string;
-      per_page?: number;
-    },
-    forceRefresh: boolean = false,
-  ): Promise<PaginatedResponse<UserData> | null> {
-    initializeCache();
-    const cacheKey = `utilizadores_${JSON.stringify(params)}`;
-
-    const data = await cacheStore.fetchWithCache<PaginatedResponse<UserData> | null>(
-      cacheKey,
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.USERS, { params });
-          const result = response.data.data as PaginatedResponse<UserData>;
-          utilizadores.value = result.data || [];
-          return result;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.MEDIUM,
-      forceRefresh,
-    );
-    return data;
-  }
-
-  async function fetchUtilizadorDetalhes(
-    id: number,
-    forceRefresh: boolean = false,
-  ): Promise<UserData | null> {
-    initializeCache();
-    const cacheKey = `utilizador_${id}`;
-
-    const data = await cacheStore.fetchWithCache<UserData | null>(
-      cacheKey,
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.USER_DETAILS(id));
-          const result = extractDataFromResponse<UserData>(response.data);
-          utilizadorDetalhes.value = result;
-          return result;
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.LONG,
-      forceRefresh,
-    );
-    return data;
-  }
-
-  async function updateUtilizador(id: number, data: Partial<UserData>): Promise<boolean> {
-    loading.value = true;
     try {
-      const response = await api.put(ADMIN_ENDPOINTS.UPDATE_USER(id), data);
-      if (response.data.success) {
-        cacheStore.invalidatePattern('utilizadores');
-        cacheStore.invalidate(`utilizador_${id}`);
+      if (resetPage) {
+        filtros.value.page = 1;
+      }
+
+      const params: ApiParams = {
+        page: filtros.value.page,
+        per_page: filtros.value.perPage,
+      };
+
+      if (filtros.value.search) params.search = filtros.value.search;
+      if (filtros.value.tipo) params.tipo = filtros.value.tipo;
+      if (filtros.value.verificado) params.verificado = filtros.value.verificado === 'sim';
+
+      const response = await api.get('/admin/utilizadores', { params });
+
+      if (response.data?.success) {
+        utilizadores.value = response.data.data;
+        paginacao.value = {
+          current_page: response.data.current_page || response.data.meta?.current_page || 1,
+          last_page: response.data.last_page || response.data.meta?.last_page || 1,
+          per_page: response.data.per_page || response.data.meta?.per_page || 15,
+          total: response.data.total || response.data.meta?.total || 0,
+        };
+        dadosCarregados.value = true;
+        ultimaAtualizacao.value = new Date();
+      } else if (Array.isArray(response.data)) {
+        utilizadores.value = response.data;
+      }
+    } catch (err) {
+      console.error('Erro ao carregar utilizadores:', err);
+      error.value = (err as AxiosError).message || 'Erro ao carregar utilizadores';
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const buscarUtilizador = async (id: number): Promise<Utilizador | null> => {
+    isLoading.value = true;
+    try {
+      const response = await api.get(`/admin/utilizadores/${id}`);
+      if (response.data?.success && response.data.data) {
+        utilizadorSelecionado.value = response.data.data;
+        return response.data.data;
+      }
+      return null;
+    } catch (err) {
+      console.error('Erro ao buscar utilizador:', err);
+      error.value = (err as AxiosError).message || 'Erro ao buscar utilizador';
+      return null;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const criarUtilizador = async (data: UtilizadorForm): Promise<Utilizador | null> => {
+    isSaving.value = true;
+    error.value = null;
+
+    try {
+      const response = await api.post('/admin/utilizadores', data);
+      if (response.data?.success && response.data.data) {
+        await carregarUtilizadores(true);
+        return response.data.data;
+      }
+      return null;
+    } catch (err) {
+      console.error('Erro ao criar utilizador:', err);
+      error.value = (err as AxiosError).message || 'Erro ao criar utilador';
+      return null;
+    } finally {
+      isSaving.value = false;
+    }
+  };
+
+  const atualizarUtilizador = async (id: number, data: Partial<UtilizadorForm>): Promise<Utilizador | null> => {
+    isSaving.value = true;
+    error.value = null;
+
+    try {
+      const response = await api.put(`/admin/utilizadores/${id}`, data);
+      if (response.data?.success && response.data.data) {
+        await carregarUtilizadores(false);
+        return response.data.data;
+      }
+      return null;
+    } catch (err) {
+      console.error('Erro ao atualizar utilizador:', err);
+      error.value = (err as AxiosError).message || 'Erro ao atualizar utilizador';
+      return null;
+    } finally {
+      isSaving.value = false;
+    }
+  };
+
+  const removerUtilizador = async (id: number): Promise<boolean> => {
+    isSaving.value = true;
+    error.value = null;
+
+    try {
+      const response = await api.delete(`/admin/utilizadores/${id}`);
+      if (response.data?.success) {
+        await carregarUtilizadores(true);
         return true;
       }
       return false;
-    } catch {
-      showError({} as Error);
+    } catch (err) {
+      console.error('Erro ao excluir utilizador:', err);
+      error.value = (err as AxiosError).message || 'Erro ao excluir utilizador';
       return false;
     } finally {
-      loading.value = false;
+      isSaving.value = false;
     }
-  }
+  };
 
-  async function blockUtilizador(id: number): Promise<boolean> {
-    loading.value = true;
+  // ✅ NOVA FUNÇÃO: Verificar utilizador (prestador)
+  const verificarUtilizador = async (id: number): Promise<boolean> => {
+    isSaving.value = true;
+    error.value = null;
+
     try {
-      const response = await api.post(ADMIN_ENDPOINTS.BLOCK_USER(id));
-      if (response.data.success) {
-        cacheStore.invalidatePattern('utilizadores');
-        cacheStore.invalidate(`utilizador_${id}`);
+      const response = await api.put(`/admin/utilizadores/${id}/verificar`);
+      if (response.data?.success) {
+        await carregarUtilizadores(false);
         return true;
       }
       return false;
-    } catch {
-      showError({} as Error);
+    } catch (err) {
+      console.error('Erro ao verificar utilizador:', err);
+      error.value = (err as AxiosError).message || 'Erro ao verificar utilizador';
       return false;
     } finally {
-      loading.value = false;
+      isSaving.value = false;
     }
-  }
+  };
 
-  async function unblockUtilizador(id: number): Promise<boolean> {
-    loading.value = true;
-    try {
-      const response = await api.post(ADMIN_ENDPOINTS.UNBLOCK_USER(id));
-      if (response.data.success) {
-        cacheStore.invalidatePattern('utilizadores');
-        cacheStore.invalidate(`utilizador_${id}`);
-        return true;
-      }
-      return false;
-    } catch {
-      showError({} as Error);
-      return false;
-    } finally {
-      loading.value = false;
+  const setFiltro = (key: keyof FiltrosUtilizadores, value: string | number): void => {
+    if (key === 'search') filtros.value.search = value as string;
+    else if (key === 'tipo') filtros.value.tipo = value as string;
+    else if (key === 'verificado') filtros.value.verificado = value as string;
+    else if (key === 'page') filtros.value.page = value as number;
+    else if (key === 'perPage') filtros.value.perPage = value as number;
+
+    if (key !== 'page') {
+      filtros.value.page = 1;
     }
-  }
+    void carregarUtilizadores(false);
+  };
 
-  async function deleteUtilizador(id: number, force: boolean = false): Promise<boolean> {
-    loading.value = true;
-    try {
-      const url = force ? ADMIN_ENDPOINTS.FORCE_DELETE_USER(id) : ADMIN_ENDPOINTS.DELETE_USER(id);
-      const response = await api.delete(url);
-      if (response.data.success) {
-        cacheStore.invalidatePattern('utilizadores');
-        cacheStore.invalidate(`utilizador_${id}`);
-        return true;
-      }
-      return false;
-    } catch {
-      showError({} as Error);
-      return false;
-    } finally {
-      loading.value = false;
-    }
-  }
+  const limparFiltros = (): void => {
+    filtros.value = {
+      search: '',
+      tipo: '',
+      verificado: '',
+      page: 1,
+      perPage: 15,
+    };
+    void carregarUtilizadores(true);
+  };
 
-  // ==========================================
-  // PRESTADORES
-  // ==========================================
+  const mudarPagina = (page: number): void => {
+    if (page < 1 || page > paginacao.value.last_page) return;
+    filtros.value.page = page;
+    void carregarUtilizadores(false);
+  };
 
-  async function fetchPrestadores(
-    params?: {
-      busca?: string;
-      verificado?: boolean;
-      categoria?: number;
-      avaliacao_min?: number;
-      per_page?: number;
-    },
-    forceRefresh: boolean = false,
-  ): Promise<PaginatedResponse<PrestadorData> | null> {
-    initializeCache();
-    const cacheKey = `prestadores_${JSON.stringify(params)}`;
+  const recarregarDados = async (): Promise<void> => {
+    await carregarUtilizadores(true);
+  };
 
-    const data = await cacheStore.fetchWithCache<PaginatedResponse<PrestadorData> | null>(
-      cacheKey,
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.PRESTADORES, { params });
-          const result = extractDataFromResponse<PaginatedResponse<RawPrestadorData>>(
-            response.data,
-          );
-
-          const prestadoresData: PrestadorData[] = (result.data || []).map(
-            (prestador: RawPrestadorData) => {
-              const prestadorMap: PrestadorData = {
-                id: prestador.id,
-                nome: prestador.nome,
-                email: prestador.email,
-                telefone: prestador.telefone,
-                verificado: prestador.verificado,
-                media_avaliacao: prestador.media_avaliacao,
-                total_avaliacoes: prestador.total_avaliacoes,
-              };
-
-              if (prestador.categorias && prestador.categorias.length > 0) {
-                prestadorMap.categorias = prestador.categorias;
-              }
-              if (prestador.ativo !== undefined) {
-                prestadorMap.ativo = prestador.ativo;
-              }
-              if (prestador.blocked_at !== undefined) {
-                prestadorMap.blocked_at = prestador.blocked_at;
-              }
-              if (prestador.created_at) {
-                prestadorMap.created_at = prestador.created_at;
-              }
-
-              prestadorMap.avatar = gerarAvatarUrl(prestador.nome);
-
-              return prestadorMap;
-            },
-          );
-
-          prestadores.value = prestadoresData;
-
-          return {
-            data: prestadoresData,
-            total: result.total,
-            last_page: result.last_page,
-            current_page: result.current_page,
-            per_page: result.per_page,
-          };
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.MEDIUM,
-      forceRefresh,
-    );
-    return data;
-  }
-
-  async function fetchPrestadoresPendentes(
-    forceRefresh: boolean = false,
-  ): Promise<PaginatedResponse<PrestadorData> | null> {
-    initializeCache();
-
-    const data = await cacheStore.fetchWithCache<PaginatedResponse<PrestadorData> | null>(
-      'prestadores_pendentes',
-      async () => {
-        loading.value = true;
-        try {
-          const response = await api.get(ADMIN_ENDPOINTS.PRESTADORES_PENDENTES);
-          const result = extractDataFromResponse<PaginatedResponse<RawPrestadorData>>(
-            response.data,
-          );
-
-          const prestadoresData: PrestadorData[] = (result.data || []).map(
-            (prestador: RawPrestadorData) => {
-              const prestadorMap: PrestadorData = {
-                id: prestador.id,
-                nome: prestador.nome,
-                email: prestador.email,
-                telefone: prestador.telefone,
-                verificado: prestador.verificado,
-                media_avaliacao: prestador.media_avaliacao,
-                total_avaliacoes: prestador.total_avaliacoes,
-              };
-
-              if (prestador.categorias && prestador.categorias.length > 0) {
-                prestadorMap.categorias = prestador.categorias;
-              }
-              if (prestador.ativo !== undefined) {
-                prestadorMap.ativo = prestador.ativo;
-              }
-              if (prestador.blocked_at !== undefined) {
-                prestadorMap.blocked_at = prestador.blocked_at;
-              }
-              if (prestador.created_at) {
-                prestadorMap.created_at = prestador.created_at;
-              }
-
-              prestadorMap.avatar = gerarAvatarUrl(prestador.nome);
-
-              return prestadorMap;
-            },
-          );
-
-          prestadoresPendentes.value = prestadoresData;
-
-          return {
-            data: prestadoresData,
-            total: result.total,
-            last_page: result.last_page,
-            current_page: result.current_page,
-            per_page: result.per_page,
-          };
-        } finally {
-          loading.value = false;
-        }
-      },
-      ADMIN_CACHE_TTL.SHORT,
-      forceRefresh,
-    );
-    return data;
-  }
-
-  async function aprovarPrestador(id: number): Promise<boolean> {
-    loading.value = true;
-    try {
-      const response = await api.put(ADMIN_ENDPOINTS.APROVAR_PRESTADOR(id));
-      if (response.data.success) {
-        cacheStore.invalidatePattern('prestadores');
-        cacheStore.invalidatePattern('prestadores_pendentes');
-        return true;
-      }
-      return false;
-    } catch {
-      showError({} as Error);
-      return false;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function reprovarPrestador(id: number, motivo?: string): Promise<boolean> {
-    loading.value = true;
-    try {
-      const response = await api.put(ADMIN_ENDPOINTS.REPROVAR_PRESTADOR(id), { motivo });
-      if (response.data.success) {
-        cacheStore.invalidatePattern('prestadores');
-        cacheStore.invalidatePattern('prestadores_pendentes');
-        return true;
-      }
-      return false;
-    } catch {
-      showError({} as Error);
-      return false;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  // ==========================================
-  // RETORNO
-  // ==========================================
+  const limparStore = (): void => {
+    utilizadores.value = [];
+    utilizadorSelecionado.value = null;
+    paginacao.value = {
+      current_page: 1,
+      last_page: 1,
+      per_page: 15,
+      total: 0,
+    };
+    filtros.value = {
+      search: '',
+      tipo: '',
+      verificado: '',
+      page: 1,
+      perPage: 15,
+    };
+    dadosCarregados.value = false;
+    ultimaAtualizacao.value = null;
+    error.value = null;
+  };
 
   return {
-    // State
-    loading,
-    ultimosUtilizadores,
+    isLoading,
+    isSaving,
+    error,
+    dadosCarregados,
+    ultimaAtualizacao,
     utilizadores,
-    utilizadorDetalhes,
-    prestadores,
-    prestadoresPendentes,
-
-    // Actions - Utilizadores
-    fetchUltimosUtilizadores,
-    fetchUtilizadores,
-    fetchUtilizadorDetalhes,
-    updateUtilizador,
-    blockUtilizador,
-    unblockUtilizador,
-    deleteUtilizador,
-
-    // Actions - Prestadores
-    fetchPrestadores,
-    fetchPrestadoresPendentes,
-    aprovarPrestador,
-    reprovarPrestador,
-
-    // Utilitários
-    showError,
+    paginacao,
+    filtros,
+    utilizadorSelecionado,
+    totalUtilizadores,
+    temUtilizadores,
+    temProximaPagina,
+    temPaginaAnterior,
+    utilizadoresFiltrados,
+    carregarUtilizadores,
+    buscarUtilizador,
+    criarUtilizador,
+    atualizarUtilizador,
+    removerUtilizador,
+    verificarUtilizador, // ✅ ADICIONADO
+    setFiltro,
+    limparFiltros,
+    mudarPagina,
+    recarregarDados,
+    limparStore,
   };
 });
+
+export default useAdminUtilizadoresStore;

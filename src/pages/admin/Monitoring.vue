@@ -1,1184 +1,434 @@
 <template>
-  <q-page class="monitoring-page q-pa-md">
-    <!-- Header -->
+  <div class="page-container">
     <div class="page-header">
-      <div class="page-title-section">
-        <div class="page-title">
-          <q-icon name="monitor_heart" size="32px" class="q-mr-sm" />
-          Monitoramento do Sistema
-        </div>
-        <div class="page-subtitle">Acompanhe a saúde e performance da plataforma em tempo real</div>
-      </div>
+      <h1>Monitoramento</h1>
       <div class="header-actions">
-        <q-btn
-          label="Atualizar"
-          icon="refresh"
-          color="primary"
-          outline
-          @click="carregarTodosDados"
-          :loading="loading"
+        <q-btn color="primary" icon="refresh" label="Atualizar" @click="atualizarDados" :loading="isLoading" />
+        <q-btn color="warning" icon="notifications" label="Alertas" @click="abrirModalAlertas">
+          <q-badge v-if="estatisticas.alertas_nao_lidos > 0" color="red" floating>
+            {{ estatisticas.alertas_nao_lidos }}
+          </q-badge>
+        </q-btn>
+      </div>
+    </div>
+
+    <div v-if="isLoading" class="loading-container">
+      <q-spinner size="40px" color="primary" />
+      <p>Carregando métricas do sistema...</p>
+    </div>
+
+    <div v-else>
+      <!-- KPIs -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue"><q-icon name="memory" size="28px" /></div>
+          <div class="stat-info">
+            <div class="stat-value">{{ systemStatus.cpu }}%</div>
+            <div class="stat-label">CPU</div>
+            <q-linear-progress :value="systemStatus.cpu / 100" :color="getProgressColor(systemStatus.cpu)" class="q-mt-sm" />
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon green"><q-icon name="storage" size="28px" /></div>
+          <div class="stat-info">
+            <div class="stat-value">{{ systemStatus.memoria }}%</div>
+            <div class="stat-label">Memória</div>
+            <q-linear-progress :value="systemStatus.memoria / 100" :color="getProgressColor(systemStatus.memoria)" class="q-mt-sm" />
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon gold"><q-icon name="sd_card" size="28px" /></div>
+          <div class="stat-info">
+            <div class="stat-value">{{ systemStatus.disco }}%</div>
+            <div class="stat-label">Disco</div>
+            <q-linear-progress :value="systemStatus.disco / 100" :color="getProgressColor(systemStatus.disco)" class="q-mt-sm" />
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon purple"><q-icon name="schedule" size="28px" /></div>
+          <div class="stat-info">
+            <div class="stat-value">{{ formatarUptime(systemStatus.uptime) }}</div>
+            <div class="stat-label">Uptime</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon cyan"><q-icon name="online_prediction" size="28px" /></div>
+          <div class="stat-info">
+            <div class="stat-value">{{ estatisticas.tempo_medio_resposta }}ms</div>
+            <div class="stat-label">Tempo Médio</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon pink"><q-icon name="warning" size="28px" /></div>
+          <div class="stat-info">
+            <div class="stat-value">{{ estatisticas.total_alertas }}</div>
+            <div class="stat-label">Total Alertas</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon teal"><q-icon name="notifications_active" size="28px" /></div>
+          <div class="stat-info">
+            <div class="stat-value">{{ estatisticas.alertas_nao_lidos }}</div>
+            <div class="stat-label">Alertas Não Lidos</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon indigo"><q-icon name="check_circle" size="28px" /></div>
+          <div class="stat-info">
+            <div class="stat-value">{{ estatisticas.disponibilidade }}%</div>
+            <div class="stat-label">Disponibilidade</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Serviços -->
+      <div class="section" v-if="systemStatus.servicos?.length">
+        <div class="section-header">
+          <h3>🔄 Serviços do Sistema</h3>
+        </div>
+        <div class="services-grid">
+          <div v-for="servico in systemStatus.servicos" :key="servico.nome" class="service-item">
+            <q-icon :name="getServiceStatusIcon(servico.status)" :color="getServiceStatusColor(servico.status)" size="28px" />
+            <div class="service-info">
+              <div class="service-name">{{ servico.nome }}</div>
+              <q-badge :color="getServiceStatusColor(servico.status)">{{ getServiceStatusLabel(servico.status) }}</q-badge>
+              <span class="service-time">{{ servico.tempo_resposta }}ms</span>
+            </div>
+            <q-btn flat dense icon="refresh" @click="() => testarServicoFn(servico.nome)" size="sm" />
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 1: CPU + Memória (juntos - TAMANHO GRANDE) -->
+      <div class="donut-card-dual">
+        <div class="card-header">
+          <h3>📊 Uso de Recursos</h3>
+          <q-icon name="analytics" size="20px" color="primary" />
+        </div>
+        <div class="donuts-dual">
+          <!-- CPU Donut -->
+          <div class="donut-item">
+            <div class="donut-header">
+              <q-icon name="memory" size="24px" color="primary" />
+              <h4>CPU</h4>
+            </div>
+            <div class="donut-wrapper">
+              <canvas ref="cpuDonutChart" width="180" height="180"></canvas>
+              <div class="donut-center-text">
+                <span class="donut-value">{{ systemStatus.cpu }}%</span>
+              </div>
+            </div>
+            <div class="donut-footer">
+              <span><span class="dot green"></span> Em uso: <strong>{{ systemStatus.cpu }}%</strong></span>
+              <span><span class="dot gray"></span> Livre: <strong>{{ 100 - systemStatus.cpu }}%</strong></span>
+            </div>
+          </div>
+
+          <!-- Memória Donut -->
+          <div class="donut-item">
+            <div class="donut-header">
+              <q-icon name="storage" size="24px" color="primary" />
+              <h4>Memória</h4>
+            </div>
+            <div class="donut-wrapper">
+              <canvas ref="memoriaDonutChart" width="180" height="180"></canvas>
+              <div class="donut-center-text">
+                <span class="donut-value">{{ systemStatus.memoria }}%</span>
+              </div>
+            </div>
+            <div class="donut-footer">
+              <span><span class="dot green"></span> Em uso: <strong>{{ systemStatus.memoria }}%</strong></span>
+              <span><span class="dot gray"></span> Livre: <strong>{{ 100 - systemStatus.memoria }}%</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos de linha -->
+      <div class="charts-row">
+        <ChartCard
+          chart-id="requisicoes-chart"
+          title="📡 Requisições por Segundo"
+          icon="online_prediction"
+          type="line"
+          :labels="metricas.requisicoes?.map(m => formatarHora(m.timestamp)) || []"
+          :datasets="[{ label: 'req/s', data: metricas.requisicoes?.map(m => m.valor) || [], borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true }]"
         />
-        <q-btn label="Exportar CSV" icon="download" color="primary" @click="exportarCSV" />
+
+        <ChartCard
+          chart-id="resposta-chart"
+          title="⚡ Tempo de Resposta (ms)"
+          icon="speed"
+          type="line"
+          :labels="metricas.tempo_resposta?.map(m => formatarHora(m.timestamp)) || []"
+          :datasets="[{ label: 'Tempo (ms)', data: metricas.tempo_resposta?.map(m => m.valor) || [], borderColor: '#667EEA', backgroundColor: 'rgba(102, 126, 234, 0.1)', fill: true }]"
+        />
+      </div>
+
+      <!-- CARD 2: Disco (sozinho - TAMANHO GRANDE) -->
+      <div class="donut-card-single">
+        <div class="card-header">
+          <h3>💿 Espaço em Disco</h3>
+          <q-icon name="sd_card" size="20px" color="primary" />
+        </div>
+        <div class="donut-single">
+          <div class="donut-item">
+            <div class="donut-wrapper">
+              <canvas ref="discoDonutChart" width="200" height="200"></canvas>
+              <div class="donut-center-text">
+                <span class="donut-value">{{ systemStatus.disco }}%</span>
+              </div>
+            </div>
+            <div class="donut-footer-single">
+              <span><span class="dot orange"></span> Em uso: <strong>{{ systemStatus.disco }}%</strong></span>
+              <span><span class="dot gray"></span> Livre: <strong>{{ 100 - systemStatus.disco }}%</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alertas -->
+      <div class="section" v-if="alertasNaoLidos.length">
+        <div class="section-header">
+          <h3>⚠️ Alertas Ativos</h3>
+          <q-btn flat dense icon="done_all" @click="marcarTodosLidos" label="Marcar todos" />
+        </div>
+        <div class="alertas-list">
+          <div v-for="alerta in alertasNaoLidos.slice(0, 5)" :key="alerta.id" class="alert-item" :class="alerta.nivel">
+            <q-icon :name="alerta.nivel === 'critico' ? 'error' : 'warning'" size="20px" />
+            <div class="alert-content">
+              <div class="alert-titulo">{{ alerta.titulo }}</div>
+              <div class="alert-mensagem">{{ alerta.mensagem }}</div>
+            </div>
+            <q-btn flat dense icon="done" @click="() => marcarLido(alerta.id)" size="sm" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Logs -->
+      <div class="section">
+        <div class="section-header">
+          <h3>📋 Logs Recentes</h3>
+          <q-btn flat dense icon="delete_sweep" @click="confirmarLimparLogs" color="negative" label="Limpar" />
+        </div>
+        <q-table :rows="logs.slice(0, 10)" :columns="logsColumns" row-key="id" flat bordered dense>
+          <template v-slot:body-cell-nivel="props">
+            <q-td :props="props"><q-badge :color="getLogNivelColor(props.row.nivel)">{{ props.row.nivel.toUpperCase() }}</q-badge></q-td>
+          </template>
+        </q-table>
+      </div>
+
+      <!-- Informações -->
+      <div class="info-card">
+        <h3>ℹ️ Informações do Sistema</h3>
+        <div class="info-grid">
+          <div class="info-item"><span>Uptime:</span><strong>{{ formatarUptime(systemStatus.uptime) }}</strong></div>
+          <div class="info-item"><span>Total Alertas:</span><strong>{{ estatisticas.total_alertas }}</strong></div>
+          <div class="info-item"><span>Alertas Não Lidos:</span><strong :class="estatisticas.alertas_nao_lidos > 0 ? 'text-negative' : ''">{{ estatisticas.alertas_nao_lidos }}</strong></div>
+          <div class="info-item"><span>Disponibilidade:</span><strong>{{ estatisticas.disponibilidade }}%</strong></div>
+        </div>
       </div>
     </div>
 
-    <!-- Skeleton Loading (estilo Facebook/Instagram) -->
-    <div v-if="loading" class="skeleton-container">
-      <div class="row q-col-gutter-md q-mb-md">
-        <div v-for="i in 4" :key="`status-${i}`" class="col-md-3 col-sm-6 col-xs-12">
-          <div class="skeleton-status-card">
-            <div class="row items-center">
-              <div class="skeleton-icon"></div>
-              <div class="q-ml-md">
-                <div class="skeleton-label"></div>
-                <div class="skeleton-value"></div>
-              </div>
+    <!-- Modal -->
+    <q-dialog v-model="modalAlertasVisible">
+      <q-card style="min-width: 500px">
+        <q-card-section><div class="text-h6">Todos os Alertas</div></q-card-section>
+        <q-card-section class="alertas-list-modal">
+          <div v-for="alerta in alertas" :key="alerta.id" class="alert-item-modal" :class="alerta.nivel">
+            <div class="alert-header">
+              <q-icon :name="alerta.nivel === 'critico' ? 'error' : 'warning'" size="18px" />
+              <span>{{ alerta.titulo }}</span>
+              <q-badge :color="alerta.lido ? 'green' : 'red'">{{ alerta.lido ? 'Lido' : 'Não lido' }}</q-badge>
             </div>
+            <div class="alert-mensagem">{{ alerta.mensagem }}</div>
+            <q-btn v-if="!alerta.lido" flat dense icon="done" @click="() => marcarLido(alerta.id)" label="Marcar como lido" size="sm" />
           </div>
-        </div>
-      </div>
-
-      <div class="skeleton-tabs">
-        <div v-for="i in 6" :key="`tab-${i}`" class="skeleton-tab"></div>
-      </div>
-
-      <div class="row q-col-gutter-md q-mt-md">
-        <div class="col-md-6 col-xs-12">
-          <div class="skeleton-card">
-            <div class="skeleton-title"></div>
-            <div class="row q-col-gutter-md">
-              <div class="col-6">
-                <div class="skeleton-value-large"></div>
-                <div class="skeleton-label-small"></div>
-              </div>
-              <div class="col-6">
-                <div class="skeleton-value-large"></div>
-                <div class="skeleton-label-small"></div>
-              </div>
-              <div class="col-6">
-                <div class="skeleton-value-medium q-mt-md"></div>
-                <div class="skeleton-label-small"></div>
-              </div>
-              <div class="col-6">
-                <div class="skeleton-stars q-mt-md"></div>
-                <div class="skeleton-label-small"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-6 col-xs-12">
-          <div class="skeleton-card">
-            <div class="skeleton-title"></div>
-            <div class="row q-col-gutter-md">
-              <div v-for="i in 4" :key="`perf-${i}`" class="col-6">
-                <div class="skeleton-value-medium"></div>
-                <div class="skeleton-label-small"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="skeleton-card">
-            <div class="skeleton-title"></div>
-            <div class="row q-col-gutter-md">
-              <div v-for="i in 4" :key="`service-${i}`" class="col-md-3 col-sm-6 col-xs-12">
-                <div class="skeleton-service-card">
-                  <div class="skeleton-icon-small"></div>
-                  <div class="skeleton-text-short q-mt-sm"></div>
-                  <div class="skeleton-text-shorter"></div>
-                  <div class="skeleton-text-tiny q-mt-sm"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="skeleton-card">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-table">
-              <div class="skeleton-table-header">
-                <div v-for="i in 4" :key="`th-${i}`" class="skeleton-header-cell"></div>
-              </div>
-              <div v-for="row in 3" :key="`row-${row}`" class="skeleton-table-row">
-                <div v-for="i in 4" :key="`td-${row}-${i}`" class="skeleton-cell">
-                  <div class="skeleton-text"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="skeleton-shimmer"></div>
-    </div>
-
-    <!-- CONTEÚDO REAL -->
-    <template v-else>
-      <!-- Cards de Status Geral -->
-      <div class="row q-col-gutter-md q-mb-md">
-        <div class="col-md-3 col-sm-6 col-xs-12">
-          <q-card class="status-card" :class="isSystemHealthy ? 'healthy' : 'degraded'">
-            <q-card-section>
-              <div class="row items-center">
-                <q-icon :name="isSystemHealthy ? 'check_circle' : 'warning'" size="32px" />
-                <div class="q-ml-md">
-                  <div class="text-caption text-grey-6">Status do Sistema</div>
-                  <div class="text-h5 text-weight-bold">
-                    {{ health?.status || 'Carregando...' }}
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <div class="col-md-3 col-sm-6 col-xs-12">
-          <q-card class="status-card">
-            <q-card-section>
-              <div class="row items-center">
-                <q-icon name="notifications_active" size="32px" color="warning" />
-                <div class="q-ml-md">
-                  <div class="text-caption text-grey-6">Alertas Ativos</div>
-                  <div class="text-h5 text-weight-bold">
-                    {{ criticalAlertsCount }} <span class="text-caption">críticos</span> /
-                    {{ warningAlertsCount }} <span class="text-caption">avisos</span>
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <div class="col-md-3 col-sm-6 col-xs-12">
-          <q-card class="status-card">
-            <q-card-section>
-              <div class="row items-center">
-                <q-icon name="speed" size="32px" :color="performanceColor" />
-                <div class="q-ml-md">
-                  <div class="text-caption text-grey-6">Tempo Médio Resposta</div>
-                  <div class="text-h5 text-weight-bold">
-                    {{ performance?.avg_response_time || 0 }}ms
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <div class="col-md-3 col-sm-6 col-xs-12">
-          <q-card class="status-card">
-            <q-card-section>
-              <div class="row items-center">
-                <q-icon name="health_and_safety" size="32px" :color="healthScoreColor" />
-                <div class="q-ml-md">
-                  <div class="text-caption text-grey-6">Health Score</div>
-                  <div class="text-h5 text-weight-bold">{{ overallHealthScore }}/100</div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-
-      <!-- Tabs de Navegação -->
-      <q-tabs v-model="tab" dense class="bg-white rounded-borders q-mb-md" align="justify">
-        <q-tab name="dashboard" icon="space_dashboard" label="Dashboard" />
-        <q-tab name="performance" icon="speed" label="Performance" />
-        <q-tab name="business" icon="business" label="Negócio" />
-        <q-tab name="security" icon="security" label="Segurança" />
-        <q-tab name="infrastructure" icon="storage" label="Infraestrutura" />
-        <q-tab name="alerts" icon="notifications" label="Alertas" />
-      </q-tabs>
-
-      <div class="q-mt-md">
-        <!-- TAB: DASHBOARD -->
-        <div v-show="tab === 'dashboard'">
-          <div class="row q-col-gutter-md">
-            <div class="col-md-6 col-xs-12">
-              <q-card>
-                <q-card-section>
-                  <div class="text-h6">Métricas de Negócio</div>
-                </q-card-section>
-                <q-card-section>
-                  <div class="row q-col-gutter-md">
-                    <div class="col-6">
-                      <div class="text-caption text-grey-6">Total Usuários</div>
-                      <div class="text-h4">{{ businessMetrics?.users?.total || 0 }}</div>
-                    </div>
-                    <div class="col-6">
-                      <div class="text-caption text-grey-6">Novos Hoje</div>
-                      <div class="text-h4 text-primary">
-                        {{ businessMetrics?.users?.new_today || 0 }}
-                      </div>
-                    </div>
-                    <div class="col-6">
-                      <div class="text-caption text-grey-6">Receita Total</div>
-                      <div class="text-h5">
-                        {{ formatMoney(businessMetrics?.revenue?.total || 0) }}
-                      </div>
-                    </div>
-                    <div class="col-6">
-                      <div class="text-caption text-grey-6">Avaliação Média</div>
-                      <div class="text-h5">
-                        <q-rating v-model="averageRating" :max="5" size="20px" readonly />
-                        <span class="q-ml-sm">({{ businessMetrics?.reviews?.total || 0 }})</span>
-                      </div>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-md-6 col-xs-12">
-              <q-card>
-                <q-card-section>
-                  <div class="text-h6">Performance</div>
-                </q-card-section>
-                <q-card-section>
-                  <div class="row q-col-gutter-md">
-                    <div class="col-6">
-                      <div class="text-caption text-grey-6">Requisições/minuto</div>
-                      <div class="text-h4">{{ performance?.requests_per_minute || 0 }}</div>
-                    </div>
-                    <div class="col-6">
-                      <div class="text-caption text-grey-6">Taxa de Erro</div>
-                      <div class="text-h4" :class="errorRateColor">
-                        {{ performance?.error_rate || 0 }}%
-                      </div>
-                    </div>
-                    <div class="col-6">
-                      <div class="text-caption text-grey-6">Queries Lentas</div>
-                      <div class="text-h4">{{ performance?.slow_queries || 0 }}</div>
-                    </div>
-                    <div class="col-6">
-                      <div class="text-caption text-grey-6">Cache Hit Rate</div>
-                      <div class="text-h4">{{ performance?.cache_hit_rate || 0 }}%</div>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-12">
-              <q-card>
-                <q-card-section>
-                  <div class="text-h6">Serviços Externos</div>
-                </q-card-section>
-                <q-card-section>
-                  <div class="row q-col-gutter-md">
-                    <div
-                      v-for="service in externalServices"
-                      :key="service.name"
-                      class="col-md-3 col-sm-6 col-xs-12"
-                    >
-                      <q-card flat bordered>
-                        <q-card-section class="text-center">
-                          <q-icon
-                            :name="getServiceIcon(service.status)"
-                            :color="getServiceColor(service.status)"
-                            size="32px"
-                          />
-                          <div class="text-weight-bold q-mt-sm">
-                            {{ getServiceName(service.name) }}
-                          </div>
-                          <div class="text-caption">{{ service.status }}</div>
-                          <div class="text-caption text-grey-6">
-                            {{ service.response_time_ms }}ms
-                          </div>
-                        </q-card-section>
-                      </q-card>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: PERFORMANCE -->
-        <div v-show="tab === 'performance'">
-          <div class="row q-col-gutter-md">
-            <div class="col-12">
-              <q-card>
-                <q-card-section>
-                  <div class="text-h6">Endpoints mais Lentos</div>
-                </q-card-section>
-                <q-card-section>
-                  <q-table
-                    :rows="slowEndpoints"
-                    :columns="slowEndpointsColumns"
-                    row-key="path"
-                    flat
-                    dense
-                  >
-                    <template v-slot:body-cell-avg_time="props">
-                      <q-td :props="props">
-                        <q-badge :color="getTimeColor(props.row.avg_time)"
-                          >{{ props.row.avg_time }}ms</q-badge
-                        >
-                      </q-td>
-                    </template>
-                  </q-table>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-12">
-              <q-card>
-                <q-card-section>
-                  <div class="text-h6">Distribuição de Status Codes</div>
-                </q-card-section>
-                <q-card-section>
-                  <div v-if="statusCodes" class="row">
-                    <div class="col-12">
-                      <div class="row">
-                        <div class="col-md-6 col-xs-12">
-                          <div class="text-h5 text-center">{{ statusCodes.total_requests }}</div>
-                          <div class="text-caption text-center">Total de Requisições</div>
-                        </div>
-                        <div class="col-md-6 col-xs-12">
-                          <div class="text-h5 text-center" :class="errorRateColor">
-                            {{ statusCodes.error_rate }}%
-                          </div>
-                          <div class="text-caption text-center">Taxa de Erro</div>
-                        </div>
-                      </div>
-                      <div class="row q-mt-md">
-                        <div
-                          v-for="code in statusCodes.status_codes_distribution"
-                          :key="code.status_code"
-                          class="col-3 text-center"
-                        >
-                          <q-badge :color="getStatusCodeColor(code.status_code)" class="q-pa-sm">{{
-                            code.status_code
-                          }}</q-badge>
-                          <div class="text-h6 q-mt-sm">{{ code.total }}</div>
-                          <div class="text-caption">requisições</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-12">
-              <q-card>
-                <q-card-section>
-                  <div class="text-h6">Queries SQL Lentas</div>
-                </q-card-section>
-                <q-card-section>
-                  <q-table
-                    :rows="slowQueries"
-                    :columns="slowQueriesColumns"
-                    row-key="sql_query"
-                    flat
-                    dense
-                  >
-                    <template v-slot:body-cell-time_ms="props">
-                      <q-td :props="props">
-                        <q-badge :color="getTimeColor(props.row.time_ms)"
-                          >{{ props.row.time_ms }}ms</q-badge
-                        >
-                      </q-td>
-                    </template>
-                  </q-table>
-                </q-card-section>
-              </q-card>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: NEGÓCIO -->
-        <div v-show="tab === 'business'">
-          <div class="row q-col-gutter-md">
-            <div class="col-md-6 col-xs-12">
-              <q-card>
-                <q-card-section>
-                  <div class="text-h6">Métricas Avançadas</div>
-                </q-card-section>
-                <q-card-section>
-                  <q-list dense>
-                    <q-item
-                      ><q-item-section>Taxa de Conversão</q-item-section
-                      ><q-item-section side
-                        >{{ advancedMetrics?.conversion_rate || 0 }}%</q-item-section
-                      ></q-item
-                    >
-                    <q-separator />
-                    <q-item
-                      ><q-item-section>Churn Rate</q-item-section
-                      ><q-item-section side :class="getChurnColor(advancedMetrics?.churn_rate || 0)"
-                        >{{ advancedMetrics?.churn_rate || 0 }}%</q-item-section
-                      ></q-item
-                    >
-                    <q-separator />
-                    <q-item
-                      ><q-item-section>LTV (Cliente)</q-item-section
-                      ><q-item-section side>{{
-                        formatMoney(advancedMetrics?.customer_ltv || 0)
-                      }}</q-item-section></q-item
-                    >
-                    <q-separator />
-                    <q-item
-                      ><q-item-section>CAC</q-item-section
-                      ><q-item-section side>{{
-                        formatMoney(advancedMetrics?.customer_cac || 0)
-                      }}</q-item-section></q-item
-                    >
-                    <q-separator />
-                    <q-item
-                      ><q-item-section>ROI</q-item-section
-                      ><q-item-section side :class="getRoiColor(advancedMetrics?.roi_percent || 0)"
-                        >{{ advancedMetrics?.roi_percent || 0 }}%</q-item-section
-                      ></q-item
-                    >
-                  </q-list>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-md-6 col-xs-12">
-              <q-card>
-                <q-card-section>
-                  <div class="text-h6">Health Score do Sistema</div>
-                </q-card-section>
-                <q-card-section class="text-center">
-                  <q-circular-progress
-                    :value="advancedMetrics?.health_score?.score || 0"
-                    :max="100"
-                    size="150px"
-                    :color="getHealthScoreColor(advancedMetrics?.health_score?.score || 0)"
-                    show-value
-                    :thickness="0.2"
-                  >
-                    <div class="text-h3">{{ advancedMetrics?.health_score?.score || 0 }}</div>
-                  </q-circular-progress>
-                  <div class="text-h6 q-mt-md">
-                    {{ advancedMetrics?.health_score?.rating || '-' }}
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: SEGURANÇA -->
-        <div v-show="tab === 'security'">
-          <div class="row q-col-gutter-md">
-            <div class="col-md-6 col-xs-12">
-              <q-card>
-                <q-card-section>
-                  <div class="text-h6">Eventos de Segurança</div>
-                </q-card-section>
-                <q-card-section>
-                  <q-list dense>
-                    <q-item
-                      ><q-item-section>Login Falhos (última hora)</q-item-section
-                      ><q-item-section side>{{
-                        securityRealtime?.failed_logins_last_hour || 0
-                      }}</q-item-section></q-item
-                    >
-                    <q-separator />
-                    <q-item
-                      ><q-item-section>Login Falhos (último dia)</q-item-section
-                      ><q-item-section side>{{
-                        securityMetrics?.failed_logins_last_day || 0
-                      }}</q-item-section></q-item
-                    >
-                    <q-separator />
-                    <q-item
-                      ><q-item-section>Acessos não autorizados</q-item-section
-                      ><q-item-section side>{{
-                        securityRealtime?.unauthorized_access_today || 0
-                      }}</q-item-section></q-item
-                    >
-                    <q-separator />
-                    <q-item
-                      ><q-item-section>Brute Force Detectado</q-item-section
-                      ><q-item-section side
-                        ><q-badge
-                          :color="securityRealtime?.brute_force_detected ? 'negative' : 'positive'"
-                          >{{ securityRealtime?.brute_force_detected ? 'SIM' : 'NÃO' }}</q-badge
-                        ></q-item-section
-                      ></q-item
-                    >
-                  </q-list>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-md-6 col-xs-12">
-              <q-card>
-                <q-card-section>
-                  <div class="text-h6">IPs com mais tentativas</div>
-                </q-card-section>
-                <q-card-section>
-                  <q-table
-                    :rows="securityRealtime?.top_offending_ips || []"
-                    :columns="offendingIpsColumns"
-                    row-key="ip"
-                    flat
-                    dense
-                  />
-                </q-card-section>
-              </q-card>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: INFRAESTRUTURA -->
-        <div v-show="tab === 'infrastructure'">
-          <div class="row q-col-gutter-md">
-            <div class="col-md-6 col-xs-12">
-              <q-card>
-                <q-card-section><div class="text-h6">CPU</div></q-card-section>
-                <q-card-section>
-                  <div class="row q-col-gutter-md">
-                    <div class="col-4 text-center">
-                      <div class="text-h5">{{ infrastructureMetrics?.cpu?.load_1min || 0 }}</div>
-                      <div class="text-caption">1 min</div>
-                    </div>
-                    <div class="col-4 text-center">
-                      <div class="text-h5">{{ infrastructureMetrics?.cpu?.load_5min || 0 }}</div>
-                      <div class="text-caption">5 min</div>
-                    </div>
-                    <div class="col-4 text-center">
-                      <div class="text-h5">{{ infrastructureMetrics?.cpu?.load_15min || 0 }}</div>
-                      <div class="text-caption">15 min</div>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-md-6 col-xs-12">
-              <q-card>
-                <q-card-section><div class="text-h6">Memória PHP</div></q-card-section>
-                <q-card-section>
-                  <div class="row q-col-gutter-md">
-                    <div class="col-6 text-center">
-                      <div class="text-h5">
-                        {{ infrastructureMetrics?.memory?.php_used_mb || 0 }} MB
-                      </div>
-                      <div class="text-caption">Usada</div>
-                    </div>
-                    <div class="col-6 text-center">
-                      <div class="text-h5">
-                        {{ infrastructureMetrics?.memory?.php_limit_mb || 0 }} MB
-                      </div>
-                      <div class="text-caption">Limite</div>
-                    </div>
-                  </div>
-                  <q-linear-progress
-                    :value="
-                      (infrastructureMetrics?.memory?.php_used_mb || 0) /
-                      (infrastructureMetrics?.memory?.php_limit_mb || 1)
-                    "
-                    :color="getMemoryColor"
-                    class="q-mt-md"
-                  />
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <div class="col-12">
-              <q-card>
-                <q-card-section><div class="text-h6">Armazenamento</div></q-card-section>
-                <q-card-section>
-                  <div class="row q-col-gutter-md">
-                    <div class="col-md-3 col-sm-6 col-xs-12 text-center">
-                      <div class="text-h5">{{ infrastructureMetrics?.disk?.total_gb || 0 }} GB</div>
-                      <div class="text-caption">Total</div>
-                    </div>
-                    <div class="col-md-3 col-sm-6 col-xs-12 text-center">
-                      <div class="text-h5 text-positive">
-                        {{ infrastructureMetrics?.disk?.free_gb || 0 }} GB
-                      </div>
-                      <div class="text-caption">Livre</div>
-                    </div>
-                    <div class="col-md-3 col-sm-6 col-xs-12 text-center">
-                      <div class="text-h5 text-negative">
-                        {{ infrastructureMetrics?.disk?.used_gb || 0 }} GB
-                      </div>
-                      <div class="text-caption">Usado</div>
-                    </div>
-                    <div class="col-md-3 col-sm-6 col-xs-12 text-center">
-                      <div class="text-h5">
-                        {{ infrastructureMetrics?.disk?.usage_percent || 0 }}%
-                      </div>
-                      <div class="text-caption">Utilização</div>
-                    </div>
-                  </div>
-                  <q-linear-progress
-                    :value="(infrastructureMetrics?.disk?.usage_percent || 0) / 100"
-                    :color="getDiskColor"
-                    class="q-mt-md"
-                  />
-                </q-card-section>
-              </q-card>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: ALERTAS -->
-        <div v-show="tab === 'alerts'">
-          <div class="row">
-            <div class="col-12">
-              <q-card>
-                <q-card-section>
-                  <div class="row items-center justify-between">
-                    <div class="text-h6">Alertas do Sistema</div>
-                    <q-toggle
-                      v-model="showResolved"
-                      label="Mostrar resolvidos"
-                      @update:model-value="carregarAlertas"
-                    />
-                  </div>
-                </q-card-section>
-                <q-card-section>
-                  <q-table :rows="alerts" :columns="alertsColumns" row-key="id" flat dense>
-                    <template v-slot:body-cell-level="props">
-                      <q-td :props="props"
-                        ><q-badge :color="getAlertLevelColor(props.row.level)">{{
-                          props.row.level
-                        }}</q-badge></q-td
-                      >
-                    </template>
-                    <template v-slot:body-cell-resolved="props">
-                      <q-td :props="props"
-                        ><q-badge :color="props.row.resolved ? 'positive' : 'warning'">{{
-                          props.row.resolved ? 'Resolvido' : 'Ativo'
-                        }}</q-badge></q-td
-                      >
-                    </template>
-                    <template v-slot:body-cell-actions="props">
-                      <q-td :props="props">
-                        <q-btn
-                          v-if="!props.row.resolved"
-                          flat
-                          round
-                          icon="check"
-                          color="positive"
-                          size="sm"
-                          @click="resolverAlerta(props.row.id)"
-                        >
-                          <q-tooltip>Marcar como resolvido</q-tooltip>
-                        </q-btn>
-                      </q-td>
-                    </template>
-                  </q-table>
-                </q-card-section>
-              </q-card>
-            </div>
-          </div>
-        </div>
-      </div>
-    </template>
-  </q-page>
+        </q-card-section>
+        <q-card-actions align="right"><q-btn flat label="Fechar" v-close-popup /><q-btn flat label="Marcar todos" color="primary" @click="marcarTodosLidos" /></q-card-actions>
+      </q-card>
+    </q-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useMonitoringStore } from 'src/stores/monitoring-store';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { useQuasar } from 'quasar';
+import { storeToRefs } from 'pinia';
+import { useAdminMonitoramentoStore } from 'src/stores/admin/admin-monitoramento-store';
+import ChartCard from 'src/components/admin/ChartCard.vue';
+import Chart from 'chart.js/auto';
 
-defineOptions({
-  name: 'AdminMonitoring',
-});
+defineOptions({ name: 'AdminMonitoramento' });
 
-const monitoringStore = useMonitoringStore();
+const $q = useQuasar();
+const monitoramentoStore = useAdminMonitoramentoStore();
 
-// Estados
-const tab = ref('dashboard');
-const showResolved = ref(false);
-const isInitialLoadComplete = ref(false); // ← NOVO: controla se o carregamento inicial terminou
+const {
+  isLoading,
+  systemStatus,
+  alertas,
+  logs,
+  metricas,
+  estatisticas,
+} = storeToRefs(monitoramentoStore);
 
-// Computed do store
-const loading = computed(() => monitoringStore.loading);
-const health = computed(() => monitoringStore.health);
-const performance = computed(() => monitoringStore.performance);
-const businessMetrics = computed(() => monitoringStore.businessMetrics);
-const advancedMetrics = computed(() => monitoringStore.advancedBusinessMetrics);
-const alerts = computed(() => monitoringStore.alerts);
-const securityMetrics = computed(() => monitoringStore.securityMetrics);
-const securityRealtime = computed(() => monitoringStore.securityRealtime);
-const externalServices = computed(() => monitoringStore.externalServices);
-const slowQueries = computed(() => monitoringStore.slowQueries);
-const slowEndpoints = computed(() => monitoringStore.slowEndpoints);
-const statusCodes = computed(() => monitoringStore.statusCodes);
-const infrastructureMetrics = computed(() => monitoringStore.infrastructureMetrics);
+const {
+  recarregarDados,
+  marcarAlertaLido,
+  marcarTodosAlertasLidos,
+  limparLogs,
+  testarServico,
+  iniciarPolling,
+  pararPolling,
+  getServiceStatusColor,
+  getServiceStatusIcon,
+  getServiceStatusLabel,
+  getLogNivelColor,
+  formatarUptime,
+} = monitoramentoStore;
 
-// Computed adicionais
-const isSystemHealthy = computed(() => monitoringStore.isSystemHealthy);
-const criticalAlertsCount = computed(() => monitoringStore.criticalAlertsCount);
-const warningAlertsCount = computed(() => monitoringStore.warningAlertsCount);
-const overallHealthScore = computed(() => monitoringStore.overallHealthScore);
-const averageRating = computed(() => businessMetrics.value?.reviews?.average_rating || 0);
+const modalAlertasVisible = ref(false);
+const cpuDonutChart = ref<HTMLCanvasElement | null>(null);
+const memoriaDonutChart = ref<HTMLCanvasElement | null>(null);
+const discoDonutChart = ref<HTMLCanvasElement | null>(null);
+let cpuChart: Chart | null = null;
+let memoriaChart: Chart | null = null;
+let discoChart: Chart | null = null;
 
-// Cores dinâmicas
-const performanceColor = computed(() => {
-  const time = performance.value?.avg_response_time || 0;
-  if (time < 500) return 'positive';
-  if (time < 1000) return 'warning';
-  return 'negative';
-});
+const alertasNaoLidos = computed(() => alertas.value.filter(a => !a.lido));
 
-const healthScoreColor = computed(() => {
-  const score = overallHealthScore.value;
-  if (score >= 80) return 'positive';
-  if (score >= 60) return 'warning';
-  return 'negative';
-});
-
-const errorRateColor = computed(() => {
-  const rate = performance.value?.error_rate || 0;
-  if (rate < 5) return 'text-positive';
-  if (rate < 10) return 'text-warning';
-  return 'text-negative';
-});
-
-const getMemoryColor = computed(() => {
-  const used = infrastructureMetrics.value?.memory?.php_used_mb || 0;
-  const limit = infrastructureMetrics.value?.memory?.php_limit_mb || 1;
-  const percent = used / limit;
-  if (percent < 0.7) return 'positive';
-  if (percent < 0.9) return 'warning';
-  return 'negative';
-});
-
-const getDiskColor = computed(() => {
-  const percent = infrastructureMetrics.value?.disk?.usage_percent || 0;
-  if (percent < 70) return 'positive';
-  if (percent < 85) return 'warning';
-  return 'negative';
-});
-
-// Colunas das tabelas
-const slowEndpointsColumns = [
-  { name: 'path', label: 'Endpoint', field: 'path', align: 'left' as const },
-  { name: 'total_calls', label: 'Total Chamadas', field: 'total_calls', align: 'center' as const },
-  { name: 'avg_time', label: 'Médio (ms)', field: 'avg_time', align: 'center' as const },
-  { name: 'max_time', label: 'Máx (ms)', field: 'max_time', align: 'center' as const },
+const logsColumns = [
+  { name: 'created_at', label: 'Data/Hora', field: 'created_at', align: 'left' as const },
+  { name: 'nivel', label: 'Nível', field: 'nivel', align: 'center' as const },
+  { name: 'mensagem', label: 'Mensagem', field: 'mensagem', align: 'left' as const },
 ];
 
-const slowQueriesColumns = [
-  { name: 'sql_query', label: 'Query', field: 'sql_query', align: 'left' as const },
-  { name: 'time_ms', label: 'Tempo (ms)', field: 'time_ms', align: 'center' as const },
-  { name: 'occurred_at', label: 'Data', field: 'occurred_at', align: 'left' as const },
-];
+const getProgressColor = (valor: number): string => valor > 80 ? 'negative' : valor > 60 ? 'warning' : 'positive';
+const formatarHora = (timestamp: string): string => timestamp ? new Date(timestamp).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
 
-const offendingIpsColumns = [
-  { name: 'ip', label: 'IP', field: 'ip', align: 'left' as const },
-  { name: 'attempts', label: 'Tentativas', field: 'attempts', align: 'center' as const },
-];
+const initDonutCharts = async (): Promise<void> => {
+  await nextTick();
 
-const alertsColumns = [
-  { name: 'level', label: 'Nível', field: 'level', align: 'center' as const },
-  { name: 'title', label: 'Título', field: 'title', align: 'left' as const },
-  { name: 'message', label: 'Mensagem', field: 'message', align: 'left' as const },
-  { name: 'created_at', label: 'Data', field: 'created_at', align: 'left' as const },
-  { name: 'resolved', label: 'Status', field: 'resolved', align: 'center' as const },
-  { name: 'actions', label: 'Ações', field: 'actions', align: 'center' as const },
-];
-
-// Funções auxiliares
-const formatMoney = (value: number): string => {
-  return new Intl.NumberFormat('pt-PT', {
-    style: 'currency',
-    currency: 'MZN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-};
-
-const getServiceIcon = (status: string): string => {
-  switch (status) {
-    case 'healthy': return 'check_circle';
-    case 'degraded': return 'warning';
-    case 'down': return 'error';
-    default: return 'help';
-  }
-};
-
-const getServiceColor = (status: string): string => {
-  switch (status) {
-    case 'healthy': return 'positive';
-    case 'degraded': return 'warning';
-    case 'down': return 'negative';
-    default: return 'grey';
-  }
-};
-
-const getServiceName = (name: string): string => {
-  const names: Record<string, string> = {
-    payment_gateway: 'Pagamento',
-    sms_service: 'SMS',
-    email_service: 'Email',
-    maps_api: 'Mapas',
-  };
-  return names[name] || name;
-};
-
-const getTimeColor = (timeMs: number): string => {
-  if (timeMs < 500) return 'positive';
-  if (timeMs < 1000) return 'warning';
-  return 'negative';
-};
-
-const getStatusCodeColor = (code: number): string => {
-  if (code >= 200 && code < 300) return 'positive';
-  if (code >= 400 && code < 500) return 'warning';
-  if (code >= 500) return 'negative';
-  return 'grey';
-};
-
-const getAlertLevelColor = (level: string): string => {
-  switch (level) {
-    case 'critical': return 'negative';
-    case 'warning': return 'warning';
-    default: return 'info';
-  }
-};
-
-const getChurnColor = (churn: number): string => {
-  if (churn < 5) return 'text-positive';
-  if (churn < 10) return 'text-warning';
-  return 'text-negative';
-};
-
-const getRoiColor = (roi: number): string => {
-  if (roi > 20) return 'text-positive';
-  if (roi > 0) return 'text-warning';
-  return 'text-negative';
-};
-
-const getHealthScoreColor = (score: number): string => {
-  if (score >= 80) return 'positive';
-  if (score >= 60) return 'warning';
-  return 'negative';
-};
-
-// Ações
-const carregarTodosDados = async (): Promise<void> => {
-  await monitoringStore.carregarTodosDados();
-  isInitialLoadComplete.value = true; // ← MARCA QUE O CARREGAMENTO INICIAL TERMINOU
-};
-
-const carregarAlertas = async (): Promise<void> => {
-  await monitoringStore.fetchAlerts(showResolved.value);
-};
-
-const resolverAlerta = async (id: number): Promise<void> => {
-  await monitoringStore.resolveAlert(id);
-  await carregarAlertas();
-};
-
-const exportarCSV = async (): Promise<void> => {
-  await monitoringStore.exportMetrics('csv');
-};
-
-// Auto-refresh - AGORA SÓ COMEÇA DEPOIS DO CARREGAMENTO INICIAL
-let refreshInterval: ReturnType<typeof setInterval>;
-
-onMounted(async (): Promise<void> => {
-  // Primeiro carrega todos os dados
-  await carregarTodosDados();
-
-  // Só depois inicia o intervalo de atualização (60 segundos em vez de 30)
-  refreshInterval = setInterval(() => {
-    // Só atualiza se:
-    // 1. O documento estiver focado
-    // 2. O carregamento inicial já tiver terminado
-    // 3. Não estiver carregando no momento
-    if (document.hasFocus() && isInitialLoadComplete.value && !monitoringStore.loading) {
-      void monitoringStore.fetchPerformance();
-      void monitoringStore.fetchHealth();
-      void monitoringStore.fetchAlerts(false);
-      void monitoringStore.fetchSecurityRealtime();
+  if (cpuDonutChart.value) {
+    if (cpuChart) cpuChart.destroy();
+    const ctx = cpuDonutChart.value.getContext('2d');
+    if (ctx) {
+      cpuChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: ['Em uso', 'Livre'], datasets: [{ data: [systemStatus.value.cpu, 100 - systemStatus.value.cpu], backgroundColor: ['#10B981', '#E5E7EB'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: true, cutout: '65%', plugins: { legend: { display: false }, tooltip: { enabled: true } } },
+      });
     }
-  }, 60000); // ← MUDADO: 30s -> 60s (menos requisições)
+  }
+
+  if (memoriaDonutChart.value) {
+    if (memoriaChart) memoriaChart.destroy();
+    const ctx = memoriaDonutChart.value.getContext('2d');
+    if (ctx) {
+      memoriaChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: ['Em uso', 'Livre'], datasets: [{ data: [systemStatus.value.memoria, 100 - systemStatus.value.memoria], backgroundColor: ['#10B981', '#E5E7EB'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: true, cutout: '65%', plugins: { legend: { display: false }, tooltip: { enabled: true } } },
+      });
+    }
+  }
+
+  if (discoDonutChart.value) {
+    if (discoChart) discoChart.destroy();
+    const ctx = discoDonutChart.value.getContext('2d');
+    if (ctx) {
+      discoChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: ['Em uso', 'Livre'], datasets: [{ data: [systemStatus.value.disco, 100 - systemStatus.value.disco], backgroundColor: ['#F59E0B', '#E5E7EB'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: true, cutout: '65%', plugins: { legend: { display: false }, tooltip: { enabled: true } } },
+      });
+    }
+  }
+};
+
+const updateDonutCharts = (): void => {
+  if (cpuChart?.data?.datasets?.[0]) { cpuChart.data.datasets[0].data = [systemStatus.value.cpu, 100 - systemStatus.value.cpu]; cpuChart.update(); }
+  if (memoriaChart?.data?.datasets?.[0]) { memoriaChart.data.datasets[0].data = [systemStatus.value.memoria, 100 - systemStatus.value.memoria]; memoriaChart.update(); }
+  if (discoChart?.data?.datasets?.[0]) { discoChart.data.datasets[0].data = [systemStatus.value.disco, 100 - systemStatus.value.disco]; discoChart.update(); }
+};
+
+watch([() => systemStatus.value.cpu, () => systemStatus.value.memoria, () => systemStatus.value.disco], () => updateDonutCharts());
+
+const atualizarDados = (): void => { void recarregarDados(); };
+const marcarLido = (id: number): void => { void marcarAlertaLido(id); };
+const marcarTodosLidos = (): void => { void marcarTodosAlertasLidos(); };
+const abrirModalAlertas = (): void => { modalAlertasVisible.value = true; };
+const testarServicoFn = (servico: string): void => { void testarServico(servico); };
+const confirmarLimparLogs = (): void => {
+  $q.dialog({
+    title: 'Limpar Logs',
+    message: 'Tem certeza?',
+    cancel: true,
+    ok: { label: 'Limpar', color: 'negative' },
+  }).onOk(() => { void limparLogs(); });
+};
+
+onMounted(async () => {
+  await recarregarDados();
+  iniciarPolling(3600000);
+  await initDonutCharts();
 });
 
-onUnmounted((): void => {
-  if (refreshInterval) clearInterval(refreshInterval);
+onUnmounted(() => {
+  pararPolling();
+  cpuChart?.destroy();
+  memoriaChart?.destroy();
+  discoChart?.destroy();
 });
 </script>
 
 <style scoped lang="scss">
-$primary-color: #667eea;
-$gray-100: #f5f5f5;
-$gray-200: #eeeeee;
-$gray-300: #e0e0e0;
-$gray-400: #bdbdbd;
-$gray-500: #9e9e9e;
+.page-container { background: #f3f4f6; min-height: 100vh; padding: 20px; }
+.page-header { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; h1 { font-size: 24px; font-weight: 700; margin: 0; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; } }
+.loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; background: white; border-radius: 16px; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.stat-card { display: flex; align-items: center; gap: 16px; padding: 20px; background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: transform 0.2s; &:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); } }
+.stat-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; &.blue { background: rgba(102,126,234,0.1); color: #667eea; } &.green { background: rgba(16,185,129,0.1); color: #10b981; } &.gold { background: rgba(245,158,11,0.1); color: #f59e0b; } &.purple { background: rgba(118,75,162,0.1); color: #764ba2; } &.cyan { background: rgba(6,182,212,0.1); color: #06b6d4; } &.pink { background: rgba(236,72,153,0.1); color: #ec4899; } &.teal { background: rgba(20,184,166,0.1); color: #14b8a6; } &.indigo { background: rgba(99,102,241,0.1); color: #6366f1; } }
+.stat-info { flex: 1; .stat-value { font-size: 24px; font-weight: 700; color: #1a1a2e; } .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; } }
+.section { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; h3 { margin: 0; } } }
+.services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.service-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f8f9fa; border-radius: 12px; .service-info { flex: 1; display: flex; align-items: center; gap: 12px; .service-name { font-weight: 600; font-size: 14px; } .service-time { font-size: 11px; color: #6b7280; } } }
 
-.monitoring-page {
-  max-width: 1600px;
-  margin: 0 auto;
-  background: #f5f7fa;
-  min-height: 100vh;
-}
+/* CARD 1 - CPU + Memória juntos - TAMANHO GRANDE */
+.donut-card-dual { background: white; border-radius: 20px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; h3 { margin: 0; font-size: 18px; font-weight: 600; } } }
+.donuts-dual { display: flex; justify-content: center; gap: 60px; flex-wrap: wrap; }
+.donut-item { text-align: center; min-width: 240px; }
+.donut-header { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; h4 { margin: 0; font-size: 18px; font-weight: 600; color: #374151; } }
+.donut-wrapper { position: relative; width: 180px; height: 180px; margin: 0 auto; canvas { width: 180px !important; height: 180px !important; } }
+.donut-center-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; .donut-value { font-size: 28px; font-weight: 700; color: #1f2937; } }
+.donut-footer { margin-top: 20px; font-size: 13px; display: flex; flex-direction: column; gap: 8px; color: #6b7280; .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; &.green { background: #10B981; } &.orange { background: #F59E0B; } &.gray { background: #E5E7EB; } } strong { color: #1f2937; } }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
+/* CARD 2 - Disco sozinho - TAMANHO GRANDE */
+.donut-card-single { background: white; border-radius: 20px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; h3 { margin: 0; font-size: 18px; font-weight: 600; } } }
+.donut-single { display: flex; justify-content: center; .donut-wrapper { width: 200px; height: 200px; canvas { width: 200px !important; height: 200px !important; } } .donut-footer-single { margin-top: 24px; font-size: 14px; display: flex; justify-content: center; gap: 32px; color: #6b7280; .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; &.orange { background: #F59E0B; } &.gray { background: #E5E7EB; } } strong { color: #1f2937; } } }
 
-  .page-title-section {
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      display: flex;
-      align-items: center;
-    }
-
-    .page-subtitle {
-      font-size: 0.875rem;
-      color: #6c757d;
-      margin-top: 4px;
-    }
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 12px;
-  }
-}
-
-// ==========================================
-// SKELETON LOADING
-// ==========================================
-
-.skeleton-container {
-  position: relative;
-  overflow: hidden;
-}
-
-.skeleton-status-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  height: 100%;
-}
-
-.skeleton-icon {
-  width: 48px;
-  height: 48px;
-  background: $gray-200;
-  border-radius: 50%;
-}
-
-.skeleton-label {
-  width: 100px;
-  height: 12px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
-
-.skeleton-value {
-  width: 80px;
-  height: 24px;
-  background: $gray-200;
-  border-radius: 4px;
-}
-
-.skeleton-value-large {
-  width: 100%;
-  height: 40px;
-  background: $gray-200;
-  border-radius: 4px;
-}
-
-.skeleton-value-medium {
-  width: 100%;
-  height: 32px;
-  background: $gray-200;
-  border-radius: 4px;
-}
-
-.skeleton-tabs {
-  display: flex;
-  gap: 8px;
-  background: white;
-  padding: 8px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.skeleton-tab {
-  flex: 1;
-  height: 40px;
-  background: $gray-200;
-  border-radius: 8px;
-}
-
-.skeleton-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-}
-
-.skeleton-title {
-  width: 180px;
-  height: 24px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin-bottom: 20px;
-}
-
-.skeleton-label-small {
-  width: 80px;
-  height: 12px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin-top: 8px;
-}
-
-.skeleton-stars {
-  width: 100px;
-  height: 20px;
-  background: $gray-200;
-  border-radius: 4px;
-}
-
-.skeleton-service-card {
-  background: $gray-100;
-  border-radius: 12px;
-  padding: 16px;
-  text-align: center;
-}
-
-.skeleton-icon-small {
-  width: 40px;
-  height: 40px;
-  background: $gray-200;
-  border-radius: 50%;
-  margin: 0 auto;
-}
-
-.skeleton-text-short {
-  width: 80px;
-  height: 14px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin: 8px auto 0;
-}
-
-.skeleton-text-shorter {
-  width: 60px;
-  height: 12px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin: 4px auto 0;
-}
-
-.skeleton-text-tiny {
-  width: 40px;
-  height: 10px;
-  background: $gray-200;
-  border-radius: 4px;
-  margin: 4px auto 0;
-}
-
-.skeleton-table {
-  margin-top: 16px;
-}
-
-.skeleton-table-header {
-  display: flex;
-  background: $gray-100;
-  padding: 12px 0;
-  border-bottom: 2px solid $gray-300;
-}
-
-.skeleton-header-cell {
-  flex: 1;
-  height: 16px;
-  background: $gray-300;
-  border-radius: 4px;
-  margin: 0 8px;
-}
-
-.skeleton-table-row {
-  display: flex;
-  padding: 16px 0;
-  border-bottom: 1px solid $gray-200;
-}
-
-.skeleton-cell {
-  flex: 1;
-  margin: 0 8px;
-}
-
-.skeleton-text {
-  width: 80%;
-  height: 12px;
-  background: $gray-200;
-  border-radius: 4px;
-}
-
-.skeleton-shimmer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  animation: shimmer 1.5s infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-// ==========================================
-// ESTILOS PRINCIPAIS
-// ==========================================
-
-.status-card {
-  border-radius: 16px;
-  transition: all 0.3s ease;
-
-  &.healthy {
-    border-left: 4px solid #2e7d32;
-  }
-
-  &.degraded {
-    border-left: 4px solid #ed6c02;
-  }
-}
-
-:deep(.q-tab-panel) {
-  padding: 0;
-}
-
-:deep(.q-table) {
-  thead tr th {
-    background: #f8f9fa;
-    font-weight: 600;
-    color: #495057;
-  }
-}
+.charts-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 24px; }
+.alertas-list { .alert-item { display: flex; align-items: center; gap: 12px; padding: 10px; border-bottom: 1px solid #f0f0f0; &.critico { background: rgba(239,68,68,0.05); } .alert-content { flex: 1; .alert-titulo { font-weight: 600; font-size: 13px; } .alert-mensagem { font-size: 11px; color: #6b7280; } } } }
+.alertas-list-modal { max-height: 400px; overflow-y: auto; }
+.alert-item-modal { padding: 12px; border-bottom: 1px solid #f0f0f0; &.critico { background: rgba(239,68,68,0.05); } .alert-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; } .alert-mensagem { font-size: 12px; } }
+.info-card { background: white; border-radius: 16px; padding: 20px; h3 { margin: 0 0 16px 0; font-size: 16px; } .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; .info-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; } } }
+.text-negative { color: #ef4444; font-weight: 600; }
+.log-mensagem { max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 @media (max-width: 768px) {
-  .monitoring-page {
-    padding: 16px;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+  .donuts-dual { gap: 30px; }
+  .donut-wrapper { width: 140px; height: 140px; canvas { width: 140px !important; height: 140px !important; } }
+  .donut-center-text .donut-value { font-size: 22px; }
+  .donut-single .donut-wrapper { width: 160px; height: 160px; canvas { width: 160px !important; height: 160px !important; } }
 }
 </style>

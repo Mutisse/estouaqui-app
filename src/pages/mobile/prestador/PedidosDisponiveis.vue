@@ -12,7 +12,7 @@
         <h1>Pedidos Disponíveis</h1>
         <p>Encontre serviços perto de você</p>
       </div>
-      <button class="header-btn" @click="carregarPedidosDisponiveis" :disabled="carregando">
+      <button class="header-btn" @click="recarregarDados" :disabled="pedidosStore.isLoading">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M23 4v6h-6M1 20v-6h6"/>
           <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
@@ -45,7 +45,7 @@
           <button
             class="filter-chip"
             :class="{ active: filtros.categoriaId === null }"
-            @click="filtros.categoriaId = null; aplicarFiltros()"
+            @click="atualizarFiltroCategoria(null)"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -60,7 +60,7 @@
             class="filter-chip"
             :class="{ active: filtros.categoriaId === cat.value }"
             :style="filtros.categoriaId === cat.value ? { background: cat.color, borderColor: cat.color } : {}"
-            @click="filtros.categoriaId = cat.value; aplicarFiltros()"
+            @click="atualizarFiltroCategoria(cat.value)"
           >
             {{ cat.label }}
           </button>
@@ -78,8 +78,8 @@
             <span v-for="raio in raioOptions" :key="raio.value"
                   class="raio-value"
                   :class="{ active: filtros.raio === raio.value }"
-                  @click="filtros.raio = raio.value; aplicarFiltros()">
-              {{ raio.value }}km
+                  @click="atualizarFiltroRaio(raio.value)">
+              {{ raio.label }}
             </span>
           </div>
         </div>
@@ -93,7 +93,7 @@
             <span v-for="op in ordenacaoOptions" :key="op.value"
                   class="ordenacao-value"
                   :class="{ active: filtros.ordenacao === op.value }"
-                  @click="filtros.ordenacao = op.value as 'distancia' | 'distancia_desc' | 'data'; aplicarFiltros()">
+                  @click="atualizarFiltroOrdenacao(op.value)">
               {{ op.label }}
             </span>
           </div>
@@ -107,11 +107,11 @@
           <line x1="12" y1="8" x2="12" y2="16"/>
           <line x1="8" y1="12" x2="16" y2="12"/>
         </svg>
-        <span>{{ pedidosFiltrados.length }} pedido{{ pedidosFiltrados.length !== 1 ? 's' : '' }} disponível{{ pedidosFiltrados.length !== 1 ? 'is' : '' }}</span>
+        <span>{{ pedidosStore.totalPedidosDisponiveis }} pedido{{ pedidosStore.totalPedidosDisponiveis !== 1 ? 's' : '' }} disponível{{ pedidosStore.totalPedidosDisponiveis !== 1 ? 'is' : '' }}</span>
       </div>
 
-      <!-- ===== LISTA DE PEDIDOS (Cards modernos) ===== -->
-      <div v-if="pedidosFiltrados.length === 0" class="empty-state-modern">
+      <!-- ===== LISTA DE PEDIDOS ===== -->
+      <div v-if="!pedidosStore.temPedidosDisponiveis" class="empty-state-modern">
         <div class="empty-icon">
           <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.2">
             <circle cx="11" cy="11" r="8"/>
@@ -132,7 +132,7 @@
       </div>
 
       <div v-else class="pedidos-grid">
-        <div v-for="pedido in pedidosFiltrados" :key="pedido.id" class="pedido-card-modern" @click="abrirDetalhes(pedido)">
+        <div v-for="pedido in pedidosStore.pedidosFiltrados" :key="pedido.id" class="pedido-card-modern">
 
           <!-- Badge de distância -->
           <div v-if="pedido.distancia_km" class="distance-badge">
@@ -188,18 +188,18 @@
       </div>
     </template>
 
-    <!-- ===== MODAL DE PROPOSTA MODERNO ===== -->
-    <div class="modal-overlay" v-if="modalProposta.visivel" @click="modalProposta.visivel = false">
+    <!-- ===== MODAL DE PROPOSTA ===== -->
+    <div class="modal-overlay" v-if="pedidosStore.modalProposta.visivel" @click="fecharModalProposta">
       <div class="modal-content-modern" @click.stop>
         <div class="modal-header-modern">
-          <div class="modal-avatar" :style="getAvatarStyle(modalProposta.pedido?.cliente?.nome)">
-            {{ getInitials(modalProposta.pedido?.cliente?.nome || 'Cliente') }}
+          <div class="modal-avatar" :style="getAvatarStyle(pedidosStore.modalProposta.pedido?.cliente?.nome)">
+            {{ getInitials(pedidosStore.modalProposta.pedido?.cliente?.nome || 'Cliente') }}
           </div>
           <div>
             <h3>Enviar Proposta</h3>
-            <p>Para: {{ modalProposta.pedido?.cliente?.nome || 'Cliente' }}</p>
+            <p>Para: {{ pedidosStore.modalProposta.pedido?.cliente?.nome || 'Cliente' }}</p>
           </div>
-          <button class="modal-close" @click="modalProposta.visivel = false">
+          <button class="modal-close" @click="fecharModalProposta">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
@@ -211,11 +211,11 @@
           <div class="info-card">
             <div class="info-row">
               <span class="info-label">Categoria</span>
-              <span class="info-value">{{ modalProposta.pedido?.categoria?.nome }}</span>
+              <span class="info-value">{{ pedidosStore.modalProposta.pedido?.categoria?.nome }}</span>
             </div>
             <div class="info-row">
               <span class="info-label">Descrição</span>
-              <span class="info-value">{{ modalProposta.pedido?.descricao || 'Sem descrição' }}</span>
+              <span class="info-value">{{ pedidosStore.modalProposta.pedido?.descricao || 'Sem descrição' }}</span>
             </div>
           </div>
 
@@ -223,20 +223,20 @@
             <label class="input-label-modern">Valor da proposta (MZN)</label>
             <div class="valor-input-modern">
               <span class="prefix">MZN</span>
-              <input type="number" v-model.number="novaProposta.valor" placeholder="0" />
+              <input type="number" v-model.number="pedidosStore.novaProposta.valor" placeholder="0" />
             </div>
           </div>
 
           <div class="input-group-modern">
             <label class="input-label-modern">Mensagem (opcional)</label>
-            <textarea v-model="novaProposta.mensagem" rows="3" placeholder="Descreva como pode ajudar..."></textarea>
+            <textarea v-model="pedidosStore.novaProposta.mensagem" rows="3" placeholder="Descreva como pode ajudar..."></textarea>
           </div>
         </div>
 
         <div class="modal-footer-modern">
-          <button class="cancel-btn" @click="modalProposta.visivel = false">Cancelar</button>
-          <button class="send-btn" @click="enviarProposta" :disabled="carregandoEnvio">
-            <div v-if="carregandoEnvio" class="spinner-small"></div>
+          <button class="cancel-btn" @click="fecharModalProposta">Cancelar</button>
+          <button class="send-btn" @click="enviarProposta" :disabled="pedidosStore.isSending">
+            <div v-if="pedidosStore.isSending" class="spinner-small"></div>
             <span v-else>Enviar Proposta</span>
           </button>
         </div>
@@ -246,37 +246,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { useAuthStore } from 'src/stores/auth-store';
-import { usePrestadorServicosStore } from 'src/stores/prestador/prestador-servicos-store';
+import { useAuthStore } from 'src/stores/login-store';
+import {
+  usePrestadorPedidosDisponiveisStore,
+  type PedidoDisponivelData
+} from 'src/stores/prestador/prestador-pedidos-disponiveis-store';
 import { usePrestadorPerfilStore } from 'src/stores/prestador/prestador-perfil-store';
-import type { PedidoDisponivelData } from 'src/stores/prestador/prestador-servicos-store';
 
 defineOptions({ name: 'PedidosDisponiveisPage' });
-
-interface RaioOption {
-  label: string;
-  value: number;
-}
-
-interface OrdenacaoOption {
-  label: string;
-  value: string;
-}
 
 const router = useRouter();
 const $q = useQuasar();
 const authStore = useAuthStore();
 
-const servicosStore = usePrestadorServicosStore();
+// Stores
+const pedidosStore = usePrestadorPedidosDisponiveisStore();
 const perfilStore = usePrestadorPerfilStore();
 
 const carregamentoInicial = ref(true);
-const carregando = ref(false);
-const carregandoEnvio = ref(false);
-const pedidos = ref<PedidoDisponivelData[]>([]);
 
 const avatarGradients = [
   'linear-gradient(135deg, #5B4BF5, #9F7AEA)',
@@ -297,69 +287,20 @@ const getInitials = (nome: string): string => {
   return nome.split(' ').slice(0, 2).map(n => n.charAt(0)).join('').toUpperCase();
 };
 
-const raioOptions: RaioOption[] = [
-  { label: '5 km', value: 5 },
-  { label: '10 km', value: 10 },
-  { label: '20 km', value: 20 },
-  { label: '30 km', value: 30 },
-  { label: '50 km', value: 50 },
-];
+// Dados do store
+const filtros = computed(() => pedidosStore.filtros);
+const raioOptions = computed(() => pedidosStore.raioOptions);
+const ordenacaoOptions = computed(() => pedidosStore.ordenacaoOptions);
 
-const ordenacaoOptions: OrdenacaoOption[] = [
-  { label: 'Mais próximos', value: 'distancia' },
-  { label: 'Mais recentes', value: 'data' },
-  { label: 'Maior distância', value: 'distancia_desc' },
-];
-
+// Categorias do perfil
 const categoriasOptions = computed(() => {
   const minhasCats = perfilStore.minhasCategorias;
-  return minhasCats.map((cat: { id: number; nome: string; icone: string; cor: string }) => ({
+  return minhasCats.map((cat) => ({
     label: cat.nome,
     value: cat.id,
-    icon: cat.icone,
-    color: cat.cor,
+    icon: cat.icone || 'category',
+    color: cat.cor || '#5B4BF5',
   }));
-});
-
-const filtros = reactive({
-  categoriaId: null as number | null,
-  raio: 10,
-  ordenacao: 'distancia' as 'distancia' | 'distancia_desc' | 'data',
-});
-
-const modalProposta = reactive({
-  visivel: false,
-  pedido: null as PedidoDisponivelData | null,
-});
-
-const novaProposta = reactive({
-  valor: 0,
-  mensagem: '',
-});
-
-const pedidosFiltrados = computed(() => {
-  let resultado = [...pedidos.value];
-
-  if (filtros.categoriaId) {
-    resultado = resultado.filter((p) => p.categoria?.id === filtros.categoriaId);
-  }
-
-  if (filtros.raio) {
-    resultado = resultado.filter((p) => {
-      if (p.distancia_km === undefined || p.distancia_km === null) return true;
-      return p.distancia_km <= filtros.raio;
-    });
-  }
-
-  if (filtros.ordenacao === 'distancia') {
-    resultado.sort((a, b) => (a.distancia_km ?? 9999) - (b.distancia_km ?? 9999));
-  } else if (filtros.ordenacao === 'distancia_desc') {
-    resultado.sort((a, b) => (b.distancia_km ?? -1) - (a.distancia_km ?? -1));
-  } else if (filtros.ordenacao === 'data') {
-    resultado.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }
-
-  return resultado;
 });
 
 const formatarData = (data: string): string => {
@@ -378,78 +319,78 @@ const formatarData = (data: string): string => {
   }
 };
 
-const aplicarFiltros = (): void => {};
+// ===================== AÇÕES DO STORE =====================
+
+const recarregarDados = async (): Promise<void> => {
+  await pedidosStore.recarregarDados();
+  $q.notify({ type: 'positive', message: 'Pedidos atualizados!', position: 'top', timeout: 1500 });
+};
+
+const aplicarFiltros = (): void => {
+  void pedidosStore.aplicarFiltros();
+};
 
 const limparFiltros = (): void => {
-  filtros.categoriaId = null;
-  filtros.raio = 10;
-  filtros.ordenacao = 'distancia';
+  pedidosStore.limparFiltros();
+  void pedidosStore.fetchPedidosDisponiveis();
 };
 
-const carregarPedidosDisponiveis = async (): Promise<void> => {
-  carregando.value = true;
-  try {
-    await servicosStore.fetchPedidosDisponiveis();
-    pedidos.value = servicosStore.pedidosDisponiveis;
-  } catch (error) {
-    console.error('Erro ao carregar pedidos:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar pedidos disponíveis', position: 'top' });
-  } finally {
-    carregando.value = false;
-  }
+const atualizarFiltroCategoria = (categoriaId: number | null): void => {
+  pedidosStore.atualizarFiltro('categoriaId', categoriaId);
+  aplicarFiltros();
 };
 
-const carregarMinhasCategorias = async (): Promise<void> => {
-  try {
-    await perfilStore.fetchMinhasCategorias();
-  } catch (error) {
-    console.error('Erro ao carregar categorias:', error);
-  }
+const atualizarFiltroRaio = (raio: number): void => {
+  pedidosStore.atualizarFiltro('raio', raio);
+  aplicarFiltros();
 };
 
-const abrirDetalhes = (pedido: PedidoDisponivelData): void => {
-  console.log('Ver detalhes do pedido:', pedido.id);
+const atualizarFiltroOrdenacao = (ordenacao: string): void => {
+  pedidosStore.atualizarFiltro('ordenacao', ordenacao);
+  aplicarFiltros();
 };
 
 const abrirModalProposta = (pedido: PedidoDisponivelData): void => {
-  modalProposta.pedido = pedido;
-  novaProposta.valor = 0;
-  novaProposta.mensagem = '';
-  modalProposta.visivel = true;
+  pedidosStore.abrirModalProposta(pedido);
+};
+
+const fecharModalProposta = (): void => {
+  pedidosStore.fecharModalProposta();
 };
 
 const enviarProposta = async (): Promise<void> => {
-  if (!novaProposta.valor || novaProposta.valor <= 0) {
+  if (!pedidosStore.novaProposta.valor || pedidosStore.novaProposta.valor <= 0) {
     $q.notify({ type: 'warning', message: 'Informe um valor válido', position: 'top' });
     return;
   }
 
-  if (!modalProposta.pedido) return;
-
-  carregandoEnvio.value = true;
   try {
-    const propostaData: { pedido_id: number; valor: number; mensagem?: string } = {
-      pedido_id: modalProposta.pedido.id,
-      valor: novaProposta.valor,
-    };
-
-    if (novaProposta.mensagem && novaProposta.mensagem.trim()) {
-      propostaData.mensagem = novaProposta.mensagem.trim();
-    }
-
-    const result = await servicosStore.enviarProposta(propostaData);
-
-    if (result) {
+    const success = await pedidosStore.enviarPropostaModal();
+    if (success) {
       $q.notify({ type: 'positive', message: 'Proposta enviada com sucesso!', position: 'top' });
-      modalProposta.visivel = false;
-      pedidos.value = pedidos.value.filter((p) => p.id !== modalProposta.pedido?.id);
-      await carregarPedidosDisponiveis();
+      fecharModalProposta();
+    } else {
+      $q.notify({ type: 'negative', message: pedidosStore.error || 'Erro ao enviar proposta', position: 'top' });
     }
-  } catch (error) {
-    console.error('Erro ao enviar proposta:', error);
+  } catch {
     $q.notify({ type: 'negative', message: 'Erro ao enviar proposta', position: 'top' });
+  }
+};
+
+// ===================== CARREGAMENTO INICIAL =====================
+
+const carregarDadosIniciais = async (): Promise<void> => {
+  carregamentoInicial.value = true;
+  try {
+    await Promise.all([
+      pedidosStore.carregarTodosDados(),
+      perfilStore.fetchMinhasCategorias()
+    ]);
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
+    $q.notify({ type: 'negative', message: 'Erro ao carregar dados', position: 'top' });
   } finally {
-    carregandoEnvio.value = false;
+    setTimeout(() => { carregamentoInicial.value = false; }, 500);
   }
 };
 
@@ -466,16 +407,12 @@ onMounted(async () => {
     return;
   }
 
-  carregamentoInicial.value = true;
-  try {
-    await Promise.all([carregarPedidosDisponiveis(), carregarMinhasCategorias()]);
-  } finally {
-    setTimeout(() => { carregamentoInicial.value = false; }, 500);
-  }
+  void carregarDadosIniciais();
 });
 </script>
 
 <style scoped lang="scss">
+// ===================== VARIÁVEIS =====================
 $accent: #5B4BF5;
 $accent-light: rgba(91, 75, 245, 0.1);
 $success: #10B981;
@@ -506,9 +443,7 @@ $radius-xs: 10px;
   padding-bottom: 40px;
 }
 
-// =====================
-// HEADER MODERNO
-// =====================
+// ===================== HEADER =====================
 .modern-header {
   display: flex;
   align-items: center;
@@ -557,9 +492,7 @@ $radius-xs: 10px;
   }
 }
 
-// =====================
-// SKELETON
-// =====================
+// ===================== SKELETON =====================
 .skeleton-container {
   .skeleton-header-spacer { height: 70px; }
   .skeleton-filters-bar { height: 50px; background: $white; margin: 12px 16px; border-radius: 30px; }
@@ -594,9 +527,7 @@ $radius-xs: 10px;
 .w-60 { width: 60%; }
 .w-80 { width: 80%; }
 
-// =====================
-// FILTROS (Carrossel)
-// =====================
+// ===================== FILTROS =====================
 .filters-bar {
   padding: 12px 16px;
   background: $white;
@@ -640,9 +571,7 @@ $radius-xs: 10px;
   }
 }
 
-// =====================
-// CONTROLES
-// =====================
+// ===================== CONTROLES =====================
 .controls-bar {
   display: flex;
   justify-content: space-between;
@@ -681,9 +610,7 @@ $radius-xs: 10px;
   }
 }
 
-// =====================
-// STATS CHIP
-// =====================
+// ===================== STATS CHIP =====================
 .stats-chip {
   display: inline-flex;
   align-items: center;
@@ -698,9 +625,7 @@ $radius-xs: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-// =====================
-// EMPTY STATE MODERNO
-// =====================
+// ===================== EMPTY STATE =====================
 .empty-state-modern {
   text-align: center;
   padding: 60px 24px;
@@ -744,9 +669,7 @@ $radius-xs: 10px;
   }
 }
 
-// =====================
-// PEDIDOS GRID
-// =====================
+// ===================== PEDIDOS GRID =====================
 .pedidos-grid {
   padding: 0 16px;
   display: flex;
@@ -873,9 +796,7 @@ $radius-xs: 10px;
   }
 }
 
-// =====================
-// MODAL MODERNO
-// =====================
+// ===================== MODAL =====================
 .modal-overlay {
   position: fixed;
   top: 0;

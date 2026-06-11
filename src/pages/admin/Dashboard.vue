@@ -1,422 +1,346 @@
 ﻿<template>
-  <q-page class="admin-dashboard">
-    <!-- Cabeçalho com saudação -->
-    <div class="dashboard-header">
-      <div>
-        <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Bem-vindo de volta, {{ adminNome }}</div>
-      </div>
-      <q-btn
-        flat
-        round
-        icon="refresh"
-        class="refresh-btn"
-        @click="atualizarDados"
-        :loading="dashboardStore.loading"
-      >
-        <q-tooltip>Atualizar dados</q-tooltip>
-      </q-btn>
-    </div>
-
-    <!-- Skeleton Loading -->
-    <div v-if="dashboardStore.loading" class="skeleton-container">
-      <!-- Cards principais skeleton -->
+  <div class="dashboard-container">
+    <!-- SKELETON -->
+    <template v-if="dashboardStore.isLoading">
       <div class="stats-grid">
         <div v-for="i in 4" :key="i" class="skeleton-stat-card">
-          <div class="skeleton-icon"></div>
-          <div class="skeleton-info">
-            <div class="skeleton-value"></div>
-            <div class="skeleton-label"></div>
-            <div class="skeleton-trend"></div>
+          <div class="skeleton-top">
+            <div class="skeleton-box s-icon"></div>
+            <div class="skeleton-box s-badge"></div>
+          </div>
+          <div class="skeleton-box s-val"></div>
+          <div class="skeleton-box s-lbl"></div>
+        </div>
+      </div>
+      <div class="sec-grid">
+        <div v-for="i in 4" :key="i" class="skeleton-sec-card">
+          <div class="skeleton-box s-icon-sm"></div>
+          <div>
+            <div class="skeleton-box s-val-sm"></div>
+            <div class="skeleton-box s-lbl-sm"></div>
           </div>
         </div>
       </div>
-
-      <!-- Cards secundários skeleton -->
-      <div class="stats-grid-secondary">
-        <div v-for="i in 4" :key="i" class="skeleton-stat-card-secondary">
-          <div class="skeleton-icon-small"></div>
-          <div class="skeleton-info-secondary">
-            <div class="skeleton-value-small"></div>
-            <div class="skeleton-label-small"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Gráficos skeleton -->
       <div class="charts-row">
-        <div class="skeleton-chart-card">
-          <div class="skeleton-card-header"></div>
-          <div class="skeleton-bars-container">
-            <div v-for="i in 7" :key="i" class="skeleton-bar-item">
-              <div class="skeleton-bar"></div>
-              <div class="skeleton-bar-label"></div>
-            </div>
-          </div>
-        </div>
-        <div class="skeleton-distribuicao-card">
-          <div class="skeleton-card-header"></div>
-          <div class="skeleton-distribuicao-content">
-            <div v-for="i in 3" :key="i" class="skeleton-distribuicao-item">
-              <div class="skeleton-distribuicao-header">
-                <div class="skeleton-distribuicao-label"></div>
-                <div class="skeleton-distribuicao-value"></div>
-              </div>
-              <div class="skeleton-progress-bar"></div>
-            </div>
-            <div class="skeleton-distribuicao-total">
-              <div class="skeleton-total-label"></div>
-              <div class="skeleton-total-value"></div>
-            </div>
-          </div>
-        </div>
+        <div class="skeleton-chart"></div>
+        <div class="skeleton-chart"></div>
       </div>
-
-      <!-- Listas recentes skeleton -->
-      <div class="recent-lists">
-        <div class="skeleton-recent-card">
-          <div class="skeleton-card-header">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-view-all"></div>
-          </div>
-          <div class="skeleton-users-list">
-            <div v-for="i in 4" :key="i" class="skeleton-user-item">
-              <div class="skeleton-avatar"></div>
-              <div class="skeleton-user-info">
-                <div class="skeleton-user-name"></div>
-                <div class="skeleton-user-email"></div>
-              </div>
-              <div class="skeleton-user-badge">
-                <div class="skeleton-badge"></div>
-                <div class="skeleton-date"></div>
-              </div>
+      <div class="lists-row">
+        <div class="skeleton-list-card">
+          <div v-for="i in 4" :key="i" class="skeleton-list-item">
+            <div class="skeleton-box s-av"></div>
+            <div style="flex: 1">
+              <div class="skeleton-box s-nm"></div>
+              <div class="skeleton-box s-em"></div>
             </div>
+            <div class="skeleton-box s-bdg"></div>
           </div>
         </div>
-        <div class="skeleton-recent-card">
-          <div class="skeleton-card-header">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-view-all"></div>
-          </div>
-          <div class="skeleton-services-list">
-            <div v-for="i in 4" :key="i" class="skeleton-service-item">
-              <div class="skeleton-avatar-service"></div>
-              <div class="skeleton-service-info">
-                <div class="skeleton-service-name"></div>
-                <div class="skeleton-service-cliente"></div>
-              </div>
-              <div class="skeleton-service-value">
-                <div class="skeleton-price"></div>
-                <div class="skeleton-status"></div>
-              </div>
+        <div class="skeleton-list-card">
+          <div v-for="i in 4" :key="i" class="skeleton-list-item">
+            <div class="skeleton-box s-av"></div>
+            <div style="flex: 1">
+              <div class="skeleton-box s-nm"></div>
+              <div class="skeleton-box s-em"></div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Ações rápidas skeleton -->
-      <div class="skeleton-quick-actions">
-        <div class="skeleton-card-header">
-          <div class="skeleton-title"></div>
-        </div>
-        <div class="actions-grid">
-          <div v-for="i in 6" :key="i" class="skeleton-action-item">
-            <div class="skeleton-action-icon"></div>
-            <div class="skeleton-action-label"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Shimmer animation -->
-      <div class="skeleton-shimmer"></div>
-    </div>
-
-    <!-- Conteúdo real -->
-    <template v-else>
-      <!-- Cards de estatísticas principais -->
-      <div class="stats-grid">
-        <div class="stat-card" v-for="card in dashboardStore.cardsPrincipais" :key="card.title">
-          <div class="stat-card-content">
-            <div class="stat-icon" :style="{ background: card.bgColor }">
-              <q-icon :name="card.icon" size="28px" :color="card.iconColor" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ formatNumberValue(card.value) }}</div>
-              <div class="stat-label">{{ card.title }}</div>
-              <div class="stat-trend" :class="card.trend > 0 ? 'trend-up' : 'trend-down'">
-                <q-icon :name="card.trend > 0 ? 'trending_up' : 'trending_down'" size="12px" />
-                {{ Math.abs(card.trend) }}% este mês
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Cards secundários -->
-      <div class="stats-grid-secondary">
-        <div
-          class="stat-card-secondary"
-          v-for="card in dashboardStore.cardsSecundarios"
-          :key="card.title"
-        >
-          <div class="stat-card-secondary-content">
-            <div class="stat-secondary-icon" :style="{ background: card.bgColor }">
-              <q-icon :name="card.icon" size="24px" :color="card.iconColor" />
-            </div>
-            <div class="stat-secondary-info">
-              <div class="stat-secondary-value">{{ formatNumberValue(card.value) }}</div>
-              <div class="stat-secondary-label">{{ card.title }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Gráficos e distribuição -->
-      <div class="charts-row">
-        <div class="chart-card">
-          <div class="card-header">
-            <span class="card-title">Atividade dos Últimos 7 Dias</span>
-          </div>
-          <div class="chart-content">
-            <div class="bars-container">
-              <div
-                v-for="(item, index) in dashboardStore.atividadeFormatada"
-                :key="index"
-                class="bar-item"
-              >
-                <div
-                  class="bar"
-                  :style="{ height: item.altura + 'px', backgroundColor: item.cor }"
-                ></div>
-                <div class="bar-label">{{ item.dia }}</div>
-                <div class="bar-value">{{ item.valor }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="distribuicao-card">
-          <div class="card-header">
-            <span class="card-title">Distribuição por Tipo</span>
-          </div>
-          <div class="distribuicao-content">
-            <div
-              v-for="tipo in dashboardStore.distribuicaoPorTipo"
-              :key="tipo.label"
-              class="distribuicao-item"
-            >
-              <div class="distribuicao-header">
-                <span class="distribuicao-label">{{ tipo.label }}</span>
-                <span class="distribuicao-value">{{ formatNumber(tipo.value) }}</span>
-              </div>
-              <q-linear-progress :value="tipo.percent / 100" :color="tipo.color" class="progress-bar" />
-            </div>
-            <div class="distribuicao-total">
-              <span class="total-label">Total de Utilizadores</span>
-              <span class="total-value">{{ formatNumber(dashboardStore.dashboard.total_users) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Listas de atividades recentes -->
-      <div class="recent-lists">
-        <div class="recent-card">
-          <div class="card-header">
-            <span class="card-title">Últimos Utilizadores</span>
-            <q-btn
-              flat
-              dense
-              icon="chevron_right"
-              label="Ver todos"
-              to="/admin/utilizadores"
-              no-caps
-              class="view-all-btn"
-            />
-          </div>
-          <div class="users-list">
-            <div
-              v-for="user in utilizadoresStore.ultimosUtilizadores"
-              :key="user.id"
-              class="user-item"
-              @click="verUtilizador(user.id)"
-            >
-              <q-avatar size="40px">
-                <img
-                  :src="
-                    user.avatar ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=667eea&color=fff`
-                  "
-                />
-              </q-avatar>
-              <div class="user-info">
-                <div class="user-name">{{ user.nome }}</div>
-                <div class="user-email">{{ user.email }}</div>
-              </div>
-              <div class="user-badge">
-                <q-badge :color="user.tipo === 'prestador' ? 'secondary' : 'primary'" rounded>
-                  {{ user.tipo === 'prestador' ? 'Prestador' : 'Cliente' }}
-                </q-badge>
-                <div class="user-date">{{ user.data || 'Hoje' }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="recent-card">
-          <div class="card-header">
-            <span class="card-title">Serviços Recentes</span>
-            <q-btn
-              flat
-              dense
-              icon="chevron_right"
-              label="Ver todos"
-              to="/admin/servicos"
-              no-caps
-              class="view-all-btn"
-            />
-          </div>
-          <div class="services-list">
-            <div
-              v-for="servico in conteudoStore.servicosRecentes"
-              :key="servico.id"
-              class="service-item"
-              @click="verServico(servico.id)"
-            >
-              <q-avatar :color="servico.statusCor" text-color="white" size="40px">
-                <q-icon :name="servico.icone" size="20px" />
-              </q-avatar>
-              <div class="service-info">
-                <div class="service-name">{{ servico.servico }}</div>
-                <div class="service-cliente">{{ servico.cliente }} • {{ servico.prestador }}</div>
-              </div>
-              <div class="service-value">
-                <div class="service-price">{{ formatMoney(servico.valor) }}</div>
-                <q-badge :color="servico.statusCor">{{ servico.status }}</q-badge>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Ações rápidas -->
-      <div class="quick-actions">
-        <div class="card-header">
-          <span class="card-title">Ações Rápidas</span>
-        </div>
-        <div class="actions-grid">
-          <div
-            v-for="action in acoesRapidas"
-            :key="action.label"
-            class="action-item"
-            @click="novaAcao(action.tipo)"
-          >
-            <div class="action-icon" :style="{ background: action.bgColor }">
-              <q-icon :name="action.icon" size="24px" :color="action.iconColor" />
-            </div>
-            <div class="action-label">{{ action.label }}</div>
+            <div class="skeleton-box s-bdg"></div>
           </div>
         </div>
       </div>
     </template>
-  </q-page>
+
+    <!-- CONTEÚDO REAL -->
+    <template v-else>
+      <template v-if="dashboardStore.dashboard">
+
+        <!-- Stats principais -->
+        <div class="stats-grid">
+          <div
+            v-for="card in dashboardStore.cardsPrincipais"
+            :key="card.title"
+            class="stat-card"
+            :class="`sc-${card.colorKey}`"
+          >
+            <div class="stat-card__top">
+              <div class="stat-icon" :class="`si-${card.colorKey}`">
+                <q-icon :name="card.icon" size="20px" />
+              </div>
+              <span class="stat-trend" :class="card.trend >= 0 ? 'trend-up' : 'trend-dn'">
+                <q-icon :name="card.trend >= 0 ? 'trending_up' : 'trending_down'" size="12px" />
+                {{ Math.abs(card.trend) }}%
+              </span>
+            </div>
+            <div class="stat-val">{{ formatNumberValue(card.value, card.isCurrency) }}</div>
+            <div class="stat-lbl">{{ card.title }}</div>
+          </div>
+        </div>
+
+        <!-- Stats secundárias -->
+        <div class="sec-grid">
+          <div
+            v-for="card in dashboardStore.cardsSecundarios"
+            :key="card.title"
+            class="sec-card"
+          >
+            <div class="sec-icon" :class="`si-${card.colorKey}`">
+              <q-icon :name="card.icon" size="20px" />
+            </div>
+            <div>
+              <div class="sec-val">{{ formatNumberValue(card.value) }}</div>
+              <div class="sec-lbl">{{ card.title }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="charts-row">
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Atividade — últimos 7 dias</span>
+              <q-btn flat dense no-caps label="Ver relatório →" class="card-link" to="/admin/relatorios" />
+            </div>
+            <div class="card-body">
+              <div class="bars-wrap">
+                <div
+                  v-for="(item, index) in dashboardStore.atividadeFormatada"
+                  :key="index"
+                  class="bar-col"
+                >
+                  <div class="bar-v">{{ item.valor }}</div>
+                  <div class="bar-b" :style="{ height: item.altura + 'px', background: item.cor }"></div>
+                  <div class="bar-d">{{ item.dia }}</div>
+                </div>
+                <div v-if="dashboardStore.atividadeFormatada.length === 0" class="no-data-text">
+                  Sem dados de atividade
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Distribuição por tipo</span>
+            </div>
+            <div class="card-body">
+              <div
+                v-for="tipo in dashboardStore.distribuicaoPorTipo"
+                :key="tipo.label"
+                class="dist-item"
+              >
+                <div class="dist-head">
+                  <span class="dist-lbl">{{ tipo.label }}</span>
+                  <span class="dist-val">{{ formatNumber(tipo.value) }}</span>
+                </div>
+                <div class="dist-bar">
+                  <div class="dist-fill" :style="{ width: tipo.percent + '%', background: tipo.color }"></div>
+                </div>
+              </div>
+              <div class="dist-total">
+                <span class="dt-lbl">Total de utilizadores</span>
+                <span class="dt-val">{{ formatNumber(dashboardStore.dashboard.total_usuarios || 0) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listas recentes -->
+        <div class="lists-row">
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Últimos utilizadores</span>
+              <q-btn flat dense no-caps label="Ver todos →" class="card-link" to="/admin/utilizadores" />
+            </div>
+            <div class="list-wrap">
+              <div
+                v-for="user in dashboardStore.ultimosUtilizadores"
+                :key="user.id"
+                class="list-item"
+                @click="verUtilizador(user.id)"
+              >
+                <div class="li-av" :style="getAvatarStyle(user.nome)">
+                  {{ getInitials(user.nome) }}
+                </div>
+                <div class="li-info">
+                  <div class="li-name">{{ user.nome }}</div>
+                  <div class="li-sub">{{ user.email }}</div>
+                </div>
+                <div class="li-right">
+                  <span class="li-badge" :class="getUserBadgeClass(user.tipo)">
+                    {{ getUserBadgeLabel(user.tipo) }}
+                  </span>
+                  <div class="li-date">{{ formatarData(user.data_criacao) }}</div>
+                </div>
+              </div>
+              <div v-if="dashboardStore.ultimosUtilizadores.length === 0" class="no-data-text">
+                Nenhum utilizador encontrado
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Serviços recentes</span>
+              <q-btn flat dense no-caps label="Ver todos →" class="card-link" to="/admin/servicos" />
+            </div>
+            <div class="list-wrap">
+              <div
+                v-for="servico in dashboardStore.servicosRecentes"
+                :key="servico.id"
+                class="list-item"
+                @click="verServico(servico.id)"
+              >
+                <div class="li-av-sq" :class="`si-${servico.colorKey || 'blue'}`">
+                  <q-icon :name="servico.icone || 'receipt'" size="18px" />
+                </div>
+                <div class="li-info">
+                  <div class="li-name">{{ servico.servico || servico.nome || 'Serviço' }}</div>
+                  <div class="li-sub">
+                    {{ servico.cliente || servico.cliente_nome || '—' }} →
+                    {{ servico.prestador || servico.prestador_nome || '—' }}
+                  </div>
+                </div>
+                <div class="li-right">
+                  <div class="li-price">{{ formatMoney(servico.valor || 0) }}</div>
+                  <span class="li-badge" :class="`badge-${servico.statusKey || 'pend'}`">
+                    {{ servico.status || 'Pendente' }}
+                  </span>
+                </div>
+              </div>
+              <div v-if="dashboardStore.servicosRecentes.length === 0" class="no-data-text">
+                Nenhum serviço encontrado
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ações rápidas -->
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">Ações rápidas</span>
+          </div>
+          <div class="actions-inner">
+            <div class="actions-row">
+              <div
+                v-for="action in acoesRapidas"
+                :key="action.label"
+                class="act-card"
+                @click="novaAcao(action.tipo)"
+              >
+                <div class="act-icon" :class="`si-${action.colorKey}`">
+                  <q-icon :name="action.icon" size="22px" />
+                </div>
+                <div class="act-lbl">{{ action.label }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </template>
+
+      <!-- Se não houver dashboard -->
+      <div v-else class="no-data-container">
+        <q-icon name="dashboard" size="64px" color="grey-5" />
+        <p>Carregando dados do dashboard...</p>
+        <q-btn color="primary" label="Recarregar" @click="recarregar" :loading="dashboardStore.isLoading" />
+      </div>
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from 'src/stores/auth-store';
-// ✅ IMPORTS CORRETOS - Stores separados
 import { useAdminDashboardStore } from 'src/stores/admin/admin-dashboard-store';
-import { useAdminUtilizadoresStore } from 'src/stores/admin/admin-utilizadores-store';
-import { useAdminConteudoStore } from 'src/stores/admin/admin-conteudo-store';
 import { useQuasar } from 'quasar';
 
-defineOptions({
-  name: 'AdminDashboard',
-});
+defineOptions({ name: 'AdminDashboard' });
 
 const router = useRouter();
-const authStore = useAuthStore();
-// ✅ USANDO OS STORES CORRETOS
 const dashboardStore = useAdminDashboardStore();
-const utilizadoresStore = useAdminUtilizadoresStore();
-const conteudoStore = useAdminConteudoStore();
 const $q = useQuasar();
 
-// Nome do admin
-const adminNome = computed(() => authStore.user?.nome?.split(' ')[0] || 'Administrador');
-
-// Ações rápidas
+// Config estática
 const acoesRapidas = [
-  {
-    label: 'Novo Admin',
-    icon: 'person_add',
-    tipo: 'admin',
-    iconColor: '#667eea',
-    bgColor: '#e8eaff',
-  },
-  {
-    label: 'Verificar Prestador',
-    icon: 'handyman',
-    tipo: 'prestador',
-    iconColor: '#f5576c',
-    bgColor: '#ffe8ea',
-  },
-  {
-    label: 'Nova Categoria',
-    icon: 'category',
-    tipo: 'categoria',
-    iconColor: '#f57c00',
-    bgColor: '#fff3e0',
-  },
-  {
-    label: 'Relatório',
-    icon: 'receipt',
-    tipo: 'relatorio',
-    iconColor: '#4caf50',
-    bgColor: '#e8f5e9',
-  },
-  {
-    label: 'Configurações',
-    icon: 'settings',
-    tipo: 'config',
-    iconColor: '#607d8b',
-    bgColor: '#eceff1',
-  },
-  { label: 'Suporte', icon: 'support', tipo: 'suporte', iconColor: '#f44336', bgColor: '#ffebee' },
+  { label: 'Novo Admin', icon: 'person_add', tipo: 'admin', colorKey: 'blue' },
+  { label: 'Verificar Prestador', icon: 'handyman', tipo: 'prestador', colorKey: 'red' },
+  { label: 'Nova Categoria', icon: 'category', tipo: 'categoria', colorKey: 'gold' },
+  { label: 'Relatório', icon: 'receipt', tipo: 'relatorio', colorKey: 'green' },
+  { label: 'Configurações', icon: 'settings', tipo: 'config', colorKey: 'slate' },
+  { label: 'Suporte', icon: 'support', tipo: 'suporte', colorKey: 'red' },
 ];
 
-// Métodos auxiliares
-const formatNumber = (num: number) => new Intl.NumberFormat('pt-PT').format(num);
-
-const formatNumberValue = (value: number | string): string => {
-  if (typeof value === 'number') {
-    return new Intl.NumberFormat('pt-PT').format(value);
-  }
-  return value;
+// Funções auxiliares para badges
+const getUserBadgeClass = (tipo: string): string => {
+  const classes: Record<string, string> = {
+    prestador: 'badge-pr',
+    admin: 'badge-admin',
+    root: 'badge-root',
+    cliente: 'badge-cl'
+  };
+  return classes[tipo] || 'badge-cl';
 };
 
-const formatMoney = (num: number) =>
-  new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'MZN' }).format(num);
-
-// Ações
-const atualizarDados = async () => {
-  await dashboardStore.carregarDashboard(true);
-  await utilizadoresStore.fetchUltimosUtilizadores(5, true);
-  await conteudoStore.fetchServicosRecentes(5, true);
-  $q.notify({
-    type: 'positive',
-    message: 'Dados atualizados!',
-    position: 'top',
-    timeout: 2000,
-  });
+const getUserBadgeLabel = (tipo: string): string => {
+  const labels: Record<string, string> = {
+    prestador: 'Prestador',
+    admin: 'Admin',
+    root: 'Root',
+    cliente: 'Cliente'
+  };
+  return labels[tipo] || tipo;
 };
 
-const verUtilizador = (id: number) => void router.push(`/admin/utilizadores?id=${id}`);
-const verServico = (id: number) => void router.push(`/admin/servicos?id=${id}`);
+// Helpers
+const formatNumber = (num: number): string => new Intl.NumberFormat('pt-PT').format(num || 0);
 
-const novaAcao = (tipo: string) => {
+const formatNumberValue = (value: number | string, isCurrency?: boolean): string => {
+  if (isCurrency) return formatMoney(value as number);
+  return typeof value === 'number' ? new Intl.NumberFormat('pt-PT').format(value || 0) : String(value || 0);
+};
+
+const formatMoney = (num: number): string =>
+  new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'MZN', minimumFractionDigits: 0 }).format(num || 0);
+
+const formatarData = (dataString: string): string => {
+  if (!dataString) return '—';
+  const date = new Date(dataString);
+  const hoje = new Date();
+  const diffDias = Math.floor((hoje.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDias === 0) return 'Hoje';
+  if (diffDias === 1) return 'Ontem';
+  if (diffDias < 7) return `${diffDias} dias atrás`;
+  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+};
+
+const avatarGradients = [
+  'linear-gradient(135deg,#667EEA,#764BA2)',
+  'linear-gradient(135deg,#10B981,#059669)',
+  'linear-gradient(135deg,#F59E0B,#D97706)',
+  'linear-gradient(135deg,#EF4444,#DC2626)',
+  'linear-gradient(135deg,#06B6D4,#0891B2)',
+];
+
+const getAvatarStyle = (nome: string) => ({
+  background: avatarGradients[(nome || '').charCodeAt(0) % avatarGradients.length],
+});
+
+const getInitials = (nome: string): string =>
+  (nome || '??').split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
+
+// Actions
+const verUtilizador = (id: number): void => {
+  void router.push(`/admin/utilizadores?id=${id}`);
+};
+
+const verServico = (id: number): void => {
+  void router.push(`/admin/servicos?id=${id}`);
+};
+
+const recarregar = (): void => {
+  void dashboardStore.carregarTodosDados();
+};
+
+const novaAcao = (tipo: string): void => {
   const rotas: Record<string, string> = {
     admin: '/admin/utilizadores?novo=admin',
     prestador: '/admin/prestadores?pendentes=true',
@@ -425,747 +349,445 @@ const novaAcao = (tipo: string) => {
     config: '/admin/configuracoes',
     suporte: '/admin/suporte',
   };
-  if (rotas[tipo]) void router.push(rotas[tipo]);
-  else $q.notify({ type: 'info', message: 'Ação em desenvolvimento', position: 'top' });
+  if (rotas[tipo]) {
+    void router.push(rotas[tipo]);
+  } else {
+    $q.notify({ type: 'info', message: 'Em desenvolvimento', position: 'top' });
+  }
 };
 
-// Carregar dados ao montar
-onMounted(async () => {
-  await Promise.all([
-    dashboardStore.carregarDashboard(),
-    utilizadoresStore.fetchUltimosUtilizadores(5),
-    conteudoStore.fetchServicosRecentes(5),
-  ]);
+// Lifecycle
+onMounted(() => {
+  void dashboardStore.carregarTodosDados();
 });
 </script>
 
 <style scoped lang="scss">
-// ... (styles mantidos iguais ao original)
-.admin-dashboard {
-  max-width: 1400px;
-  margin: 0 auto;
+// ─── TOKENS ───────────────────────────────────────────────────────────────
+$a: #667EEA;
+$green: #10B981;
+$gold: #F59E0B;
+$red: #EF4444;
+$teal: #06B6D4;
+$purple: #764BA2;
+$slate: #607D8B;
+$a-l: rgba(102, 126, 234, 0.09);
+$gl: rgba(16, 185, 129, 0.1);
+$gol: rgba(245, 158, 11, 0.1);
+$rl: rgba(239, 68, 68, 0.1);
+$tl: rgba(6, 182, 212, 0.1);
+$pl: rgba(118, 75, 162, 0.1);
+$sll: #eceff1;
+$ink: #0D0D1A;
+$ink2: #3D3D55;
+$muted: #9898B2;
+$line: rgba(0, 0, 0, 0.07);
+$sur: #FFFFFF;
+$bg: #F2F2F7;
+$r: 12px;
+$rs: 8px;
+
+.dashboard-container {
   padding: 20px;
+  background: $bg;
+  min-height: 100vh;
 }
 
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-
-  .page-title {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #424242;
-    letter-spacing: -0.5px;
-  }
-
-  .page-subtitle {
-    font-size: 0.9rem;
-    color: #9e9e9e;
-    margin-top: 4px;
-  }
-
-  .refresh-btn {
-    color: #9e9e9e;
-    &:hover {
-      background: #f5f5f5;
-    }
-  }
+// ─── SHIMMER ──────────────────────────────────────────────────────────────
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-// Skeleton Loading
-.skeleton-container {
-  position: relative;
-  overflow: hidden;
+%shimmer {
+  background: linear-gradient(90deg, #e4e4ec 25%, #f0f0f6 50%, #e4e4ec 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
 }
+
+.skeleton-box { @extend %shimmer; }
+.s-icon { width: 40px; height: 40px; border-radius: 10px; }
+.s-badge { width: 48px; height: 22px; }
+.s-val { width: 80px; height: 28px; margin: 12px 0 6px; }
+.s-lbl { width: 110px; height: 12px; }
+.s-icon-sm { width: 38px; height: 38px; border-radius: $rs; }
+.s-val-sm { width: 60px; height: 20px; margin-bottom: 5px; }
+.s-lbl-sm { width: 80px; height: 11px; }
+.s-av { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; @extend %shimmer; }
+.s-nm { width: 120px; height: 13px; margin-bottom: 5px; }
+.s-em { width: 160px; height: 10px; }
+.s-bdg { width: 64px; height: 22px; border-radius: 10px; @extend %shimmer; }
 
 .skeleton-stat-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  background: $sur; border-radius: $r; padding: 18px; border: 1px solid $line;
+  .skeleton-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
 }
 
-.skeleton-icon {
-  width: 56px;
-  height: 56px;
-  background: #e0e0e0;
-  border-radius: 16px;
+.skeleton-sec-card {
+  background: $sur; border-radius: $r; padding: 14px 16px; border: 1px solid $line;
+  display: flex; align-items: center; gap: 12px;
 }
 
-.skeleton-info {
-  flex: 1;
+.skeleton-chart {
+  height: 200px; background: $sur; border-radius: $r; border: 1px solid $line;
+  @extend %shimmer;
 }
 
-.skeleton-value {
-  width: 80px;
-  height: 28px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 8px;
+.skeleton-list-card {
+  background: $sur; border-radius: $r; border: 1px solid $line; overflow: hidden;
 }
 
-.skeleton-label {
-  width: 100px;
-  height: 12px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 8px;
+.skeleton-list-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 12px 18px; border-bottom: 1px solid $line;
+  &:last-child { border-bottom: none; }
 }
 
-.skeleton-trend {
-  width: 70px;
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-stat-card-secondary {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.skeleton-icon-small {
-  width: 48px;
-  height: 48px;
-  background: #e0e0e0;
-  border-radius: 12px;
-}
-
-.skeleton-info-secondary {
-  flex: 1;
-}
-
-.skeleton-value-small {
-  width: 60px;
-  height: 20px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 6px;
-}
-
-.skeleton-label-small {
-  width: 80px;
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-chart-card,
-.skeleton-distribuicao-card {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  margin-bottom: 20px;
-}
-
-.skeleton-card-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #eeeeee;
-}
-
-.skeleton-title {
-  width: 150px;
-  height: 20px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-view-all {
-  width: 60px;
-  height: 16px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-bars-container {
-  display: flex;
-  justify-content: space-around;
-  padding: 20px;
-}
-
-.skeleton-bar-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-}
-
-.skeleton-bar {
-  width: 30px;
-  height: 60px;
-  background: #e0e0e0;
-  border-radius: 6px 6px 0 0;
-}
-
-.skeleton-bar-label {
-  width: 30px;
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin-top: 8px;
-}
-
-.skeleton-distribuicao-content {
-  padding: 20px;
-}
-
-.skeleton-distribuicao-item {
-  margin-bottom: 16px;
-}
-
-.skeleton-distribuicao-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.skeleton-distribuicao-label {
-  width: 60px;
-  height: 12px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-distribuicao-value {
-  width: 40px;
-  height: 12px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-progress-bar {
-  height: 6px;
-  background: #e0e0e0;
-  border-radius: 3px;
-}
-
-.skeleton-distribuicao-total {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 16px;
-  margin-top: 16px;
-  border-top: 1px solid #eeeeee;
-}
-
-.skeleton-total-label {
-  width: 100px;
-  height: 14px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-total-value {
-  width: 60px;
-  height: 14px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-recent-card {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  margin-bottom: 20px;
-}
-
-.skeleton-users-list,
-.skeleton-services-list {
-  padding: 8px 0;
-}
-
-.skeleton-user-item,
-.skeleton-service-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #eeeeee;
-}
-
-.skeleton-avatar {
-  width: 40px;
-  height: 40px;
-  background: #e0e0e0;
-  border-radius: 50%;
-}
-
-.skeleton-avatar-service {
-  width: 40px;
-  height: 40px;
-  background: #e0e0e0;
-  border-radius: 50%;
-}
-
-.skeleton-user-info,
-.skeleton-service-info {
-  flex: 1;
-}
-
-.skeleton-user-name,
-.skeleton-service-name {
-  width: 120px;
-  height: 14px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 6px;
-}
-
-.skeleton-user-email,
-.skeleton-service-cliente {
-  width: 160px;
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-user-badge,
-.skeleton-service-value {
-  text-align: right;
-}
-
-.skeleton-badge {
-  width: 70px;
-  height: 20px;
-  background: #e0e0e0;
-  border-radius: 16px;
-  margin-bottom: 4px;
-}
-
-.skeleton-date {
-  width: 50px;
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 4px;
-}
-
-.skeleton-price {
-  width: 60px;
-  height: 12px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 4px;
-}
-
-.skeleton-status {
-  width: 50px;
-  height: 16px;
-  background: #e0e0e0;
-  border-radius: 16px;
-}
-
-.skeleton-quick-actions {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.skeleton-action-item {
-  text-align: center;
-}
-
-.skeleton-action-icon {
-  width: 48px;
-  height: 48px;
-  background: #e0e0e0;
-  border-radius: 12px;
-  margin: 0 auto 8px;
-}
-
-.skeleton-action-label {
-  width: 50px;
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin: 0 auto;
-}
-
-.skeleton-shimmer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  animation: shimmer 1.5s infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-// Estilos principais
+// ─── STATS GRID ───────────────────────────────────────────────────────────
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .stat-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  transition: all 0.3s ease;
-  cursor: pointer;
+  background: $sur; border-radius: $r; padding: 18px;
+  border: 1px solid $line;
+  transition: transform 0.2s;
+  position: relative;
+  overflow: hidden;
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  }
+  &:hover { transform: translateY(-2px); }
 
-  .stat-card-content {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .stat-icon {
+  &::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: -8px;
     width: 56px;
     height: 56px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: 50%;
+    opacity: 0.07;
+    pointer-events: none;
   }
+  &.sc-blue::after { background: $a; }
+  &.sc-green::after { background: $green; }
+  &.sc-gold::after { background: $gold; }
+  &.sc-teal::after { background: $teal; }
+  &.sc-red::after { background: $red; }
+  &.sc-purple::after { background: $purple; }
 
-  .stat-info {
-    flex: 1;
-  }
-
-  .stat-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #424242;
-    line-height: 1.2;
-  }
-
-  .stat-label {
-    font-size: 0.8rem;
-    color: #9e9e9e;
-    margin-top: 4px;
-  }
-
-  .stat-trend {
-    font-size: 0.7rem;
-    margin-top: 6px;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-
-    &.trend-up {
-      color: #2e7d32;
-    }
-    &.trend-down {
-      color: #d32f2f;
-    }
-  }
+  &__top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
 }
 
-.stats-grid-secondary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.stat-card-secondary {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  }
-
-  .stat-card-secondary-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .stat-secondary-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .stat-secondary-value {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #424242;
-  }
-
-  .stat-secondary-label {
-    font-size: 0.75rem;
-    color: #9e9e9e;
-  }
-}
-
-.charts-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.chart-card,
-.distribuicao-card {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.card-header {
+.stat-icon {
+  width: 40px; height: 40px; border-radius: 10px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #eeeeee;
-
-  .card-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #424242;
-  }
-
-  .view-all-btn {
-    color: #667eea;
-    font-size: 0.8rem;
-  }
+  justify-content: center;
 }
 
-.bars-container {
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
-  height: 160px;
-  padding: 20px;
-}
+.stat-val { font-size: 26px; font-weight: 700; color: $ink; line-height: 1; margin-bottom: 4px; }
+.stat-lbl { font-size: 11px; color: $muted; }
 
-.bar-item {
+.stat-trend {
+  font-size: 11px; font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  flex: 1;
-  max-width: 50px;
-
-  .bar {
-    width: 30px;
-    border-radius: 6px 6px 0 0;
-    transition: height 0.3s ease;
-  }
-
-  .bar-label {
-    font-size: 0.7rem;
-    color: #9e9e9e;
-    margin-top: 8px;
-  }
-
-  .bar-value {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #757575;
-  }
+  gap: 2px;
 }
+.trend-up { background: $gl; color: darken($green, 10%); }
+.trend-dn { background: $rl; color: darken($red, 10%); }
 
-.distribuicao-content {
-  padding: 20px;
-}
+// ─── ICON COLOURS ─────────────────────────────────────────────────────────
+.si-blue { background: $a-l; color: $a; }
+.si-green { background: $gl; color: $green; }
+.si-gold { background: $gol; color: $gold; }
+.si-teal { background: $tl; color: $teal; }
+.si-red { background: $rl; color: $red; }
+.si-purple { background: $pl; color: $purple; }
+.si-slate { background: $sll; color: $slate; }
 
-.distribuicao-item {
-  margin-bottom: 16px;
-
-  .distribuicao-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 6px;
-
-    .distribuicao-label {
-      font-size: 0.8rem;
-      color: #757575;
-    }
-    .distribuicao-value {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #424242;
-    }
-  }
-
-  .progress-bar {
-    height: 6px;
-    border-radius: 3px;
-  }
-}
-
-.distribuicao-total {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 16px;
-  margin-top: 16px;
-  border-top: 1px solid #eeeeee;
-
-  .total-label {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #616161;
-  }
-  .total-value {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #667eea;
-  }
-}
-
-.recent-lists {
+// ─── SEC GRID ─────────────────────────────────────────────────────────────
+.sec-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
-.recent-card {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.users-list,
-.services-list {
-  max-height: 380px;
-  overflow-y: auto;
-}
-
-.user-item,
-.service-item {
+.sec-card {
+  background: $sur;
+  border-radius: $r;
+  padding: 14px 16px;
+  border: 1px solid $line;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #eeeeee;
-  cursor: pointer;
-  transition: background 0.2s ease;
-
-  &:hover {
-    background: #f5f5f5;
-  }
-  &:last-child {
-    border-bottom: none;
-  }
+  transition: transform 0.2s;
+  &:hover { transform: translateY(-1px); }
 }
 
-.user-info,
-.service-info {
-  flex: 1;
+.sec-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: $rs;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.user-name,
-.service-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #424242;
+.sec-val { font-size: 18px; font-weight: 700; color: $ink; line-height: 1; margin-bottom: 3px; }
+.sec-lbl { font-size: 11px; color: $muted; }
+
+// ─── CHARTS ROW ───────────────────────────────────────────────────────────
+.charts-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
-.user-email,
-.service-cliente {
-  font-size: 0.7rem;
-  color: #9e9e9e;
-}
-
-.user-badge,
-.service-value {
-  text-align: right;
-}
-
-.user-date {
-  font-size: 0.65rem;
-  color: #e0e0e0;
-  margin-top: 4px;
-}
-
-.service-price {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #667eea;
-  margin-bottom: 4px;
-}
-
-.quick-actions {
-  background: white;
-  border-radius: 16px;
+// ─── CARD ─────────────────────────────────────────────────────────────────
+.card {
+  background: $sur;
+  border-radius: $r;
+  border: 1px solid $line;
   overflow: hidden;
 }
 
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
-  padding: 20px;
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid $line;
 }
 
-.action-item {
+.card-title { font-size: 13px; font-weight: 600; color: $ink; }
+
+.card-link {
+  font-size: 11px;
+  color: $a;
+  font-weight: 500;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  &:hover { background: $a-l !important; }
+}
+
+.card-body { padding: 18px; }
+
+// ─── BARS ─────────────────────────────────────────────────────────────────
+.bars-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 130px;
+}
+
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.bar-v { font-size: 10px; color: $muted; font-weight: 500; }
+.bar-b { width: 100%; border-radius: 5px 5px 0 0; min-height: 4px; transition: height 0.3s; }
+.bar-d { font-size: 10px; color: $muted; }
+
+// ─── DISTRIBUTION ─────────────────────────────────────────────────────────
+.dist-item { margin-bottom: 14px; }
+
+.dist-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+.dist-lbl { font-size: 12px; color: $ink2; }
+.dist-val { font-size: 12px; font-weight: 600; color: $ink; }
+
+.dist-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: $bg;
+}
+.dist-fill { height: 100%; border-radius: 3px; }
+
+.dist-total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 14px;
+  margin-top: 2px;
+  border-top: 1px solid $line;
+}
+.dt-lbl { font-size: 12px; color: $ink2; }
+.dt-val { font-size: 14px; font-weight: 700; color: $a; }
+
+// ─── LISTS ROW ────────────────────────────────────────────────────────────
+.lists-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.list-wrap { max-height: 380px; overflow-y: auto; scrollbar-width: thin; }
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 18px;
+  border-bottom: 1px solid $line;
+  cursor: pointer;
+  transition: background 0.15s;
+  &:last-child { border-bottom: none; }
+  &:hover { background: $a-l; }
+}
+
+.li-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.li-av-sq {
+  width: 38px;
+  height: 38px;
+  border-radius: $rs;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.li-info { flex: 1; min-width: 0; }
+.li-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: $ink;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.li-sub { font-size: 11px; color: $muted; }
+
+.li-right { text-align: right; flex-shrink: 0; }
+.li-date { font-size: 10px; color: $muted; margin-top: 3px; }
+.li-price { font-size: 12px; font-weight: 700; color: $a; margin-bottom: 3px; }
+
+.li-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  display: inline-block;
+}
+.badge-cl { background: $a-l; color: $a; }
+.badge-pr { background: $pl; color: $purple; }
+.badge-admin { background: $rl; color: $red; }
+.badge-root { background: #1f293720; color: #1f2937; }
+.badge-ok { background: $gl; color: darken($green, 12%); }
+.badge-pend { background: $gol; color: darken($gold, 20%); }
+.badge-prog { background: $a-l; color: $a; }
+.badge-cancel { background: $rl; color: darken($red, 10%); }
+
+// ─── ACTIONS ──────────────────────────────────────────────────────────────
+.actions-inner { padding: 16px 18px; }
+
+.actions-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.act-card {
+  background: $bg;
+  border-radius: $r;
+  padding: 16px 10px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  border: 1px solid $line;
+  transition: all 0.2s;
 
   &:hover {
-    transform: translateY(-4px);
+    transform: translateY(-3px);
+    border-color: $a;
+    background: $a-l;
+    .act-icon { background: $a; color: #fff; }
   }
+}
 
-  .action-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 8px;
-  }
+.act-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  font-size: 20px;
+  transition: all 0.2s;
+}
 
-  .action-label {
-    font-size: 0.7rem;
-    color: #757575;
+.act-lbl { font-size: 11px; font-weight: 500; color: $ink2; }
+
+// ─── NO DATA ──────────────────────────────────────────────────────────────
+.no-data-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  background: white;
+  border-radius: 16px;
+  gap: 16px;
+
+  p {
+    color: #9ca3af;
+    margin: 0;
   }
+}
+
+.no-data-text {
+  text-align: center;
+  padding: 20px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+// ─── RESPONSIVE ───────────────────────────────────────────────────────────
+@media (max-width: 1280px) {
+  .stats-grid, .sec-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+  .actions-row { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 1024px) {
-  .stats-grid,
-  .stats-grid-secondary {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .charts-row,
-  .recent-lists {
-    grid-template-columns: 1fr;
-  }
-  .actions-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  .lists-row { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 640px) {
-  .admin-dashboard {
-    padding: 16px;
-  }
-  .stats-grid,
-  .stats-grid-secondary {
-    grid-template-columns: 1fr;
-  }
-  .actions-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+@media (max-width: 768px) {
+  .actions-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .stats-grid, .sec-grid { grid-template-columns: 1fr; }
+  .actions-row { grid-template-columns: 1fr; }
 }
 </style>

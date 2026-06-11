@@ -1,7 +1,7 @@
 <template>
   <div class="bg-grey-1">
-    <!-- Skeleton Loading (sem spinner) -->
-    <div v-if="carregamentoInicial" class="skeleton-loading">
+    <!-- Skeleton Loading -->
+    <div v-if="store.carregamentoInicial" class="skeleton-loading">
       <div class="skeleton-header">
         <div class="skeleton-back-btn"></div>
         <div class="skeleton-title"></div>
@@ -34,22 +34,22 @@
       </div>
     </div>
 
-    <!-- Conteúdo original -->
+    <!-- Conteúdo principal -->
     <template v-else>
-      <div v-if="pedido" class="pedido-detalhes">
+      <div v-if="store.pedido" class="pedido-detalhes">
         <!-- Header -->
         <div class="header-gradient q-pa-md">
           <q-btn flat round dense icon="arrow_back" color="white" @click="$router.back()" />
           <div class="text-h6 text-white q-mt-sm">Detalhes do Pedido</div>
-          <div class="text-subtitle2 text-white" style="opacity: 0.9">#{{ pedido.numero }}</div>
+          <div class="text-subtitle2 text-white" style="opacity: 0.9">#{{ store.pedido.numero }}</div>
         </div>
 
         <!-- Status -->
         <div class="status-card q-ma-md">
           <div class="row items-center justify-between">
             <div class="text-weight-bold">Status:</div>
-            <q-badge :color="statusColor" class="q-px-md q-py-sm">
-              {{ statusLabel }}
+            <q-badge :color="store.statusColor" class="q-px-md q-py-sm">
+              {{ store.statusLabel }}
             </q-badge>
           </div>
         </div>
@@ -63,18 +63,18 @@
             </div>
             <div class="row items-center q-mt-md">
               <q-avatar size="50px" class="q-mr-md">
-                <img :src="pedido.cliente?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.cliente?.nome || 'Cliente')}&background=667eea&color=fff`" />
+                <img :src="store.getAvatarUrl(store.pedido.cliente?.nome || 'Cliente', store.pedido.cliente?.foto)" />
               </q-avatar>
               <div>
-                <div class="text-weight-bold">{{ pedido.cliente?.nome || 'Cliente' }}</div>
-                <div class="text-caption text-grey-6">{{ pedido.cliente?.telefone || 'Sem telefone' }}</div>
+                <div class="text-weight-bold">{{ store.pedido.cliente?.nome || 'Cliente' }}</div>
+                <div class="text-caption text-grey-6">{{ store.pedido.cliente?.telefone || 'Sem telefone' }}</div>
               </div>
             </div>
           </q-card-section>
         </q-card>
 
         <!-- Prestador (se já tiver) com botão de chat -->
-        <q-card v-if="pedido.prestador" class="info-card q-mb-md q-mx-md">
+        <q-card v-if="store.hasPrestador" class="info-card q-mb-md q-mx-md">
           <q-card-section>
             <div class="text-subtitle1 text-weight-bold text-primary">
               <q-icon name="handyman" size="20px" class="q-mr-sm" />
@@ -83,14 +83,14 @@
             <div class="row items-center justify-between q-mt-md">
               <div class="row items-center">
                 <q-avatar size="50px" class="q-mr-md">
-                  <img :src="pedido.prestador?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.prestador?.nome || 'Prestador')}&background=667eea&color=fff`" />
+                  <img :src="store.getAvatarUrl(store.pedido.prestador?.nome || 'Prestador', store.pedido.prestador?.foto)" />
                 </q-avatar>
                 <div>
-                  <div class="text-weight-bold">{{ pedido.prestador?.nome || 'Prestador' }}</div>
-                  <div class="text-caption text-grey-6">{{ pedido.prestador?.telefone || 'Sem telefone' }}</div>
-                  <div class="row items-center q-mt-xs" v-if="pedido.prestador?.media_avaliacao">
-                    <q-rating v-model="pedido.prestador.media_avaliacao" size="14px" :max="5" color="yellow" readonly />
-                    <span class="text-caption text-grey-6 q-ml-xs">({{ pedido.prestador.media_avaliacao }})</span>
+                  <div class="text-weight-bold">{{ store.pedido.prestador?.nome || 'Prestador' }}</div>
+                  <div class="text-caption text-grey-6">{{ store.pedido.prestador?.telefone || 'Sem telefone' }}</div>
+                  <div class="row items-center q-mt-xs" v-if="store.pedido.prestador?.media_avaliacao">
+                    <q-rating v-model="store.pedido.prestador.media_avaliacao" size="14px" :max="5" color="yellow" readonly />
+                    <span class="text-caption text-grey-6 q-ml-xs">({{ store.pedido.prestador.media_avaliacao }})</span>
                   </div>
                 </div>
               </div>
@@ -114,8 +114,24 @@
               Serviço
             </div>
             <div class="q-mt-md">
-              <div class="text-weight-bold">{{ pedido.categoria?.nome || 'Categoria não definida' }}</div>
-              <div class="text-caption text-grey-6 q-mt-sm">{{ pedido.descricao || 'Sem descrição' }}</div>
+              <div class="text-weight-bold">{{ store.pedido.categoria?.nome || 'Categoria não definida' }}</div>
+              <div class="text-caption text-grey-6 q-mt-sm">{{ store.pedido.descricao || 'Sem descrição' }}</div>
+              <div v-if="store.pedido.valor" class="text-caption text-primary q-mt-sm">
+                Valor: {{ store.valorFormatado }}
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <!-- Data do Serviço -->
+        <q-card class="info-card q-mb-md q-mx-md">
+          <q-card-section>
+            <div class="text-subtitle1 text-weight-bold text-primary">
+              <q-icon name="event" size="20px" class="q-mr-sm" />
+              Data do Serviço
+            </div>
+            <div class="q-mt-md">
+              <div class="text-caption">{{ store.dataServicoFormatada }}</div>
             </div>
           </q-card-section>
         </q-card>
@@ -128,12 +144,25 @@
               Localização
             </div>
             <div class="q-mt-md">
-              <div class="text-caption">{{ pedido.endereco }}</div>
+              <div class="text-caption">{{ store.pedido.endereco }}</div>
             </div>
           </q-card-section>
         </q-card>
 
-        <!-- Data -->
+        <!-- Observações -->
+        <q-card v-if="store.pedido.observacoes" class="info-card q-mb-md q-mx-md">
+          <q-card-section>
+            <div class="text-subtitle1 text-weight-bold text-primary">
+              <q-icon name="notes" size="20px" class="q-mr-sm" />
+              Observações
+            </div>
+            <div class="q-mt-md">
+              <div class="text-caption">{{ store.pedido.observacoes }}</div>
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <!-- Data do Pedido -->
         <q-card class="info-card q-mb-md q-mx-md">
           <q-card-section>
             <div class="text-subtitle1 text-weight-bold text-primary">
@@ -141,295 +170,153 @@
               Data do Pedido
             </div>
             <div class="q-mt-md">
-              <div class="text-caption">{{ formatarData(pedido.created_at) }}</div>
+              <div class="text-caption">{{ store.dataFormatada }}</div>
             </div>
           </q-card-section>
         </q-card>
 
         <!-- Foto do Pedido -->
-        <q-card v-if="pedido.foto" class="info-card q-mb-md q-mx-md">
+        <q-card v-if="store.hasFoto" class="info-card q-mb-md q-mx-md">
           <q-card-section>
             <div class="text-subtitle1 text-weight-bold text-primary">
               <q-icon name="photo" size="20px" class="q-mr-sm" />
               Foto do Serviço
             </div>
             <div class="q-mt-md text-center">
-              <img :src="pedido.foto" class="foto-pedido" />
+              <img :src="store.pedido.foto!" class="foto-pedido" />
             </div>
           </q-card-section>
         </q-card>
+
+        <!-- Botões de Ação -->
+        <div class="action-buttons q-pa-md q-gutter-md">
+          <q-btn
+            v-if="store.podeCancelar"
+            label="Cancelar Pedido"
+            color="negative"
+            outline
+            icon="cancel"
+            class="full-width"
+            @click="confirmarCancelamento"
+          />
+          <q-btn
+            v-if="store.podeAvaliar"
+            label="Avaliar Serviço"
+            color="positive"
+            icon="star"
+            class="full-width"
+            @click="irParaAvaliacao"
+          />
+        </div>
       </div>
 
       <div v-else class="empty-state text-center q-pa-xl">
         <q-icon name="error" size="64px" color="grey-4" />
         <div class="text-h6 text-grey-7 q-mt-md">Pedido não encontrado</div>
+        <q-btn
+          label="Voltar"
+          color="primary"
+          flat
+          class="q-mt-md"
+          @click="$router.back()"
+        />
       </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { api } from 'src/boot/axios';
-import { useAuthStore } from 'src/stores/auth-store';
-import { useClientePedidosStore, type PedidoData } from 'src/stores/client/cliente-pedidos-store';
-import { usePrestadorServicosStore, type SolicitacaoData } from 'src/stores/prestador/prestador-servicos-store';
+import { useAuthStore } from 'src/stores/login-store';
+import { useDetalhesPedidoStore } from 'src/stores/client/cliente-detalhes-pedido-store';
 
-// ==========================================
-// INTERFACES LOCAIS
-// ==========================================
-
-interface ClienteInfo {
-  id: number;
-  nome: string;
-  foto: string | null;
-  telefone: string;
-}
-
-interface CategoriaInfo {
-  id: number;
-  nome: string;
-  icone: string;
-  cor: string;
-}
-
-interface PrestadorInfo {
-  id: number;
-  nome: string;
-  foto: string | null;
-  telefone: string;
-  media_avaliacao?: number;
-}
-
-interface PedidoDetalhesData {
-  id: number;
-  numero: string;
-  status: string;
-  descricao: string | null;
-  foto: string | null;
-  data: string;
-  endereco: string;
-  observacoes: string | null;
-  valor: number | null;
-  created_at: string;
-  cliente?: ClienteInfo;
-  categoria?: CategoriaInfo;
-  prestador?: PrestadorInfo;
-}
-
-// ✅ Tipo para acessar propriedades opcionais sem usar 'any'
-type DadosComIds = (PedidoData | SolicitacaoData) & {
-  cliente_id?: number;
-  prestador_id?: number;
-  categoria_id?: number;
-};
-
-// ==========================================
-// SETUP
-// ==========================================
+defineOptions({ name: 'DetalhesPedidoPage' });
 
 const route = useRoute();
 const router = useRouter();
 const $q = useQuasar();
 const authStore = useAuthStore();
-
-const clientePedidosStore = useClientePedidosStore();
-const prestadorServicosStore = usePrestadorServicosStore();
-
-const carregamentoInicial = ref(true);
-const pedido = ref<PedidoDetalhesData | null>(null);
-
-const statusLabel = computed(() => {
-  const statusMap: Record<string, string> = {
-    pendente: 'Pendente',
-    aceito: 'Aceito',
-    em_andamento: 'Em Andamento',
-    concluido: 'Concluído',
-    cancelado: 'Cancelado'
-  };
-  return statusMap[pedido.value?.status || ''] || pedido.value?.status || 'Desconhecido';
-});
-
-const statusColor = computed(() => {
-  const colorMap: Record<string, string> = {
-    pendente: 'orange',
-    aceito: 'primary',
-    em_andamento: 'info',
-    concluido: 'positive',
-    cancelado: 'negative'
-  };
-  return colorMap[pedido.value?.status || ''] || 'grey';
-});
-
-const formatarData = (data: string) => {
-  if (!data) return '';
-  try {
-    const date = new Date(data);
-    return date.toLocaleDateString('pt-PT', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch {
-    return data;
-  }
-};
+const store = useDetalhesPedidoStore();
 
 const irParaChat = () => {
-  if (pedido.value?.prestador?.id) {
-    void router.push(`/mobile/chat/${pedido.value.prestador.id}`);
+  if (store.pedido?.prestador?.id) {
+    void router.push(`/mobile/chat/${store.pedido.prestador.id}`);
+  } else {
+    $q.notify({
+      type: 'warning',
+      message: 'Prestador não disponível para chat',
+      position: 'top'
+    });
   }
 };
 
-// ==========================================
-// BUSCAR DADOS ADICIONAIS
-// ==========================================
+const irParaAvaliacao = () => {
+  if (store.pedido?.id) {
+    void router.push(`/mobile/avaliacao/${store.pedido.id}`);
+  }
+};
 
-const buscarClienteInfo = async (clienteId: number): Promise<ClienteInfo | undefined> => {
+const confirmarCancelamento = () => {
+  $q.dialog({
+    title: 'Cancelar Pedido',
+    message: 'Tem certeza que deseja cancelar este pedido?',
+    cancel: { label: 'Não', flat: true },
+    ok: { label: 'Sim, cancelar', color: 'negative' },
+    persistent: true,
+  }).onOk(() => {
+    void executarCancelamento();
+  });
+};
+
+const executarCancelamento = async () => {
   try {
-    const response = await api.get(`/users/${clienteId}`);
-    if (response.data.success && response.data.data) {
-      return {
-        id: response.data.data.id,
-        nome: response.data.data.nome,
-        foto: response.data.data.foto || null,
-        telefone: response.data.data.telefone || '',
-      };
+    const success = await store.cancelarPedido();
+    if (success) {
+      $q.notify({
+        type: 'positive',
+        message: 'Pedido cancelado com sucesso!',
+        position: 'top',
+        timeout: 2000
+      });
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: store.erro || 'Erro ao cancelar pedido',
+        position: 'top'
+      });
     }
-    return undefined;
-  } catch {
-    return undefined;
+  } catch (error) {
+    console.error('Erro ao cancelar pedido:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao cancelar pedido',
+      position: 'top'
+    });
   }
 };
 
-const buscarPrestadorInfo = async (prestadorId: number): Promise<PrestadorInfo | undefined> => {
-  try {
-    const response = await api.get(`/prestadores/${prestadorId}`);
-    if (response.data.success && response.data.data) {
-      return {
-        id: response.data.data.id,
-        nome: response.data.data.nome,
-        foto: response.data.data.foto || null,
-        telefone: response.data.data.telefone || '',
-        media_avaliacao: response.data.data.media_avaliacao,
-      };
-    }
-    return undefined;
-  } catch {
-    return undefined;
-  }
-};
-
-const buscarCategoriaInfo = async (categoriaId: number): Promise<CategoriaInfo | undefined> => {
-  try {
-    const response = await api.get(`/categorias/${categoriaId}`);
-    if (response.data.success && response.data.data) {
-      return {
-        id: response.data.data.id,
-        nome: response.data.data.nome,
-        icone: response.data.data.icone || 'category',
-        cor: response.data.data.cor || 'primary',
-      };
-    }
-    return undefined;
-  } catch {
-    return undefined;
-  }
-};
-
-// ==========================================
-// CARREGAR PEDIDO
-// ==========================================
-
-const carregarPedido = async () => {
+const carregarDados = async () => {
   const idParam = route.params.id;
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
 
   if (!id) {
-    carregamentoInicial.value = false;
     return;
   }
 
   const pedidoId = Number(id);
+  const tipoUsuario = authStore.isPrestador ? 'prestador' : 'cliente';
 
-  try {
-    let dados: PedidoData | SolicitacaoData | null = null;
-
-    if (authStore.isPrestador) {
-      await prestadorServicosStore.fetchSolicitacoes();
-      dados = prestadorServicosStore.solicitacoes.find(
-        (s: SolicitacaoData) => s.id === pedidoId
-      ) || null;
-    } else {
-      await clientePedidosStore.fetchMeusPedidos();
-      dados = clientePedidosStore.pedidos.find(
-        (p: PedidoData) => p.id === pedidoId
-      ) || null;
-    }
-
-    if (dados) {
-      // ✅ Sem 'any' - usando o tipo DadosComIds
-      const dadosComIds = dados as DadosComIds;
-
-      const detalhes: PedidoDetalhesData = {
-        id: dados.id,
-        numero: dados.numero,
-        status: dados.status,
-        descricao: 'descricao' in dados ? (dados.descricao || null) : null,
-        foto: 'foto' in dados ? (dados.foto || null) : null,
-        data: dados.data,
-        endereco: dados.endereco,
-        observacoes: 'observacoes' in dados ? (dados.observacoes || null) : null,
-        valor: dados.valor,
-        created_at: dados.created_at,
-      };
-
-      // Buscar cliente
-      const clienteId = dadosComIds.cliente_id;
-      if (clienteId) {
-        const clienteInfo = await buscarClienteInfo(clienteId);
-        if (clienteInfo) detalhes.cliente = clienteInfo;
-      }
-
-      // Buscar prestador
-      const prestadorId = dadosComIds.prestador_id;
-      if (prestadorId) {
-        const prestadorInfo = await buscarPrestadorInfo(prestadorId);
-        if (prestadorInfo) detalhes.prestador = prestadorInfo;
-      }
-
-      // Buscar categoria
-      const categoriaId = dadosComIds.categoria_id;
-      if (categoriaId) {
-        const categoriaInfo = await buscarCategoriaInfo(categoriaId);
-        if (categoriaInfo) detalhes.categoria = categoriaInfo;
-      }
-
-      pedido.value = detalhes;
-    } else {
-      pedido.value = null;
-    }
-  } catch (error) {
-    console.error('Erro ao carregar pedido:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar detalhes do pedido',
-      position: 'top'
-    });
-    pedido.value = null;
-  } finally {
-    setTimeout(() => {
-      carregamentoInicial.value = false;
-    }, 500);
-  }
+  await store.carregarPedido(pedidoId, tipoUsuario);
 };
 
 onMounted(() => {
-  void carregarPedido();
+  void carregarDados();
+});
+
+onUnmounted(() => {
+  store.limparStore();
 });
 </script>
 
@@ -563,5 +450,9 @@ onMounted(() => {
   background: white;
   border-radius: 16px;
   margin: 20px;
+}
+
+.action-buttons {
+  margin-bottom: 20px;
 }
 </style>

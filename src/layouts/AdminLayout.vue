@@ -1,1083 +1,1029 @@
 <template>
-  <!-- Skeleton Loading (mostra enquanto carrega) -->
-  <div v-if="isLoading" class="skeleton-admin-layout">
-    <!-- Skeleton Header -->
-    <div class="skeleton-header">
-      <div class="skeleton-menu-btn"></div>
-      <div class="skeleton-logo"></div>
-      <div class="skeleton-header-actions">
-        <div class="skeleton-notification"></div>
-        <div class="skeleton-avatar"></div>
-      </div>
-    </div>
-
-    <!-- Skeleton Drawer -->
-    <div class="skeleton-drawer">
-      <div class="skeleton-profile">
-        <div class="skeleton-profile-avatar"></div>
-        <div class="skeleton-profile-info">
-          <div class="skeleton-line w-60"></div>
-          <div class="skeleton-line w-40"></div>
-        </div>
-      </div>
-      <div class="skeleton-menu">
-        <div v-for="i in 8" :key="i" class="skeleton-menu-item">
-          <div class="skeleton-icon"></div>
-          <div class="skeleton-line w-50"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Skeleton Content -->
-    <div class="skeleton-content">
-      <div class="skeleton-stats">
-        <div v-for="i in 4" :key="i" class="skeleton-stat-card">
-          <div class="skeleton-stat-icon"></div>
-          <div class="skeleton-stat-info">
-            <div class="skeleton-line w-60"></div>
-            <div class="skeleton-line w-40"></div>
+  <div class="admin-shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">
+          <div class="brand-icon">EA</div>
+          <div>
+            <div class="brand-name">EstouAqui</div>
+            <div class="brand-tag">{{ isRoot ? 'Root Admin' : 'Gestor' }}</div>
           </div>
         </div>
       </div>
-      <div class="skeleton-table">
-        <div class="skeleton-table-header">
-          <div v-for="i in 5" :key="i" class="skeleton-line w-15"></div>
+
+      <nav class="sidebar-nav">
+        <!-- PRINCIPAL (NEGÓCIO) -->
+        <div class="nav-section">
+          <div class="nav-section-label">Principal</div>
+
+          <router-link to="/admin/dashboard" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">dashboard</i>
+            <span>Dashboard</span>
+          </router-link>
+
+          <router-link to="/admin/pedidos" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">receipt_long</i>
+            <span>Pedidos</span>
+            <span v-if="pedidosPendentes > 0" class="nav-badge">{{ pedidosPendentes }}</span>
+          </router-link>
+
+          <router-link to="/admin/prestadores" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">handyman</i>
+            <span>Prestadores</span>
+            <span v-if="pendentesVerificacao > 0" class="nav-badge">{{ pendentesVerificacao }}</span>
+          </router-link>
+
+          <router-link to="/admin/utilizadores" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">group</i>
+            <span>Clientes</span>
+          </router-link>
+
+          <router-link to="/admin/servicos" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">miscellaneous_services</i>
+            <span>Serviços</span>
+          </router-link>
         </div>
-        <div v-for="i in 5" :key="i" class="skeleton-table-row">
-          <div v-for="j in 5" :key="j" class="skeleton-line w-15"></div>
+
+        <!-- GESTÃO (NEGÓCIO) -->
+        <div class="nav-section">
+          <div class="nav-section-label">Gestão</div>
+
+          <router-link to="/admin/categorias" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">category</i>
+            <span>Categorias</span>
+          </router-link>
+
+          <router-link to="/admin/promocoes" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">local_offer</i>
+            <span>Promoções</span>
+          </router-link>
+
+          <router-link to="/admin/avaliacoes" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">star_outline</i>
+            <span>Avaliações</span>
+            <span v-if="avaliacoesPendentes > 0" class="nav-badge">{{ avaliacoesPendentes }}</span>
+          </router-link>
+
+          <router-link to="/admin/financeiro" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">money</i>
+            <span>Financeiro</span>
+          </router-link>
+
+          <router-link to="/admin/relatorios" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">bar_chart</i>
+            <span>Relatórios</span>
+          </router-link>
+
+          <router-link to="/admin/estatisticas" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">pie_chart</i>
+            <span>Estatísticas</span>
+          </router-link>
+        </div>
+
+        <!-- SUPORTE (NEGÓCIO) -->
+        <div class="nav-section">
+          <div class="nav-section-label">Suporte</div>
+
+          <router-link to="/admin/suporte" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">support_agent</i>
+            <span>Tickets</span>
+            <span v-if="ticketsAbertos > 0" class="nav-badge">{{ ticketsAbertos }}</span>
+          </router-link>
+
+          <router-link to="/admin/notificacoes" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">notifications_none</i>
+            <span>Notificações</span>
+          </router-link>
+        </div>
+
+        <!-- SISTEMA (APENAS ROOT) -->
+        <div v-if="isRoot" class="nav-section">
+          <div class="nav-section-label">Sistema</div>
+
+          <router-link to="/admin/configuracoes" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">settings</i>
+            <span>Configurações</span>
+          </router-link>
+
+          <router-link to="/admin/permissoes" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">security</i>
+            <span>Permissões</span>
+          </router-link>
+
+          <router-link to="/admin/backups" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">backup</i>
+            <span>Backups</span>
+          </router-link>
+
+          <router-link to="/admin/logs" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">history</i>
+            <span>Logs do Sistema</span>
+          </router-link>
+
+          <router-link to="/admin/monitoramento" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">monitor_heart</i>
+            <span>Monitoramento</span>
+            <span v-if="alertasAtivos > 0" class="nav-badge warning">{{ alertasAtivos }}</span>
+          </router-link>
+
+          <router-link to="/admin/performance" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">speed</i>
+            <span>Performance</span>
+          </router-link>
+        </div>
+
+        <!-- PERFIL (AMBOS) -->
+        <div class="nav-section">
+          <div class="nav-section-label">Conta</div>
+
+          <router-link to="/admin/perfil" class="nav-item" active-class="active">
+            <i class="material-icons nav-icon">person</i>
+            <span>Meu Perfil</span>
+          </router-link>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="admin-pill">
+          <div v-if="fotoPerfil" class="admin-avatar-img">
+            <img :src="fotoPerfil" :alt="adminNome" />
+          </div>
+          <div v-else class="admin-av">{{ adminInitials }}</div>
+          <div>
+            <div class="admin-name">{{ adminNome }}</div>
+            <div class="admin-role">{{ adminRole }}</div>
+          </div>
+          <q-btn flat round dense icon="logout" size="sm" class="logout-btn" @click="sair">
+            <q-tooltip>Sair</q-tooltip>
+          </q-btn>
         </div>
       </div>
-    </div>
-  </div>
+    </aside>
 
-  <!-- Layout real -->
-  <q-layout v-else view="hHh LpR fFf" class="admin-layout">
-    <!-- Header -->
-    <q-header elevated class="ea-admin-header text-white">
-      <q-toolbar class="q-px-sm q-px-md-sm q-px-lg-md">
-        <q-btn
-          flat
-          round
-          dense
-          icon="menu"
-          @click="leftDrawerOpen = !leftDrawerOpen"
-          class="ea-menu-btn"
-        />
-
-        <q-toolbar-title class="row items-center">
-          <div class="ea-logo" @click="goToHome">
-            <span class="ea-logo__dot"></span>
-            <span class="ea-logo__text">estou<strong>aqui</strong></span>
+    <!-- CONTEÚDO DIREITO -->
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="topbar-title">{{ tituloPagina }}</div>
+          <div class="topbar-sub">Bem-vindo de volta, {{ adminNome }} · {{ dataHoje }}</div>
+        </div>
+        <div class="topbar-right">
+          <div class="tb-search" @click="focarBusca">
+            <i class="material-icons" style="font-size: 16px;">search</i>
+            <span>Pesquisar...</span>
+            <span class="tb-shortcut">⌘K</span>
           </div>
-          <span class="admin-badge q-ml-sm q-ml-md-md" :class="{ 'root-badge': isRoot }">
-            {{ isRoot ? 'Root' : 'Admin' }}
-          </span>
-        </q-toolbar-title>
 
-        <!-- Info do admin - esconder texto em mobile -->
-        <div class="row items-center q-gutter-sm q-gutter-md-md">
+          <!-- DROPDOWN DE NOTIFICAÇÕES -->
+          <q-btn-dropdown
+            flat
+            round
+            class="tb-btn notification-dropdown"
+            :class="{ 'has-notification': notificacoesNaoLidas > 0 }"
+            :dropdown-icon="notificacoesNaoLidas > 0 ? 'notifications_active' : 'notifications_none'"
+            no-caps
+            auto-close
+          >
+            <template v-slot:label>
+              <i class="material-icons" style="font-size: 20px;">notifications</i>
+              <span v-if="notificacoesNaoLidas > 0" class="notification-badge">{{ notificacoesNaoLidas }}</span>
+            </template>
+
+            <div class="notification-dropdown-content">
+              <div class="notification-header">
+                <span class="title">Notificações</span>
+                <button class="mark-all" @click="marcarTodasComoLidas" v-if="notificacoesNaoLidas > 0">
+                  Marcar todas como lidas
+                </button>
+              </div>
+
+              <div class="notification-list" v-if="notificacoes.length > 0">
+                <div
+                  v-for="notif in notificacoes.slice(0, 10)"
+                  :key="notif.id"
+                  class="notification-item"
+                  :class="{ unread: notif.lida === 0 || notif.lida === false }"
+                  @click="irParaNotificacao(notif)"
+                >
+                  <div class="notification-icon" :class="getNotificationIconClass(notif.tipo)">
+                    <i class="material-icons" style="font-size: 20px;">{{ getNotificationIcon(notif.tipo) }}</i>
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-title">{{ notif.titulo }}</div>
+                    <div class="notification-message">{{ truncarTexto(notif.mensagem, 60) }}</div>
+                    <div class="notification-time">{{ formatarDataRelativa(notif.created_at) }}</div>
+                  </div>
+                  <div v-if="notif.lida === 0 || notif.lida === false" class="notification-unread-dot"></div>
+                </div>
+              </div>
+
+              <div v-else class="notification-empty">
+                <i class="material-icons" style="font-size: 40px; color: grey;">notifications_off</i>
+                <p>Nenhuma notificação</p>
+              </div>
+
+              <div class="notification-footer" v-if="notificacoes.length > 5">
+                <button class="view-all" @click="irPara('/admin/notificacoes')">
+                  Ver todas as notificações
+                </button>
+              </div>
+            </div>
+          </q-btn-dropdown>
+
           <q-btn
             flat
             round
-            dense
-            icon="notifications"
-            class="ea-notification-btn"
-            @click="openNotifications"
+            class="tb-btn"
+            @click="atualizarDados"
+            :loading="adminStore.isLoading"
+            aria-label="Atualizar"
           >
-            <q-badge
-              v-if="unreadNotificationsCount > 0"
-              color="red"
-              floating
-              class="notification-badge-mobile"
-            >
-              {{ unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount }}
-            </q-badge>
-            <q-menu>
-              <q-list style="min-width: 320px; max-width: 90vw" class="notification-list">
-                <q-item-label header class="bg-grey-2 text-weight-bold">
-                  <div class="row items-center justify-between q-col-gutter-sm">
-                    <div class="col">Notificações</div>
-                    <div class="col-auto">
-                      <q-btn
-                        v-if="unreadNotificationsCount > 0"
-                        flat
-                        dense
-                        label="Marcar todas"
-                        size="sm"
-                        @click="marcarTodasComoLidas"
-                        no-caps
-                      />
-                    </div>
-                  </div>
-                </q-item-label>
-
-                <q-scroll-area style="height: 400px; max-height: 60vh">
-                  <div v-if="loadingNotificacoes" class="text-center q-pa-md">
-                    <q-spinner color="primary" size="32px" />
-                  </div>
-                  <div
-                    v-else-if="notificacoesList.length === 0"
-                    class="text-center q-pa-md text-grey-6"
-                  >
-                    <q-icon name="notifications_none" size="48px" />
-                    <div>Sem notificações</div>
-                  </div>
-                  <q-item
-                    v-for="notif in notificacoesList"
-                    :key="notif.id"
-                    clickable
-                    v-close-popup
-                    :class="{ 'notification-unread': !notif.lida }"
-                    @click="marcarNotificacaoLida(notif.id)"
-                    class="notification-item"
-                  >
-                    <q-item-section avatar class="q-pa-none">
-                      <q-avatar :color="getNotificacaoCor(notif)" text-color="white" size="36px">
-                        <q-icon :name="getNotificacaoIcone(notif)" size="18px" />
-                      </q-avatar>
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label lines="1" class="text-weight-medium text-body2">{{
-                        notif.titulo
-                      }}</q-item-label>
-                      <q-item-label caption lines="2" class="text-caption">{{
-                        notif.mensagem
-                      }}</q-item-label>
-                      <q-item-label caption class="text-grey-6 text-caption">{{
-                        formatarData(notif.created_at)
-                      }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section side v-if="!notif.lida">
-                      <q-badge color="primary" rounded>Nova</q-badge>
-                    </q-item-section>
-                  </q-item>
-                </q-scroll-area>
-              </q-list>
-            </q-menu>
-          </q-btn>
-
-          <q-btn flat round dense icon="more_vert" class="ea-more-btn">
-            <q-menu>
-              <q-list style="min-width: 200px">
-                <q-item clickable v-close-popup to="/admin/perfil">
-                  <q-item-section avatar><q-icon name="person" size="18px" /></q-item-section>
-                  <q-item-section>Meu Perfil</q-item-section>
-                </q-item>
-                <q-separator />
-                <q-item clickable v-close-popup @click="logout">
-                  <q-item-section avatar
-                    ><q-icon name="logout" size="18px" color="negative"
-                  /></q-item-section>
-                  <q-item-section class="text-negative">Sair</q-item-section>
-                </q-item>
-              </q-list>
-            </q-menu>
+            <i class="material-icons" style="font-size: 20px;">refresh</i>
+            <q-tooltip>Atualizar dados</q-tooltip>
           </q-btn>
         </div>
-      </q-toolbar>
-    </q-header>
+      </header>
 
-    <!-- Drawer -->
-    <q-drawer
-      v-model="leftDrawerOpen"
-      :show-if-above="windowWidth > 768"
-      :width="drawerWidth"
-      :breakpoint="768"
-      bordered
-      class="ea-admin-drawer"
-    >
-      <q-scroll-area class="fit">
-        <!-- Perfil resumido no drawer -->
-        <div class="drawer-profile q-pa-md q-pa-sm-sm" :class="{ 'root-profile': isRoot }">
-          <div class="row items-center no-wrap">
-            <q-avatar :size="drawerAvatarSize" class="profile-avatar">
-              <img :src="userAvatar" :alt="userNome" />
-            </q-avatar>
-            <div class="q-ml-sm q-ml-md-md user-info-text">
-              <div class="profile-name text-body1 text-h6-sm">{{ userNome }}</div>
-              <div class="profile-role text-caption">
-                {{ isRoot ? 'Root Administrator' : 'Administrador' }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <q-list padding class="menu-list">
-          <!-- PRINCIPAL -->
-          <q-item-label header class="menu-header">PRINCIPAL</q-item-label>
-
-          <q-item
-            clickable
-            v-ripple
-            to="/admin/dashboard"
-            :active="isActive('/admin/dashboard')"
-            active-class="menu-item-active"
-            class="menu-item"
-          >
-            <q-item-section avatar
-              ><q-icon
-                name="dashboard"
-                :color="isActive('/admin/dashboard') ? 'primary' : 'grey-7'"
-                :size="menuIconSize"
-            /></q-item-section>
-            <q-item-section class="menu-item-text">Dashboard</q-item-section>
-          </q-item>
-
-          <q-separator class="q-my-sm" />
-
-          <!-- GESTÃO -->
-          <q-item-label header class="menu-header">GESTÃO</q-item-label>
-
-          <q-item
-            v-if="isRoot"
-            clickable
-            v-ripple
-            to="/admin/utilizadores"
-            :active="isActive('/admin/utilizadores')"
-            active-class="menu-item-active"
-            class="menu-item"
-          >
-            <q-item-section avatar
-              ><q-icon
-                name="people"
-                :color="isActive('/admin/utilizadores') ? 'primary' : 'grey-7'"
-                :size="menuIconSize"
-            /></q-item-section>
-            <q-item-section class="menu-item-text">Utilizadores</q-item-section>
-          </q-item>
-
-          <q-item
-            clickable
-            v-ripple
-            to="/admin/prestadores"
-            :active="isActive('/admin/prestadores')"
-            active-class="menu-item-active"
-            class="menu-item"
-          >
-            <q-item-section avatar
-              ><q-icon
-                name="handyman"
-                :color="isActive('/admin/prestadores') ? 'primary' : 'grey-7'"
-                :size="menuIconSize"
-            /></q-item-section>
-            <q-item-section class="menu-item-text">Prestadores</q-item-section>
-            <q-item-section side v-if="!isRoot"
-              ><q-badge color="info" class="text-caption">consulta</q-badge></q-item-section
-            >
-          </q-item>
-
-          <q-item
-            clickable
-            v-ripple
-            to="/admin/categorias"
-            :active="isActive('/admin/categorias')"
-            active-class="menu-item-active"
-            class="menu-item"
-          >
-            <q-item-section avatar
-              ><q-icon
-                name="category"
-                :color="isActive('/admin/categorias') ? 'primary' : 'grey-7'"
-                :size="menuIconSize"
-            /></q-item-section>
-            <q-item-section class="menu-item-text">Categorias</q-item-section>
-          </q-item>
-
-          <q-item
-            clickable
-            v-ripple
-            to="/admin/servicos"
-            :active="isActive('/admin/servicos')"
-            active-class="menu-item-active"
-            class="menu-item"
-          >
-            <q-item-section avatar
-              ><q-icon
-                name="assignment"
-                :color="isActive('/admin/servicos') ? 'primary' : 'grey-7'"
-                :size="menuIconSize"
-            /></q-item-section>
-            <q-item-section class="menu-item-text">Serviços</q-item-section>
-          </q-item>
-
-          <q-separator class="q-my-sm" />
-
-          <!-- RELATÓRIOS -->
-          <q-item-label header class="menu-header">RELATÓRIOS</q-item-label>
-
-          <q-item
-            clickable
-            v-ripple
-            to="/admin/estatisticas"
-            :active="isActive('/admin/estatisticas')"
-            active-class="menu-item-active"
-            class="menu-item"
-          >
-            <q-item-section avatar
-              ><q-icon
-                name="bar_chart"
-                :color="isActive('/admin/estatisticas') ? 'primary' : 'grey-7'"
-                :size="menuIconSize"
-            /></q-item-section>
-            <q-item-section class="menu-item-text">Estatísticas</q-item-section>
-          </q-item>
-
-          <q-item
-            clickable
-            v-ripple
-            to="/admin/relatorios"
-            :active="isActive('/admin/relatorios')"
-            active-class="menu-item-active"
-            class="menu-item"
-          >
-            <q-item-section avatar
-              ><q-icon
-                name="assessment"
-                :color="isActive('/admin/relatorios') ? 'primary' : 'grey-7'"
-                :size="menuIconSize"
-            /></q-item-section>
-            <q-item-section class="menu-item-text">Relatórios</q-item-section>
-          </q-item>
-
-          <q-separator class="q-my-sm" />
-
-          <!-- FINANCEIRO -->
-          <q-item-label header class="menu-header">FINANCEIRO</q-item-label>
-
-          <q-item
-            clickable
-            v-ripple
-            to="/admin/financeiro"
-            :active="isActive('/admin/financeiro')"
-            active-class="menu-item-active"
-            class="menu-item"
-          >
-            <q-item-section avatar
-              ><q-icon
-                name="payments"
-                :color="isActive('/admin/financeiro') ? 'primary' : 'grey-7'"
-                :size="menuIconSize"
-            /></q-item-section>
-            <q-item-section class="menu-item-text">Financeiro</q-item-section>
-            <q-item-section side>
-              <q-badge v-if="isRoot" color="positive" class="text-caption">gestão total</q-badge>
-              <q-badge v-else color="info" class="text-caption">consulta</q-badge>
-            </q-item-section>
-          </q-item>
-
-          <q-separator class="q-my-sm" />
-
-          <!-- SISTEMA - APENAS ROOT -->
-          <template v-if="isRoot">
-            <q-item-label header class="menu-header">SISTEMA</q-item-label>
-
-            <q-item
-              clickable
-              v-ripple
-              to="/admin/monitoring"
-              :active="isActive('/admin/monitoring')"
-              active-class="menu-item-active"
-              class="menu-item"
-            >
-              <q-item-section avatar
-                ><q-icon
-                  name="monitor_heart"
-                  :color="isActive('/admin/monitoring') ? 'primary' : 'grey-7'"
-                  :size="menuIconSize"
-              /></q-item-section>
-              <q-item-section class="menu-item-text">Monitoramento</q-item-section>
-            </q-item>
-
-            <q-item
-              clickable
-              v-ripple
-              to="/admin/configuracoes"
-              :active="isActive('/admin/configuracoes')"
-              active-class="menu-item-active"
-              class="menu-item"
-            >
-              <q-item-section avatar
-                ><q-icon
-                  name="settings"
-                  :color="isActive('/admin/configuracoes') ? 'primary' : 'grey-7'"
-                  :size="menuIconSize"
-              /></q-item-section>
-              <q-item-section class="menu-item-text">Configurações</q-item-section>
-            </q-item>
-          </template>
-        </q-list>
-      </q-scroll-area>
-    </q-drawer>
-
-    <!-- PAGE CONTAINER -->
-    <q-page-container>
-      <router-view />
-    </q-page-container>
-
-    <!-- Loading global -->
-    <q-inner-loading :showing="globalLoading">
-      <q-spinner size="50px" color="primary" />
-    </q-inner-loading>
-  </q-layout>
+      <main class="main-content">
+        <router-view />
+      </main>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useAuthStore } from 'src/stores/auth-store';
-import { useAdminDashboardStore, type NotificacaoData } from 'src/stores/admin/admin-dashboard-store';
+import { useAuthStore } from 'src/stores/login-store';
+import { useAdminStore } from 'src/stores/admin/admin-store';
 import { useQuasar } from 'quasar';
+
+// Interface para notificação
+interface Notificacao {
+  id: number;
+  user_id: number;
+  tipo: string;
+  titulo: string;
+  mensagem: string;
+  lida: boolean | number;
+  data?: {
+    pedido_id?: number;
+    [key: string]: unknown;
+  };
+  created_at: string;
+  updated_at: string;
+}
 
 defineOptions({ name: 'AdminLayout' });
 
 const router = useRouter();
 const route = useRoute();
-const $q = useQuasar();
 const authStore = useAuthStore();
-const dashboardStore = useAdminDashboardStore();
+const adminStore = useAdminStore();
+const $q = useQuasar();
 
-const isLoading = ref(true);
-const windowWidth = ref(window.innerWidth);
-const leftDrawerOpen = ref(true);
-const globalLoading = ref(false);
-const loadingNotificacoes = ref(false);
-let pollingInterval: ReturnType<typeof setInterval> | null = null;
+// ===================== FOTO DO PERFIL =====================
+const fotoTimestamp = ref(Date.now());
 
-const isRoot = computed(() => authStore.user?.email === 'root@estouaqui.com');
-const userNome = computed(() => authStore.user?.nome || 'Administrador');
-const userAvatar = computed(
-  () =>
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(userNome.value)}&background=5B4BF5&color=fff&size=56`,
-);
-
-const drawerWidth = computed(() => (windowWidth.value < 400 ? 260 : 280));
-const drawerAvatarSize = computed(() => (windowWidth.value < 400 ? '48px' : '56px'));
-const menuIconSize = computed(() => (windowWidth.value < 400 ? '20px' : '24px'));
-
-const notificacoesList = computed(() => dashboardStore.notificacoesAdmin);
-const unreadNotificationsCount = computed(() => {
-  const notifs = notificacoesList.value;
-  return Array.isArray(notifs) ? notifs.filter((n: NotificacaoData) => !n.lida).length : 0;
-});
-
-const updateWindowWidth = () => {
-  windowWidth.value = window.innerWidth;
-};
-
-const goToHome = () => {
-  void router.push('/');
-};
-
-const getNotificacaoIcone = (notif: NotificacaoData) => {
-  const tipo = notif.tipo || 'default';
-  const icones: Record<string, string> = {
-    pedido: 'assignment',
-    avaliacao: 'star',
-    promocao: 'local_offer',
-    prestador: 'handyman',
-    sistema: 'info',
-    default: 'notifications',
-  };
-  return icones[tipo] || icones.default;
-};
-
-const getNotificacaoCor = (notif: NotificacaoData) => {
-  const tipo = notif.tipo || 'default';
-  const cores: Record<string, string> = {
-    pedido: 'primary',
-    avaliacao: 'yellow-8',
-    promocao: 'orange',
-    prestador: 'purple',
-    sistema: 'grey-7',
-    default: 'primary',
-  };
-  return cores[tipo] || cores.default;
-};
-
-const formatarData = (dataString: string) => {
-  const date = new Date(dataString);
-  const now = new Date();
-  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-  if (diffHours < 1) {
-    const diffMinutes = Math.floor(diffHours * 60);
-    return `${diffMinutes} min atrás`;
-  } else if (diffHours < 24) {
-    return `Hoje às ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-  } else if (diffHours < 48) {
-    return 'Ontem';
-  } else {
-    return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+const fotoPerfil = computed(() => {
+  const foto = authStore.user?.foto;
+  if (foto && foto !== '') {
+    return `${foto}${foto.includes('?') ? '&' : '?'}t=${fotoTimestamp.value}`;
   }
-};
-
-const carregarNotificacoes = async () => {
-  loadingNotificacoes.value = true;
-  try {
-    await dashboardStore.fetchNotificacoesAdmin();
-  } catch (error) {
-    console.error('Erro ao carregar notificações:', error);
-  } finally {
-    loadingNotificacoes.value = false;
-  }
-};
-
-const marcarNotificacaoLida = async (id: string) => {
-  try {
-    await dashboardStore.marcarNotificacaoLida(id);
-  } catch (error) {
-    console.error('Erro ao marcar notificação:', error);
-  }
-};
-
-const marcarTodasComoLidas = async () => {
-  try {
-    const success = await dashboardStore.marcarTodasNotificacoesLidas();
-    if (success) {
-      $q.notify({
-        type: 'positive',
-        message: 'Todas notificações marcadas como lidas',
-        position: 'top',
-        timeout: 2000,
-      });
-    }
-  } catch (error) {
-    console.error('Erro ao marcar todas notificações:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao marcar notificações', position: 'top' });
-  }
-};
-
-const openNotifications = () => {
-  void carregarNotificacoes();
-};
-
-const iniciarPolling = () => {
-  if (pollingInterval) clearInterval(pollingInterval);
-  pollingInterval = setInterval(() => {
-    if (document.hasFocus()) {
-      void dashboardStore.fetchNotificacoesAdmin();
-    }
-  }, 30000);
-};
-
-const pararPolling = () => {
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    pollingInterval = null;
-  }
-};
-
-const isActive = (path: string): boolean =>
-  route.path === path || route.path.startsWith(path + '/');
-
-const logout = (): void => {
-  $q.dialog({
-    title: 'Confirmar saída',
-    message: 'Tem certeza que deseja sair da sua conta?',
-    cancel: { label: 'Cancelar', color: 'grey-7', flat: true },
-    ok: { label: 'Sair', color: 'negative', unelevated: true },
-    persistent: true,
-  }).onOk(() => {
-    globalLoading.value = true;
-    void authStore
-      .logout()
-      .then(() => {
-        setTimeout(() => {
-          globalLoading.value = false;
-          void router.push('/auth/login');
-          $q.notify({
-            type: 'positive',
-            message: 'Logout realizado com sucesso',
-            position: 'top',
-            timeout: 2000,
-          });
-        }, 500);
-      })
-      .catch(() => {
-        globalLoading.value = false;
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao realizar logout',
-          position: 'top',
-          timeout: 2000,
-        });
-      });
-  });
-};
-
-const carregarDadosIniciais = async () => {
-  isLoading.value = true;
-  try {
-    if (!authStore.isAuthenticated || !authStore.isAdmin) {
-      await router.push('/admin/login');
-      isLoading.value = false;
-      return;
-    }
-    await Promise.all([carregarNotificacoes()]);
-  } catch (error) {
-    console.error('Erro ao carregar dados iniciais:', error);
-  } finally {
-    setTimeout(() => {
-      isLoading.value = false;
-    }, 600);
-  }
-};
-
-onMounted(() => {
-  window.addEventListener('resize', updateWindowWidth);
-  if (!authStore.isAuthenticated || !authStore.isAdmin) {
-    void router.push('/admin/login');
-    isLoading.value = false;
-  } else {
-    void carregarDadosIniciais();
-    iniciarPolling();
-  }
-});
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateWindowWidth);
-  pararPolling();
+  return '';
 });
 
 watch(
-  () => dashboardStore.notificacoesAdmin,
-  () => {},
-  { immediate: true },
+  () => authStore.user?.foto,
+  () => {
+    fotoTimestamp.value = Date.now();
+  },
+  { immediate: true }
 );
+
+// ===================== NOTIFICAÇÕES =====================
+const notificacoes = ref<Notificacao[]>([]);
+const notificacoesNaoLidas = ref(0);
+let intervalo: ReturnType<typeof setInterval> | null = null;
+
+const carregarNotificacoes = async (): Promise<void> => {
+  try {
+    const { api } = await import('src/boot/axios');
+    const response = await api.get('/admin/notificacoes?per_page=20');
+    if (response.data?.success) {
+      notificacoes.value = response.data.data;
+      notificacoesNaoLidas.value = notificacoes.value.filter((n: Notificacao) => !n.lida).length;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar notificações:', error);
+  }
+};
+
+const marcarComoLida = async (id: number): Promise<void> => {
+  try {
+    const { api } = await import('src/boot/axios');
+    await api.put(`/admin/notificacoes/${id}/marcar-lida`);
+    await carregarNotificacoes();
+  } catch (error) {
+    console.error('Erro ao marcar notificação como lida:', error);
+  }
+};
+
+const marcarTodasComoLidas = async (): Promise<void> => {
+  try {
+    const { api } = await import('src/boot/axios');
+    await api.put('/admin/notificacoes/marcar-todas-lidas');
+    await carregarNotificacoes();
+    $q.notify({ type: 'positive', message: 'Todas notificações marcadas como lidas!' });
+  } catch (error) {
+    console.error('Erro ao marcar todas como lidas:', error);
+  }
+};
+
+const irParaNotificacao = (notificacao: Notificacao): void => {
+  if (!notificacao.lida) {
+    void marcarComoLida(notificacao.id);
+  }
+  if (notificacao.data?.pedido_id) {
+    void router.push(`/admin/pedidos/${notificacao.data.pedido_id}`);
+  } else {
+    void router.push('/admin/notificacoes');
+  }
+};
+
+const getNotificationIcon = (tipo: string): string => {
+  const icons: Record<string, string> = {
+    pedido: 'shopping_cart',
+    promocao: 'local_offer',
+    sistema: 'settings',
+    avaliacao: 'star',
+    pagamento: 'payments',
+    suporte: 'support_agent',
+    seguranca: 'security'
+  };
+  return icons[tipo] || 'notifications';
+};
+
+const getNotificationIconClass = (tipo: string): string => {
+  const classes: Record<string, string> = {
+    pedido: 'icon-pedido',
+    promocao: 'icon-promocao',
+    sistema: 'icon-sistema',
+    avaliacao: 'icon-avaliacao',
+    pagamento: 'icon-pagamento',
+    suporte: 'icon-suporte'
+  };
+  return classes[tipo] || 'icon-default';
+};
+
+const truncarTexto = (texto: string, max: number): string => {
+  if (!texto) return '';
+  if (texto.length <= max) return texto;
+  return texto.substring(0, max) + '...';
+};
+
+const formatarDataRelativa = (dataString: string): string => {
+  if (!dataString) return '';
+  const date = new Date(dataString);
+  const hoje = new Date();
+  const diffDias = Math.floor((hoje.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDias === 0) return 'Hoje';
+  if (diffDias === 1) return 'Ontem';
+  if (diffDias < 7) return `${diffDias} dias atrás`;
+  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+};
+
+// ===================== DADOS DO USUÁRIO =====================
+const isRoot = computed(() => authStore.user?.tipo === 'root');
+
+const adminNome = computed(() => authStore.user?.nome?.split(' ')[0] || 'Administrador');
+const adminRole = computed(() => {
+  if (isRoot.value) return 'Root Administrator';
+  return 'Business Manager';
+});
+const adminInitials = computed(() =>
+  (authStore.user?.nome || 'AD')
+    .split(' ')
+    .slice(0, 2)
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+);
+
+const dataHoje = computed(() =>
+  new Date().toLocaleDateString('pt-PT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+);
+
+// ===================== DADOS DO DASHBOARD =====================
+const pendentesVerificacao = computed(() => adminStore.dashboard.prestadores_pendentes);
+const pedidosPendentes = computed(() => adminStore.dashboard.pedidos_pendentes);
+const ticketsAbertos = computed(() => adminStore.dashboard.tickets_abertos);
+const alertasAtivos = computed(() => adminStore.dashboard.alertas_ativos || 0);
+const avaliacoesPendentes = computed(() => adminStore.dashboard.avaliacoes_pendentes || 0);
+
+// ===================== TÍTULO DA PÁGINA =====================
+const tituloPagina = computed(() => {
+  const path = route.path;
+  const titulos: Record<string, string> = {
+    '/admin/dashboard': 'Dashboard',
+    '/admin/utilizadores': 'Clientes',
+    '/admin/prestadores': 'Prestadores',
+    '/admin/pedidos': 'Pedidos',
+    '/admin/servicos': 'Serviços',
+    '/admin/categorias': 'Categorias',
+    '/admin/promocoes': 'Promoções',
+    '/admin/relatorios': 'Relatórios',
+    '/admin/avaliacoes': 'Avaliações',
+    '/admin/financeiro': 'Financeiro',
+    '/admin/estatisticas': 'Estatísticas',
+    '/admin/suporte': 'Suporte',
+    '/admin/notificacoes': 'Notificações',
+    '/admin/configuracoes': 'Configurações',
+    '/admin/permissoes': 'Permissões',
+    '/admin/backups': 'Backups',
+    '/admin/logs': 'Logs do Sistema',
+    '/admin/monitoramento': 'Monitoramento',
+    '/admin/performance': 'Performance',
+    '/admin/perfil': 'Meu Perfil'
+  };
+  return titulos[path] || 'Dashboard';
+});
+
+// ===================== ACTIONS =====================
+const irPara = (path: string) => void router.push(path);
+const focarBusca = () =>
+  $q.notify({ type: 'info', message: 'Busca global em breve', position: 'top' });
+const atualizarDados = async (): Promise<void> => {
+  await adminStore.recarregarDados();
+  await carregarNotificacoes();
+  $q.notify({ type: 'positive', message: 'Dados atualizados!', position: 'top', timeout: 2000 });
+};
+const sair = async (): Promise<void> => {
+  await authStore.logout();
+  void router.push('/admin/login');
+};
+
+// ===================== LIFECYCLE =====================
+onMounted(async () => {
+  await adminStore.recarregarDados();
+  await carregarNotificacoes();
+
+  intervalo = setInterval(() => {
+    void carregarNotificacoes();
+  }, 30000);
+});
+
+onUnmounted(() => {
+  if (intervalo) {
+    clearInterval(intervalo);
+  }
+});
 </script>
 
 <style scoped lang="scss">
-// ==========================================
-// VARIÁVEIS DO SISTEMA (CORES PADRÃO)
-// ==========================================
-$system-primary: #5B4BF5;
-$system-primary-dark: #4a3ad4;
-$system-success: #10B981;
-$system-warning: #F59E0B;
-$system-danger: #EF4444;
-$system-dark: #0A0A0F;
-$system-dark-light: #1A1A2E;
-$system-gray: #6B7280;
-$system-gray-light: #F3F4F6;
-$system-border: #E5E7EB;
-$system-white: #FFFFFF;
-$system-bg: #F4F4F8;
-$system-radius: 12px;
+// ─── TOKENS ───────────────────────────────────────────────────────────────
+$a: #667eea;
+$a2: #764ba2;
+$a-l: rgba(102, 126, 234, 0.09);
+$a-m: rgba(102, 126, 234, 0.18);
+$green: #10b981;
+$gl: rgba(16, 185, 129, 0.1);
+$gold: #f59e0b;
+$gol: rgba(245, 158, 11, 0.1);
+$red: #ef4444;
+$rl: rgba(239, 68, 68, 0.1);
+$teal: #06b6d4;
+$tl: rgba(6, 182, 212, 0.1);
+$purple: #764ba2;
+$pl: rgba(118, 75, 162, 0.1);
+$slate: #607d8b;
+$sll: #eceff1;
+$ink: #0d0d1a;
+$ink2: #3d3d55;
+$muted: #9898b2;
+$line: rgba(0, 0, 0, 0.07);
+$sur: #ffffff;
+$bg: #f2f2f7;
+$sidebar: #16163a;
+$r: 12px;
+$rs: 8px;
 
-// ==========================================
-// SKELETON LOADING
-// ==========================================
+// ─── SHIMMER ──────────────────────────────────────────────────────────────
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
-.skeleton-admin-layout {
-  background: $system-bg;
-  min-height: 100vh;
-  display: flex;
+%shimmer {
+  background: linear-gradient(90deg, #e4e4ec 25%, #f0f0f6 50%, #e4e4ec 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
 }
-.skeleton-header {
-  position: fixed;
+
+// ─── SHELL ────────────────────────────────────────────────────────────────
+.admin-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+  background: $bg;
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────
+.sidebar {
+  background: $sidebar;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background: $system-dark;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 100;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+.sidebar-brand {
+  padding: 22px 18px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: $a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+.brand-tag {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 1px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 14px 0;
+}
+
+.nav-section {
+  padding: 0 12px;
+  margin-bottom: 4px;
+}
+.nav-section-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 8px 5px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: $rs;
+  cursor: pointer;
+  transition: all 0.18s;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  margin-bottom: 2px;
+  text-decoration: none;
+  user-select: none;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.85);
+  }
+  &.active {
+    background: $a;
+    color: #fff;
+    font-weight: 500;
+  }
+  &.active .nav-icon { color: #fff; }
+
+  .nav-icon {
+    font-size: 18px;
+    width: 20px;
+    flex-shrink: 0;
+  }
+  span { flex: 1; }
+}
+
+.nav-badge {
+  margin-left: auto;
+  background: $red;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  &.warning { background: $gold; }
+}
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.admin-pill {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px;
+  border-radius: $rs;
+  cursor: pointer;
+  &:hover { background: rgba(255, 255, 255, 0.06); }
+}
+
+.admin-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.admin-av {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: $a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.admin-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+}
+.admin-role {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+.logout-btn {
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+// ─── CONTENT AREA ─────────────────────────────────────────────────────────
+.content-area {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+// ─── TOPBAR ───────────────────────────────────────────────────────────────
+.topbar {
+  background: $sur;
+  border-bottom: 1px solid $line;
+  padding: 0 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  z-index: 2000;
-}
-.skeleton-menu-btn,
-.skeleton-notification,
-.skeleton-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-}
-.skeleton-logo {
-  width: 120px;
-  height: 24px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
-}
-.skeleton-header-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-.skeleton-drawer {
-  position: fixed;
-  top: 60px;
-  left: 0;
-  width: 280px;
-  height: calc(100vh - 60px);
-  background: $system-white;
-  border-right: 1px solid $system-border;
-  z-index: 1999;
-}
-.skeleton-profile {
-  padding: 16px;
-  background: $system-gray-light;
-  border-bottom: 1px solid $system-border;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.skeleton-profile-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.skeleton-profile-info {
-  flex: 1;
-}
-.skeleton-menu {
-  padding: 16px;
-}
-.skeleton-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  margin: 4px 0;
-  border-radius: 10px;
-}
-.skeleton-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.skeleton-content {
-  flex: 1;
-  margin-left: 280px;
-  margin-top: 60px;
-  padding: 24px;
-}
-.skeleton-stats {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-.skeleton-stat-card {
-  flex: 1;
-  min-width: 200px;
-  background: $system-white;
-  border-radius: $system-radius;
-  padding: 20px;
-  display: flex;
-  align-items: center;
+  height: 58px;
   gap: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-.skeleton-stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: $system-radius;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.skeleton-stat-info {
-  flex: 1;
-}
-.skeleton-line {
-  height: 14px;
-  border-radius: 7px;
-  margin: 6px 0;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.w-15 { width: 15%; }
-.w-30 { width: 30%; }
-.w-40 { width: 40%; }
-.w-50 { width: 50%; }
-.w-60 { width: 60%; }
-.w-70 { width: 70%; }
-.w-80 { width: 80%; }
-.skeleton-table {
-  background: $system-white;
-  border-radius: $system-radius;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-.skeleton-table-header {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: $system-gray-light;
-  border-bottom: 1px solid $system-border;
-}
-.skeleton-table-row {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid $system-border;
-}
-
-// ==========================================
-// MEDIA QUERIES PARA SKELETON
-// ==========================================
-@media (max-width: 768px) {
-  .skeleton-drawer {
-    width: 260px;
-  }
-  .skeleton-content {
-    margin-left: 0;
-  }
-}
-
-// ==========================================
-// LAYOUT REAL - ADMIN
-// ==========================================
-.admin-layout {
-  background: $system-bg;
-}
-
-// ==========================================
-// HEADER
-// ==========================================
-.ea-admin-header {
-  background: $system-dark !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  z-index: 2000;
-
-  .ea-menu-btn,
-  .ea-notification-btn,
-  .ea-more-btn {
-    color: rgba(255, 255, 255, 0.8);
-    transition: all 0.2s;
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-    }
-  }
+  z-index: 50;
+  flex-shrink: 0;
 }
 
-// Logo
-.ea-logo {
-  display: inline-flex;
+.topbar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: $ink;
+  line-height: 1.1;
+}
+.topbar-sub {
+  font-size: 11px;
+  color: $muted;
+  margin-top: 1px;
+  text-transform: capitalize;
+}
+
+.topbar-right {
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.tb-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: $bg;
+  border: 1px solid $line;
+  border-radius: $rs;
+  padding: 7px 12px;
+  font-size: 12px;
+  color: $muted;
   cursor: pointer;
+  min-width: 190px;
+  transition: all 0.2s;
 
-  &__dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: $system-primary;
-    box-shadow: 0 0 8px rgba($system-primary, 0.8);
+  &:hover {
+    border-color: $a;
+    background: $a-l;
   }
 
-  &__text {
-    font-size: 1rem;
-    color: #fff;
-    font-weight: 400;
+  .tb-shortcut {
+    margin-left: auto;
+    font-size: 10px;
+    background: rgba(0, 0, 0, 0.06);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+}
 
-    strong {
-      font-weight: 800;
-      background: linear-gradient(135deg, $system-primary 0%, #a78bfa 50%, $system-warning 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+.tb-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: $rs !important;
+  background: $bg !important;
+  border: 1px solid $line !important;
+  color: $muted !important;
+  position: relative;
+
+  &:hover {
+    color: $a !important;
+    border-color: $a !important;
+    background: $a-l !important;
+  }
+}
+
+.tb-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: $red;
+  border: 1.5px solid $sur;
+}
+
+// ─── NOTIFICATION DROPDOWN ─────────────────────────────────────────────────
+.notification-dropdown {
+  position: relative;
+
+  .notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: $red;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+  }
+
+  &.has-notification {
+    color: $a !important;
+  }
+}
+
+.notification-dropdown-content {
+  width: 380px;
+  max-width: 90vw;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e5e7eb;
+
+  .title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1f2937;
+  }
+
+  .mark-all {
+    font-size: 11px;
+    color: $a;
+    background: none;
+    border: none;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
     }
   }
 }
 
-// Admin Badge
-.admin-badge {
-  background: rgba($system-primary, 0.2);
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 0.65rem;
+.notification-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
 
-  &.root-badge {
-    background: rgba($system-success, 0.2);
-    color: $system-success;
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+
+  &:hover {
+    background: #f8f9fa;
   }
-}
 
-// Notification Badge mobile
-.notification-badge-mobile {
-  top: 2px;
-  right: 2px;
-  font-size: 9px;
-  min-width: 16px;
-  height: 16px;
-  line-height: 16px;
-}
+  &.unread {
+    background: rgba(102, 126, 234, 0.05);
 
-// ==========================================
-// DRAWER (MENU LATERAL)
-// ==========================================
-.ea-admin-drawer {
-  background: $system-dark !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  position: fixed;
-  top: 60px;
-  left: 0;
-  height: calc(100vh - 60px);
-  z-index: 1999;
-
-  // Profile Section
-  .drawer-profile {
-    background: rgba($system-primary, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-
-    &.root-profile {
-      background: rgba($system-success, 0.08);
-    }
-
-    .profile-avatar {
-      border: 2px solid $system-primary;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-      flex-shrink: 0;
-    }
-
-    .profile-name {
+    .notification-title {
       font-weight: 600;
-      color: #fff;
-      font-size: 0.9rem;
-    }
-
-    .profile-role {
-      font-size: 0.7rem;
-      color: rgba(255, 255, 255, 0.5);
-    }
-  }
-
-  // Menu List
-  .menu-list {
-    .menu-header {
-      font-size: 0.65rem;
-      letter-spacing: 0.5px;
-      padding: 12px 16px 4px;
-      color: rgba(255, 255, 255, 0.4);
-    }
-
-    .menu-item {
-      margin: 4px 8px;
-      border-radius: 10px;
-      transition: all 0.3s ease;
-      color: rgba(255, 255, 255, 0.7);
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.05);
-        transform: translateX(4px);
-      }
-
-      &.menu-item-active {
-        background: rgba($system-primary, 0.12);
-
-        .menu-item-text {
-          color: $system-primary;
-          font-weight: 500;
-        }
-      }
-
-      .menu-item-text {
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 0.85rem;
-      }
+      color: $a;
     }
   }
 }
 
-// Page Container
-.q-page-container {
-  margin-top: 60px;
-  min-height: calc(100vh - 60px);
-  background: $system-bg;
+.notification-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.icon-pedido {
+    background: rgba(102, 126, 234, 0.1);
+    color: $a;
+  }
+  &.icon-promocao {
+    background: rgba(245, 158, 11, 0.1);
+    color: $gold;
+  }
+  &.icon-sistema {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+  }
+  &.icon-avaliacao {
+    background: rgba(16, 185, 129, 0.1);
+    color: $green;
+  }
+  &.icon-pagamento {
+    background: rgba(6, 182, 212, 0.1);
+    color: $teal;
+  }
+  &.icon-suporte {
+    background: rgba(239, 68, 68, 0.1);
+    color: $red;
+  }
+  &.icon-default {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+  }
 }
 
-// Notification unread
-.notification-unread {
-  background: rgba($system-primary, 0.05);
-  border-left: 3px solid $system-primary;
+.notification-content {
+  flex: 1;
+  min-width: 0;
+
+  .notification-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 2px;
+  }
+
+  .notification-message {
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .notification-time {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-top: 4px;
+  }
 }
 
-// ==========================================
-// MEDIA QUERIES PARA DISPOSITIVOS MÓVEIS
-// ==========================================
+.notification-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $a;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.notification-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+
+  p {
+    margin-top: 8px;
+    font-size: 13px;
+  }
+}
+
+.notification-footer {
+  padding: 10px 16px;
+  text-align: center;
+  border-top: 1px solid #e5e7eb;
+
+  .view-all {
+    font-size: 12px;
+    color: $a;
+    background: none;
+    border: none;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────
+.main-content {
+  padding: 24px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+// Responsivo
 @media (max-width: 768px) {
-  .ea-admin-drawer {
-    width: 280px !important;
+  .admin-shell {
+    grid-template-columns: 1fr;
   }
-
-  .q-page-container {
-    margin-left: 0 !important;
-  }
-
-  .drawer-profile {
-    .user-info-text {
-      .profile-name {
-        font-size: 0.85rem !important;
-      }
-    }
-  }
-
-  .menu-item-text {
-    font-size: 0.8rem !important;
-  }
-
-  .ea-logo__text {
-    font-size: 0.9rem;
-  }
-
-  .admin-badge {
+  .sidebar {
     display: none;
   }
-}
-
-@media (max-width: 480px) {
-  .ea-admin-drawer {
-    width: 260px !important;
+  .main-content {
+    padding: 16px;
   }
 
-  .drawer-profile {
-    padding: 12px !important;
-
-    .profile-avatar {
-      width: 44px !important;
-      height: 44px !important;
-    }
-  }
-
-  .menu-item {
-    margin: 2px 6px !important;
-
-    .q-icon {
-      font-size: 20px !important;
-    }
-  }
-
-  .menu-header {
-    font-size: 0.6rem !important;
-    padding: 8px 12px 2px !important;
-  }
-}
-
-// ==========================================
-// SUPORTE PARA NOTCH E SAFE AREA
-// ==========================================
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .q-page-container {
-    padding-bottom: env(safe-area-inset-bottom);
+  .notification-dropdown-content {
+    width: 95vw;
   }
 }
 </style>

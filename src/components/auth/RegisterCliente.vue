@@ -18,7 +18,9 @@
             class="ea-input-field"
             dark
             color="white"
-            :rules="[(val: string) => !!val || 'Nome é obrigatório']"
+            :error="hasError('nome')"
+            :error-message="getErrorMessage('nome')"
+            @update:model-value="clearError('nome')"
           />
         </div>
       </div>
@@ -39,7 +41,9 @@
                 class="ea-input-field"
                 dark
                 color="white"
-                :rules="[(val: string) => !!val || 'Telefone é obrigatório']"
+                :error="hasError('telefone')"
+                :error-message="getErrorMessage('telefone')"
+                @update:model-value="clearError('telefone')"
               />
             </div>
           </div>
@@ -61,7 +65,9 @@
                 class="ea-input-field"
                 dark
                 color="white"
-                :rules="[(val: string) => !!val || 'Email é obrigatório']"
+                :error="hasError('email')"
+                :error-message="getErrorMessage('email')"
+                @update:model-value="clearError('email')"
               />
             </div>
           </div>
@@ -88,7 +94,9 @@
             class="ea-input-field"
             dark
             color="white"
-            :rules="[(val: string) => val.length >= 6 || 'Mínimo 6 caracteres']"
+            :error="hasError('password')"
+            :error-message="getErrorMessage('password')"
+            @update:model-value="clearError('password')"
           >
             <template #append>
               <q-icon
@@ -100,8 +108,8 @@
           </q-input>
         </div>
         <div class="password-strength" v-if="formData.password">
-          <div class="strength-bar" :class="passwordStrengthClass"></div>
-          <div class="strength-text">{{ passwordStrengthText }}</div>
+          <div class="strength-bar" :class="passwordStrength.class"></div>
+          <div class="strength-text">{{ passwordStrength.text }}</div>
         </div>
       </div>
 
@@ -112,7 +120,7 @@
             <q-icon name="lock" size="18px" />
           </span>
           <q-input
-            v-model="formData.confirmPassword"
+            v-model="confirmPassword"
             :type="showConfirmPassword ? 'text' : 'password'"
             outlined
             dense
@@ -120,9 +128,9 @@
             class="ea-input-field"
             dark
             color="white"
-            :rules="[
-              (val: string) => val === formData.password || 'As palavras-passe não coincidem',
-            ]"
+            :error="hasError('confirmPassword')"
+            :error-message="getErrorMessage('confirmPassword')"
+            @update:model-value="clearError('confirmPassword')"
           >
             <template #append>
               <q-icon
@@ -170,7 +178,7 @@
             @change="handleFileUpload"
             style="display: none"
           />
-          <div class="photo-preview" v-if="formData.foto">
+          <div class="photo-preview" v-if="photoPreview">
             <img v-if="photoPreview" :src="photoPreview" alt="Preview" />
             <q-btn
               flat
@@ -186,6 +194,9 @@
             <q-icon name="camera_alt" size="32px" />
             <div class="placeholder-text">Clique para adicionar foto</div>
           </div>
+        </div>
+        <div v-if="hasError('foto')" class="error-message">
+          {{ getErrorMessage('foto') }}
         </div>
       </div>
     </div>
@@ -219,7 +230,11 @@
           label="Li e aceito os Termos de Uso"
           color="primary"
           dark
+          :error="hasError('terms')"
         />
+        <div v-if="hasError('terms')" class="error-message">
+          {{ getErrorMessage('terms') }}
+        </div>
       </div>
     </div>
 
@@ -262,196 +277,149 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { api } from 'src/boot/axios';
-import { CLIENTE_ENDPOINTS } from 'src/router/Api/cliente-endpoints';
-import type { AxiosError } from 'axios';
+import { useClienteRegisterStore } from 'src/stores/client/cliente-register-store';
 
 defineOptions({ name: 'RegisterClienteForm' });
 
 const router = useRouter();
 const $q = useQuasar();
+const registerStore = useClienteRegisterStore();
 
-// Estados do formulário
-const currentStep = ref(1);
+// Estados locais do componente
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
-const loading = ref(false);
-const acceptTerms = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
-const photoPreview = ref<string | null>(null);
+const confirmPassword = ref('');
 
-const formData = ref({
-  nome: '',
-  telefone: '',
-  email: '',
-  endereco: '',
-  password: '',
-  confirmPassword: '',
-  foto: null as File | null,
+// Bindings para a store
+const loading = computed(() => registerStore.loading);
+const currentStep = computed(() => registerStore.currentStep);
+const acceptTerms = computed({
+  get: () => registerStore.acceptTerms,
+  set: (value) => (registerStore.acceptTerms = value),
 });
-
-// Computed para força da palavra-passe
-const passwordStrengthClass = computed(() => {
-  const pwd = formData.value.password;
-  if (!pwd) return '';
-  if (pwd.length < 6) return 'weak';
-  if (pwd.length < 8) return 'fair';
-  if (/[A-Z]/.test(pwd) && /[0-9]/.test(pwd)) return 'strong';
-  return 'good';
+const formData = computed({
+  get: () => registerStore.formData,
+  set: (value) => registerStore.updateFormData(value),
 });
+const photoPreview = computed(() => registerStore.photoPreview);
+const passwordStrength = computed(() => registerStore.passwordStrength);
+const validationErrors = computed(() => registerStore.validationErrors);
 
-const passwordStrengthText = computed(() => {
-  const pwd = formData.value.password;
-  if (!pwd) return '';
-  if (pwd.length < 6) return 'Fraca';
-  if (pwd.length < 8) return 'Razoável';
-  if (/[A-Z]/.test(pwd) && /[0-9]/.test(pwd)) return 'Forte';
-  return 'Boa';
-});
-
-// Validação do passo atual
-const validateStep = (): boolean => {
-  switch (currentStep.value) {
-    case 1: {
-      // ✅ Adicionado bloco com chaves
-      if (!formData.value.nome) {
-        $q.notify({ type: 'warning', message: 'Preencha o nome completo', position: 'top' });
-        return false;
-      }
-      if (!formData.value.telefone) {
-        $q.notify({ type: 'warning', message: 'Preencha o telefone', position: 'top' });
-        return false;
-      }
-      if (!formData.value.email) {
-        $q.notify({ type: 'warning', message: 'Preencha o email', position: 'top' });
-        return false;
-      }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.value.email)) {
-        $q.notify({ type: 'warning', message: 'Email inválido', position: 'top' });
-        return false;
-      }
-      break;
-    }
-    case 2: {
-      // ✅ Adicionado bloco com chaves
-      if (!formData.value.password || formData.value.password.length < 6) {
-        $q.notify({
-          type: 'warning',
-          message: 'Palavra-passe deve ter pelo menos 6 caracteres',
-          position: 'top',
-        });
-        return false;
-      }
-      if (formData.value.password !== formData.value.confirmPassword) {
-        $q.notify({ type: 'warning', message: 'As palavras-passe não coincidem', position: 'top' });
-        return false;
-      }
-      break;
-    }
-    case 4: {
-      // ✅ Adicionado bloco com chaves
-      if (!acceptTerms.value) {
-        $q.notify({ type: 'warning', message: 'Aceite os termos para continuar', position: 'top' });
-        return false;
-      }
-      break;
-    }
-  }
-  return true;
+// Helper para erros
+const hasError = (field: string): boolean => {
+  return validationErrors.value.some(err => err.field === field);
 };
 
-const nextStep = () => {
-  if (validateStep()) {
-    currentStep.value++;
+const getErrorMessage = (field: string): string => {
+  return validationErrors.value.find(err => err.field === field)?.message || '';
+};
+
+const clearError = (field: string): void => {
+  // Remove erro específico do campo
+  const index = registerStore.validationErrors.findIndex(err => err.field === field);
+  if (index !== -1) {
+    registerStore.validationErrors.splice(index, 1);
   }
 };
 
-const prevStep = () => {
-  currentStep.value--;
+// Sincroniza confirmPassword com validação
+watch(confirmPassword, (newVal) => {
+  if (newVal !== formData.value.password) {
+    if (!validationErrors.value.some(err => err.field === 'confirmPassword')) {
+      registerStore.validationErrors.push({
+        field: 'confirmPassword',
+        message: 'As palavras-passe não coincidem',
+      });
+    }
+  } else {
+    const index = registerStore.validationErrors.findIndex(err => err.field === 'confirmPassword');
+    if (index !== -1) {
+      registerStore.validationErrors.splice(index, 1);
+    }
+  }
+});
+
+// Navegação
+const nextStep = (): void => {
+  const success = registerStore.nextStep();
+  if (!success) {
+    // Mostra o primeiro erro de validação
+    const firstError = validationErrors.value[0];
+    if (firstError) {
+      $q.notify({
+        type: 'warning',
+        message: firstError.message,
+        position: 'top',
+      });
+    }
+  }
+};
+
+const prevStep = (): void => {
+  registerStore.prevStep();
 };
 
 // Upload de foto
-const triggerFileInput = () => {
+const triggerFileInput = (): void => {
   fileInput.value?.click();
 };
 
-const handleFileUpload = (event: Event) => {
+const handleFileUpload = (event: Event): void => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (file) {
-    if (file.size > 5 * 1024 * 1024) {
-      $q.notify({ type: 'negative', message: 'Arquivo deve ter no máximo 5MB', position: 'top' });
-      return;
+    const success = registerStore.uploadPhoto(file);
+    if (!success) {
+      $q.notify({
+        type: 'negative',
+        message: getErrorMessage('foto'),
+        position: 'top',
+      });
     }
-    formData.value.foto = file;
-    photoPreview.value = URL.createObjectURL(file);
   }
 };
 
-const removePhoto = () => {
-  if (photoPreview.value) URL.revokeObjectURL(photoPreview.value);
-  formData.value.foto = null;
-  photoPreview.value = null;
-  if (fileInput.value) fileInput.value.value = '';
+const removePhoto = (): void => {
+  registerStore.removePhoto();
+  if (fileInput.value) {
+    fileInput.value.value = '';
+  }
 };
 
-// Registo
-const handleRegister = async () => {
-  if (!validateStep()) return;
+// Registro
+const handleRegister = async (): Promise<void> => {
+  const result = await registerStore.registerCliente();
 
-  loading.value = true;
-  try {
-    const formDataToSend = new FormData();
-    formDataToSend.append('nome', formData.value.nome);
-    formDataToSend.append('telefone', formData.value.telefone);
-    formDataToSend.append('email', formData.value.email);
-    formDataToSend.append('password', formData.value.password);
-    formDataToSend.append('endereco', formData.value.endereco || '');
-    formDataToSend.append('tipo', 'cliente');
-
-    if (formData.value.foto) {
-      formDataToSend.append('foto', formData.value.foto);
-    }
-
-    const response = await api.post(CLIENTE_ENDPOINTS.REGISTER, formDataToSend, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+  if (result.success) {
+    $q.notify({
+      type: 'positive',
+      message: result.message || 'Registo efetuado com sucesso!',
+      position: 'top',
+      icon: 'check_circle',
     });
 
-    if (response.data.success) {
-      $q.notify({
-        type: 'positive',
-        message: response.data.message || 'Registo efetuado com sucesso!',
-        position: 'top',
-        icon: 'check_circle',
-      });
-      setTimeout(() => {
-        void router.push('/');
-      }, 1500);
-    } else {
-      $q.notify({
-        type: 'negative',
-        message: response.data.error || 'Erro ao registar',
-        position: 'top',
-      });
-    }
-  } catch (err) {
-    // ✅ Substituído 'any' pelo tipo correto
-    const error = err as AxiosError<{ error?: string; message?: string }>;
-    console.error('Erro no registo:', error);
+    // Reseta o formulário
+    registerStore.resetForm();
+    confirmPassword.value = '';
+
+    // Redireciona após 1.5 segundos
+    setTimeout(() => {
+      void router.push('/');
+    }, 1500);
+  } else {
     $q.notify({
       type: 'negative',
-      message: error.response?.data?.error || error.message || 'Erro ao registar. Tente novamente.',
+      message: result.error || 'Erro ao registar. Tente novamente.',
       position: 'top',
     });
-  } finally {
-    loading.value = false;
   }
 };
 </script>
+
 <style scoped lang="scss">
 $accent: #5b4bf5;
 
@@ -633,6 +601,12 @@ $accent: #5b4bf5;
       color: rgba(255, 255, 255, 0.5);
     }
   }
+}
+
+.error-message {
+  font-size: 0.75rem;
+  color: #f56565;
+  margin-top: 4px;
 }
 
 .review-card {

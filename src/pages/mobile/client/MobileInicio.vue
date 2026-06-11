@@ -53,9 +53,19 @@
       <!-- Header -->
       <div class="page-header">
         <div class="page-header__left">
-          <q-avatar size="46px" class="user-avatar">
-            <img :src="authStore.userFoto || defaultAvatar" />
-          </q-avatar>
+          <!-- Avatar com fallback igual ao perfil -->
+          <div class="user-avatar-wrapper">
+            <div
+              v-if="avatarError"
+              class="avatar-placeholder-header"
+              :style="{ background: avatarColor }"
+            >
+              {{ avatarIniciais }}
+            </div>
+            <q-avatar v-else size="46px" class="user-avatar">
+              <img :src="avatarUrlComTimestamp" alt="Avatar" @error="avatarError = true" />
+            </q-avatar>
+          </div>
           <div>
             <div class="header-sub">Olá,</div>
             <div class="header-name">{{ userName }}</div>
@@ -72,7 +82,7 @@
       <div class="stats-row">
         <div class="stat-pill stat-pill--primary" @click="goTo('/mobile/meus-pedidos')">
           <q-icon name="assignment" size="20px" class="stat-pill__icon" />
-          <div class="stat-pill__value">{{ pedidosStore.dashboard?.pedidos_pendentes || 0 }}</div>
+          <div class="stat-pill__value">{{ pedidosPendentes }}</div>
           <div class="stat-pill__label">Pedidos ativos</div>
         </div>
         <div class="stat-pill stat-pill--purple" @click="goTo('/mobile/notificacoes')">
@@ -82,7 +92,7 @@
         </div>
         <div class="stat-pill stat-pill--red" @click="goTo('/mobile/favoritos')">
           <q-icon name="favorite" size="20px" class="stat-pill__icon" />
-          <div class="stat-pill__value">{{ pedidosStore.dashboard?.favoritos_count || 0 }}</div>
+          <div class="stat-pill__value">{{ favoritosCount }}</div>
           <div class="stat-pill__label">Favoritos</div>
         </div>
       </div>
@@ -289,10 +299,7 @@
       </div>
 
       <!-- Estado vazio -->
-      <div
-        v-if="!prestadoresDestaque.length && !prestadoresTop.length && !ultimosPedidos.length"
-        class="empty-state"
-      >
+      <div v-if="!temDados" class="empty-state">
         <q-icon name="explore" size="56px" class="empty-state__icon" />
         <h3 class="empty-state__title">Bem-vindo ao EstouAqui!</h3>
         <p class="empty-state__text">
@@ -340,7 +347,6 @@
             class="field-input q-mb-md"
             emit-value
             map-options
-            :rules="[(val) => !!val || 'Selecione uma categoria']"
           />
 
           <div class="field-label">Descrição *</div>
@@ -352,7 +358,6 @@
             placeholder="Ex: Preciso de um canalizador para reparar uma fuga..."
             class="field-input q-mb-md"
             rows="3"
-            :rules="[(val) => !!val || 'Descrição obrigatória']"
           />
 
           <div class="field-label">Localização *</div>
@@ -362,7 +367,6 @@
             dense
             placeholder="Ex: Rua da Paz, 123, Maputo"
             class="field-input q-mb-md"
-            :rules="[(val) => !!val || 'Endereço obrigatório']"
           >
             <template v-slot:prepend>
               <q-icon name="location_on" color="grey-5" />
@@ -416,144 +420,136 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import type { AxiosError } from 'axios';
-import { useAuthStore } from 'src/stores/auth-store';
-// ✅ IMPORTS CORRETOS - Stores separados
-import {
-  useClientePublicStore,
-  type CategoriaData,
-  type PrestadorData,
-} from 'src/stores/client/cliente-public-store';
-import { useClientePedidosStore, type PedidoData } from 'src/stores/client/cliente-pedidos-store';
-import {
-  useClienteComunicacaoStore,
-  type NotificacaoData,
-} from 'src/stores/client/cliente-comunicacao-store';
-import { usePromocaoStore, type PromocaoData } from 'src/stores/client/promocao-store';
+import { useAuthStore } from 'src/stores/login-store';
+import { useClienteInicioStore } from 'src/stores/client/cliente-inicio-store';
 
 defineOptions({ name: 'MobileInicio' });
 
 const router = useRouter();
 const $q = useQuasar();
 const authStore = useAuthStore();
+const inicioStore = useClienteInicioStore();
 
-// ✅ USANDO OS STORES CORRETOS
-const publicStore = useClientePublicStore();
-const pedidosStore = useClientePedidosStore();
-const comunicacaoStore = useClienteComunicacaoStore();
-const promocaoStore = usePromocaoStore();
+// ===================== ESTADOS PARA AVATAR =====================
+const avatarError = ref(false);
+const fotoTimestamp = ref(Date.now());
 
-const defaultImage = 'https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_1280.png';
-const defaultAvatar = 'https://ui-avatars.com/api/?background=667eea&color=fff&bold=true&size=48';
+// ===================== COMPUTED PARA AVATAR =====================
+const avatarUrl = computed(() => {
+  if (authStore.user?.foto) {
+    if (authStore.user.foto.startsWith('http')) {
+      return authStore.user.foto;
+    }
+    return `http://localhost:8000/storage/${authStore.user.foto}`;
+  }
+  return '';
+});
 
-// Estados
-const carregandoInicial = ref(true);
-const carregandoDestaque = ref(true);
-const carregandoTop = ref(true);
-const categoriasCarregadas = ref<CategoriaData[]>([]);
+const avatarUrlComTimestamp = computed(() => {
+  if (!avatarUrl.value) return '';
+  return `${avatarUrl.value}${avatarUrl.value.includes('?') ? '&' : '?'}t=${fotoTimestamp.value}`;
+});
 
-// Estados modal
-const modalCriarPedido = ref(false);
-const carregandoCriarPedido = ref(false);
+const avatarColor = computed(() => {
+  const colors = [
+    '#5B4BF5',
+    '#10B981',
+    '#F59E0B',
+    '#EF4444',
+    '#3B82F6',
+    '#8B5CF6',
+    '#EC4899',
+    '#14B8A6',
+  ];
+  const nome = authStore.user?.nome || '';
+  const index = Math.abs(nome.length) % colors.length;
+  return colors[index] || '#5B4BF5';
+});
+
+// Computed para as iniciais do avatar (com segurança)
+const avatarIniciais = computed(() => {
+  const nome = authStore.user?.nome || '';
+  if (!nome.trim()) return 'U';
+
+  const partes = nome.trim().split(' ');
+
+  if (partes.length === 1) {
+    // ✅ Verificação segura para partes[0]
+    const primeiraParte = partes[0];
+    if (primeiraParte && primeiraParte.length > 0) {
+      return primeiraParte.charAt(0).toUpperCase();
+    }
+    return 'U';
+  }
+
+  const primeiraLetra = partes[0]?.charAt(0) || '';
+  const ultimaLetra = partes[partes.length - 1]?.charAt(0) || '';
+
+  if (!primeiraLetra && !ultimaLetra) return 'U';
+  if (!primeiraLetra) return ultimaLetra.toUpperCase();
+  if (!ultimaLetra) return primeiraLetra.toUpperCase();
+
+  return (primeiraLetra + ultimaLetra).toUpperCase();
+});
+
+// ===================== WATCH para atualizar avatar quando foto mudar =====================
+watch(
+  () => authStore.user?.foto,
+  () => {
+    fotoTimestamp.value = Date.now();
+    avatarError.value = false;
+  },
+);
+
+// Referências DOM
 const fotoInput = ref<HTMLInputElement | null>(null);
-const fotoPreview = ref<string | null>(null);
-const fotoFile = ref<File | null>(null);
-const novoPedido = ref({ categoria_id: null as number | null, descricao: '', endereco: '' });
-const categoriasOptions = ref<{ label: string; value: number }[]>([]);
 
-// Helpers
-const ensureArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
+// Bindings para a store
+const carregandoInicial = computed(() => inicioStore.carregandoInicial);
+const carregandoDestaque = computed(() => inicioStore.carregandoDestaque);
+const carregandoTop = computed(() => inicioStore.carregandoTop);
+const carregandoCriarPedido = computed(() => inicioStore.carregandoCriarPedido);
+const modalCriarPedido = computed({
+  get: () => inicioStore.modalCriarPedidoAberto,
+  set: (value) => {
+    if (value) {
+      inicioStore.abrirModalCriarPedido();
+    } else {
+      inicioStore.fecharModalCriarPedido();
+    }
+  },
+});
 
-const obterMediaAvaliacao = (media: string | number | null | undefined): number => {
-  if (media === null || media === undefined) return 0;
-  const num = typeof media === 'string' ? parseFloat(media) : media;
-  return isNaN(num) ? 0 : num;
-};
+// Dados da store
+const categoriasPopulares = computed(() => inicioStore.categoriasPopulares);
+const prestadoresDestaque = computed(() => inicioStore.prestadoresDestaqueLimitados);
+const prestadoresTop = computed(() => inicioStore.prestadoresTopLimitados);
+const promocoesReais = computed(() => inicioStore.promocoesAtivas);
+const ultimosPedidos = computed(() => inicioStore.ultimosTresPedidos);
+const notificacoesNaoLidas = computed(() => inicioStore.notificacoesNaoLidas);
+const pedidosPendentes = computed(() => inicioStore.pedidosPendentes);
+const favoritosCount = computed(() => inicioStore.favoritosCount);
+const temDados = computed(() => inicioStore.temDados);
 
-// Computed usando stores separados
-const categoriasPopulares = computed<CategoriaData[]>(() =>
-  ensureArray<CategoriaData>(categoriasCarregadas.value),
-);
-const promocoesReais = computed<PromocaoData[]>(() =>
-  ensureArray<PromocaoData>(promocaoStore.promocoes),
-);
-const ultimosPedidos = computed<PedidoData[]>(() =>
-  ensureArray<PedidoData>(pedidosStore.pedidos).slice(0, 3),
-);
+const categoriasOptions = computed(() => inicioStore.categoriasOptions);
+const fotoPreview = computed(() => inicioStore.fotoPreview);
+const novoPedido = computed({
+  get: () => inicioStore.novoPedido,
+  set: (value) => inicioStore.atualizarNovoPedido(value),
+});
+
+// Computed locais
 const userName = computed<string>(() => authStore.user?.nome?.split(' ')[0] || 'Utilizador');
-const notificacoesNaoLidas = computed<number>(
-  () => ensureArray<NotificacaoData>(comunicacaoStore.notificacoes).filter((n) => !n.lida).length,
-);
-const prestadoresDestaque = computed<PrestadorData[]>(() =>
-  ensureArray<PrestadorData>(publicStore.prestadoresDestaque).slice(0, 4),
-);
-const prestadoresTop = computed<PrestadorData[]>(() =>
-  ensureArray<PrestadorData>(publicStore.prestadoresTop).slice(0, 3),
-);
-
 const diaSemana = computed(() => new Date().toLocaleDateString('pt-PT', { weekday: 'long' }));
 const dataFormatada = computed(() =>
   new Date().toLocaleDateString('pt-PT', { day: 'numeric', month: 'long' }),
 );
 
-// Avatar helpers
-const avatarGradients = [
-  'linear-gradient(135deg,#667EEA,#764BA2)',
-  'linear-gradient(135deg,#10B981,#059669)',
-  'linear-gradient(135deg,#F59E0B,#D97706)',
-  'linear-gradient(135deg,#EF4444,#DC2626)',
-  'linear-gradient(135deg,#3B82F6,#1D4ED8)',
-];
-
-const getAvatarStyle = (nome: string) => ({
-  background: avatarGradients[nome.charCodeAt(0) % avatarGradients.length],
-});
-
-const getInitials = (nome: string) =>
-  nome
-    .split(' ')
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
-
-const getCatIconStyle = (cor?: string) => ({
-  background: cor ? `${cor}18` : 'rgba(102,126,234,0.1)',
-  color: cor || '#667EEA',
-});
-
-// Format helpers
-const formatMoney = (value: number): string =>
-  new Intl.NumberFormat('pt-PT', {
-    style: 'currency',
-    currency: 'MZN',
-    minimumFractionDigits: 0,
-  }).format(value);
-
-const getStatusTexto = (status: string): string => {
-  const map: Record<string, string> = {
-    pendente: 'Pendente',
-    aceito: 'Aceito',
-    em_andamento: 'Em andamento',
-    concluido: 'Concluído',
-    cancelado: 'Cancelado',
-  };
-  return map[status] || status;
-};
-
-const promoGradients = [
-  'linear-gradient(135deg,#667EEA,#764BA2)',
-  'linear-gradient(135deg,#f093fb,#f5576c)',
-  'linear-gradient(135deg,#4facfe,#00f2fe)',
-  'linear-gradient(135deg,#43e97b,#38f9d7)',
-];
-
-const getPromoGradient = (promo: PromocaoData) => ({
-  background: promoGradients[Math.abs(promo?.id ?? 0) % promoGradients.length],
-});
+// Constantes
+const defaultImage = 'https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_1280.png';
 
 // Navegação
 const goTo = (path: string) => void router.push(path);
@@ -563,142 +559,87 @@ const buscarPorCategoria = (id: number) =>
   id && void router.push(`/mobile/lista-prestadores?categoria=${id}`);
 const verPromocao = () => void router.push('/mobile/promocoes');
 
-const usarPromocao = async (promo: PromocaoData) => {
-  if (!promo?.codigo) return;
-  const result = await promocaoStore.validarCupom(promo.codigo);
-  if (result) {
-    $q.notify({ type: 'positive', message: `Cupom ${promo.codigo} aplicado!`, position: 'top' });
-  }
-};
-
-// Modal
-const abrirModalCriarPedido = () => {
-  novoPedido.value = { categoria_id: null, descricao: '', endereco: '' };
-  fotoPreview.value = null;
-  fotoFile.value = null;
-  modalCriarPedido.value = true;
-};
-
+// Ações do modal
+const abrirModalCriarPedido = () => inicioStore.abrirModalCriarPedido();
 const triggerFileInput = () => fotoInput.value?.click();
 
 const handleFotoUpload = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (!file) return;
-  if (file.size > 5 * 1024 * 1024) {
-    $q.notify({ type: 'negative', message: 'Imagem deve ter no máximo 5MB', position: 'top' });
-    return;
-  }
-  fotoFile.value = file;
-  fotoPreview.value = URL.createObjectURL(file);
-};
-
-const removerFoto = () => {
-  if (fotoPreview.value) URL.revokeObjectURL(fotoPreview.value);
-  fotoPreview.value = null;
-  fotoFile.value = null;
-  if (fotoInput.value) fotoInput.value.value = '';
-};
-
-const criarPedido = async () => {
-  if (!novoPedido.value.categoria_id) {
-    $q.notify({ type: 'warning', message: 'Selecione o tipo de serviço', position: 'top' });
-    return;
-  }
-  if (!novoPedido.value.descricao?.trim()) {
-    $q.notify({ type: 'warning', message: 'Descreva o serviço que precisa', position: 'top' });
-    return;
-  }
-  if (!novoPedido.value.endereco?.trim()) {
-    $q.notify({ type: 'warning', message: 'Informe o endereço', position: 'top' });
-    return;
-  }
-  carregandoCriarPedido.value = true;
-  try {
-    // ✅ Usando pedidosStore
-    const resultado = await pedidosStore.criarPedidoServico({
-      categoria_id: Number(novoPedido.value.categoria_id),
-      descricao: novoPedido.value.descricao.trim(),
-      endereco: novoPedido.value.endereco.trim(),
-      foto: fotoFile.value,
-    });
-    if (resultado) {
-      $q.notify({ type: 'positive', message: 'Pedido publicado com sucesso!', position: 'top' });
-      modalCriarPedido.value = false;
-      await Promise.all([pedidosStore.fetchDashboard(true), pedidosStore.fetchMeusPedidos(true)]);
-    } else {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (file) {
+    const success = inicioStore.adicionarFoto(file);
+    if (!success) {
       $q.notify({
         type: 'negative',
-        message: 'Erro ao criar pedido. Tente novamente.',
+        message: 'Arquivo deve ter no máximo 5MB',
         position: 'top',
       });
     }
-  } catch (error) {
-    const err = error as AxiosError<{ message?: string }>;
+  }
+};
+
+const removerFoto = () => inicioStore.removerFoto();
+
+const criarPedido = async () => {
+  const success = await inicioStore.criarPedidoServico(inicioStore.novoPedido);
+
+  if (success) {
     $q.notify({
-      type: 'negative',
-      message: err.response?.data?.message || 'Erro ao criar pedido.',
+      type: 'positive',
+      message: 'Pedido publicado com sucesso!',
       position: 'top',
     });
-  } finally {
-    carregandoCriarPedido.value = false;
+    inicioStore.fecharModalCriarPedido();
+  } else {
+    const error = inicioStore.validationErrors[0];
+    $q.notify({
+      type: 'negative',
+      message: error?.message || 'Erro ao criar pedido. Tente novamente.',
+      position: 'top',
+    });
   }
 };
 
-// Carregamento
-const carregarCategoriasSelect = async () => {
-  try {
-    // ✅ Usando publicStore
-    const cats = await publicStore.fetchCategorias();
-    if (Array.isArray(cats)) {
-      categoriasOptions.value = cats.map((c: CategoriaData) => ({ label: c.nome, value: c.id }));
-    }
-  } catch (error) {
-    console.error(error);
+const usarPromocao = async (promo: { codigo: string }) => {
+  if (!promo?.codigo) return;
+  const result = await inicioStore.validarCupom(promo.codigo);
+  if (result) {
+    $q.notify({
+      type: 'positive',
+      message: `Cupom ${promo.codigo} aplicado!`,
+      position: 'top',
+    });
   }
 };
 
-const carregarDados = async () => {
-  carregandoInicial.value = true;
-  try {
-    try {
-      // ✅ Usando publicStore
-      const cats = await publicStore.fetchCategorias();
-      categoriasCarregadas.value = Array.isArray(cats) ? cats : [];
-    } catch {
-      categoriasCarregadas.value = [];
-    }
+// Helpers de estilo
+const getCatIconStyle = (cor?: string) => inicioStore.getCatIconStyle(cor);
+const getAvatarStyle = (nome: string) => inicioStore.getAvatarStyle(nome);
+const getInitials = (nome: string) => inicioStore.getInitials(nome);
+const formatMoney = (value: number) => inicioStore.formatMoney(value);
+const getStatusTexto = (status: string) => inicioStore.getStatusTexto(status);
+const obterMediaAvaliacao = (media: string | number | null | undefined) =>
+  inicioStore.obterMediaAvaliacao(media);
 
-    await Promise.all([
-      pedidosStore.fetchDashboard(),
-      pedidosStore.fetchMeusPedidos(),
-      comunicacaoStore.fetchNotificacoes(),
-      comunicacaoStore.fetchFavoritos(),
-    ]);
-
-    await Promise.all([
-      publicStore.fetchPrestadoresDestaque().finally(() => {
-        carregandoDestaque.value = false;
-      }),
-      publicStore.fetchPrestadoresTop().finally(() => {
-        carregandoTop.value = false;
-      }),
-    ]);
-
-    await promocaoStore.fetchPromocoes().catch(() => {});
-  } catch (error) {
-    console.error('Erro ao carregar dados:', error);
-    carregandoDestaque.value = false;
-    carregandoTop.value = false;
-  } finally {
-    setTimeout(() => {
-      carregandoInicial.value = false;
-    }, 400);
-  }
+const getPromoGradient = (promo: { id: number }) => {
+  const gradients = [
+    'linear-gradient(135deg,#667EEA,#764BA2)',
+    'linear-gradient(135deg,#f093fb,#f5576c)',
+    'linear-gradient(135deg,#4facfe,#00f2fe)',
+    'linear-gradient(135deg,#43e97b,#38f9d7)',
+  ];
+  return {
+    background: gradients[Math.abs(promo.id) % gradients.length],
+  };
 };
 
+// Inicialização
 onMounted(() => {
-  void carregarDados();
-  void carregarCategoriasSelect();
+  void inicioStore.carregarDadosIniciais();
+});
+
+onUnmounted(() => {
+  inicioStore.resetarStore();
 });
 </script>
 
@@ -900,8 +841,30 @@ $radius-xs: 8px;
   }
 }
 
+// =====================
+// AVATAR HEADER
+// =====================
+.user-avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .user-avatar {
   border: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.avatar-placeholder-header {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .header-sub {

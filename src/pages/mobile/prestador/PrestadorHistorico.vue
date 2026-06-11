@@ -52,7 +52,7 @@
     <template v-else>
 
       <!-- Loading overlay -->
-      <div v-if="loading" class="loading-overlay">
+      <div v-if="historicoStore.isLoading" class="loading-overlay">
         <div class="loader"></div>
         <p>Carregando histórico...</p>
       </div>
@@ -65,8 +65,8 @@
             v-for="filtro in filtrosOpcoes"
             :key="filtro.value"
             class="filter-btn"
-            :class="{ active: filtroPeriodo === filtro.value }"
-            @click="filtroPeriodo = filtro.value"
+            :class="{ active: historicoStore.filtroPeriodo === filtro.value }"
+            @click="mudarFiltro(filtro.value as any)"
           >
             {{ filtro.label }}
           </button>
@@ -75,7 +75,7 @@
         <!-- ===== ESTATÍSTICAS DO PERÍODO ===== -->
         <div class="stats-container">
           <div class="stat-card">
-            <div class="stat-value">{{ estatisticas.totalServicos }}</div>
+            <div class="stat-value">{{ historicoStore.estatisticas.totalServicos }}</div>
             <div class="stat-label">Serviços</div>
             <div class="stat-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -85,7 +85,7 @@
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-value">{{ formatarValor(estatisticas.totalGanhos) }} MZN</div>
+            <div class="stat-value">{{ historicoStore.formatarValor(historicoStore.estatisticas.totalGanhos) }} MZN</div>
             <div class="stat-label">Ganhos</div>
             <div class="stat-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -97,7 +97,7 @@
 
         <!-- ===== LISTA DE HISTÓRICO ===== -->
         <div class="historico-container">
-          <div v-if="historicoFiltrado.length === 0" class="empty-state">
+          <div v-if="historicoStore.historicoFiltrado.length === 0" class="empty-state">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5">
               <path d="M12 8v4l3 3M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20z"/>
               <path d="M12 6v2"/>
@@ -108,18 +108,18 @@
           </div>
 
           <div v-else class="servicos-list">
-            <div v-for="servico in historicoFiltrado" :key="servico.id" class="servico-card">
+            <div v-for="servico in historicoStore.historicoFiltrado" :key="servico.id" class="servico-card">
               <div class="servico-header">
                 <div class="cliente-info">
                   <div class="cliente-avatar">
-                    <img :src="servico.clienteFoto || getAvatarUrl(servico.clienteNome)" />
+                    <img :src="servico.clienteFoto || historicoStore.getAvatarUrl(servico.clienteNome)" />
                   </div>
                   <div class="cliente-details">
                     <div class="cliente-nome">{{ servico.clienteNome }}</div>
                     <div class="servico-data">{{ servico.data }}</div>
                   </div>
                 </div>
-                <div class="servico-valor">{{ formatarValor(servico.valor) }} MZN</div>
+                <div class="servico-valor">{{ historicoStore.formatarValor(servico.valor) }} MZN</div>
               </div>
 
               <div class="servico-body">
@@ -163,145 +163,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorServicosStore } from 'src/stores/prestador/prestador-servicos-store';
-import { usePrestadorFinanceiroStore } from 'src/stores/prestador/prestador-financeiro-store';
-import type { SolicitacaoData } from 'src/stores/prestador/prestador-servicos-store';
-import type { NotificacaoData } from 'src/stores/prestador/prestador-financeiro-store';
+import { usePrestadorHistoricoStore, filtrosOpcoes } from 'src/stores/prestador/prestador-historico-store';
 
 defineOptions({ name: 'PrestadorHistorico' });
-
-interface ServicoHistorico {
-  id: number;
-  clienteNome: string;
-  clienteFoto: string | null;
-  data: string;
-  servicoNome: string;
-  valor: number;
-  avaliacao?: {
-    nota: number;
-    comentario: string;
-  };
-}
-
-interface EstatisticasPeriodo {
-  totalServicos: number;
-  totalGanhos: number;
-}
-
-interface FiltroOpcao {
-  label: string;
-  value: string;
-}
 
 const router = useRouter();
 const $q = useQuasar();
 
-const servicosStore = usePrestadorServicosStore();
-const financeiroStore = usePrestadorFinanceiroStore();
+// ✅ APENAS UM STORE!
+const historicoStore = usePrestadorHistoricoStore();
 
 const carregamentoInicial = ref(true);
-const loading = ref(true);
-const filtroPeriodo = ref('mes');
-const solicitacoes = ref<SolicitacaoData[]>([]);
-const avaliacoes = ref<NotificacaoData[]>([]);
 
-const filtrosOpcoes: FiltroOpcao[] = [
-  { label: 'Este mês', value: 'mes' },
-  { label: 'Últimos 3 meses', value: 'trimestre' },
-  { label: 'Este ano', value: 'ano' },
-  { label: 'Todos', value: 'todos' },
-];
-
-const historicoFiltrado = computed<ServicoHistorico[]>(() => {
-  const concluidos = solicitacoes.value.filter((s: SolicitacaoData) => s.status === 'concluido');
-  let filtrados = [...concluidos];
-  const agora = new Date();
-
-  if (filtroPeriodo.value === 'mes') {
-    filtrados = filtrados.filter((p: SolicitacaoData) => {
-      const data = new Date(p.data);
-      return data.getMonth() === agora.getMonth() && data.getFullYear() === agora.getFullYear();
-    });
-  } else if (filtroPeriodo.value === 'trimestre') {
-    const tresMesesAtras = new Date(agora);
-    tresMesesAtras.setMonth(agora.getMonth() - 3);
-    filtrados = filtrados.filter((p: SolicitacaoData) => new Date(p.data) >= tresMesesAtras);
-  } else if (filtroPeriodo.value === 'ano') {
-    filtrados = filtrados.filter((p: SolicitacaoData) => {
-      const data = new Date(p.data);
-      return data.getFullYear() === agora.getFullYear();
-    });
-  }
-
-  const resultado: ServicoHistorico[] = filtrados.map((pedido: SolicitacaoData) => {
-    const avaliacaoEncontrada = avaliacoes.value.find((a: NotificacaoData) => a.id === pedido.id);
-    const item: ServicoHistorico = {
-      id: pedido.id,
-      clienteNome: pedido.cliente?.nome || 'Cliente',
-      clienteFoto: pedido.cliente?.foto || null,
-      data: formatarData(pedido.data),
-      servicoNome: pedido.servico?.nome || 'Serviço',
-      valor: pedido.valor,
-    };
-
-    if (avaliacaoEncontrada) {
-      item.avaliacao = {
-        nota: 5,
-        comentario: avaliacaoEncontrada.mensagem || '',
-      };
-    }
-
-    return item;
-  });
-
-  return resultado;
-});
-
-const estatisticas = computed<EstatisticasPeriodo>(() => {
-  const totalServicos = historicoFiltrado.value.length;
-  const totalGanhos = historicoFiltrado.value.reduce((sum: number, s: ServicoHistorico) => sum + s.valor, 0);
-  return { totalServicos, totalGanhos };
-});
-
-const formatarValor = (valor: number): string => {
-  if (!valor && valor !== 0) return '0';
-  return valor.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-};
-
-const formatarData = (dataString: string): string => {
-  if (!dataString) return '';
-  const date = new Date(dataString);
-  const hoje = new Date();
-  const ontem = new Date(hoje);
-  ontem.setDate(hoje.getDate() - 1);
-
-  if (date.toDateString() === hoje.toDateString()) return 'Hoje';
-  if (date.toDateString() === ontem.toDateString()) return 'Ontem';
-
-  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-
-const getAvatarUrl = (nome: string): string => {
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=5B4BF5&color=fff&bold=true`;
-};
-
-const carregarDados = async (): Promise<void> => {
-  loading.value = true;
-  try {
-    await servicosStore.fetchSolicitacoes();
-    solicitacoes.value = [...servicosStore.solicitacoes];
-
-    await financeiroStore.fetchNotificacoes();
-    avaliacoes.value = [...financeiroStore.notificacoes];
-  } catch (error) {
-    console.error('Erro ao carregar histórico:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar histórico', position: 'top' });
-  } finally {
-    loading.value = false;
-  }
+const mudarFiltro = (periodo: 'mes' | 'trimestre' | 'ano' | 'todos'): void => {
+  historicoStore.setFiltroPeriodo(periodo);
 };
 
 const responderAvaliacao = (): void => {
@@ -315,7 +193,10 @@ const opcoes = (): void => {
 onMounted(async () => {
   carregamentoInicial.value = true;
   try {
-    await carregarDados();
+    await historicoStore.carregarTodosDados();
+  } catch (error) {
+    console.error('Erro ao carregar histórico:', error);
+    $q.notify({ type: 'negative', message: 'Erro ao carregar histórico', position: 'top' });
   } finally {
     setTimeout(() => { carregamentoInicial.value = false; }, 500);
   }
@@ -407,9 +288,7 @@ $radius-xs: 8px;
   p { margin-top: 16px; color: $gray; font-size: 0.85rem; }
 }
 
-// =====================
-// SKELETON LOADING
-// =====================
+// ===================== SKELETON LOADING =====================
 .skeleton-container {
   .skeleton-header {
     display: flex;
@@ -504,9 +383,7 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
-// FILTROS
-// =====================
+// ===================== FILTROS =====================
 .filters-container {
   display: flex;
   gap: 8px;
@@ -537,9 +414,7 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
-// ESTATÍSTICAS
-// =====================
+// ===================== ESTATÍSTICAS =====================
 .stats-container {
   display: flex;
   gap: 12px;
@@ -578,9 +453,7 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
-// HISTÓRICO
-// =====================
+// ===================== HISTÓRICO =====================
 .historico-container {
   padding: 0 16px;
 }
@@ -721,9 +594,7 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
-// EMPTY STATE
-// =====================
+// ===================== EMPTY STATE =====================
 .empty-state {
   text-align: center;
   background: $white;
