@@ -50,10 +50,21 @@ interface CategoriaAPI {
   icone?: string;
 }
 
-interface ConfiguracaoSistema {
-  raios_atendimento: Array<{ label: string; value: number }>;
-  dias_semana: Array<{ label: string; value: string }>;
-  disponibilidade_padrao: Record<string, { ativo: boolean; horario: string }>;
+// 🔥 TIPO CORRETO para o que o backend realmente retorna
+interface ConfiguracaoPrestadorAPI {
+  tempo_medio_resposta: number;
+  raio_atendimento_maximo: number;
+  max_servicos_ativos: number;
+  comissao_plataforma: number;
+  dias_antecedencia_minima: number;
+  cancelamento_gratis_horas: number;
+  avaliacao_minima: number;
+  max_fotos_servico: number;
+  max_videos_servico: number;
+  tamanho_max_arquivo_mb: number;
+  formatos_imagem: string[];
+  pagamento_automatico: boolean;
+  dias_para_pagamento: number;
 }
 
 export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => {
@@ -86,10 +97,33 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
   const disponibilidade = ref<Record<string, DisponibilidadeItem>>({});
   const validationErrors = ref<ValidationError[]>([]);
 
-  // Dados auxiliares (vindos da API)
+  // Dados auxiliares
   const categoriasOptions = ref<Array<{ label: string; value: number }>>([]);
-  const raioOptions = ref<Array<{ label: string; value: number }>>([]);
-  const diasSemana = ref<Array<{ label: string; value: string }>>([]);
+
+  // 🔥 REMOVIDO: raioOptions, diasSemana - não vêm do backend
+  // Em vez disso, criamos listas locais fixas
+  const raioOptions = ref<Array<{ label: string; value: number }>>([
+    { label: '5 km', value: 5 },
+    { label: '10 km', value: 10 },
+    { label: '15 km', value: 15 },
+    { label: '20 km', value: 20 },
+    { label: '30 km', value: 30 },
+    { label: '50 km', value: 50 },
+    { label: '100 km', value: 100 },
+  ]);
+
+  const diasSemana = ref<Array<{ label: string; value: string }>>([
+    { label: 'Segunda-feira', value: 'monday' },
+    { label: 'Terça-feira', value: 'tuesday' },
+    { label: 'Quarta-feira', value: 'wednesday' },
+    { label: 'Quinta-feira', value: 'thursday' },
+    { label: 'Sexta-feira', value: 'friday' },
+    { label: 'Sábado', value: 'saturday' },
+    { label: 'Domingo', value: 'sunday' },
+  ]);
+
+  // Configurações do backend (armazenar para uso)
+  const configuracoesSistema = ref<ConfiguracaoPrestadorAPI | null>(null);
 
   const dadosCarregados = ref(false);
   const carregandoCategorias = ref(false);
@@ -100,11 +134,9 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
 
   // ===================== GETTERS =====================
 
-  // ✅ CORREÇÃO DEFINITIVA - Garantir retorno sempre do tipo PasswordStrength
   const passwordStrength = computed(() => {
     const password = formData.value.password;
 
-    // Caso base: senha vazia
     if (!password) {
       return { class: '', text: '' } as PasswordStrength;
     }
@@ -267,19 +299,21 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
   };
 
   const setDisponibilidadeAtivo = (diaKey: string, value: boolean): void => {
-    if (disponibilidade.value[diaKey]) {
-      disponibilidade.value[diaKey].ativo = value;
+    if (!disponibilidade.value[diaKey]) {
+      disponibilidade.value[diaKey] = { ativo: false, horario: '09:00-18:00' };
     }
+    disponibilidade.value[diaKey].ativo = value;
   };
 
   const getDisponibilidadeHorario = (diaKey: string): string => {
-    return disponibilidade.value[diaKey]?.horario || '';
+    return disponibilidade.value[diaKey]?.horario || '09:00-18:00';
   };
 
   const setDisponibilidadeHorario = (diaKey: string, value: string): void => {
-    if (disponibilidade.value[diaKey]) {
-      disponibilidade.value[diaKey].horario = value;
+    if (!disponibilidade.value[diaKey]) {
+      disponibilidade.value[diaKey] = { ativo: false, horario: '09:00-18:00' };
     }
+    disponibilidade.value[diaKey].horario = value;
   };
 
   // ===================== LOCALIZAÇÃO =====================
@@ -318,7 +352,7 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
     });
   };
 
-  // ===================== ENDPOINTS PARA CARREGAR DADOS DO BACKEND =====================
+  // ===================== ENDPOINTS - APENAS O QUE O BACKEND RETORNA =====================
 
   const carregarCategorias = async (): Promise<void> => {
     carregandoCategorias.value = true;
@@ -346,34 +380,26 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
     }
   };
 
+  /**
+   * 🔥 CORREÇÃO: Carregar apenas as configurações que o backend retorna
+   * SEM esperar listas de raios, dias, etc.
+   */
   const carregarConfiguracoes = async (): Promise<void> => {
     carregandoConfiguracoes.value = true;
     try {
       const response = await api.get('/configuracoes/prestador');
 
-      if (!response.data?.success || !response.data?.data) {
+      if (!response.data?.success) {
         throw new Error('Resposta da API de configurações inválida');
       }
 
-      const config = response.data.data as ConfiguracaoSistema;
+      // Apenas armazenar as configurações que vieram
+      configuracoesSistema.value = response.data.data as ConfiguracaoPrestadorAPI;
 
-      if (!config.raios_atendimento || !config.raios_atendimento.length) {
-        throw new Error('Lista de raios de atendimento não fornecida');
-      }
-      raioOptions.value = config.raios_atendimento;
-
-      if (!config.dias_semana || !config.dias_semana.length) {
-        throw new Error('Lista de dias da semana não fornecida');
-      }
-      diasSemana.value = config.dias_semana;
-
-      if (!config.disponibilidade_padrao) {
-        throw new Error('Disponibilidade padrão não fornecida');
-      }
-      disponibilidade.value = config.disponibilidade_padrao;
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
-      throw new Error('Não foi possível carregar as configurações. Tente novamente.');
+      // Não lançar erro, apenas logar - as configs não são obrigatórias
+      // throw new Error('Não foi possível carregar as configurações. Tente novamente.');
     } finally {
       carregandoConfiguracoes.value = false;
     }
@@ -383,7 +409,9 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
     if (dadosCarregados.value) return;
 
     try {
-      await Promise.all([carregarCategorias(), carregarConfiguracoes()]);
+      // Carregar apenas o que precisa
+      await carregarCategorias();
+      await carregarConfiguracoes();
       dadosCarregados.value = true;
     } catch (error) {
       console.error('Erro ao carregar dados auxiliares:', error);
@@ -502,8 +530,6 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
 
   // ===================== REGISTO PRINCIPAL =====================
 
-  // src/stores/prestador/prestador-register-store.ts
-
   const registrarPrestador = async (): Promise<{
     success: boolean;
     message?: string;
@@ -524,15 +550,12 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
     try {
       const formDataToSend = new FormData();
 
-      // Dados básicos (comuns)
       formDataToSend.append('nome', formData.value.nome);
       formDataToSend.append('telefone', formData.value.telefone);
       formDataToSend.append('email', formData.value.email);
       formDataToSend.append('password', formData.value.password);
       formDataToSend.append('password_confirmation', formData.value.confirmPassword);
 
-
-      // Dados específicos de prestador (o backend vai detectar)
       formDataToSend.append('sobre', formData.value.descricao);
       formDataToSend.append('categorias', JSON.stringify(formData.value.categorias));
       formDataToSend.append('raio_atendimento', String(formData.value.raio));
@@ -549,14 +572,13 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
 
       const portfolioFiles = portfolio.value.filter((p) => p !== null);
       portfolioFiles.forEach((file) => {
-        formDataToSend.append(`portfolio[]`, file);
+        formDataToSend.append('portfolio[]', file);
       });
 
       if (formData.value.documento) {
         formDataToSend.append('documento', formData.value.documento);
       }
 
-      // Usar mesma rota /auth/register (backend detecta automaticamente)
       const response = await api.post<PrestadorRegisterResponse>('/auth/register', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -645,6 +667,7 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
     raioOptions,
     diasSemana,
     dadosCarregados,
+    configuracoesSistema,
 
     // Navegação
     nextStep,

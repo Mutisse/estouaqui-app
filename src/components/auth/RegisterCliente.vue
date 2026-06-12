@@ -44,6 +44,7 @@
                 :error="hasError('telefone')"
                 :error-message="getErrorMessage('telefone')"
                 @update:model-value="clearError('telefone')"
+                @blur="validarTelefone"
               />
             </div>
           </div>
@@ -75,7 +76,7 @@
       </div>
     </div>
 
-    <!-- Step 2: Segurança -->
+    <!-- Step 2: Segurança - VALIDAÇÃO LOCAL -->
     <div v-show="currentStep === 2">
       <div class="step-title">Segurança</div>
 
@@ -94,9 +95,9 @@
             class="ea-input-field"
             dark
             color="white"
-            :error="hasError('password')"
-            :error-message="getErrorMessage('password')"
-            @update:model-value="clearError('password')"
+            :error="localErrors.password"
+            :error-message="localErrors.passwordMsg"
+            @update:model-value="onPasswordChange"
           >
             <template #append>
               <q-icon
@@ -120,7 +121,7 @@
             <q-icon name="lock" size="18px" />
           </span>
           <q-input
-            v-model="confirmPassword"
+            v-model="confirmPasswordLocal"
             :type="showConfirmPassword ? 'text' : 'password'"
             outlined
             dense
@@ -128,9 +129,9 @@
             class="ea-input-field"
             dark
             color="white"
-            :error="hasError('confirmPassword')"
-            :error-message="getErrorMessage('confirmPassword')"
-            @update:model-value="clearError('confirmPassword')"
+            :error="localErrors.confirmPassword"
+            :error-message="localErrors.confirmPasswordMsg"
+            @update:model-value="onConfirmPasswordChange"
           >
             <template #append>
               <q-icon
@@ -174,7 +175,7 @@
           <input
             ref="fileInput"
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             @change="handleFileUpload"
             style="display: none"
           />
@@ -193,6 +194,7 @@
           <div class="photo-placeholder" v-else>
             <q-icon name="camera_alt" size="32px" />
             <div class="placeholder-text">Clique para adicionar foto</div>
+            <div class="placeholder-hint">Máx 5MB (JPG, PNG, WEBP)</div>
           </div>
         </div>
         <div v-if="hasError('foto')" class="error-message">
@@ -277,7 +279,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useClienteRegisterStore } from 'src/stores/client/cliente-register-store';
@@ -288,11 +290,21 @@ const router = useRouter();
 const $q = useQuasar();
 const registerStore = useClienteRegisterStore();
 
-// Estados locais do componente
+// ========== ESTADOS LOCAIS ==========
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
-const confirmPassword = ref('');
+const confirmPasswordLocal = ref(''); // ← VALIDAÇÃO LOCAL
+const lastSubmitTime = ref(0);
+const SUBMIT_COOLDOWN = 3000;
+
+// ERROS LOCAIS (SÓ PARA SENHA)
+const localErrors = reactive({
+  password: false,
+  passwordMsg: '',
+  confirmPassword: false,
+  confirmPasswordMsg: '',
+});
 
 // Bindings para a store
 const loading = computed(() => registerStore.loading);
@@ -309,52 +321,175 @@ const photoPreview = computed(() => registerStore.photoPreview);
 const passwordStrength = computed(() => registerStore.passwordStrength);
 const validationErrors = computed(() => registerStore.validationErrors);
 
-// Helper para erros
+// ========== VALIDAÇÃO LOCAL DE SENHAS (SÓ AQUI!) ==========
+const validarSenhasLocal = () => {
+  const password = formData.value.password;
+  const confirm = confirmPasswordLocal.value;
+
+  // Reseta erros locais
+  localErrors.confirmPassword = false;
+  localErrors.confirmPasswordMsg = '';
+
+  // Validação simples e direta
+  if (password && confirm) {
+    if (password !== confirm) {
+      localErrors.confirmPassword = true;
+      localErrors.confirmPasswordMsg = 'As palavras-passe não coincidem';
+      return false;
+    }
+  }
+
+  // Se só tem confirmação mas não senha
+  if (confirm && !password) {
+    localErrors.confirmPassword = true;
+    localErrors.confirmPasswordMsg = 'Digite a palavra-passe primeiro';
+    return false;
+  }
+
+  return true;
+};
+
+const validarForcaSenhaLocal = () => {
+  const password = formData.value.password;
+
+  localErrors.password = false;
+  localErrors.passwordMsg = '';
+
+  if (!password) {
+    localErrors.password = true;
+    localErrors.passwordMsg = 'Palavra-passe é obrigatória';
+    return false;
+  }
+
+  if (password.length < 6) {
+    localErrors.password = true;
+    localErrors.passwordMsg = 'A senha deve ter no mínimo 6 caracteres';
+    return false;
+  }
+
+  return true;
+};
+
+// ========== EVENTOS DOS CAMPOS ==========
+const onPasswordChange = (value: string | number | null) => {
+  const stringValue = value?.toString() || '';
+  registerStore.updateFormData({ ...formData.value, password: stringValue });
+
+  validarForcaSenhaLocal();
+  validarSenhasLocal();
+};
+
+const onConfirmPasswordChange = (value: string | number | null) => {
+  confirmPasswordLocal.value = value?.toString() || '';
+  validarSenhasLocal();
+};
+
+// ========== OUTRAS VALIDAÇÕES ==========
+const validarTelefone = (): void => {
+  const telefone = formData.value.telefone;
+  const numeros = telefone?.replace(/\D/g, '') || '';
+
+  const errorIndex = registerStore.validationErrors.findIndex(
+    (err: { field: string }) => err.field === 'telefone',
+  );
+
+  if (errorIndex !== -1) {
+    registerStore.validationErrors.splice(errorIndex, 1);
+  }
+
+  if (numeros && numeros.length !== 9) {
+    registerStore.validationErrors.push({
+      field: 'telefone',
+      message: 'O telefone deve ter 9 dígitos (ex: 841234567)',
+    });
+  }
+};
+
 const hasError = (field: string): boolean => {
-  return validationErrors.value.some(err => err.field === field);
+  return validationErrors.value.some((err: { field: string }) => err.field === field);
 };
 
 const getErrorMessage = (field: string): string => {
-  return validationErrors.value.find(err => err.field === field)?.message || '';
+  return (
+    validationErrors.value.find((err: { field: string }) => err.field === field)?.message || ''
+  );
 };
 
 const clearError = (field: string): void => {
-  // Remove erro específico do campo
-  const index = registerStore.validationErrors.findIndex(err => err.field === field);
+  const index = registerStore.validationErrors.findIndex(
+    (err: { field: string }) => err.field === field,
+  );
   if (index !== -1) {
     registerStore.validationErrors.splice(index, 1);
   }
 };
 
-// Sincroniza confirmPassword com validação
-watch(confirmPassword, (newVal) => {
-  if (newVal !== formData.value.password) {
-    if (!validationErrors.value.some(err => err.field === 'confirmPassword')) {
-      registerStore.validationErrors.push({
-        field: 'confirmPassword',
-        message: 'As palavras-passe não coincidem',
-      });
-    }
-  } else {
-    const index = registerStore.validationErrors.findIndex(err => err.field === 'confirmPassword');
-    if (index !== -1) {
-      registerStore.validationErrors.splice(index, 1);
-    }
-  }
-});
-
-// Navegação
+// ========== NAVEGAÇÃO (SEM ASYNC - CORRIGIDO) ==========
 const nextStep = (): void => {
-  const success = registerStore.nextStep();
-  if (!success) {
-    // Mostra o primeiro erro de validação
-    const firstError = validationErrors.value[0];
-    if (firstError) {
+  // ← Removeu o 'async' e o 'Promise<void>'
+  // Valida step 1
+  if (currentStep.value === 1) {
+    if (!formData.value.nome) {
+      registerStore.validationErrors.push({ field: 'nome', message: 'Nome é obrigatório' });
       $q.notify({
         type: 'warning',
-        message: firstError.message,
+        message: 'Preencha todos os campos obrigatórios',
         position: 'top',
       });
+      return;
+    }
+    if (!formData.value.telefone) {
+      registerStore.validationErrors.push({ field: 'telefone', message: 'Telefone é obrigatório' });
+      $q.notify({
+        type: 'warning',
+        message: 'Preencha todos os campos obrigatórios',
+        position: 'top',
+      });
+      return;
+    }
+    validarTelefone();
+    if (!formData.value.email) {
+      registerStore.validationErrors.push({ field: 'email', message: 'Email é obrigatório' });
+      $q.notify({
+        type: 'warning',
+        message: 'Preencha todos os campos obrigatórios',
+        position: 'top',
+      });
+      return;
+    }
+  }
+
+  // Valida step 2 (USANDO VALIDAÇÃO LOCAL)
+  if (currentStep.value === 2) {
+    const senhaValida = validarForcaSenhaLocal();
+    const senhasConferem = validarSenhasLocal();
+
+    if (!senhaValida) {
+      $q.notify({ type: 'warning', message: localErrors.passwordMsg, position: 'top' });
+      return;
+    }
+
+    if (!senhasConferem) {
+      $q.notify({ type: 'warning', message: localErrors.confirmPasswordMsg, position: 'top' });
+      return;
+    }
+  }
+
+  // Valida step 4
+  if (currentStep.value === 4) {
+    if (!acceptTerms.value) {
+      registerStore.validationErrors.push({ field: 'terms', message: 'Aceite os Termos de Uso' });
+      $q.notify({ type: 'warning', message: 'Aceite os Termos de Uso', position: 'top' });
+      return;
+    }
+  }
+
+  // Avança usando a store
+  const success = registerStore.nextStep();
+  if (!success) {
+    const firstError = validationErrors.value[0];
+    if (firstError) {
+      $q.notify({ type: 'warning', message: firstError.message, position: 'top' });
     }
   }
 };
@@ -363,7 +498,7 @@ const prevStep = (): void => {
   registerStore.prevStep();
 };
 
-// Upload de foto
+// ========== UPLOAD DE FOTO ==========
 const triggerFileInput = (): void => {
   fileInput.value?.click();
 };
@@ -371,14 +506,28 @@ const triggerFileInput = (): void => {
 const handleFileUpload = (event: Event): void => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
+
   if (file) {
-    const success = registerStore.uploadPhoto(file);
-    if (!success) {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
       $q.notify({
         type: 'negative',
-        message: getErrorMessage('foto'),
+        message: 'Formato não permitido. Use JPG, PNG ou WEBP.',
         position: 'top',
       });
+      return;
+    }
+
+    if (file.size > maxSize) {
+      $q.notify({ type: 'negative', message: 'Imagem muito grande. Máximo 5MB.', position: 'top' });
+      return;
+    }
+
+    const success = registerStore.uploadPhoto(file);
+    if (!success) {
+      $q.notify({ type: 'negative', message: getErrorMessage('foto'), position: 'top' });
     }
   }
 };
@@ -390,32 +539,49 @@ const removePhoto = (): void => {
   }
 };
 
-// Registro
+// ========== REGISTRO ==========
 const handleRegister = async (): Promise<void> => {
+  const now = Date.now();
+  if (now - lastSubmitTime.value < SUBMIT_COOLDOWN) {
+    $q.notify({
+      type: 'warning',
+      message: `Aguarde alguns segundos antes de tentar novamente`,
+      position: 'top',
+    });
+    return;
+  }
+
+  // Valida senhas novamente antes de enviar
+  if (!validarSenhasLocal()) {
+    $q.notify({ type: 'warning', message: localErrors.confirmPasswordMsg, position: 'top' });
+    return;
+  }
+
+  if (!acceptTerms.value) {
+    registerStore.validationErrors.push({ field: 'terms', message: 'Aceite os Termos de Uso' });
+    $q.notify({ type: 'warning', message: 'Aceite os Termos de Uso', position: 'top' });
+    return;
+  }
+
+  lastSubmitTime.value = now;
   const result = await registerStore.registerCliente();
 
   if (result.success) {
     $q.notify({
       type: 'positive',
-      message: result.message || 'Registo efetuado com sucesso!',
+      message: 'Registo efetuado com sucesso!',
       position: 'top',
       icon: 'check_circle',
     });
-
-    // Reseta o formulário
     registerStore.resetForm();
-    confirmPassword.value = '';
-
-    // Redireciona após 1.5 segundos
+    confirmPasswordLocal.value = '';
+    // CORRIGIDO: Adicionado void para evitar o erro do ESLint
     setTimeout(() => {
       void router.push('/');
     }, 1500);
   } else {
-    $q.notify({
-      type: 'negative',
-      message: result.error || 'Erro ao registar. Tente novamente.',
-      position: 'top',
-    });
+    lastSubmitTime.value = 0;
+    $q.notify({ type: 'negative', message: result.error || 'Erro ao registar', position: 'top' });
   }
 };
 </script>
@@ -599,6 +765,12 @@ $accent: #5b4bf5;
       margin-top: 8px;
       font-size: 0.8rem;
       color: rgba(255, 255, 255, 0.5);
+    }
+
+    .placeholder-hint {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.3);
+      margin-top: 4px;
     }
   }
 }

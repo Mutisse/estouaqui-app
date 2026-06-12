@@ -12,7 +12,6 @@ export interface ClienteRegisterData {
   email: string;
   endereco?: string;
   password: string;
-  confirmPassword?: string; // Adicionado para validação
   foto?: File | null;
 }
 
@@ -39,6 +38,19 @@ export interface PasswordStrength {
   score: number;
 }
 
+// ========== NOVOS TIPOS PARA ERROS DA API ==========
+interface ApiErrorResponse {
+  success?: boolean;
+  message?: string;
+  error?: string;
+  errors?: {
+    email?: string[];
+    telefone?: string[];
+    password?: string[];
+    nome?: string[];
+  };
+}
+
 // Tipo para resposta da API
 interface ApiRegisterResponse {
   success: boolean;
@@ -61,14 +73,13 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
   const registerSuccess = ref(false);
   const validationErrors = ref<ValidationError[]>([]);
 
-  // Dados do formulário
+  // Dados do formulário (sem confirmPassword)
   const formData = ref<ClienteRegisterData>({
     nome: '',
     telefone: '',
     email: '',
     endereco: '',
     password: '',
-    confirmPassword: '',
     foto: null,
   });
 
@@ -77,7 +88,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
 
   // ========== GETTERS ==========
   const isFormValid = computed((): boolean => {
-    // Validação básica para todos os campos obrigatórios
     const hasBasicData = !!(
       formData.value.nome &&
       formData.value.telefone &&
@@ -86,10 +96,9 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
     );
 
     const hasValidPassword = formData.value.password.length >= 6;
-    const hasValidConfirm = formData.value.password === formData.value.confirmPassword;
     const hasTermsAccepted = acceptTerms.value;
 
-    return hasBasicData && hasValidPassword && hasValidConfirm && hasTermsAccepted;
+    return hasBasicData && hasValidPassword && hasTermsAccepted;
   });
 
   const isStepValid = computed((): Record<number, boolean> => {
@@ -102,11 +111,8 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
         formData.value.email &&
         emailRegex.test(formData.value.email)
       ),
-      2: !!(
-        formData.value.password.length >= 6 &&
-        formData.value.password === formData.value.confirmPassword
-      ),
-      3: true, // Endereço e foto são opcionais
+      2: !!(formData.value.password.length >= 6),
+      3: true,
       4: acceptTerms.value,
     };
   });
@@ -166,13 +172,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
           });
           return false;
         }
-        if (formData.value.password !== formData.value.confirmPassword) {
-          validationErrors.value.push({
-            field: 'confirmPassword',
-            message: 'As palavras-passe não coincidem',
-          });
-          return false;
-        }
         break;
       }
 
@@ -184,10 +183,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
           });
           return false;
         }
-        break;
-      }
-
-      default: {
         break;
       }
     }
@@ -240,7 +235,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
 
     formData.value.foto = file;
 
-    // Limpa preview antigo
     if (photoPreview.value) {
       URL.revokeObjectURL(photoPreview.value);
     }
@@ -287,7 +281,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
       email: '',
       endereco: '',
       password: '',
-      confirmPassword: '',
       foto: null,
     };
     photoPreview.value = null;
@@ -298,13 +291,9 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
   };
 
   /**
-   * Endpoint: Registro de cliente
-   * POST /api/clientes/register
+   * Endpoint: Registro de cliente - COM TIPOS CORRETOS (sem any)
    */
-  // src/stores/client/cliente-register-store.ts
-
   const registerCliente = async (): Promise<ClienteRegisterResponse> => {
-    // Valida último passo
     if (!validateStep(4)) {
       return {
         success: false,
@@ -322,8 +311,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
       formDataToSend.append('email', formData.value.email);
       formDataToSend.append('password', formData.value.password);
 
-     
-
       if (formData.value.endereco) {
         formDataToSend.append('endereco', formData.value.endereco);
       }
@@ -332,9 +319,8 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
         formDataToSend.append('foto', formData.value.foto);
       }
 
-      // Usar mesma rota /auth/register (backend detecta automaticamente)
       const response = await api.post<ApiRegisterResponse>(
-        '/auth/register', // mesma rota!
+        '/auth/register',
         formDataToSend,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -361,8 +347,38 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
         };
       }
     } catch (error) {
-      const axiosError = error as AxiosError<{ error?: string; message?: string }>;
+      // Tipagem correta sem usar 'any'
+      const axiosError = error as AxiosError<ApiErrorResponse>;
       console.error('Erro no registo:', axiosError);
+
+      // Tratamento de erro 422 (validação)
+      if (axiosError.response?.status === 422) {
+        const errorData = axiosError.response.data;
+
+        // Verifica se é erro de email já existente
+        if (errorData?.errors?.email && errorData.errors.email.length > 0) {
+          return {
+            success: false,
+            error: 'Este email já está registado. Use outro email ou faça login.',
+          };
+        }
+
+        // Verifica se é erro de telefone já existente
+        if (errorData?.errors?.telefone && errorData.errors.telefone.length > 0) {
+          return {
+            success: false,
+            error: 'Este telefone já está registado. Use outro telefone ou faça login.',
+          };
+        }
+
+        // Mensagem genérica de validação
+        if (errorData?.message) {
+          return {
+            success: false,
+            error: errorData.message,
+          };
+        }
+      }
 
       return {
         success: false,
@@ -378,8 +394,7 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
   };
 
   /**
-   * Verifica se email já existe (opcional - endpoint de validação)
-   * GET /api/clientes/check-email?email=...
+   * Verifica se email já existe
    */
   const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
@@ -393,8 +408,7 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
   };
 
   /**
-   * Verifica se telefone já existe (opcional - endpoint de validação)
-   * GET /api/clientes/check-telefone?telefone=...
+   * Verifica se telefone já existe
    */
   const checkTelefoneExists = async (telefone: string): Promise<boolean> => {
     try {
