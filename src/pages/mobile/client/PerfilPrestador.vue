@@ -164,18 +164,19 @@
           </div>
         </div>
 
-        <!-- Portfólio -->
-        <div v-if="prestadorStore.prestador.portfolio?.length" class="section">
+        <!-- Portfólio - CORRIGIDO -->
+        <div v-if="portfolioItems.length" class="section">
           <h3 class="section-title">Portfólio</h3>
           <div class="portfolio-grid">
-            <div v-for="(img, idx) in prestadorStore.prestador.portfolio.slice(0, 6)" :key="idx" class="portfolio-item" @click="() => void verImagem(img)">
-              <img :src="img" :alt="`Portfólio ${idx + 1}`" />
+            <div v-for="(item, idx) in portfolioItems.slice(0, 6)" :key="idx" class="portfolio-item" @click="() => void verImagem(item.url)">
+              <img :src="item.url" :alt="item.titulo || `Portfólio ${idx + 1}`" />
               <div class="portfolio-overlay">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
               </div>
+              <div v-if="item.titulo" class="portfolio-title">{{ item.titulo }}</div>
             </div>
           </div>
         </div>
@@ -263,7 +264,7 @@
 import { computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { usePrestadorStore } from 'src/stores/client/cliente-prestador-store';
+import { usePrestadorStore, type PortfolioItem } from 'src/stores/client/cliente-prestador-store';
 
 defineOptions({ name: 'PerfilPrestadorPage' });
 
@@ -275,6 +276,12 @@ const prestadorStore = usePrestadorStore();
 
 const prestadorId = computed(() => Number(route.params.id));
 const coverImage = 'https://images.unsplash.com/photo-1577412647305-991150c7d163?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+
+// ✅ Computed para normalizar o portfólio (garantir que tem url)
+const portfolioItems = computed(() => {
+  if (!prestadorStore.prestador?.portfolio) return [];
+  return prestadorStore.prestador.portfolio.filter((item): item is PortfolioItem => !!item.url);
+});
 
 const toggleFavorito = async () => {
   if (!prestadorStore.prestador) return;
@@ -608,9 +615,17 @@ $radius-xs: 8px;
       opacity: 0; transition: opacity 0.3s;
     }
 
+    .portfolio-title {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+      padding: 8px; font-size: 0.7rem; color: white; text-align: center;
+      opacity: 0; transition: opacity 0.3s;
+    }
+
     &:hover {
       img { transform: scale(1.05); }
       .portfolio-overlay { opacity: 1; }
+      .portfolio-title { opacity: 1; }
     }
   }
 }

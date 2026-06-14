@@ -57,6 +57,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'enderecos', component: () => import('pages/mobile/client/Enderecos.vue') },
       { path: 'configuracoes', component: () => import('pages/mobile/client/Configuracoes.vue') },
       { path: 'notificacoes', component: () => import('pages/mobile/client/Notificacoes.vue') },
+      {
+  path: 'suporte',
+  component: () => import('pages/mobile/Suporte.vue'),
+}
     ],
   },
 
@@ -91,7 +95,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'suporte', component: () => import('pages/admin/Suporte.vue') },
       { path: 'notificacoes', component: () => import('pages/admin/Notificacoes.vue') },
       { path: 'perfil', component: () => import('pages/admin/Perfil.vue') },
-      { path: 'permissoes', component: () => import('src/pages/admin/Permissoes.vue') },
+      { path: 'permissoes', component: () => import('pages/admin/Permissoes.vue') },
     ],
   },
 
@@ -127,6 +131,20 @@ const routes: RouteRecordRaw[] = [
         path: '/mobile/prestador/pedidos-disponiveis',
         component: () => import('pages/mobile/prestador/PedidosDisponiveis.vue'),
       },
+      { path: 'portfolio', component: () => import('pages/mobile/prestador/Portfolio.vue') },
+      // Na secão do prestador
+      { path: 'precos', component: () => import('pages/mobile/prestador/PrestadorPrecos.vue') },
+      // Na secção do prestador
+      {
+        path: 'relatorio-financeiro',
+        component: () => import('pages/mobile/prestador/RelatorioFinanceiro.vue'),
+      },
+      // Para PRESTADOR (dentro do grupo /mobile/prestador)
+{
+  path: 'suporte',
+  component: () => import('pages/mobile/Suporte.vue'),
+
+},
     ],
   },
 

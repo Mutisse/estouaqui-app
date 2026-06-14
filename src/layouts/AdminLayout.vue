@@ -268,12 +268,12 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/login-store';
 import { useAdminStore } from 'src/stores/admin/admin-store';
+import { useAdminPerfilStore } from 'src/stores/admin/admin-perfil-store';
 import { useQuasar } from 'quasar';
 
 // Interface para notificação
@@ -298,6 +298,7 @@ const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 const adminStore = useAdminStore();
+const perfilStore = useAdminPerfilStore(); // ✅ Adicionar store de perfil
 const $q = useQuasar();
 
 // ==================== RESPONSIVIDADE =====================
@@ -319,18 +320,26 @@ const dropdownAberto = ref(false);
 // ===================== FOTO DO PERFIL =====================
 const fotoTimestamp = ref(Date.now());
 
+// ✅ CORRIGIDO: Buscar foto do perfilStore (mais atualizado)
 const fotoPerfil = computed(() => {
-  const foto = authStore.user?.foto;
-  if (foto && foto !== '') {
-    return `${foto}${foto.includes('?') ? '&' : '?'}t=${fotoTimestamp.value}`;
+  const foto = perfilStore.perfil?.foto || authStore.user?.foto;
+  if (foto && foto !== 'null' && foto !== '') {
+    // Se já tem URL completa
+    if (foto.startsWith('http')) {
+      return `${foto}${foto.includes('?') ? '&' : '?'}t=${fotoTimestamp.value}`;
+    }
+    // Se é caminho relativo
+    return `http://localhost:8000/storage/${foto}?t=${fotoTimestamp.value}`;
   }
   return '';
 });
 
+// ✅ Watch para quando a foto do perfil mudar
 watch(
-  () => authStore.user?.foto,
+  () => perfilStore.perfil?.foto,
   () => {
     fotoTimestamp.value = Date.now();
+    console.log('Foto do perfil atualizada:', perfilStore.perfil?.foto);
   },
   { immediate: true }
 );
@@ -431,19 +440,27 @@ const formatarDataRelativa = (dataString: string): string => {
 // ===================== DADOS DO USUÁRIO =====================
 const isRoot = computed(() => authStore.user?.tipo === 'root');
 
-const adminNome = computed(() => authStore.user?.nome?.split(' ')[0] || 'Administrador');
+// ✅ Buscar nome do perfilStore
+const adminNome = computed(() => {
+  const nome = perfilStore.perfil?.nome || authStore.user?.nome;
+  return nome?.split(' ')[0] || 'Administrador';
+});
+
 const adminRole = computed(() => {
   if (isRoot.value) return 'Root Administrator';
   return 'Business Manager';
 });
-const adminInitials = computed(() =>
-  (authStore.user?.nome || 'AD')
+
+// ✅ Buscar iniciais do perfilStore
+const adminInitials = computed(() => {
+  const nome = perfilStore.perfil?.nome || authStore.user?.nome || 'AD';
+  return nome
     .split(' ')
     .slice(0, 2)
     .map((n: string) => n[0])
     .join('')
-    .toUpperCase()
-);
+    .toUpperCase();
+});
 
 const dataHoje = computed(() =>
   new Date().toLocaleDateString('pt-PT', {
@@ -482,7 +499,7 @@ const tituloPagina = computed(() => {
     '/admin/permissoes': 'Permissões',
     '/admin/backups': 'Backups',
     '/admin/logs': 'Logs do Sistema',
-    '/admin/monitoramento': 'Monitoramento',
+    '/admin/monitoring': 'Monitoramento',
     '/admin/performance': 'Performance',
     '/admin/perfil': 'Meu Perfil'
   };
@@ -495,18 +512,34 @@ const focarBusca = () =>
   $q.notify({ type: 'info', message: 'Busca global em breve', position: 'top' });
 const atualizarDados = async (): Promise<void> => {
   await adminStore.recarregarDados();
+  await perfilStore.carregarPerfil(); // ✅ Atualizar perfil também
   await carregarNotificacoes();
   $q.notify({ type: 'positive', message: 'Dados atualizados!', position: 'top', timeout: 2000 });
 };
+
 const sair = async (): Promise<void> => {
   await authStore.logout();
+  perfilStore.limparStore(); // ✅ Limpar store de perfil
   void router.push('/admin/login');
+};
+
+// ✅ Carregar perfil ao montar o componente
+const carregarPerfil = async (): Promise<void> => {
+  try {
+    await perfilStore.carregarPerfil();
+    console.log('Perfil carregado:', perfilStore.perfil);
+  } catch (error) {
+    console.error('Erro ao carregar perfil:', error);
+  }
 };
 
 // ===================== LIFECYCLE =====================
 onMounted(async () => {
-  await adminStore.recarregarDados();
-  await carregarNotificacoes();
+  await Promise.all([
+    adminStore.recarregarDados(),
+    carregarPerfil(), // ✅ Carregar perfil
+    carregarNotificacoes()
+  ]);
 
   intervalo = setInterval(() => {
     void carregarNotificacoes();
@@ -520,7 +553,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
 });
 </script>
-
 <style scoped lang="scss">
 // ─── TOKENS ───────────────────────────────────────────────────────────────
 $a: #667eea;

@@ -39,7 +39,7 @@
     <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
 
-      <!-- ===== FILTROS MODERNOS (Carrossel horizontal) ===== -->
+      <!-- ===== FILTROS MODERNOS ===== -->
       <div class="filters-bar">
         <div class="filter-scroll">
           <button
@@ -71,7 +71,8 @@
       <div class="controls-bar">
         <div class="control-group">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
           </svg>
           <span>Raio:</span>
           <div class="raio-selector">
@@ -155,7 +156,7 @@
               <div class="cliente-nome">{{ pedido.cliente?.nome || 'Cliente' }}</div>
               <div class="pedido-data">{{ formatarData(pedido.created_at) }}</div>
             </div>
-            <div class="categoria-tag" :style="{ background: pedido.categoria?.cor || '#667eea' + '20', color: pedido.categoria?.cor || '#667eea' }">
+            <div class="categoria-tag" :style="{ background: (pedido.categoria?.cor || '#667eea') + '20', color: pedido.categoria?.cor || '#667eea' }">
               {{ pedido.categoria?.nome || 'Serviço' }}
             </div>
           </div>
@@ -174,9 +175,22 @@
             <span>{{ pedido.endereco?.split(',')[0] || 'Endereço não informado' }}</span>
           </div>
 
-          <!-- Botão de ação -->
+          <!-- Botão de ação com verificação -->
           <div class="card-action">
-            <button class="proposta-btn-modern" @click.stop="abrirModalProposta(pedido)">
+            <div v-if="pedido.proposta_enviada" class="proposta-enviada-badge">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span>
+                Proposta enviada em {{ pedido.proposta_data ? formatarData(pedido.proposta_data) : 'data desconhecida' }}
+              </span>
+            </div>
+
+            <button
+              v-else
+              class="proposta-btn-modern"
+              @click.stop="abrirModalPropostaComVerificacao(pedido)"
+            >
               <span>Fazer Proposta</span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -303,8 +317,8 @@ const categoriasOptions = computed(() => {
   }));
 });
 
-const formatarData = (data: string): string => {
-  if (!data) return '';
+const formatarData = (data: string | undefined): string => {
+  if (!data) return 'data desconhecida';
   try {
     const date = new Date(data);
     const hoje = new Date();
@@ -350,8 +364,18 @@ const atualizarFiltroOrdenacao = (ordenacao: string): void => {
   aplicarFiltros();
 };
 
-const abrirModalProposta = (pedido: PedidoDisponivelData): void => {
-  pedidosStore.abrirModalProposta(pedido);
+// Abrir modal com verificação
+const abrirModalPropostaComVerificacao = async (pedido: PedidoDisponivelData): Promise<void> => {
+  const success = await pedidosStore.abrirModalProposta(pedido);
+
+  if (!success) {
+    $q.notify({
+      type: 'warning',
+      message: pedidosStore.error || 'Você já enviou uma proposta para este pedido',
+      position: 'top',
+      timeout: 3000
+    });
+  }
 };
 
 const fecharModalProposta = (): void => {
@@ -414,7 +438,7 @@ onMounted(async () => {
 <style scoped lang="scss">
 // ===================== VARIÁVEIS =====================
 $accent: #5B4BF5;
-$accent-light: rgba(91, 75, 245, 0.1);
+$accent-light: rgba(91, 75, 245, 0.08);
 $success: #10B981;
 $warning: #F59E0B;
 $danger: #EF4444;
@@ -519,6 +543,19 @@ $radius-xs: 10px;
       background: $gray-light;
       border-radius: 7px;
       margin: 8px 0;
+      position: relative;
+      overflow: hidden;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        animation: shimmer 1.5s infinite;
+      }
     }
   }
 }
@@ -682,7 +719,6 @@ $radius-xs: 10px;
   border-radius: $radius;
   padding: 20px;
   position: relative;
-  cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid $border;
 
@@ -793,6 +829,26 @@ $radius-xs: 10px;
         gap: 12px;
       }
     }
+  }
+}
+
+// ===================== BADGE PROPOSTA ENVIADA =====================
+.proposta-enviada-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: $radius-xs;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: $success;
+
+  svg {
+    flex-shrink: 0;
   }
 }
 

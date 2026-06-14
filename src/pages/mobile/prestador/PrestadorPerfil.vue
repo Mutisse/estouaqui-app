@@ -5,6 +5,7 @@
       <q-btn flat round icon="arrow_back" @click="router.back()" class="back-btn" />
       <h1 class="page-title">Meu Perfil</h1>
       <div class="header-actions">
+        <q-btn flat round icon="bar_chart" @click="irParaRelatorioFinanceiro" class="finance-btn" />
         <q-btn flat round icon="settings" @click="irParaConfiguracoes" class="settings-btn" />
         <q-btn flat round icon="logout" @click="confirmarLogout" class="logout-btn" />
       </div>
@@ -96,24 +97,31 @@
         </div>
       </div>
 
-      <!-- Botão Editar Perfil (expansível) -->
+      <!-- Botão Relatório Financeiro -->
+      <div class="finance-report-section">
+        <button class="finance-report-btn" @click="irParaRelatorioFinanceiro">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
+          <span>Relatório Financeiro</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Botão Editar Perfil -->
       <button class="edit-profile-btn" @click="toggleEditMode">
-        <svg
-          v-if="!editMode"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
+        <svg v-if="!editMode" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34" />
           <polygon points="18 2 22 6 12 16 8 16 8 12 18 2" />
         </svg>
         <span>{{ editMode ? 'Cancelar' : 'Editar perfil' }}</span>
       </button>
 
-      <!-- Formulário de Edição do Perfil (Expansível) -->
+      <!-- Formulário de Edição -->
       <transition name="slide-fade">
         <div v-if="editMode" class="edit-form-section">
           <div class="edit-form-header">
@@ -122,37 +130,15 @@
           <div class="edit-form-body">
             <div class="form-group">
               <label class="form-label">Nome completo</label>
-              <q-input
-                v-model="editForm.nome"
-                outlined
-                dense
-                placeholder="Seu nome completo"
-                :error="!!errors.nome"
-                :error-message="errors.nome"
-              />
+              <q-input v-model="editForm.nome" outlined dense placeholder="Seu nome completo" :error="!!errors.nome" :error-message="errors.nome" />
             </div>
             <div class="form-group">
               <label class="form-label">Email</label>
-              <q-input
-                v-model="editForm.email"
-                type="email"
-                outlined
-                dense
-                placeholder="seu@email.com"
-                :error="!!errors.email"
-                :error-message="errors.email"
-              />
+              <q-input v-model="editForm.email" type="email" outlined dense placeholder="seu@email.com" :error="!!errors.email" :error-message="errors.email" />
             </div>
             <div class="form-group">
               <label class="form-label">Telefone</label>
-              <q-input
-                v-model="editForm.telefone"
-                outlined
-                dense
-                placeholder="84 000 0000"
-                :error="!!errors.telefone"
-                :error-message="errors.telefone"
-              />
+              <q-input v-model="editForm.telefone" outlined dense placeholder="84 000 0000" :error="!!errors.telefone" :error-message="errors.telefone" />
             </div>
             <div class="form-group">
               <label class="form-label">Endereço</label>
@@ -160,36 +146,16 @@
             </div>
             <div class="form-group">
               <label class="form-label">Profissão</label>
-              <q-input
-                v-model="editForm.profissao"
-                outlined
-                dense
-                placeholder="Ex: Canalizador, Eletricista..."
-              />
+              <q-input v-model="editForm.profissao" outlined dense placeholder="Ex: Canalizador, Eletricista..." />
             </div>
             <div class="form-group">
               <label class="form-label">Sobre mim</label>
-              <q-input
-                v-model="editForm.sobre"
-                type="textarea"
-                outlined
-                dense
-                placeholder="Fale um pouco sobre você..."
-                rows="3"
-                maxlength="500"
-              />
+              <q-input v-model="editForm.sobre" type="textarea" outlined dense placeholder="Fale um pouco sobre você..." rows="3" maxlength="500" />
               <div class="char-counter">{{ editForm.sobre?.length || 0 }}/500</div>
             </div>
-            <div class="edit-form-actions">
+            <div class="edit-actions">
               <q-btn flat label="Cancelar" @click="toggleEditMode" class="cancel-btn" />
-              <q-btn
-                unelevated
-                label="Salvar alterações"
-                color="primary"
-                @click="salvarPerfil"
-                :loading="loadingSalvar"
-                class="save-btn"
-              />
+              <q-btn unelevated label="Salvar alterações" color="primary" @click="salvarPerfil" :loading="loadingSalvar" class="save-btn" />
             </div>
           </div>
         </div>
@@ -201,11 +167,7 @@
       <div class="collapsible-section">
         <div class="section-header" @click="toggleSection('contacto')">
           <div class="section-title">
-            <q-icon
-              :name="sections.contacto ? 'expand_less' : 'expand_more'"
-              size="20px"
-              class="section-icon"
-            />
+            <q-icon :name="sections.contacto ? 'expand_less' : 'expand_more'" size="20px" class="section-icon" />
             Contacto
           </div>
         </div>
@@ -227,28 +189,16 @@
         </div>
       </div>
 
-      <!-- 2. ÁREAS DE ATUAÇÃO (CATEGORIAS) - 3 COLUNAS -->
+      <!-- 2. ÁREAS DE ATUAÇÃO -->
       <div class="collapsible-section">
         <div class="section-header" @click="toggleSection('categorias')">
           <div class="section-title">
-            <q-icon
-              :name="sections.categorias ? 'expand_less' : 'expand_more'"
-              size="20px"
-              class="section-icon"
-            />
+            <q-icon :name="sections.categorias ? 'expand_less' : 'expand_more'" size="20px" class="section-icon" />
             Áreas de Atuação
           </div>
-          <q-btn
-            flat
-            dense
-            icon="edit"
-            size="sm"
-            color="primary"
-            @click.stop="abrirEdicaoCategorias"
-          />
+          <q-btn flat dense icon="edit" size="sm" color="primary" @click.stop="abrirEdicaoCategorias" />
         </div>
         <div v-show="sections.categorias" class="section-content">
-          <!-- Formulário Expansível para Editar Categorias -->
           <transition name="slide-fade">
             <div v-if="editCategoriasMode" class="edit-categorias-section">
               <div class="edit-categorias-header">
@@ -261,62 +211,34 @@
                   <span class="q-ml-sm">A carregar categorias...</span>
                 </div>
                 <div v-else class="categorias-grid-3col">
-                  <div
-                    v-for="cat in todasCategorias"
-                    :key="cat.id"
-                    class="categoria-card"
-                    :class="{ selected: categoriaSelecionada(cat.id) }"
-                    @click="toggleCategoria(cat.id)"
-                  >
+                  <div v-for="cat in todasCategorias" :key="cat.id" class="categoria-card" :class="{ selected: categoriaSelecionada(cat.id) }" @click="toggleCategoria(cat.id)">
                     <div class="categoria-card__icon">
-                      <q-icon
-                        :name="cat.icone || 'category'"
-                        size="28px"
-                        :color="categoriaSelecionada(cat.id) ? 'primary' : 'grey'"
-                      />
+                      <q-icon :name="cat.icone || 'category'" size="28px" :color="categoriaSelecionada(cat.id) ? 'primary' : 'grey'" />
                     </div>
                     <div class="categoria-card__info">
                       <div class="categoria-card__name">{{ cat.nome }}</div>
-                      <div class="categoria-card__desc">
-                        {{ cat.descricao || 'Clique para selecionar' }}
-                      </div>
+                      <div class="categoria-card__desc">{{ cat.descricao || 'Clique para selecionar' }}</div>
                     </div>
                     <div class="categoria-card__check">
-                      <q-icon
-                        v-if="categoriaSelecionada(cat.id)"
-                        name="check_circle"
-                        size="20px"
-                        color="primary"
-                      />
+                      <q-icon v-if="categoriaSelecionada(cat.id)" name="check_circle" size="20px" color="primary" />
                       <q-icon v-else name="radio_button_unchecked" size="20px" color="grey" />
                     </div>
                   </div>
                 </div>
                 <div class="edit-actions">
                   <q-btn flat label="Cancelar" @click="fecharEdicaoCategorias" />
-                  <q-btn
-                    unelevated
-                    label="Salvar"
-                    color="primary"
-                    @click="salvarCategoriasExpansivel"
-                    :loading="salvandoCategorias"
-                  />
+                  <q-btn unelevated label="Salvar" color="primary" @click="salvarCategoriasExpansivel" :loading="salvandoCategorias" />
                 </div>
               </div>
             </div>
           </transition>
 
-          <!-- Visualização das Categorias -->
           <div v-if="carregandoCategorias && !editCategoriasMode" class="text-center q-py-md">
             <q-spinner size="24px" color="primary" />
             <span class="q-ml-sm">A carregar categorias...</span>
           </div>
           <div v-else class="categorias-grid-3col-view">
-            <div
-              v-for="cat in perfilStore.minhasCategorias"
-              :key="cat.id"
-              class="categoria-chip-view"
-            >
+            <div v-for="cat in perfilStore.minhasCategorias" :key="cat.id" class="categoria-chip-view">
               <q-icon :name="cat.icone || 'category'" size="16px" />
               <span>{{ cat.nome }}</span>
             </div>
@@ -332,11 +254,7 @@
       <div class="collapsible-section">
         <div class="section-header" @click="toggleSection('sobre')">
           <div class="section-title">
-            <q-icon
-              :name="sections.sobre ? 'expand_less' : 'expand_more'"
-              size="20px"
-              class="section-icon"
-            />
+            <q-icon :name="sections.sobre ? 'expand_less' : 'expand_more'" size="20px" class="section-icon" />
             Sobre
           </div>
         </div>
@@ -351,17 +269,12 @@
       <div class="collapsible-section">
         <div class="section-header" @click="toggleSection('servicos')">
           <div class="section-title">
-            <q-icon
-              :name="sections.servicos ? 'expand_less' : 'expand_more'"
-              size="20px"
-              class="section-icon"
-            />
+            <q-icon :name="sections.servicos ? 'expand_less' : 'expand_more'" size="20px" class="section-icon" />
             Serviços Oferecidos
           </div>
           <q-btn flat dense icon="add" size="sm" color="primary" @click.stop="abrirFormServico" />
         </div>
         <div v-show="sections.servicos" class="section-content">
-          <!-- Formulário Expansível para Serviço -->
           <transition name="slide-fade">
             <div v-if="showServicoForm" class="edit-servico-section">
               <div class="edit-servico-header">
@@ -370,63 +283,22 @@
               </div>
               <div class="edit-servico-body">
                 <div class="form-row">
-                  <q-input
-                    v-model="servicoForm.nome"
-                    label="Nome do serviço"
-                    outlined
-                    dense
-                    class="col"
-                  />
-                  <q-input
-                    v-model="servicoForm.duracao"
-                    label="Duração (min)"
-                    type="number"
-                    outlined
-                    dense
-                    class="col"
-                  />
+                  <q-input v-model="servicoForm.nome" label="Nome do serviço" outlined dense class="col" />
+                  <q-input v-model="servicoForm.duracao" label="Duração (min)" type="number" outlined dense class="col" />
                 </div>
-                <q-input
-                  v-model="servicoForm.descricao"
-                  label="Descrição"
-                  type="textarea"
-                  outlined
-                  dense
-                  rows="2"
-                />
+                <q-input v-model="servicoForm.descricao" label="Descrição" type="textarea" outlined dense rows="2" />
                 <div class="form-row">
-                  <q-input
-                    v-model="servicoForm.preco"
-                    label="Preço (MZN)"
-                    type="number"
-                    outlined
-                    dense
-                    class="col"
-                  />
-                  <q-select
-                    v-model="servicoForm.icone"
-                    :options="iconeOptions"
-                    label="Ícone"
-                    outlined
-                    dense
-                    class="col"
-                  />
+                  <q-input v-model="servicoForm.preco" label="Preço (MZN)" type="number" outlined dense class="col" />
+                  <q-select v-model="servicoForm.icone" :options="iconeOptions" label="Ícone" outlined dense class="col" />
                 </div>
                 <div class="edit-actions">
                   <q-btn flat label="Cancelar" @click="fecharFormServico" />
-                  <q-btn
-                    unelevated
-                    label="Salvar"
-                    color="primary"
-                    @click="salvarServico"
-                    :loading="salvandoServico"
-                  />
+                  <q-btn unelevated label="Salvar" color="primary" @click="salvarServico" :loading="salvandoServico" />
                 </div>
               </div>
             </div>
           </transition>
 
-          <!-- Lista de Serviços -->
           <div v-if="carregandoServicos" class="text-center q-py-md">
             <q-spinner size="24px" color="primary" />
             <span class="q-ml-sm">A carregar serviços...</span>
@@ -442,31 +314,15 @@
               </div>
               <div class="servico-card__info">
                 <div class="servico-card__name">{{ servico.nome }}</div>
-                <div class="servico-card__desc">
-                  {{ servico.descricao || 'Serviço profissional' }}
-                </div>
+                <div class="servico-card__desc">{{ servico.descricao || 'Serviço profissional' }}</div>
               </div>
               <div class="servico-card__price">
                 <div class="price-value">{{ formatarPreco(servico.preco) }}</div>
                 <div class="price-duration">{{ servico.duracao }} min</div>
               </div>
               <div class="servico-card__actions">
-                <q-btn
-                  flat
-                  round
-                  icon="edit"
-                  size="sm"
-                  color="primary"
-                  @click.stop="handleEditarServico(servico)"
-                />
-                <q-btn
-                  flat
-                  round
-                  icon="delete"
-                  size="sm"
-                  color="negative"
-                  @click.stop="handleRemoverServico(servico.id)"
-                />
+                <q-btn flat round icon="edit" size="sm" color="primary" @click.stop="handleEditarServico(servico)" />
+                <q-btn flat round icon="delete" size="sm" color="negative" @click.stop="handleRemoverServico(servico.id)" />
               </div>
             </div>
           </div>
@@ -477,21 +333,10 @@
       <div class="collapsible-section">
         <div class="section-header" @click="toggleSection('portfolio')">
           <div class="section-title">
-            <q-icon
-              :name="sections.portfolio ? 'expand_less' : 'expand_more'"
-              size="20px"
-              class="section-icon"
-            />
+            <q-icon :name="sections.portfolio ? 'expand_less' : 'expand_more'" size="20px" class="section-icon" />
             Portfólio
           </div>
-          <q-btn
-            flat
-            dense
-            icon="add"
-            size="sm"
-            color="primary"
-            @click.stop="adicionarFotoPortfolio"
-          />
+          <q-btn flat dense icon="add" size="sm" color="primary" @click.stop="adicionarFotoPortfolio" />
         </div>
         <div v-show="sections.portfolio" class="section-content">
           <div v-if="perfilStore.portfolio.length === 0" class="empty-state-small">
@@ -499,13 +344,8 @@
             <p>Nenhuma foto no portfólio</p>
           </div>
           <div v-else class="portfolio-grid">
-            <div
-              v-for="(foto, index) in perfilStore.portfolio"
-              :key="index"
-              class="portfolio-item"
-              @click="verPortfolio(index)"
-            >
-              <q-img :src="foto" :ratio="1" class="portfolio-img" />
+            <div v-for="(foto, index) in perfilStore.portfolio" :key="index" class="portfolio-item" @click="verPortfolio(index)">
+              <q-img :src="obterUrlFoto(foto)" ratio="1" class="portfolio-img" />
               <div class="portfolio-overlay" @click.stop="removerFotoPortfolio(index)">
                 <q-icon name="delete" size="20px" color="white" />
               </div>
@@ -518,24 +358,12 @@
       <div class="collapsible-section">
         <div class="section-header" @click="toggleSection('disponibilidade')">
           <div class="section-title">
-            <q-icon
-              :name="sections.disponibilidade ? 'expand_less' : 'expand_more'"
-              size="20px"
-              class="section-icon"
-            />
+            <q-icon :name="sections.disponibilidade ? 'expand_less' : 'expand_more'" size="20px" class="section-icon" />
             Disponibilidade
           </div>
-          <q-btn
-            flat
-            dense
-            icon="edit"
-            size="sm"
-            color="primary"
-            @click.stop="editarDisponibilidade"
-          />
+          <q-btn flat dense icon="edit" size="sm" color="primary" @click.stop="editarDisponibilidade" />
         </div>
         <div v-show="sections.disponibilidade" class="section-content">
-          <!-- Formulário Expansível para Disponibilidade -->
           <transition name="slide-fade">
             <div v-if="editDisponibilidade" class="edit-disponibilidade-section">
               <div class="edit-disponibilidade-header">
@@ -550,50 +378,24 @@
                       <q-toggle v-model="disponibilidadeAtiva[dia.key]" color="primary" />
                     </div>
                     <div v-if="disponibilidadeAtiva[dia.key]" class="horarios-inputs">
-                      <q-select
-                        v-model="disponibilidadeHorariosSelecionados[dia.key]"
-                        :options="opcoesHorarios"
-                        label="Selecione os horários"
-                        multiple
-                        outlined
-                        dense
-                        use-chips
-                        stack-label
-                        emit-value
-                        map-options
-                        class="horarios-select"
-                      />
+                      <q-select v-model="disponibilidadeHorariosSelecionados[dia.key]" :options="opcoesHorarios" label="Selecione os horários" multiple outlined dense use-chips stack-label emit-value map-options class="horarios-select" />
                     </div>
                   </div>
                 </div>
                 <div class="edit-actions">
                   <q-btn flat label="Cancelar" @click="cancelarEditarDisponibilidade" />
-                  <q-btn
-                    unelevated
-                    label="Salvar"
-                    color="primary"
-                    @click="salvarDisponibilidade"
-                    :loading="salvandoDisponibilidade"
-                  />
+                  <q-btn unelevated label="Salvar" color="primary" @click="salvarDisponibilidade" :loading="salvandoDisponibilidade" />
                 </div>
               </div>
             </div>
           </transition>
 
-          <!-- Visualização da Disponibilidade -->
-          <div
-            v-if="perfilStore.disponibilidadeHorariosFormatados.length === 0"
-            class="empty-state-small"
-          >
+          <div v-if="perfilStore.disponibilidadeHorariosFormatados.length === 0" class="empty-state-small">
             <q-icon name="schedule" size="32px" />
             <p>Nenhum horário definido</p>
           </div>
           <div v-else class="disponibilidade-grid-view">
-            <div
-              v-for="h in perfilStore.disponibilidadeHorariosFormatados"
-              :key="h.dia"
-              class="disponibilidade-card"
-            >
+            <div v-for="h in perfilStore.disponibilidadeHorariosFormatados" :key="h.dia" class="disponibilidade-card">
               <div class="disponibilidade-dia">{{ h.dia }}</div>
               <div class="disponibilidade-horario">
                 <q-icon name="schedule" size="14px" />
@@ -608,11 +410,7 @@
       <div class="collapsible-section">
         <div class="section-header" @click="toggleSection('documentos')">
           <div class="section-title">
-            <q-icon
-              :name="sections.documentos ? 'expand_less' : 'expand_more'"
-              size="20px"
-              class="section-icon"
-            />
+            <q-icon :name="sections.documentos ? 'expand_less' : 'expand_more'" size="20px" class="section-icon" />
             Documentos
           </div>
         </div>
@@ -621,21 +419,10 @@
             <div class="doc-item">
               <div class="doc-item__icon"><q-icon name="description" size="18px" /></div>
               <div class="doc-item__label">Documento de Identificação</div>
-              <div
-                class="doc-item__status"
-                :class="perfilStore.documentoVerificado ? 'verified' : 'pending'"
-              >
+              <div class="doc-item__status" :class="perfilStore.documentoVerificado ? 'verified' : 'pending'">
                 {{ perfilStore.documentoVerificado ? 'Verificado' : 'Pendente' }}
               </div>
-              <q-btn
-                v-if="!perfilStore.documentoVerificado"
-                flat
-                dense
-                label="Enviar"
-                size="sm"
-                color="primary"
-                @click="uploadDocumento"
-              />
+              <q-btn v-if="!perfilStore.documentoVerificado" flat dense label="Enviar" size="sm" color="primary" @click="uploadDocumento" />
             </div>
           </div>
         </div>
@@ -643,6 +430,7 @@
     </template>
   </div>
 </template>
+
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -657,7 +445,6 @@ import {
 
 defineOptions({ name: 'PrestadorPerfil' });
 
-// ===================== INTERFACES =====================
 interface EditFormData {
   nome: string;
   profissao: string;
@@ -692,12 +479,15 @@ interface CategoriaDisponivel {
   descricao?: string;
 }
 
-// ===================== STORE =====================
+interface PortfolioItem {
+  url?: string;
+  path?: string;
+}
+
 const router = useRouter();
 const $q = useQuasar();
 const perfilStore = usePrestadorPerfilStore();
 
-// ===================== ESTADO DAS SEÇÕES =====================
 const sections = ref({
   contacto: true,
   categorias: true,
@@ -708,13 +498,11 @@ const sections = ref({
   documentos: false,
 });
 
-// ===================== ESTADOS DO PERFIL =====================
 const editMode = ref(false);
 const avatarError = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const fotoTimestamp = ref(Date.now());
 
-// ===================== ESTADOS DE EDIÇÃO =====================
 const editCategoriasMode = ref(false);
 const editDisponibilidade = ref(false);
 const disponibilidadeAtiva = ref<Record<string, boolean>>({});
@@ -724,12 +512,10 @@ const showServicoForm = ref(false);
 const editandoServico = ref(false);
 const servicoEditandoId = ref<number | null>(null);
 
-// ===================== DADOS LOCAIS =====================
 const todasCategorias = ref<CategoriaDisponivel[]>([]);
 const categoriasSelecionadas = ref<number[]>([]);
 const portfolioSelecionado = ref<string | null>(null);
 
-// ===================== FORMULÁRIOS =====================
 const editForm = reactive<EditFormData>({
   nome: '',
   profissao: '',
@@ -749,7 +535,6 @@ const servicoForm = reactive<ServicoForm>({
 
 const errors = reactive({ nome: '', email: '', telefone: '' });
 
-// ===================== LOADS =====================
 const carregandoCategorias = ref(false);
 const carregandoServicos = ref(false);
 const loadingSalvar = ref(false);
@@ -757,7 +542,18 @@ const salvandoCategorias = ref(false);
 const salvandoDisponibilidade = ref(false);
 const salvandoServico = ref(false);
 
-// ===================== COMPUTED =====================
+// ✅ FUNÇÃO AUXILIAR PARA URL DO PORTFÓLIO - SEM ANY
+const obterUrlFoto = (foto: string | PortfolioItem): string => {
+  if (!foto) return '';
+  if (typeof foto === 'string') return foto;
+  if (foto.url) return foto.url;
+  if (foto.path) {
+    if (foto.path.startsWith('http')) return foto.path;
+    return `http://localhost:8000/storage/${foto.path}`;
+  }
+  return '';
+};
+
 const userAvatar = computed(() => {
   if (avatarError.value) {
     const iniciais = gerarIniciais(perfilStore.nomeCompleto);
@@ -772,14 +568,12 @@ const userAvatar = computed(() => {
   return `https://ui-avatars.com/api/?background=5B4BF5&color=fff&bold=true&size=120&name=${encodeURIComponent(iniciais)}&t=${fotoTimestamp.value}`;
 });
 
-// ===================== UTILITÁRIOS =====================
 const gerarIniciais = (nome: string): string => {
   if (!nome || nome.trim() === '') return 'US';
   const partes = nome.trim().split(' ');
   if (partes.length === 1) {
     const primeiraParte = partes[0];
-    if (primeiraParte && primeiraParte.length >= 2)
-      return primeiraParte.substring(0, 2).toUpperCase();
+    if (primeiraParte && primeiraParte.length >= 2) return primeiraParte.substring(0, 2).toUpperCase();
     if (primeiraParte && primeiraParte.length === 1) return (primeiraParte[0] + 'U').toUpperCase();
     return 'US';
   }
@@ -789,17 +583,10 @@ const gerarIniciais = (nome: string): string => {
 };
 
 const formatarPreco = (preco: number): string => {
-  return new Intl.NumberFormat('pt-MZ', {
-    style: 'currency',
-    currency: 'MZN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(preco);
+  return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(preco);
 };
 
-const handleAvatarError = () => {
-  avatarError.value = true;
-};
+const handleAvatarError = () => { avatarError.value = true; };
 
 const carregarDadosNoForm = () => {
   editForm.nome = perfilStore.nomeCompleto;
@@ -810,47 +597,26 @@ const carregarDadosNoForm = () => {
   editForm.sobre = perfilStore.sobre;
 };
 
-// ===================== VALIDAÇÃO =====================
 const validarForm = (): boolean => {
   let isValid = true;
   errors.nome = '';
   errors.email = '';
   errors.telefone = '';
 
-  if (!editForm.nome.trim()) {
-    errors.nome = 'Nome é obrigatório';
-    isValid = false;
-  }
-
+  if (!editForm.nome.trim()) { errors.nome = 'Nome é obrigatório'; isValid = false; }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!editForm.email.trim()) {
-    errors.email = 'Email é obrigatório';
-    isValid = false;
-  } else if (!emailRegex.test(editForm.email)) {
-    errors.email = 'Email inválido';
-    isValid = false;
-  }
-
-  if (!editForm.telefone.trim()) {
-    errors.telefone = 'Telefone é obrigatório';
-    isValid = false;
-  }
+  if (!editForm.email.trim()) { errors.email = 'Email é obrigatório'; isValid = false; }
+  else if (!emailRegex.test(editForm.email)) { errors.email = 'Email inválido'; isValid = false; }
+  if (!editForm.telefone.trim()) { errors.telefone = 'Telefone é obrigatório'; isValid = false; }
 
   return isValid;
 };
 
-// ===================== SEÇÕES =====================
-const toggleSection = (section: keyof typeof sections.value) => {
-  sections.value[section] = !sections.value[section];
-};
+const toggleSection = (section: keyof typeof sections.value) => { sections.value[section] = !sections.value[section]; };
+const toggleEditMode = () => { if (editMode.value) carregarDadosNoForm(); editMode.value = !editMode.value; };
 
-const toggleEditMode = () => {
-  if (editMode.value) carregarDadosNoForm();
-  editMode.value = !editMode.value;
-};
-
-// ===================== NAVEGAÇÃO =====================
 const irParaConfiguracoes = () => void router.push('/mobile/prestador/configuracoes');
+const irParaRelatorioFinanceiro = () => void router.push('/mobile/prestador/relatorio-financeiro');
 
 const confirmarLogout = () => {
   $q.dialog({
@@ -871,22 +637,14 @@ const confirmarLogout = () => {
   });
 };
 
-// ===================== FOTO =====================
 const trocarFotoPerfil = () => fileInput.value?.click();
 
 const handleFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
-
-  if (file.size > 5 * 1024 * 1024) {
-    $q.notify({ type: 'negative', message: 'A foto deve ter no máximo 5MB', position: 'top' });
-    return;
-  }
-  if (!file.type.startsWith('image/')) {
-    $q.notify({ type: 'negative', message: 'Selecione uma imagem válida', position: 'top' });
-    return;
-  }
+  if (file.size > 5 * 1024 * 1024) { $q.notify({ type: 'negative', message: 'A foto deve ter no máximo 5MB', position: 'top' }); return; }
+  if (!file.type.startsWith('image/')) { $q.notify({ type: 'negative', message: 'Selecione uma imagem válida', position: 'top' }); return; }
 
   $q.loading.show({ message: 'Enviando foto...' });
   try {
@@ -906,18 +664,11 @@ const handleFileUpload = async (event: Event) => {
   }
 };
 
-// ===================== PERFIL =====================
 const salvarPerfil = async () => {
   if (!validarForm()) return;
-
   loadingSalvar.value = true;
   try {
-    const success = await perfilStore.updateProfile({
-      nome: editForm.nome,
-      telefone: editForm.telefone,
-      endereco: editForm.endereco,
-    });
-
+    const success = await perfilStore.updateProfile({ nome: editForm.nome, telefone: editForm.telefone, endereco: editForm.endereco });
     if (success) {
       $q.notify({ type: 'positive', message: 'Perfil atualizado!', position: 'top' });
       editMode.value = false;
@@ -933,31 +684,24 @@ const salvarPerfil = async () => {
   }
 };
 
-// ===================== CATEGORIAS =====================
 const buscarTodasCategorias = async () => {
   carregandoCategorias.value = true;
   try {
     const response = await api.get('/categorias');
     if (response.data?.success && response.data.data) {
-      todasCategorias.value = response.data.data.map(
-        (cat: { id: number; nome: string; icone?: string; cor?: string; descricao?: string }) => ({
-          id: cat.id,
-          nome: cat.nome,
-          icone: cat.icone || 'category',
-          cor: cat.cor || 'primary',
-          descricao: cat.descricao,
-        }),
-      );
+      todasCategorias.value = response.data.data.map((cat: CategoriaDisponivel) => ({
+        id: cat.id,
+        nome: cat.nome,
+        icone: cat.icone || 'category',
+        cor: cat.cor || 'primary',
+        descricao: cat.descricao,
+      }));
     }
-  } catch {
-    $q.notify({ type: 'negative', message: 'Erro ao carregar categorias', position: 'top' });
-  } finally {
-    carregandoCategorias.value = false;
-  }
+  } catch { $q.notify({ type: 'negative', message: 'Erro ao carregar categorias', position: 'top' }); }
+  finally { carregandoCategorias.value = false; }
 };
 
 const categoriaSelecionada = (id: number) => categoriasSelecionadas.value.includes(id);
-
 const toggleCategoria = (id: number) => {
   const index = categoriasSelecionadas.value.indexOf(id);
   if (index === -1) categoriasSelecionadas.value.push(id);
@@ -969,32 +713,21 @@ const abrirEdicaoCategorias = async () => {
   categoriasSelecionadas.value = perfilStore.minhasCategorias.map((c) => c.id);
   editCategoriasMode.value = true;
 };
-
-const fecharEdicaoCategorias = () => {
-  editCategoriasMode.value = false;
-};
+const fecharEdicaoCategorias = () => { editCategoriasMode.value = false; };
 
 const salvarCategoriasExpansivel = async () => {
   salvandoCategorias.value = true;
   try {
     const atuais = perfilStore.minhasCategorias.map((c) => c.id);
-    for (const id of categoriasSelecionadas.value) {
-      if (!atuais.includes(id)) await perfilStore.addCategoria(id);
-    }
-    for (const id of atuais) {
-      if (!categoriasSelecionadas.value.includes(id)) await perfilStore.removeCategoria(id);
-    }
+    for (const id of categoriasSelecionadas.value) { if (!atuais.includes(id)) await perfilStore.addCategoria(id); }
+    for (const id of atuais) { if (!categoriasSelecionadas.value.includes(id)) await perfilStore.removeCategoria(id); }
     await perfilStore.fetchMinhasCategorias(true);
     $q.notify({ type: 'positive', message: 'Categorias atualizadas!', position: 'top' });
     editCategoriasMode.value = false;
-  } catch {
-    $q.notify({ type: 'negative', message: 'Erro ao atualizar categorias', position: 'top' });
-  } finally {
-    salvandoCategorias.value = false;
-  }
+  } catch { $q.notify({ type: 'negative', message: 'Erro ao atualizar categorias', position: 'top' }); }
+  finally { salvandoCategorias.value = false; }
 };
 
-// ===================== PORTFÓLIO =====================
 const adicionarFotoPortfolio = () => {
   const input = document.createElement('input');
   input.type = 'file';
@@ -1005,11 +738,7 @@ const adicionarFotoPortfolio = () => {
       $q.loading.show({ message: 'Adicionando foto...' });
       const url = await perfilStore.addPortfolio(file);
       $q.loading.hide();
-      $q.notify({
-        type: url ? 'positive' : 'negative',
-        message: url ? 'Foto adicionada!' : 'Erro ao adicionar foto',
-        position: 'top',
-      });
+      $q.notify({ type: url ? 'positive' : 'negative', message: url ? 'Foto adicionada!' : 'Erro ao adicionar foto', position: 'top' });
     }
   };
   input.click();
@@ -1024,20 +753,13 @@ const removerFotoPortfolio = (index: number) => {
   }).onOk(() => {
     void (async () => {
       const success = await perfilStore.removePortfolio(index);
-      $q.notify({
-        type: success ? 'positive' : 'negative',
-        message: success ? 'Foto removida!' : 'Erro ao remover foto',
-        position: 'top',
-      });
+      $q.notify({ type: success ? 'positive' : 'negative', message: success ? 'Foto removida!' : 'Erro ao remover foto', position: 'top' });
     })();
   });
 };
 
-const verPortfolio = (index: number) => {
-  if (perfilStore.portfolio[index]) portfolioSelecionado.value = perfilStore.portfolio[index];
-};
+const verPortfolio = (index: number) => { if (perfilStore.portfolio[index]) portfolioSelecionado.value = perfilStore.portfolio[index]; };
 
-// ===================== DISPONIBILIDADE =====================
 const editarDisponibilidade = () => {
   const horarios = perfilStore.disponibilidade?.horarios_padrao || {};
   diasDaSemana.forEach((dia) => {
@@ -1047,39 +769,26 @@ const editarDisponibilidade = () => {
   });
   editDisponibilidade.value = true;
 };
-
-const cancelarEditarDisponibilidade = () => {
-  editDisponibilidade.value = false;
-};
+const cancelarEditarDisponibilidade = () => { editDisponibilidade.value = false; };
 
 const salvarDisponibilidade = async () => {
   salvandoDisponibilidade.value = true;
   try {
     const horarios: Record<string, string[]> = {};
     diasDaSemana.forEach((dia) => {
-      horarios[dia.key] = disponibilidadeAtiva.value[dia.key]
-        ? disponibilidadeHorariosSelecionados.value[dia.key] || []
-        : [];
+      horarios[dia.key] = disponibilidadeAtiva.value[dia.key] ? disponibilidadeHorariosSelecionados.value[dia.key] || [] : [];
     });
     const success = await perfilStore.updateDisponibilidade({ horarios_padrao: horarios });
     if (success) {
       $q.notify({ type: 'positive', message: 'Disponibilidade atualizada!', position: 'top' });
       editDisponibilidade.value = false;
     } else {
-      $q.notify({
-        type: 'negative',
-        message: 'Erro ao atualizar disponibilidade',
-        position: 'top',
-      });
+      $q.notify({ type: 'negative', message: 'Erro ao atualizar disponibilidade', position: 'top' });
     }
-  } catch {
-    $q.notify({ type: 'negative', message: 'Erro ao atualizar disponibilidade', position: 'top' });
-  } finally {
-    salvandoDisponibilidade.value = false;
-  }
+  } catch { $q.notify({ type: 'negative', message: 'Erro ao atualizar disponibilidade', position: 'top' }); }
+  finally { salvandoDisponibilidade.value = false; }
 };
 
-// ===================== SERVIÇOS =====================
 const abrirFormServico = () => {
   editandoServico.value = false;
   servicoForm.nome = '';
@@ -1100,48 +809,26 @@ const handleEditarServico = (servico: ServicoItem) => {
   servicoForm.icone = servico.icone || 'handyman';
   showServicoForm.value = true;
 };
-
-const fecharFormServico = () => {
-  showServicoForm.value = false;
-};
+const fecharFormServico = () => { showServicoForm.value = false; };
 
 const salvarServico = async () => {
-  if (!servicoForm.nome.trim()) {
-    $q.notify({ type: 'warning', message: 'Nome do serviço é obrigatório', position: 'top' });
-    return;
-  }
-  if (servicoForm.preco <= 0) {
-    $q.notify({ type: 'warning', message: 'Preço deve ser maior que zero', position: 'top' });
-    return;
-  }
-  if (servicoForm.duracao <= 0) {
-    $q.notify({ type: 'warning', message: 'Duração deve ser maior que zero', position: 'top' });
-    return;
-  }
+  if (!servicoForm.nome.trim()) { $q.notify({ type: 'warning', message: 'Nome do serviço é obrigatório', position: 'top' }); return; }
+  if (servicoForm.preco <= 0) { $q.notify({ type: 'warning', message: 'Preço deve ser maior que zero', position: 'top' }); return; }
+  if (servicoForm.duracao <= 0) { $q.notify({ type: 'warning', message: 'Duração deve ser maior que zero', position: 'top' }); return; }
 
   salvandoServico.value = true;
   try {
     let success = false;
-    if (editandoServico.value && servicoEditandoId.value) {
-      success = await perfilStore.atualizarServico(servicoEditandoId.value, servicoForm);
-    } else {
-      success = await perfilStore.adicionarServico(servicoForm);
-    }
+    if (editandoServico.value && servicoEditandoId.value) { success = await perfilStore.atualizarServico(servicoEditandoId.value, servicoForm); }
+    else { success = await perfilStore.adicionarServico(servicoForm); }
     if (success) {
-      $q.notify({
-        type: 'positive',
-        message: editandoServico.value ? 'Serviço atualizado!' : 'Serviço adicionado!',
-        position: 'top',
-      });
+      $q.notify({ type: 'positive', message: editandoServico.value ? 'Serviço atualizado!' : 'Serviço adicionado!', position: 'top' });
       showServicoForm.value = false;
     } else {
       $q.notify({ type: 'negative', message: 'Erro ao salvar serviço', position: 'top' });
     }
-  } catch {
-    $q.notify({ type: 'negative', message: 'Erro ao salvar serviço', position: 'top' });
-  } finally {
-    salvandoServico.value = false;
-  }
+  } catch { $q.notify({ type: 'negative', message: 'Erro ao salvar serviço', position: 'top' }); }
+  finally { salvandoServico.value = false; }
 };
 
 const handleRemoverServico = (servicoId: number) => {
@@ -1155,16 +842,11 @@ const handleRemoverServico = (servicoId: number) => {
       $q.loading.show({ message: 'Removendo...' });
       const success = await perfilStore.removerServico(servicoId);
       $q.loading.hide();
-      $q.notify({
-        type: success ? 'positive' : 'negative',
-        message: success ? 'Serviço removido!' : 'Erro ao remover',
-        position: 'top',
-      });
+      $q.notify({ type: success ? 'positive' : 'negative', message: success ? 'Serviço removido!' : 'Erro ao remover', position: 'top' });
     })();
   });
 };
 
-// ===================== DOCUMENTOS =====================
 const uploadDocumento = () => {
   const input = document.createElement('input');
   input.type = 'file';
@@ -1172,43 +854,27 @@ const uploadDocumento = () => {
   input.onchange = async (e: Event) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        $q.notify({
-          type: 'negative',
-          message: 'Documento deve ter no máximo 5MB',
-          position: 'top',
-        });
-        return;
-      }
+      if (file.size > 5 * 1024 * 1024) { $q.notify({ type: 'negative', message: 'Documento deve ter no máximo 5MB', position: 'top' }); return; }
       $q.loading.show({ message: 'Enviando documento...' });
       await new Promise((resolve) => setTimeout(resolve, 1500));
       $q.loading.hide();
-      $q.notify({
-        type: 'positive',
-        message: 'Documento enviado! Aguarde verificação.',
-        position: 'top',
-      });
+      $q.notify({ type: 'positive', message: 'Documento enviado! Aguarde verificação.', position: 'top' });
     }
   };
   input.click();
 };
 
-// ===================== CARREGAR DADOS =====================
 const carregarDados = async () => {
   try {
     await perfilStore.carregarTodosDados();
     carregarDadosNoForm();
-  } catch {
-    $q.notify({ type: 'negative', message: 'Erro ao carregar perfil', position: 'top' });
-  }
+  } catch { $q.notify({ type: 'negative', message: 'Erro ao carregar perfil', position: 'top' }); }
 };
 
-onMounted(() => {
-  void carregarDados();
-});
+onMounted(() => { void carregarDados(); });
 </script>
+
 <style scoped lang="scss">
-// ===================== VARIÁVEIS =====================
 $accent: #5b4bf5;
 $accent-light: rgba(91, 75, 245, 0.08);
 $green: #10b981;
@@ -1226,693 +892,166 @@ $radius: 16px;
 $radius-sm: 10px;
 $radius-xs: 8px;
 
-// ===================== LAYOUT PRINCIPAL =====================
-.prestador-perfil {
-  background: $bg;
-  min-height: 100vh;
-  padding-bottom: 80px;
-}
+.prestador-perfil { background: $bg; min-height: 100vh; padding-bottom: 80px; }
 
-// ===================== CABEÇALHO =====================
 .page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: $surface;
-  padding: 16px;
-  border-bottom: 1px solid $line;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-
-  .back-btn,
-  .settings-btn,
-  .logout-btn {
-    color: $muted;
-    transition: all 0.2s;
-    &:hover {
-      color: $accent;
-      background: $accent-light;
-    }
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 4px;
-  }
-
-  .page-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: $ink;
-    margin: 0;
-  }
+  display: flex; align-items: center; justify-content: space-between; background: $surface; padding: 16px;
+  border-bottom: 1px solid $line; position: sticky; top: 0; z-index: 10;
+  .back-btn, .settings-btn, .logout-btn, .finance-btn { color: $muted; transition: all 0.2s; &:hover { color: $accent; background: $accent-light; } }
+  .header-actions { display: flex; gap: 4px; }
+  .page-title { font-size: 1.2rem; font-weight: 600; color: $ink; margin: 0; }
 }
 
-// ===================== SKELETON =====================
-.skeleton-container {
-  padding: 16px;
-  .inline-block {
-    display: inline-block;
-  }
-  .stats-grid-skeleton {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
-  }
+.skeleton-container { padding: 16px; .inline-block { display: inline-block; } .stats-grid-skeleton { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; } }
+
+.profile-header { background: $surface; padding: 24px 16px; text-align: center; border-bottom: 1px solid $line;
+  .profile-avatar { border: 3px solid $accent; }
+  .profile-name { font-size: 1.5rem; font-weight: 700; color: $ink; margin-top: 12px; }
+  .profile-profession { font-size: 0.9rem; color: $muted; margin-top: 4px; }
+  .profile-rating { margin-top: 8px; .rating-count { font-size: 0.8rem; color: $muted; margin-left: 8px; } }
 }
 
-// ===================== PERFIL HEADER =====================
-.profile-header {
-  background: $surface;
-  padding: 24px 16px;
-  text-align: center;
-  border-bottom: 1px solid $line;
-  .profile-avatar {
-    border: 3px solid $accent;
-  }
-  .profile-name {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: $ink;
-    margin-top: 12px;
-  }
-  .profile-profession {
-    font-size: 0.9rem;
-    color: $muted;
-    margin-top: 4px;
-  }
-  .profile-rating {
-    margin-top: 8px;
-    .rating-count {
-      font-size: 0.8rem;
-      color: $muted;
-      margin-left: 8px;
-    }
-  }
+.avatar-container { position: relative; display: inline-block;
+  .change-photo-btn { position: absolute; bottom: 4px; right: 4px; background: $surface; box-shadow: 0 2px 4px rgba(0,0,0,0.1); &:hover { background: $accent-light; } }
 }
 
-.avatar-container {
-  position: relative;
-  display: inline-block;
-  .change-photo-btn {
-    position: absolute;
-    bottom: 4px;
-    right: 4px;
-    background: $surface;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    &:hover {
-      background: $accent-light;
-    }
-  }
-}
-
-// ===================== ESTATÍSTICAS =====================
-.stats-section {
-  padding: 16px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
+.stats-section { padding: 16px; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .stat-card {
-  background: $surface;
-  border-radius: $radius;
-  padding: 16px;
-  text-align: center;
-  border: 1px solid $line;
-  transition: all 0.2s;
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  }
-  &__icon {
-    width: 40px;
-    height: 40px;
-    border-radius: $radius-xs;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 12px;
-    &--primary {
-      background: rgba($accent, 0.1);
-      color: $accent;
-    }
-    &--warning {
-      background: rgba($gold, 0.1);
-      color: $gold;
-    }
-    &--gold {
-      background: rgba($gold, 0.1);
-      color: $gold;
-    }
-  }
-  &__value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: $ink;
-    line-height: 1.2;
-  }
-  &__label {
-    font-size: 0.7rem;
-    color: $muted;
-    margin-top: 4px;
-  }
+  background: $surface; border-radius: $radius; padding: 16px; text-align: center; border: 1px solid $line; transition: all 0.2s;
+  &:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  &__icon { width: 40px; height: 40px; border-radius: $radius-xs; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  &__icon--primary { background: rgba($accent, 0.1); color: $accent; }
+  &__icon--warning { background: rgba($gold, 0.1); color: $gold; }
+  &__icon--gold { background: rgba($gold, 0.1); color: $gold; }
+  &__value { font-size: 1.5rem; font-weight: 700; color: $ink; line-height: 1.2; }
+  &__label { font-size: 0.7rem; color: $muted; margin-top: 4px; }
 }
 
-// ===================== BOTÃO EDITAR =====================
+.finance-report-section { padding: 0 16px 16px; }
+.finance-report-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px;
+  background: linear-gradient(135deg, $accent, #4a3bd4); border: none; border-radius: 40px;
+  font-size: 0.9rem; font-weight: 600; color: white; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 12px rgba($accent, 0.3);
+  svg { stroke: white; }
+  &:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba($accent, 0.4); }
+  &:active { transform: translateY(0); }
+}
+
 .edit-profile-btn {
-  width: calc(100% - 32px);
-  margin: 0 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px;
-  background: $surface;
-  border: 1px solid $line;
-  border-radius: 30px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: $gray;
-  cursor: pointer;
-  transition: all 0.2s;
+  width: calc(100% - 32px); margin: 0 16px 20px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px; background: $surface; border: 1px solid $line; border-radius: 30px; font-size: 0.85rem;
+  font-weight: 500; color: $gray; cursor: pointer; transition: all 0.2s;
+  &:hover { background: $accent-light; border-color: $accent; color: $accent; }
+}
 
-  &:hover {
-    background: $accent-light;
-    border-color: $accent;
-    color: $accent;
+.slide-fade-enter-active, .slide-fade-leave-active { transition: all 0.3s ease; }
+.slide-fade-enter-from, .slide-fade-leave-to { transform: translateY(-20px); opacity: 0; }
+
+.edit-form-section, .edit-servico-section, .edit-disponibilidade-section, .edit-categorias-section {
+  background: $surface; margin: 0 16px 20px; border-radius: $radius; border: 1px solid $line; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.edit-form-header, .edit-servico-header, .edit-disponibilidade-header, .edit-categorias-header {
+  display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid $line; background: $bg;
+  h3, h4 { font-size: 1rem; font-weight: 600; color: $ink; margin: 0; }
+}
+
+.edit-form-body, .edit-servico-body, .edit-disponibilidade-body, .edit-categorias-body { padding: 16px; }
+
+.form-group { margin-bottom: 16px; &:last-child { margin-bottom: 0; } }
+.form-label { display: block; font-size: 0.8rem; font-weight: 500; color: $dark; margin-bottom: 6px; }
+.form-row { display: flex; gap: 12px; margin-bottom: 12px; .col { flex: 1; } }
+.char-counter { font-size: 0.7rem; color: $muted; text-align: right; margin-top: 4px; }
+
+.edit-actions { display: flex; gap: 12px; margin-top: 20px;
+  .cancel-btn { flex: 1; border-radius: 30px; background: $gray-light; color: $gray; }
+  .save-btn { flex: 1; border-radius: 30px; }
+}
+
+.collapsible-section { background: $surface; margin-bottom: 8px; border-bottom: 1px solid $line;
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; cursor: pointer; transition: background 0.2s;
+    &:hover { background: $accent-light; }
+    .section-title { display: flex; align-items: center; gap: 8px; font-size: 1rem; font-weight: 600; color: $ink; margin: 0; padding: 0; border-left: none;
+      .section-icon { color: $accent; } }
   }
+  .section-content { padding: 0 16px 16px 16px; }
 }
 
-// ===================== FORMULÁRIOS EXPANSÍVEIS =====================
-.slide-fade-enter-active,
-.slide-fade-leave-active {
-  transition: all 0.3s ease;
+.info-list { background: $bg; border-radius: $radius; overflow: hidden; border: 1px solid $line; }
+.info-item { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid $line; background: $surface;
+  &:last-child { border-bottom: none; }
+  &__icon { width: 40px; color: $accent; }
+  &__content { flex: 1; color: $ink; font-size: 0.9rem; }
 }
 
-.slide-fade-enter-from,
-.slide-fade-leave-to {
-  transform: translateY(-20px);
-  opacity: 0;
+.categorias-grid-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;
+  @media (max-width: 768px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
 }
-
-.edit-form-section,
-.edit-servico-section,
-.edit-disponibilidade-section,
-.edit-categorias-section {
-  background: $surface;
-  margin: 0 16px 20px;
-  border-radius: $radius;
-  border: 1px solid $line;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.edit-form-header,
-.edit-servico-header,
-.edit-disponibilidade-header,
-.edit-categorias-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid $line;
-  background: $bg;
-
-  h3,
-  h4 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: $ink;
-    margin: 0;
-  }
-}
-
-.edit-form-body,
-.edit-servico-body,
-.edit-disponibilidade-body,
-.edit-categorias-body {
-  padding: 16px;
-}
-
-.form-group {
-  margin-bottom: 16px;
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.form-label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: $dark;
-  margin-bottom: 6px;
-}
-
-.form-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-  .col {
-    flex: 1;
-  }
-}
-
-.char-counter {
-  font-size: 0.7rem;
-  color: $muted;
-  text-align: right;
-  margin-top: 4px;
-}
-
-.edit-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-  .cancel-btn {
-    flex: 1;
-    border-radius: 30px;
-    background: $gray-light;
-    color: $gray;
-  }
-  .save-btn {
-    flex: 1;
-    border-radius: 30px;
-  }
-}
-
-// ===================== SEÇÕES COLAPSÁVEIS =====================
-.collapsible-section {
-  background: $surface;
-  margin-bottom: 8px;
-  border-bottom: 1px solid $line;
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px;
-    cursor: pointer;
-    transition: background 0.2s;
-
-    &:hover {
-      background: $accent-light;
-    }
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: $ink;
-      margin: 0;
-      padding: 0;
-      border-left: none;
-      .section-icon {
-        color: $accent;
-      }
-    }
-  }
-
-  .section-content {
-    padding: 0 16px 16px 16px;
-  }
-}
-
-// ===================== INFORMAÇÕES =====================
-.info-list {
-  background: $bg;
-  border-radius: $radius;
-  overflow: hidden;
-  border: 1px solid $line;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid $line;
-  background: $surface;
-  &:last-child {
-    border-bottom: none;
-  }
-  &__icon {
-    width: 40px;
-    color: $accent;
-  }
-  &__content {
-    flex: 1;
-    color: $ink;
-    font-size: 0.9rem;
-  }
-}
-
-// ===================== CATEGORIAS (3 COLUNAS) =====================
-.categorias-grid-3col {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
-}
-
 .categoria-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  border-radius: $radius;
-  border: 1px solid $line;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: $surface;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border-color: $accent;
-  }
-
-  &.selected {
-    background: rgba($accent, 0.05);
-    border-color: $accent;
-    box-shadow: 0 2px 8px rgba($accent, 0.2);
-  }
-
-  &__icon {
-    flex-shrink: 0;
-  }
-  &__info {
-    flex: 1;
-    min-width: 0;
-  }
-  &__name {
-    font-weight: 600;
-    color: $ink;
-    font-size: 0.85rem;
-    margin-bottom: 2px;
-  }
-  &__desc {
-    font-size: 0.7rem;
-    color: $muted;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  &__check {
-    flex-shrink: 0;
-  }
+  display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: $radius; border: 1px solid $line;
+  cursor: pointer; transition: all 0.2s; background: $surface;
+  &:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: $accent; }
+  &.selected { background: rgba($accent, 0.05); border-color: $accent; box-shadow: 0 2px 8px rgba($accent, 0.2); }
+  &__icon { flex-shrink: 0; }
+  &__info { flex: 1; min-width: 0; }
+  &__name { font-weight: 600; color: $ink; font-size: 0.85rem; margin-bottom: 2px; }
+  &__desc { font-size: 0.7rem; color: $muted; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__check { flex-shrink: 0; }
 }
-
-.categorias-grid-3col-view {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
+.categorias-grid-3col-view { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  @media (max-width: 768px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
 }
+.categoria-chip-view { display: flex; align-items: center; gap: 8px; background: rgba($accent, 0.1); color: $accent; padding: 10px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
+.empty-message-full { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 8px; color: $muted; font-size: 0.85rem; padding: 30px; background: $bg; border-radius: $radius; text-align: center; }
 
-.categoria-chip-view {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba($accent, 0.1);
-  color: $accent;
-  padding: 10px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: all 0.2s;
-  &:hover {
-    background: rgba($accent, 0.2);
-    transform: translateX(2px);
-  }
-}
+.sobre-card { background: $bg; border-radius: $radius; padding: 16px; border: 1px solid $line; p { color: $ink-2; font-size: 0.9rem; line-height: 1.5; margin: 0; } }
 
-.empty-message-full {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: $muted;
-  font-size: 0.85rem;
-  padding: 30px;
-  background: $bg;
-  border-radius: $radius;
-  text-align: center;
-}
-
-// ===================== SOBRE =====================
-.sobre-card {
-  background: $bg;
-  border-radius: $radius;
-  padding: 16px;
-  border: 1px solid $line;
-  p {
-    color: $ink-2;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    margin: 0;
-  }
-}
-
-// ===================== SERVIÇOS =====================
-.servicos-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
+.servicos-container { display: flex; flex-direction: column; gap: 12px; }
 .servico-card {
-  background: $surface;
-  border-radius: $radius;
-  border: 1px solid $line;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: all 0.2s;
-  &:hover {
-    transform: translateX(4px);
-    border-color: $accent;
-  }
-  &__icon {
-    width: 48px;
-    height: 48px;
-    background: rgba($accent, 0.1);
-    border-radius: $radius-sm;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: $accent;
-  }
-  &__info {
-    flex: 1;
-  }
-  &__name {
-    font-weight: 600;
-    color: $ink;
-    margin-bottom: 4px;
-  }
-  &__desc {
-    font-size: 0.75rem;
-    color: $muted;
-  }
-  &__price {
-    text-align: right;
-    .price-value {
-      font-weight: 700;
-      color: $accent;
-    }
-    .price-duration {
-      font-size: 0.7rem;
-      color: $muted;
-    }
-  }
-  &__actions {
-    display: flex;
-    gap: 4px;
+  background: $surface; border-radius: $radius; border: 1px solid $line; padding: 16px; display: flex; align-items: center; gap: 16px; transition: all 0.2s;
+  &:hover { transform: translateX(4px); border-color: $accent; }
+  &__icon { width: 48px; height: 48px; background: rgba($accent, 0.1); border-radius: $radius-sm; display: flex; align-items: center; justify-content: center; color: $accent; }
+  &__info { flex: 1; }
+  &__name { font-weight: 600; color: $ink; margin-bottom: 4px; }
+  &__desc { font-size: 0.75rem; color: $muted; }
+  &__price { text-align: right; .price-value { font-weight: 700; color: $accent; } .price-duration { font-size: 0.7rem; color: $muted; } }
+  &__actions { display: flex; gap: 4px; }
+}
+
+.portfolio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
+.portfolio-item { position: relative; cursor: pointer; border-radius: $radius; overflow: hidden; transition: all 0.2s;
+  &:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .portfolio-overlay { position: absolute; top: 0; right: 0; background: rgba(0,0,0,0.6); padding: 4px; border-radius: 0 0 0 8px; opacity: 0; transition: opacity 0.2s; }
+  &:hover .portfolio-overlay { opacity: 1; }
+}
+.portfolio-img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+
+.disponibilidade-grid-view { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; @media (max-width: 480px) { grid-template-columns: 1fr; } }
+.disponibilidade-card { background: $surface; border-radius: $radius; padding: 16px; text-align: center; border: 1px solid $line;
+  .disponibilidade-dia { font-weight: 600; color: $ink; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid $accent; display: inline-block; }
+  .disponibilidade-horario { font-size: 0.8rem; color: $muted; display: flex; align-items: center; justify-content: center; gap: 4px; }
+}
+.disponibilidade-grid-editor { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; @media (max-width: 768px) { grid-template-columns: 1fr; } }
+.disponibilidade-edit-item { border-bottom: 1px solid $line; padding-bottom: 16px;
+  .dia-info { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; .dia-label { font-weight: 600; color: $ink; font-size: 0.9rem; } }
+  .horarios-inputs { .horarios-select { width: 100%; } }
+}
+
+.docs-list { background: $surface; border-radius: $radius; border: 1px solid $line; overflow: hidden; }
+.doc-item { display: flex; align-items: center; padding: 14px 16px; gap: 8px;
+  &__icon { width: 40px; color: $accent; }
+  &__label { flex: 1; color: $ink; font-size: 0.9rem; }
+  &__status { font-size: 0.7rem; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+    &.verified { background: rgba($green, 0.15); color: darken($green, 15%); }
+    &.pending { background: rgba($gold, 0.15); color: darken($gold, 20%); }
   }
 }
 
-// ===================== PORTFÓLIO =====================
-.portfolio-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 12px;
-}
-
-.portfolio-item {
-  position: relative;
-  cursor: pointer;
-  border-radius: $radius;
-  overflow: hidden;
-  transition: all 0.2s;
-  &:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-  .portfolio-overlay {
-    position: absolute;
-    top: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 4px;
-    border-radius: 0 0 0 8px;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-  &:hover .portfolio-overlay {
-    opacity: 1;
-  }
-}
-
-.portfolio-img {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-}
-
-// ===================== DISPONIBILIDADE =====================
-.disponibilidade-grid-view {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.disponibilidade-card {
-  background: $surface;
-  border-radius: $radius;
-  padding: 16px;
-  text-align: center;
-  border: 1px solid $line;
-  transition: all 0.2s;
-  &:hover {
-    transform: translateY(-2px);
-    border-color: $accent;
-  }
-  .disponibilidade-dia {
-    font-weight: 600;
-    color: $ink;
-    margin-bottom: 8px;
-    padding-bottom: 4px;
-    border-bottom: 2px solid $accent;
-    display: inline-block;
-  }
-  .disponibilidade-horario {
-    font-size: 0.8rem;
-    color: $muted;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-  }
-}
-
-.disponibilidade-grid-editor {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.disponibilidade-edit-item {
-  border-bottom: 1px solid $line;
-  padding-bottom: 16px;
-  &:last-child {
-    border-bottom: none;
-  }
-  .dia-info {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    .dia-label {
-      font-weight: 600;
-      color: $ink;
-      font-size: 0.9rem;
-    }
-  }
-  .horarios-inputs {
-    .horarios-select {
-      width: 100%;
-    }
-  }
-}
-
-// ===================== DOCUMENTOS =====================
-.docs-list {
-  background: $surface;
-  border-radius: $radius;
-  border: 1px solid $line;
-  overflow: hidden;
-}
-
-.doc-item {
-  display: flex;
-  align-items: center;
-  padding: 14px 16px;
-  gap: 8px;
-  &__icon {
-    width: 40px;
-    color: $accent;
-  }
-  &__label {
-    flex: 1;
-    color: $ink;
-    font-size: 0.9rem;
-  }
-  &__status {
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 20px;
-    &.verified {
-      background: rgba($green, 0.15);
-      color: darken($green, 15%);
-    }
-    &.pending {
-      background: rgba($gold, 0.15);
-      color: darken($gold, 20%);
-    }
-  }
-}
-
-.empty-state-small {
-  text-align: center;
-  padding: 30px 20px;
-  background: $bg;
-  border-radius: $radius;
-  .q-icon {
-    color: #d0d0dc;
-    margin-bottom: 8px;
-  }
-  p {
-    color: $muted;
-    font-size: 0.8rem;
-    margin: 0;
-  }
+.empty-state-small { text-align: center; padding: 30px 20px; background: $bg; border-radius: $radius;
+  .q-icon { color: #d0d0dc; margin-bottom: 8px; }
+  p { color: $muted; font-size: 0.8rem; margin: 0; }
 }
 </style>

@@ -124,7 +124,7 @@
       <q-scroll-area class="fit">
         <div class="ea-drawer__header">
           <q-avatar size="70px" class="ea-drawer__avatar">
-            <img :src="userAvatar" alt="Avatar" />
+            <img :src="userAvatar" alt="Avatar" @error="avatarError = true" />
           </q-avatar>
           <div class="ea-drawer__user-info">
             <div class="user-name">{{ userName || 'Cliente' }}</div>
@@ -171,6 +171,18 @@
           <q-item clickable v-ripple to="/mobile/favoritos" class="menu-item" active-class="menu-item-active" @click="layoutStore.closeDrawer()">
             <q-item-section avatar><q-icon name="favorite" class="menu-icon" /></q-item-section>
             <q-item-section>Favoritos</q-item-section>
+          </q-item>
+
+          <q-separator spaced class="menu-separator" />
+
+          <!-- ⭐ SUPORTE TÉCNICO -->
+          <q-item-label header class="menu-header">
+            <q-icon name="support_agent" size="16px" /> Ajuda
+          </q-item-label>
+
+          <q-item clickable v-ripple to="/mobile/suporte" class="menu-item" active-class="menu-item-active" @click="layoutStore.closeDrawer()">
+            <q-item-section avatar><q-icon name="support_agent" class="menu-icon" /></q-item-section>
+            <q-item-section>Suporte Técnico</q-item-section>
           </q-item>
 
           <q-separator spaced class="menu-separator" />
@@ -244,19 +256,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/login-store';
 import { useClienteLayoutStore, type NotificacaoData } from 'src/stores/client/cliente-layout-store';
+import { usePerfilStore } from 'src/stores/client/cliente-perfil-store';
 
 const router = useRouter();
 const $q = useQuasar();
 const authStore = useAuthStore();
 const layoutStore = useClienteLayoutStore();
+const perfilStore = usePerfilStore(); // ✅ Nome correto da store
 
 // ===================== ESTADOS =====================
 const notificationsMenuOpen = ref(false);
+const avatarError = ref(false);
 
 // Computed para acesso fácil
 const leftDrawerOpen = computed({
@@ -281,8 +296,41 @@ const notificationsDialog = computed({
   }
 });
 
-const userName = computed(() => authStore.user?.nome || 'Cliente');
-const userAvatar = computed(() => authStore.user?.foto || 'https://cdn.quasar.dev/img/avatar.png');
+const userName = computed(() => {
+  // ✅ Primeiro tenta do perfilStore, depois do authStore
+  return perfilStore.userData?.nome || authStore.user?.nome || 'Cliente';
+});
+
+// ✅ CORRIGIDO: Buscar foto do perfilStore (que é atualizado após upload)
+const userAvatar = computed(() => {
+  // Se houver erro no avatar, usa fallback
+  if (avatarError.value) {
+    return `https://ui-avatars.com/api/?background=5B4BF5&color=fff&bold=true&size=100&name=${encodeURIComponent(userName.value)}`;
+  }
+
+  // ✅ Prioriza a foto do perfilStore (mais atualizada)
+  const fotoPerfil = perfilStore.userData?.foto;
+  if (fotoPerfil && fotoPerfil !== 'null' && fotoPerfil !== '') {
+    // Se já tem URL completa, usa direto
+    if (fotoPerfil.startsWith('http')) {
+      return fotoPerfil;
+    }
+    // Se é caminho relativo, adiciona storage
+    return `http://localhost:8000/storage/${fotoPerfil}`;
+  }
+
+  // ✅ Fallback para foto do authStore
+  const fotoAuth = authStore.user?.foto;
+  if (fotoAuth && fotoAuth !== 'null' && fotoAuth !== '') {
+    if (fotoAuth.startsWith('http')) {
+      return fotoAuth;
+    }
+    return `http://localhost:8000/storage/${fotoAuth}`;
+  }
+
+  // ✅ Fallback para avatar com iniciais
+  return `https://ui-avatars.com/api/?background=5B4BF5&color=fff&bold=true&size=100&name=${encodeURIComponent(userName.value)}`;
+});
 
 // ===================== FUNÇÕES =====================
 function goToHome(): void {
@@ -375,7 +423,28 @@ const abrirNotificacao = async (notificacao: NotificacaoData): Promise<void> => 
   void router.push(rota);
 };
 
-onMounted(() => {
+// ✅ Carregar dados do perfil
+const carregarPerfil = async () => {
+  try {
+    await perfilStore.fetchPerfil();
+    console.log('Perfil carregado:', perfilStore.userData);
+  } catch (error) {
+    console.error('Erro ao carregar perfil:', error);
+  }
+};
+
+// ✅ Watch para quando o perfil mudar (após upload de foto)
+watch(() => perfilStore.userData?.foto, (novaFoto) => {
+  if (novaFoto) {
+    avatarError.value = false;
+    console.log('Foto do perfil atualizada:', novaFoto);
+  }
+});
+
+onMounted(async () => {
+  // ✅ Carregar perfil primeiro para ter a foto
+  await carregarPerfil();
+
   void layoutStore.carregarDadosIniciais();
   layoutStore.iniciarPollingNotificacoes(30000);
   window.addEventListener('scroll', onScroll, { passive: true });
@@ -386,6 +455,8 @@ onUnmounted(() => {
   window.removeEventListener('scroll', onScroll);
 });
 </script>
+
+
 
 <style scoped lang="scss">
 // =====================
@@ -600,6 +671,9 @@ $radius-xs: 8px;
   }
 }
 
+// ==========================================
+// CORREÇÃO DAS CORES DAS NOTIFICAÇÕES (DROPDOWN)
+// ==========================================
 .notifications-card {
   background: $ink !important;
   color: #fff;
@@ -622,6 +696,49 @@ $radius-xs: 8px;
       background: rgba($accent, 0.1);
     }
   }
+
+  // ✅ CORREÇÃO: texto das notificações em branco
+  .q-item__label {
+    color: rgba(255, 255, 255, 0.85) !important;
+
+    &--caption {
+      color: rgba(255, 255, 255, 0.6) !important;
+    }
+  }
+
+  .text-grey-6 {
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+
+  .text-grey-7 {
+    color: rgba(255, 255, 255, 0.4) !important;
+  }
+
+  .text-caption {
+    color: rgba(255, 255, 255, 0.6) !important;
+  }
+
+  .text-white {
+    color: #ffffff !important;
+  }
+
+  .text-weight-medium {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+}
+
+.notification-item {
+  border-radius: 10px;
+  margin: 2px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.notification-unread {
+  background: rgba($accent, 0.08);
+  border-left: 3px solid $accent;
 }
 
 .notification-item {

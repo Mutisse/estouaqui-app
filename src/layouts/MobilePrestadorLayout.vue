@@ -192,6 +192,24 @@
           <q-separator spaced class="menu-separator" />
 
           <q-item-label header class="menu-header">
+            <q-icon name="support_agent" size="16px" /> Suporte
+          </q-item-label>
+
+          <q-item
+            clickable
+            v-ripple
+            to="/mobile/prestador/suporte"
+            class="menu-item"
+            active-class="menu-item-active"
+            @click="leftDrawerOpen = false"
+          >
+            <q-item-section avatar><q-icon name="support_agent" class="menu-icon" /></q-item-section>
+            <q-item-section>Suporte Técnico</q-item-section>
+          </q-item>
+
+          <q-separator spaced class="menu-separator" />
+
+          <q-item-label header class="menu-header">
             <q-icon name="settings" size="16px" /> Configurações
           </q-item-label>
 
@@ -377,54 +395,52 @@
     >
       <q-card class="chat-card">
         <!-- Cabeçalho -->
-        <!-- Cabeçalho do Chat -->
-<q-card-section class="chat-header row items-center">
-  <q-btn
-    v-if="chatStore.estaNaConversa"
-    flat
-    round
-    dense
-    icon="arrow_back"
-    class="chat-back-btn"
-    @click="chatStore.voltarParaLista"
-  />
-  <q-avatar size="36px" class="q-mr-sm">
-    <!-- ✅ Mostrar foto do prestador quando está na lista -->
-    <img
-      v-if="!chatStore.estaNaConversa && perfilStore.foto"
-      :src="perfilStore.foto"
-    />
-    <img
-      v-else-if="chatStore.estaNaConversa && chatStore.conversaAtualFoto"
-      :src="chatStore.conversaAtualFoto"
-    />
-    <div
-      v-else-if="chatStore.estaNaConversa"
-      class="avatar-placeholder"
-      :style="{ background: getAvatarColor(chatStore.conversaAtualNome) }"
-    >
-      {{ chatStore.getAvatarIniciais(chatStore.conversaAtualNome) }}
-    </div>
-    <div
-      v-else
-      class="avatar-placeholder"
-      :style="{ background: getAvatarColor(userNome) }"
-    >
-      {{ chatStore.getAvatarIniciais(userNome) }}
-    </div>
-  </q-avatar>
-  <div class="chat-header-info">
-    <div class="chat-header-title">
-      {{ chatStore.estaNaConversa ? chatStore.conversaAtualNome : userNome }}
-    </div>
-    <div class="chat-header-status">
-      <span class="status-dot"></span>
-      {{ chatStore.estaNaConversa ? 'Online - Responde rápido' : userProfissao }}
-    </div>
-  </div>
-  <q-space />
-  <q-btn flat round dense icon="close" @click="chatStore.fecharChat" />
-</q-card-section>aaa
+        <q-card-section class="chat-header row items-center">
+          <q-btn
+            v-if="chatStore.estaNaConversa"
+            flat
+            round
+            dense
+            icon="arrow_back"
+            class="chat-back-btn"
+            @click="chatStore.voltarParaLista"
+          />
+          <q-avatar size="36px" class="q-mr-sm">
+            <img
+              v-if="!chatStore.estaNaConversa && perfilStore.foto"
+              :src="perfilStore.foto"
+            />
+            <img
+              v-else-if="chatStore.estaNaConversa && chatStore.conversaAtualFoto"
+              :src="chatStore.conversaAtualFoto"
+            />
+            <div
+              v-else-if="chatStore.estaNaConversa"
+              class="avatar-placeholder"
+              :style="{ background: getAvatarColor(chatStore.conversaAtualNome) }"
+            >
+              {{ chatStore.getAvatarIniciais(chatStore.conversaAtualNome) }}
+            </div>
+            <div
+              v-else
+              class="avatar-placeholder"
+              :style="{ background: getAvatarColor(userNome) }"
+            >
+              {{ chatStore.getAvatarIniciais(userNome) }}
+            </div>
+          </q-avatar>
+          <div class="chat-header-info">
+            <div class="chat-header-title">
+              {{ chatStore.estaNaConversa ? chatStore.conversaAtualNome : userNome }}
+            </div>
+            <div class="chat-header-status">
+              <span class="status-dot"></span>
+              {{ chatStore.estaNaConversa ? 'Online - Responde rápido' : userProfissao }}
+            </div>
+          </div>
+          <q-space />
+          <q-btn flat round dense icon="close" @click="chatStore.fecharChat" />
+        </q-card-section>
 
         <q-separator />
 
@@ -567,7 +583,6 @@ const userNome = computed(() => {
 });
 
 const userAvatar = computed(() => {
-  // ✅ Usar o getter foto do perfilStore (já tem fallback)
   const foto = perfilStore.foto;
   if (foto) return foto;
 
@@ -753,7 +768,6 @@ const carregarDadosIniciais = async (): Promise<void> => {
   try {
     if (!authStore.isAuthenticated) authStore.initialize();
     if (authStore.isAuthenticated && authStore.isPrestador) {
-      // ✅ Carregar perfil PRIMEIRO (para ter a foto)
       await perfilStore.fetchPerfilCompleto();
 
       await Promise.all([
@@ -1124,6 +1138,15 @@ $radius-xs: 8px;
       color: rgba(255, 255, 255, 0.5);
       font-size: 20px;
     }
+
+    // ✅ CORREÇÃO: texto dos itens do menu em branco
+    .q-item__label {
+      color: rgba(255, 255, 255, 0.85) !important;
+
+      &--caption {
+        color: rgba(255, 255, 255, 0.6) !important;
+      }
+    }
   }
 
   .menu-item-active {
@@ -1135,9 +1158,16 @@ $radius-xs: 8px;
       color: #fff;
       font-weight: 500;
     }
+    .q-item__label {
+      color: #fff !important;
+    }
+  }
+
+  // ✅ CORREÇÃO: texto dos headers do menu
+  .text-caption {
+    color: rgba(255, 255, 255, 0.6) !important;
   }
 }
-
 .page-container {
   padding-bottom: 70px;
   flex: 1;
@@ -1194,28 +1224,44 @@ $radius-xs: 8px;
 }
 
 // ==========================================
-// NOTIFICAÇÕES
+// CORREÇÃO DAS CORES DAS NOTIFICAÇÕES
 // ==========================================
-.notifications-dialog :deep(.q-dialog__inner) {
-  margin-top: 56px;
-}
 .notifications-card {
   background: $ink;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
+
   .mark-all-btn {
     color: $accent;
     font-size: 0.7rem;
   }
+
   .view-all-btn {
     color: $accent;
     font-size: 0.75rem;
     width: 100%;
   }
-}
-.notification-unread {
-  background: rgba($accent, 0.1);
-  border-left: 3px solid $accent;
+
+  // ✅ CORREÇÃO: textos das notificações em branco
+  .q-item__label {
+    color: rgba(255, 255, 255, 0.85) !important;
+
+    &--caption {
+      color: rgba(255, 255, 255, 0.6) !important;
+    }
+  }
+
+  .text-caption {
+    color: rgba(255, 255, 255, 0.6) !important;
+  }
+
+  .text-grey-6 {
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+
+  .q-item {
+    color: rgba(255, 255, 255, 0.85);
+  }
 }
 
 // ==========================================

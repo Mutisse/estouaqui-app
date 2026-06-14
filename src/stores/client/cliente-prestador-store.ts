@@ -32,6 +32,14 @@ export interface PrestadorAvaliacao {
   };
 }
 
+export interface PortfolioItem {
+  url: string;
+  titulo?: string;
+  descricao?: string;
+  created_at?: string;
+  path?: string;
+}
+
 export interface PrestadorData {
   id: number;
   nome: string;
@@ -47,7 +55,7 @@ export interface PrestadorData {
   total_avaliacoes: number;
   categorias: PrestadorCategoria[];
   servicos: PrestadorServico[];
-  portfolio: string[];
+  portfolio: PortfolioItem[];
   avaliacoes: PrestadorAvaliacao[];
   created_at: string;
 }
@@ -157,11 +165,63 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     return 'Erro desconhecido';
   };
 
+  /**
+   * Normaliza o portfolio (converte strings para objetos com URL)
+   */
+  /**
+   * Normaliza o portfolio (converte strings para objetos com URL)
+   */
+  const normalizarPortfolio = (portfolio: unknown[]): PortfolioItem[] => {
+    if (!portfolio || !Array.isArray(portfolio)) return [];
+
+    return portfolio
+      .map((item) => {
+        // Se for string
+        if (typeof item === 'string') {
+          // Se já tem URL completa
+          if (item.startsWith('http')) {
+            return { url: item };
+          }
+          // Se é caminho relativo
+          return { url: `http://localhost:8000/storage/${item}` };
+        }
+
+        // Se for objeto
+        if (item && typeof item === 'object') {
+          const obj = item as Record<string, unknown>;
+
+          // Se tem url
+          if (obj.url && typeof obj.url === 'string') {
+            return {
+              url: obj.url,
+              titulo: typeof obj.titulo === 'string' ? obj.titulo : '',
+              descricao: typeof obj.descricao === 'string' ? obj.descricao : '',
+              created_at: typeof obj.created_at === 'string' ? obj.created_at : '',
+              path: typeof obj.path === 'string' ? obj.path : '',
+            };
+          }
+          // Se tem path
+          if (obj.path && typeof obj.path === 'string') {
+            return {
+              url: `http://localhost:8000/storage/${obj.path}`,
+              titulo: typeof obj.titulo === 'string' ? obj.titulo : '',
+              descricao: typeof obj.descricao === 'string' ? obj.descricao : '',
+              created_at: typeof obj.created_at === 'string' ? obj.created_at : '',
+              path: obj.path,
+            };
+          }
+        }
+
+        return { url: '' };
+      })
+      .filter((item) => item.url);
+  };
   // ===================== AÇÕES PRINCIPAIS =====================
 
   /**
    * Busca detalhes completos do prestador
    * ✅ CORRIGIDO: Usa rota pública /prestadores/{id}
+   * ✅ CORRIGIDO: Normaliza o portfolio
    */
   const fetchPrestadorDetalhes = async (prestadorId: number) => {
     carregando.value = true;
@@ -173,7 +233,24 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
       const response = await api.get(`/prestadores/${prestadorId}`);
 
       if (response.data?.success && response.data.data) {
-        prestador.value = response.data.data;
+        const data = response.data.data;
+
+        // ✅ NORMALIZAR PORTFOLIO
+        if (data.portfolio) {
+          data.portfolio = normalizarPortfolio(data.portfolio);
+        }
+
+        // ✅ GARANTIR QUE AVALIAÇÕES EXISTEM
+        if (!data.avaliacoes) {
+          data.avaliacoes = [];
+        }
+
+        // ✅ GARANTIR QUE SERVIÇOS EXISTEM
+        if (!data.servicos) {
+          data.servicos = [];
+        }
+
+        prestador.value = data;
         return prestador.value;
       }
 
@@ -200,10 +277,17 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
       const response = await api.get(`/prestadores/${prestadorId}`);
 
       if (response.data?.success && response.data.data) {
+        const data = response.data.data;
+
+        // Normalizar portfolio
+        if (data.portfolio) {
+          data.portfolio = normalizarPortfolio(data.portfolio);
+        }
+
         if (prestador.value) {
-          prestador.value = { ...prestador.value, ...response.data.data };
+          prestador.value = { ...prestador.value, ...data };
         } else {
-          prestador.value = response.data.data;
+          prestador.value = data;
         }
         return prestador.value;
       }
@@ -277,8 +361,8 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
       const response = await api.get(`/prestadores/${prestadorId}/portfolio`);
 
       if (response.data?.success && response.data.data && prestador.value) {
-        prestador.value.portfolio = response.data.data;
-        return response.data.data;
+        prestador.value.portfolio = normalizarPortfolio(response.data.data);
+        return prestador.value.portfolio;
       }
 
       return [];
