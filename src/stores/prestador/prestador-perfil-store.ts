@@ -29,6 +29,15 @@ export interface ServicoData {
   icone?: string;
 }
 
+export interface PortfolioItem {
+  id: number;
+  url: string;
+  path?: string;
+  titulo?: string;
+  descricao?: string;
+  created_at?: string;
+}
+
 export interface PerfilPrestadorData {
   id: number;
   nome: string;
@@ -40,7 +49,7 @@ export interface PerfilPrestadorData {
   endereco: string;
   media_avaliacao: number;
   total_avaliacoes: number;
-  portfolio: string[];
+  portfolio: PortfolioItem[];
   categorias: CategoriaPrestadorData[];
   servicos: ServicoData[];
   disponibilidade: DisponibilidadeData | null;
@@ -111,7 +120,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
 
   // Dados do perfil
   const perfil = ref<PerfilPrestadorData | null>(null);
-  const portfolio = ref<string[]>([]);
+  const portfolio = ref<PortfolioItem[]>([]);
   const servicos = ref<ServicoData[]>([]);
   const minhasCategorias = ref<CategoriaPrestadorData[]>([]);
   const disponibilidade = ref<DisponibilidadeData | null>(null);
@@ -335,18 +344,19 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
 
   // ===================== PORTFÓLIO =====================
 
-  const addPortfolio = async (file: File): Promise<string | null> => {
+  const addPortfolio = async (file: File): Promise<PortfolioItem | null> => {
     const formData = new FormData();
     formData.append('foto', file);
 
     try {
-      const response = await api.post('/prestador/perfil/portfolio', formData, {
+      const response = await api.post('/prestador/portfolio', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (response.data?.success && response.data.data?.url) {
-        portfolio.value.push(response.data.data.url);
-        return response.data.data.url;
+      if (response.data?.success && response.data.data) {
+        const newItem: PortfolioItem = response.data.data;
+        portfolio.value.push(newItem);
+        return newItem;
       }
       return null;
     } catch (err) {
@@ -357,12 +367,13 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
 
   const removePortfolio = async (index: number): Promise<boolean> => {
     try {
-      const fotoUrl = portfolio.value[index];
-      if (!fotoUrl) return false;
+      const item = portfolio.value[index];
+      if (!item) return false;
 
-      const response = await api.delete('/prestador/perfil/portfolio', {
-        data: { url: fotoUrl }
-      });
+      // Usar o ID do item para remover
+      const itemId = item.id;
+
+      const response = await api.delete(`/prestador/portfolio/${itemId}`);
 
       if (response.data?.success) {
         portfolio.value.splice(index, 1);

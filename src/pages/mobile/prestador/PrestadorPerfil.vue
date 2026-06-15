@@ -514,7 +514,7 @@ const servicoEditandoId = ref<number | null>(null);
 
 const todasCategorias = ref<CategoriaDisponivel[]>([]);
 const categoriasSelecionadas = ref<number[]>([]);
-const portfolioSelecionado = ref<string | null>(null);
+const portfolioSelecionado = ref<PortfolioItem | null>(null);
 
 const editForm = reactive<EditFormData>({
   nome: '',
