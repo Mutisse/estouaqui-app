@@ -1,11 +1,10 @@
 <template>
   <div class="pedidos-disponiveis-page">
-
     <!-- ===== CABEÇALHO MODERNO ===== -->
     <header class="modern-header">
       <button class="header-btn" @click="() => void router.back()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M15 18l-6-6 6-6"/>
+          <path d="M15 18l-6-6 6-6" />
         </svg>
       </button>
       <div class="header-center">
@@ -14,8 +13,8 @@
       </div>
       <button class="header-btn" @click="recarregarDados" :disabled="pedidosStore.isLoading">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M23 4v6h-6M1 20v-6h6"/>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          <path d="M23 4v6h-6M1 20v-6h6" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
         </svg>
       </button>
     </header>
@@ -38,95 +37,82 @@
 
     <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <template v-else>
-
-      <!-- ===== FILTROS MODERNOS ===== -->
+      <!-- ===== FILTROS ===== -->
       <div class="filters-bar">
         <div class="filter-scroll">
-          <button
-            class="filter-chip"
-            :class="{ active: filtros.categoriaId === null }"
-            @click="atualizarFiltroCategoria(null)"
-          >
+          <button class="filter-chip" :class="{ active: filtros.categoriaId === null }" @click="atualizarFiltroCategoria(null)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-              <line x1="9" y1="9" x2="15" y2="15"/>
-              <line x1="15" y1="9" x2="9" y2="15"/>
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+              <line x1="15" y1="9" x2="9" y2="15" />
             </svg>
             Todas
           </button>
-          <button
-            v-for="cat in categoriasOptions"
-            :key="cat.value"
-            class="filter-chip"
+          <button v-for="cat in categoriasOptions" :key="cat.value" class="filter-chip"
             :class="{ active: filtros.categoriaId === cat.value }"
             :style="filtros.categoriaId === cat.value ? { background: cat.color, borderColor: cat.color } : {}"
-            @click="atualizarFiltroCategoria(cat.value)"
-          >
+            @click="atualizarFiltroCategoria(cat.value)">
             {{ cat.label }}
           </button>
         </div>
       </div>
 
-      <!-- ===== CONTROLES DE ORDENAÇÃO E RAIO ===== -->
+      <!-- ===== CONTROLES ===== -->
       <div class="controls-bar">
         <div class="control-group">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
           </svg>
           <span>Raio:</span>
           <div class="raio-selector">
-            <span v-for="raio in raioOptions" :key="raio.value"
-                  class="raio-value"
-                  :class="{ active: filtros.raio === raio.value }"
-                  @click="atualizarFiltroRaio(raio.value)">
+            <span v-for="raio in raioOptions" :key="raio.value" class="raio-value"
+              :class="{ active: filtros.raio === raio.value }" @click="atualizarFiltroRaio(raio.value)">
               {{ raio.label }}
             </span>
           </div>
         </div>
-
         <div class="control-group">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="3" x2="12" y2="21"/>
-            <path d="M8 7l4-4 4 4M8 17l4 4 4-4"/>
+            <line x1="12" y1="3" x2="12" y2="21" />
+            <path d="M8 7l4-4 4 4M8 17l4 4 4-4" />
           </svg>
           <div class="ordenacao-selector">
-            <span v-for="op in ordenacaoOptions" :key="op.value"
-                  class="ordenacao-value"
-                  :class="{ active: filtros.ordenacao === op.value }"
-                  @click="atualizarFiltroOrdenacao(op.value)">
+            <span v-for="op in ordenacaoOptions" :key="op.value" class="ordenacao-value"
+              :class="{ active: filtros.ordenacao === op.value }" @click="atualizarFiltroOrdenacao(op.value)">
               {{ op.label }}
             </span>
           </div>
         </div>
       </div>
 
-      <!-- ===== ESTATÍSTICA RÁPIDA ===== -->
+      <!-- ===== STATS ===== -->
       <div class="stats-chip">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="16"/>
-          <line x1="8" y1="12" x2="16" y2="12"/>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="16" />
+          <line x1="8" y1="12" x2="16" y2="12" />
         </svg>
-        <span>{{ pedidosStore.totalPedidosDisponiveis }} pedido{{ pedidosStore.totalPedidosDisponiveis !== 1 ? 's' : '' }} disponível{{ pedidosStore.totalPedidosDisponiveis !== 1 ? 'is' : '' }}</span>
+        <span>{{ pedidosStore.totalPedidosDisponiveis }} pedido{{ pedidosStore.totalPedidosDisponiveis !== 1 ? 's' : '' }}
+          disponível{{ pedidosStore.totalPedidosDisponiveis !== 1 ? 'is' : '' }}</span>
       </div>
 
       <!-- ===== LISTA DE PEDIDOS ===== -->
       <div v-if="!pedidosStore.temPedidosDisponiveis" class="empty-state-modern">
         <div class="empty-icon">
           <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.2">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            <line x1="11" y1="8" x2="11" y2="14"/>
-            <line x1="8" y1="11" x2="14" y2="11"/>
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <line x1="11" y1="8" x2="11" y2="14" />
+            <line x1="8" y1="11" x2="14" y2="11" />
           </svg>
         </div>
         <h3>Nenhum pedido encontrado</h3>
         <p>Tente ajustar os filtros ou aumentar o raio de busca</p>
         <button class="reset-btn" @click="limparFiltros">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 4v6h-6M1 20v-6h6"/>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            <path d="M23 4v6h-6M1 20v-6h6" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
           </svg>
           Limpar filtros
         </button>
@@ -138,13 +124,10 @@
           <!-- Badge de distância -->
           <div v-if="pedido.distancia_km" class="distance-badge">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
             </svg>
-            {{ pedido.distancia_km < 1
-              ? (pedido.distancia_km * 1000).toFixed(0) + 'm'
-              : pedido.distancia_km.toFixed(1) + ' km'
-            }}
+            {{ pedido.distancia_km < 1 ? (pedido.distancia_km * 1000).toFixed(0) + 'm' : pedido.distancia_km.toFixed(1) + ' km' }}
           </div>
 
           <!-- Avatar e nome -->
@@ -167,34 +150,55 @@
           </div>
 
           <!-- Localização -->
-          <div class="card-location">
+          <div class="card-location" @click="toggleMapa(pedido.id)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-              <circle cx="12" cy="10" r="3"/>
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="12" r="3" />
             </svg>
             <span>{{ pedido.endereco?.split(',')[0] || 'Endereço não informado' }}</span>
+            <button class="btn-ver-localizacao" @click.stop="toggleMapa(pedido.id)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              Ver localização
+            </button>
           </div>
 
-          <!-- Botão de ação com verificação -->
+          <!-- 🔥 MAPA EXPANSÍVEL COM MARCADORES 🔥 -->
+          <div v-if="mapasExpandidos[pedido.id]" class="mapa-expansivel">
+            <div class="mapa-container" :id="'mini-mapa-' + pedido.id"></div>
+            <div class="mapa-actions">
+              <button class="btn-traçar-rota" @click.stop="traçarRota(pedido)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
+                  <circle cx="12" cy="12" r="8" />
+                </svg>
+                Traçar rota
+              </button>
+              <button class="btn-fechar-mapa" @click.stop="toggleMapa(pedido.id)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+                Fechar
+              </button>
+            </div>
+          </div>
+
+          <!-- Botão de ação -->
           <div class="card-action">
             <div v-if="pedido.proposta_enviada" class="proposta-enviada-badge">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"/>
+                <polyline points="20 6 9 17 4 12" />
               </svg>
-              <span>
-                Proposta enviada em {{ pedido.proposta_data ? formatarData(pedido.proposta_data) : 'data desconhecida' }}
-              </span>
+              <span>Proposta enviada em {{ pedido.proposta_data ? formatarData(pedido.proposta_data) : 'data desconhecida' }}</span>
             </div>
-
-            <button
-              v-else
-              class="proposta-btn-modern"
-              @click.stop="abrirModalPropostaComVerificacao(pedido)"
-            >
+            <button v-else class="proposta-btn-modern" @click.stop="abrirModalPropostaComVerificacao(pedido)">
               <span>Fazer Proposta</span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
           </div>
@@ -202,7 +206,7 @@
       </div>
     </template>
 
-    <!-- ===== MODAL DE PROPOSTA ===== -->
+    <!-- ===== MODAL PROPOSTA ===== -->
     <div class="modal-overlay" v-if="pedidosStore.modalProposta.visivel" @click="fecharModalProposta">
       <div class="modal-content-modern" @click.stop>
         <div class="modal-header-modern">
@@ -215,8 +219,8 @@
           </div>
           <button class="modal-close" @click="fecharModalProposta">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
@@ -260,15 +264,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/login-store';
 import {
   usePrestadorPedidosDisponiveisStore,
-  type PedidoDisponivelData
+  type PedidoDisponivelData,
 } from 'src/stores/prestador/prestador-pedidos-disponiveis-store';
 import { usePrestadorPerfilStore } from 'src/stores/prestador/prestador-perfil-store';
+
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 defineOptions({ name: 'PedidosDisponiveisPage' });
 
@@ -276,11 +283,19 @@ const router = useRouter();
 const $q = useQuasar();
 const authStore = useAuthStore();
 
-// Stores
 const pedidosStore = usePrestadorPedidosDisponiveisStore();
 const perfilStore = usePrestadorPerfilStore();
 
 const carregamentoInicial = ref(true);
+
+// ===================== ESTADO DOS MAPAS =====================
+const mapasExpandidos = ref<Record<number, boolean>>({});
+const mapasInstancias = ref<Record<number, L.Map>>({});
+const rotasAtivas = ref<Record<number, L.Polyline>>({});
+
+// ===================== LOCALIZAÇÃO DO PRESTADOR (APENAS DO BANCO) =====================
+const prestadorLocalizacao = ref<{ lat: number; lng: number } | null>(null);
+const carregandoLocalizacao = ref(false);
 
 const avatarGradients = [
   'linear-gradient(135deg, #5B4BF5, #9F7AEA)',
@@ -291,6 +306,355 @@ const avatarGradients = [
   'linear-gradient(135deg, #8B5CF6, #A78BFA)',
 ];
 
+// ===================== CONFIGURAÇÃO DOS ÍCONES =====================
+
+// 🔴 MARCADOR DO CLIENTE (VERMELHO)
+const clienteIcon = L.icon({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+  className: 'cliente-marker',
+});
+
+// 🔵 MARCADOR DO PRESTADOR (AZUL)
+const prestadorIcon = L.icon({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+  className: 'prestador-marker',
+});
+
+// ===================== CARREGAR LOCALIZAÇÃO DO PRESTADOR (APENAS DO BANCO) =====================
+const carregarLocalizacaoPrestador = async (): Promise<void> => {
+  carregandoLocalizacao.value = true;
+  prestadorLocalizacao.value = null;
+
+  try {
+    // 🔥 CARREGA O PERFIL DO PRESTADOR
+    await perfilStore.carregarTodosDados();
+
+    const perfil = perfilStore.perfil;
+
+    if (!perfil) {
+      console.warn('⚠️ Perfil não encontrado');
+      $q.notify({
+        type: 'warning',
+        message: '⚠️ Perfil não encontrado. Atualize seus dados.',
+        position: 'top',
+        timeout: 3000
+      });
+      return;
+    }
+
+    // 🔥 USA APENAS AS COORDENADAS DO BANCO DE DADOS
+    const lat = perfil.latitude;
+    const lng = perfil.longitude;
+
+    if (lat && lng) {
+      prestadorLocalizacao.value = { lat: Number(lat), lng: Number(lng) };
+
+      $q.notify({
+        type: 'positive',
+        message: '📍 Localização do prestador carregada!',
+        position: 'top',
+        timeout: 2000
+      });
+    } else {
+     
+      prestadorLocalizacao.value = null;
+      $q.notify({
+        type: 'warning',
+        message: '⚠️ Prestador sem localização. Atualize seu endereço no perfil.',
+        position: 'top',
+        timeout: 3000
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao carregar localização:', error);
+    prestadorLocalizacao.value = null;
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar localização',
+      position: 'top',
+      timeout: 3000
+    });
+  } finally {
+    carregandoLocalizacao.value = false;
+  }
+};
+
+// ===================== FUNÇÕES DO MAPA =====================
+
+const toggleMapa = async (pedidoId: number): Promise<void> => {
+  const pedido = pedidosStore.pedidosFiltrados.find((p) => p.id === pedidoId);
+  if (!pedido) return;
+
+  const lat = Number(pedido.latitude);
+  const lng = Number(pedido.longitude);
+
+  if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+    $q.notify({ type: 'warning', message: 'Este pedido não possui localização definida', position: 'top', timeout: 2000 });
+    return;
+  }
+
+  mapasExpandidos.value[pedidoId] = !mapasExpandidos.value[pedidoId];
+
+  if (mapasExpandidos.value[pedidoId]) {
+    await nextTick();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await iniciarMiniMapa(pedidoId);
+  } else {
+    if (mapasInstancias.value[pedidoId]) {
+      try {
+        const map = mapasInstancias.value[pedidoId];
+        map.eachLayer((layer) => {
+          try { map.removeLayer(layer); } catch { /* ignore */ }
+        });
+        map.remove();
+      } catch { /* ignore */ }
+      delete mapasInstancias.value[pedidoId];
+    }
+    if (rotasAtivas.value[pedidoId]) {
+      delete rotasAtivas.value[pedidoId];
+    }
+  }
+};
+
+const iniciarMiniMapa = async (pedidoId: number): Promise<void> => {
+  const pedido = pedidosStore.pedidosFiltrados.find((p) => p.id === pedidoId);
+  if (!pedido) return;
+
+  const lat = Number(pedido.latitude);
+  const lng = Number(pedido.longitude);
+
+  if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+    console.warn('Coordenadas inválidas para o pedido:', pedido.id);
+    return;
+  }
+
+  const containerId = `mini-mapa-${pedidoId}`;
+  const container = document.getElementById(containerId);
+
+  if (!container || container.offsetHeight === 0 || container.offsetWidth === 0) {
+    console.warn(`Container ${containerId} não disponível`);
+    return;
+  }
+
+  if (mapasInstancias.value[pedidoId]) {
+    try {
+      const oldMap = mapasInstancias.value[pedidoId];
+      oldMap.eachLayer((layer) => { try { oldMap.removeLayer(layer); } catch { /* ignore */ } });
+      oldMap.remove();
+    } catch { /* ignore */ }
+    delete mapasInstancias.value[pedidoId];
+  }
+
+  try {
+    const map = L.map(containerId, {
+      zoomControl: false,
+      attributionControl: false,
+      zoomAnimation: false,
+      fadeAnimation: false,
+      markerZoomAnimation: false,
+    }).setView([lat, lng], 15);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    // ============================================================
+    // 🔴 MARCADOR DO CLIENTE (PEDIDO) - DO BANCO
+    // ============================================================
+    const clientePopupContent = `
+      <div style="padding: 8px 12px; min-width: 180px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+          <div style="font-weight: 700; font-size: 14px; color: #1A1A2E;">${pedido.cliente?.nome || 'Cliente'}</div>
+          <span style="background: #EF4444; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px;">Solicitante</span>
+        </div>
+        <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">
+          📍 ${pedido.endereco?.split(',')[0] || 'Endereço não informado'}
+        </div>
+        <div style="font-size: 11px; color: #9CA3AF;">
+          🏷️ ${pedido.categoria?.nome || 'Serviço'}
+        </div>
+      </div>
+    `;
+
+    L.marker([lat, lng], { icon: clienteIcon })
+      .bindPopup(clientePopupContent)
+      .addTo(map);
+
+    // ============================================================
+    // 🔵 MARCADOR DO PRESTADOR - APENAS DO BANCO DE DADOS
+    // ============================================================
+
+    console.log('🔍 Localização do prestador (banco):', prestadorLocalizacao.value);
+
+    if (prestadorLocalizacao.value) {
+      const userLat = prestadorLocalizacao.value.lat;
+      const userLng = prestadorLocalizacao.value.lng;
+
+      const prestadorPopupContent = `
+        <div style="padding: 8px 12px; min-width: 160px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <div style="font-weight: 700; font-size: 14px; color: #1A1A2E;">Você (Prestador)</div>
+            <span style="background: #3B82F6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px;">Perfil</span>
+          </div>
+          <div style="font-size: 12px; color: #6B7280;">
+            📍 Localização cadastrada
+          </div>
+        </div>
+      `;
+
+      L.marker([userLat, userLng], { icon: prestadorIcon })
+        .bindPopup(prestadorPopupContent)
+        .addTo(map);
+
+      // ============================================================
+      // 🔥 AJUSTA O ZOOM E TRAÇA A ROTA
+      // ============================================================
+      const bounds = L.latLngBounds([userLat, userLng], [lat, lng]);
+      map.fitBounds(bounds, { padding: [40, 40], animate: false });
+
+      await tracarRotaNoMapa(map, pedidoId, userLat, userLng, lat, lng);
+    } else {
+      // 🔥 SEM LOCALIZAÇÃO DO PRESTADOR - MOSTRA APENAS O CLIENTE
+      map.setView([lat, lng], 15, { animate: false });
+
+      $q.notify({
+        type: 'warning',
+        message: '⚠️ Localização do prestador não disponível. Atualize seu perfil.',
+        position: 'top',
+        timeout: 3000
+      });
+    }
+
+    setTimeout(() => {
+      try {
+        if (map && map.getContainer()) {
+          map.invalidateSize({ animate: false });
+        }
+      } catch { /* ignore */ }
+    }, 300);
+
+    mapasInstancias.value[pedidoId] = map;
+
+  } catch (error) {
+    console.error('Erro ao criar mapa:', error);
+    $q.notify({ type: 'negative', message: 'Erro ao carregar o mapa', position: 'top', timeout: 2000 });
+  }
+};
+
+const tracarRotaNoMapa = async (
+  map: L.Map,
+  pedidoId: number,
+  latUsuario: number,
+  lngUsuario: number,
+  latDestino: number,
+  lngDestino: number,
+): Promise<void> => {
+  try {
+    if (!map || !map.getContainer()) {
+      console.warn('Mapa não disponível para traçar rota');
+      return;
+    }
+
+    const url = `https://router.project-osrm.org/route/v1/driving/${lngUsuario},${latUsuario};${lngDestino},${latDestino}?overview=full&geometries=geojson&steps=true`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+      throw new Error('Não foi possível calcular a rota');
+    }
+
+    const route = data.routes[0];
+
+    if (rotasAtivas.value[pedidoId]) {
+      try { map.removeLayer(rotasAtivas.value[pedidoId]); } catch { /* ignore */ }
+    }
+
+    const coordinates = route.geometry.coordinates.map(
+      (coord: number[]) => [coord[1], coord[0]] as [number, number]
+    );
+
+    const rotaLine = L.polyline(coordinates, {
+      color: '#5B4BF5',
+      weight: 5,
+      opacity: 0.9,
+      lineCap: 'round',
+      lineJoin: 'round',
+      dashArray: '10, 8',
+    }).addTo(map);
+
+    rotasAtivas.value[pedidoId] = rotaLine;
+
+    const distancia = (route.distance / 1000).toFixed(1);
+    const duracao = Math.round(route.duration / 60);
+
+    L.popup()
+      .setLatLng([(latUsuario + latDestino) / 2, (lngUsuario + lngDestino) / 2])
+      .setContent(`
+        <div style="padding: 8px 12px;">
+          <strong style="color: #5B4BF5;">🛣️ Rota</strong>
+          <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">
+            📍 ${distancia} km · ⏱️ ~${duracao} min
+            <div style="font-size: 10px; color: #9CA3AF; margin-top: 2px;">
+              📍 Baseado na localização cadastrada
+            </div>
+          </div>
+        </div>
+      `)
+      .openOn(map);
+
+    const bounds = L.latLngBounds(coordinates);
+    map.fitBounds(bounds, { padding: [40, 40], animate: false });
+
+  } catch (error) {
+    console.error('Erro ao traçar rota:', error);
+    $q.notify({ type: 'negative', message: 'Erro ao calcular rota', position: 'top', timeout: 2000 });
+  }
+};
+
+const traçarRota = async (pedido: PedidoDisponivelData): Promise<void> => {
+  const lat = Number(pedido.latitude);
+  const lng = Number(pedido.longitude);
+
+  if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+    $q.notify({ type: 'warning', message: 'Pedido sem localização', position: 'top', timeout: 2000 });
+    return;
+  }
+
+  if (!prestadorLocalizacao.value) {
+    $q.notify({ type: 'warning', message: '📍 Localização do prestador não disponível.', position: 'top', timeout: 3000 });
+    return;
+  }
+
+  if (!mapasExpandidos.value[pedido.id]) {
+    await toggleMapa(pedido.id);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  const map = mapasInstancias.value[pedido.id];
+  if (!map) {
+    $q.notify({ type: 'negative', message: 'Erro ao carregar mapa', position: 'top', timeout: 2000 });
+    return;
+  }
+
+  const latUsuario = prestadorLocalizacao.value.lat;
+  const lngUsuario = prestadorLocalizacao.value.lng;
+
+  await tracarRotaNoMapa(map, pedido.id, latUsuario, lngUsuario, lat, lng);
+};
+
+// ===================== FUNÇÕES DE AVATAR =====================
 const getAvatarStyle = (nome?: string) => {
   if (!nome) return { background: avatarGradients[0] };
   const idx = Math.abs(nome.charCodeAt(0)) % avatarGradients.length;
@@ -298,15 +662,14 @@ const getAvatarStyle = (nome?: string) => {
 };
 
 const getInitials = (nome: string): string => {
-  return nome.split(' ').slice(0, 2).map(n => n.charAt(0)).join('').toUpperCase();
+  return nome.split(' ').slice(0, 2).map((n) => n.charAt(0)).join('').toUpperCase();
 };
 
-// Dados do store
+// ===================== DADOS DO STORE =====================
 const filtros = computed(() => pedidosStore.filtros);
 const raioOptions = computed(() => pedidosStore.raioOptions);
 const ordenacaoOptions = computed(() => pedidosStore.ordenacaoOptions);
 
-// Categorias do perfil
 const categoriasOptions = computed(() => {
   const minhasCats = perfilStore.minhasCategorias;
   return minhasCats.map((cat) => ({
@@ -323,71 +686,52 @@ const formatarData = (data: string | undefined): string => {
     const date = new Date(data);
     const hoje = new Date();
     const diffDias = Math.floor((hoje.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
     if (diffDias === 0) return `Hoje, ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
     if (diffDias === 1) return 'Ontem';
     if (diffDias < 7) return `${diffDias} dias atrás`;
     return date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
-  } catch {
-    return data;
-  }
+  } catch { return data; }
 };
 
-// ===================== AÇÕES DO STORE =====================
-
+// ===================== AÇÕES =====================
 const recarregarDados = async (): Promise<void> => {
   await pedidosStore.recarregarDados();
   $q.notify({ type: 'positive', message: 'Pedidos atualizados!', position: 'top', timeout: 1500 });
 };
 
-const aplicarFiltros = (): void => {
-  void pedidosStore.aplicarFiltros();
-};
-
+const aplicarFiltros = (): void => { void pedidosStore.aplicarFiltros(); };
 const limparFiltros = (): void => {
   pedidosStore.limparFiltros();
   void pedidosStore.fetchPedidosDisponiveis();
 };
-
 const atualizarFiltroCategoria = (categoriaId: number | null): void => {
   pedidosStore.atualizarFiltro('categoriaId', categoriaId);
   aplicarFiltros();
 };
-
 const atualizarFiltroRaio = (raio: number): void => {
   pedidosStore.atualizarFiltro('raio', raio);
   aplicarFiltros();
 };
-
 const atualizarFiltroOrdenacao = (ordenacao: string): void => {
   pedidosStore.atualizarFiltro('ordenacao', ordenacao);
   aplicarFiltros();
 };
 
-// Abrir modal com verificação
+// ===================== MODAL PROPOSTA =====================
 const abrirModalPropostaComVerificacao = async (pedido: PedidoDisponivelData): Promise<void> => {
   const success = await pedidosStore.abrirModalProposta(pedido);
-
   if (!success) {
-    $q.notify({
-      type: 'warning',
-      message: pedidosStore.error || 'Você já enviou uma proposta para este pedido',
-      position: 'top',
-      timeout: 3000
-    });
+    $q.notify({ type: 'warning', message: pedidosStore.error || 'Você já enviou uma proposta para este pedido', position: 'top', timeout: 3000 });
   }
 };
 
-const fecharModalProposta = (): void => {
-  pedidosStore.fecharModalProposta();
-};
+const fecharModalProposta = (): void => { pedidosStore.fecharModalProposta(); };
 
 const enviarProposta = async (): Promise<void> => {
   if (!pedidosStore.novaProposta.valor || pedidosStore.novaProposta.valor <= 0) {
     $q.notify({ type: 'warning', message: 'Informe um valor válido', position: 'top' });
     return;
   }
-
   try {
     const success = await pedidosStore.enviarPropostaModal();
     if (success) {
@@ -402,17 +746,11 @@ const enviarProposta = async (): Promise<void> => {
 };
 
 // ===================== CARREGAMENTO INICIAL =====================
-
 const carregarDadosIniciais = async (): Promise<void> => {
   carregamentoInicial.value = true;
   try {
-    await Promise.all([
-      pedidosStore.carregarTodosDados(),
-      perfilStore.fetchMinhasCategorias()
-    ]);
-  } catch (error) {
-    console.error('Erro ao carregar dados:', error);
-    $q.notify({ type: 'negative', message: 'Erro ao carregar dados', position: 'top' });
+    await pedidosStore.carregarTodosDados();
+    await carregarLocalizacaoPrestador();
   } finally {
     setTimeout(() => { carregamentoInicial.value = false; }, 500);
   }
@@ -424,30 +762,28 @@ onMounted(async () => {
     await router.push('/auth/login');
     return;
   }
-
   if (!authStore.isPrestador) {
     $q.notify({ type: 'warning', message: 'Apenas prestadores podem aceder a esta página', position: 'top' });
     await router.push('/mobile/prestador/dashboard');
     return;
   }
-
   void carregarDadosIniciais();
 });
 </script>
 
 <style scoped lang="scss">
 // ===================== VARIÁVEIS =====================
-$accent: #5B4BF5;
+$accent: #5b4bf5;
 $accent-light: rgba(91, 75, 245, 0.08);
-$success: #10B981;
-$warning: #F59E0B;
-$danger: #EF4444;
-$dark: #1A1A2E;
-$gray: #6B7280;
-$gray-light: #F9FAFB;
-$border: #E5E7EB;
-$white: #FFFFFF;
-$bg: #F3F4F6;
+$success: #10b981;
+$warning: #f59e0b;
+$danger: #ef4444;
+$dark: #1a1a2e;
+$gray: #6b7280;
+$gray-light: #f9fafb;
+$border: #e5e7eb;
+$white: #ffffff;
+$bg: #f3f4f6;
 $radius: 20px;
 $radius-sm: 14px;
 $radius-xs: 10px;
@@ -491,7 +827,6 @@ $radius-xs: 10px;
     cursor: pointer;
     color: $gray;
     transition: all 0.2s;
-
     &:hover {
       background: $accent-light;
       color: $accent;
@@ -500,14 +835,12 @@ $radius-xs: 10px;
 
   .header-center {
     text-align: center;
-
     h1 {
       font-size: 1.2rem;
       font-weight: 700;
       color: $dark;
       margin: 0;
     }
-
     p {
       font-size: 0.7rem;
       color: $gray;
@@ -545,7 +878,6 @@ $radius-xs: 10px;
       margin: 8px 0;
       position: relative;
       overflow: hidden;
-
       &::after {
         content: '';
         position: absolute;
@@ -553,7 +885,7 @@ $radius-xs: 10px;
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
         animation: shimmer 1.5s infinite;
       }
     }
@@ -575,7 +907,6 @@ $radius-xs: 10px;
     gap: 10px;
     overflow-x: auto;
     scrollbar-width: none;
-
     &::-webkit-scrollbar { display: none; }
   }
 
@@ -599,7 +930,6 @@ $radius-xs: 10px;
       border-color: $accent;
       color: $accent;
     }
-
     &.active {
       background: $accent;
       border-color: $accent;
@@ -625,14 +955,12 @@ $radius-xs: 10px;
     gap: 8px;
     font-size: 0.75rem;
     color: $gray;
-
     svg { flex-shrink: 0; }
   }
 
   .raio-selector, .ordenacao-selector {
     display: flex;
     gap: 4px;
-
     span {
       padding: 4px 10px;
       border-radius: 20px;
@@ -640,7 +968,6 @@ $radius-xs: 10px;
       transition: all 0.2s;
       font-size: 0.7rem;
       font-weight: 500;
-
       &:hover { background: $accent-light; color: $accent; }
       &.active { background: $accent; color: $white; }
     }
@@ -666,25 +993,18 @@ $radius-xs: 10px;
 .empty-state-modern {
   text-align: center;
   padding: 60px 24px;
-
-  .empty-icon {
-    margin-bottom: 24px;
-    opacity: 0.5;
-  }
-
+  .empty-icon { margin-bottom: 24px; opacity: 0.5; }
   h3 {
     font-size: 1.1rem;
     font-weight: 600;
     color: $dark;
     margin-bottom: 8px;
   }
-
   p {
     font-size: 0.85rem;
     color: $gray;
     margin-bottom: 24px;
   }
-
   .reset-btn {
     display: inline-flex;
     align-items: center;
@@ -698,7 +1018,6 @@ $radius-xs: 10px;
     color: $accent;
     cursor: pointer;
     transition: all 0.2s;
-
     &:hover {
       background: $accent;
       color: $white;
@@ -762,14 +1081,12 @@ $radius-xs: 10px;
 
     .card-header-info {
       flex: 1;
-
       .cliente-nome {
         font-weight: 700;
         font-size: 1rem;
         color: $dark;
         margin-bottom: 2px;
       }
-
       .pedido-data {
         font-size: 0.7rem;
         color: $gray;
@@ -802,9 +1119,9 @@ $radius-xs: 10px;
     align-items: center;
     gap: 6px;
     margin-bottom: 16px;
-
+    cursor: pointer;
     svg { color: $gray; flex-shrink: 0; }
-    span { font-size: 0.75rem; color: $gray; }
+    span { font-size: 0.75rem; color: $gray; flex: 1; }
   }
 
   .card-action {
@@ -823,7 +1140,6 @@ $radius-xs: 10px;
       color: $white;
       cursor: pointer;
       transition: all 0.2s;
-
       &:hover {
         background: lighten($accent, 6%);
         gap: 12px;
@@ -846,9 +1162,100 @@ $radius-xs: 10px;
   font-size: 0.8rem;
   font-weight: 500;
   color: $success;
+  svg { flex-shrink: 0; }
+}
 
-  svg {
-    flex-shrink: 0;
+// ===================== ESTILOS DO MAPA =====================
+.btn-ver-localizacao {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  background: $accent-light;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: $accent;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: auto;
+  flex-shrink: 0;
+  svg { width: 14px; height: 14px; }
+  &:hover {
+    background: $accent;
+    color: $white;
+  }
+}
+
+.mapa-expansivel {
+  margin-top: 12px;
+  border-radius: $radius-xs;
+  overflow: hidden;
+  border: 1px solid $border;
+  background: $white;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 400px; }
+}
+
+.mapa-container {
+  width: 100%;
+  height: 220px;
+  background: $gray-light;
+  :deep(.leaflet-container) {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.mapa-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  background: $white;
+  border-top: 1px solid $border;
+
+  .btn-traçar-rota {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: $accent;
+    border: none;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: $white;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover {
+      background: darken($accent, 8%);
+      transform: scale(1.02);
+    }
+    svg { stroke: $white; }
+  }
+
+  .btn-fechar-mapa {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: transparent;
+    border: 1px solid $border;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: $gray;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover {
+      background: $gray-light;
+    }
+    svg { stroke: $gray; }
   }
 }
 
@@ -877,14 +1284,8 @@ $radius-xs: 10px;
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-header-modern {
@@ -936,7 +1337,6 @@ $radius-xs: 10px;
     cursor: pointer;
     color: $white;
     transition: all 0.2s;
-
     &:hover {
       background: rgba(255, 255, 255, 0.3);
     }
@@ -956,16 +1356,13 @@ $radius-xs: 10px;
       display: flex;
       gap: 12px;
       margin-bottom: 10px;
-
       &:last-child { margin-bottom: 0; }
-
       .info-label {
         font-size: 0.7rem;
         font-weight: 600;
         color: $gray;
         min-width: 70px;
       }
-
       .info-value {
         font-size: 0.8rem;
         color: $dark;
@@ -1008,7 +1405,6 @@ $radius-xs: 10px;
       border: none;
       outline: none;
       font-size: 0.9rem;
-
       &:focus { background: $accent-light; }
     }
   }
@@ -1022,7 +1418,6 @@ $radius-xs: 10px;
     font-family: inherit;
     resize: vertical;
     outline: none;
-
     &:focus { border-color: $accent; }
   }
 }
@@ -1044,7 +1439,6 @@ $radius-xs: 10px;
     color: $gray;
     cursor: pointer;
     transition: all 0.2s;
-
     &:hover {
       background: $gray-light;
     }
@@ -1061,11 +1455,9 @@ $radius-xs: 10px;
     color: $white;
     cursor: pointer;
     transition: all 0.2s;
-
     &:hover:not(:disabled) {
       background: lighten($accent, 6%);
     }
-
     &:disabled {
       opacity: 0.6;
       cursor: not-allowed;
@@ -1081,5 +1473,39 @@ $radius-xs: 10px;
   border-radius: 50%;
   margin: 0 auto;
   animation: spin 0.6s linear infinite;
+}
+
+// ===================== RESPONSIVIDADE =====================
+@media (max-width: 480px) {
+  .mapa-container { height: 180px; }
+  .btn-ver-localizacao {
+    font-size: 0.6rem;
+    padding: 2px 8px;
+  }
+  .mapa-actions {
+    flex-wrap: wrap;
+    .btn-traçar-rota, .btn-fechar-mapa {
+      flex: 1;
+      justify-content: center;
+      font-size: 0.65rem;
+      padding: 6px 12px;
+    }
+  }
+}
+
+// ===================== CORES DOS MARCADORES =====================
+// 🔴 MARCADOR DO CLIENTE - VERMELHO
+.cliente-marker {
+  filter: hue-rotate(340deg) saturate(2) brightness(1.1) !important;
+}
+
+// 🔵 MARCADOR DO PRESTADOR - AZUL
+.prestador-marker {
+  filter: hue-rotate(220deg) saturate(2) brightness(1.1) !important;
+}
+
+// ===================== SOMBRA DOS MARCADORES =====================
+:deep(.leaflet-marker-icon) {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 </style>

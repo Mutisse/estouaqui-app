@@ -346,13 +346,49 @@
           <div v-else class="portfolio-grid">
             <div v-for="(foto, index) in perfilStore.portfolio" :key="index" class="portfolio-item" @click="verPortfolio(index)">
               <q-img :src="obterUrlFoto(foto)" ratio="1" class="portfolio-img" />
-              <div class="portfolio-overlay" @click.stop="removerFotoPortfolio(index)">
-                <q-icon name="delete" size="20px" color="white" />
+              <div class="portfolio-overlay">
+                <div class="portfolio-actions">
+                  <q-btn flat round dense icon="edit" size="sm" color="white" @click.stop="abrirEditarPortfolio(foto, index)" />
+                  <q-btn flat round dense icon="delete" size="sm" color="negative" @click.stop="removerFotoPortfolio(index)" />
+                </div>
+              </div>
+              <div v-if="foto.titulo || foto.descricao" class="portfolio-info">
+                <div v-if="foto.titulo" class="portfolio-titulo">{{ foto.titulo }}</div>
+                <div v-if="foto.descricao" class="portfolio-descricao">{{ foto.descricao }}</div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- MODAL EDITAR PORTFÓLIO -->
+      <q-dialog v-model="showEditPortfolioModal">
+        <q-card class="edit-portfolio-modal">
+          <q-card-section class="edit-portfolio-header">
+            <div class="text-h6">Editar item do portfólio</div>
+            <q-btn flat round dense icon="close" @click="fecharEditarPortfolio" />
+          </q-card-section>
+          <q-card-section class="edit-portfolio-body">
+            <div class="portfolio-preview">
+              <q-img :src="portfolioEditForm.url || ''" style="max-height: 200px; max-width: 100%; object-fit: cover; border-radius: 8px;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Título</label>
+              <q-input v-model="portfolioEditForm.titulo" outlined dense placeholder="Digite um título para esta foto" maxlength="100" />
+              <div class="char-counter">{{ portfolioEditForm.titulo?.length || 0 }}/100</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descrição</label>
+              <q-input v-model="portfolioEditForm.descricao" type="textarea" outlined dense placeholder="Descreva esta foto..." rows="3" maxlength="500" />
+              <div class="char-counter">{{ portfolioEditForm.descricao?.length || 0 }}/500</div>
+            </div>
+          </q-card-section>
+          <q-card-actions align="right" class="edit-portfolio-actions">
+            <q-btn flat label="Cancelar" @click="fecharEditarPortfolio" />
+            <q-btn unelevated label="Salvar" color="primary" @click="salvarEdicaoPortfolio" :loading="salvandoPortfolio" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
 
       <!-- 6. DISPONIBILIDADE -->
       <div class="collapsible-section">
@@ -441,6 +477,7 @@ import {
   opcoesHorarios,
   iconeOptions,
   diasDaSemana,
+  type PortfolioItem,
 } from 'src/stores/prestador/prestador-perfil-store';
 
 defineOptions({ name: 'PrestadorPerfil' });
@@ -479,9 +516,13 @@ interface CategoriaDisponivel {
   descricao?: string;
 }
 
-interface PortfolioItem {
-  url?: string;
-  path?: string;
+interface PortfolioEditForm {
+  id: number | null;
+  url: string;
+  titulo: string;
+  descricao: string;
+  path: string;
+  index: number;
 }
 
 const router = useRouter();
@@ -512,9 +553,20 @@ const showServicoForm = ref(false);
 const editandoServico = ref(false);
 const servicoEditandoId = ref<number | null>(null);
 
+// 🔥 ESTADOS PARA EDIÇÃO DO PORTFÓLIO
+const showEditPortfolioModal = ref(false);
+const salvandoPortfolio = ref(false);
+const portfolioEditForm = reactive<PortfolioEditForm>({
+  id: null,
+  url: '',
+  titulo: '',
+  descricao: '',
+  path: '',
+  index: -1,
+});
+
 const todasCategorias = ref<CategoriaDisponivel[]>([]);
 const categoriasSelecionadas = ref<number[]>([]);
-const portfolioSelecionado = ref<PortfolioItem | null>(null);
 
 const editForm = reactive<EditFormData>({
   nome: '',
@@ -542,7 +594,7 @@ const salvandoCategorias = ref(false);
 const salvandoDisponibilidade = ref(false);
 const salvandoServico = ref(false);
 
-// ✅ FUNÇÃO AUXILIAR PARA URL DO PORTFÓLIO - SEM ANY
+// ✅ FUNÇÃO AUXILIAR PARA URL DO PORTFÓLIO
 const obterUrlFoto = (foto: string | PortfolioItem): string => {
   if (!foto) return '';
   if (typeof foto === 'string') return foto;
@@ -728,6 +780,8 @@ const salvarCategoriasExpansivel = async () => {
   finally { salvandoCategorias.value = false; }
 };
 
+// ===================== PORTFÓLIO - EDIÇÃO COMPLETA =====================
+
 const adicionarFotoPortfolio = () => {
   const input = document.createElement('input');
   input.type = 'file';
@@ -736,58 +790,111 @@ const adicionarFotoPortfolio = () => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (file) {
       $q.loading.show({ message: 'Adicionando foto...' });
-      const url = await perfilStore.addPortfolio(file);
-      $q.loading.hide();
-      $q.notify({ type: url ? 'positive' : 'negative', message: url ? 'Foto adicionada!' : 'Erro ao adicionar foto', position: 'top' });
+      try {
+        const result = await perfilStore.addPortfolio(file);
+        $q.loading.hide();
+        if (result) {
+          $q.notify({ type: 'positive', message: 'Foto adicionada!', position: 'top' });
+          // 🔥 Abre o modal para editar título/descrição
+          const index = perfilStore.portfolio.length - 1;
+          const item = perfilStore.portfolio[index];
+          if (item) {
+            abrirEditarPortfolio(item, index);
+          }
+        } else {
+          $q.notify({ type: 'negative', message: 'Erro ao adicionar foto', position: 'top' });
+        }
+      } catch {
+        $q.loading.hide();
+        $q.notify({ type: 'negative', message: 'Erro ao adicionar foto', position: 'top' });
+      }
     }
   };
   input.click();
 };
 
+const abrirEditarPortfolio = (foto: PortfolioItem, index: number) => {
+  portfolioEditForm.id = foto.id || null;
+  portfolioEditForm.url = obterUrlFoto(foto);
+  portfolioEditForm.titulo = foto.titulo || '';
+  portfolioEditForm.descricao = foto.descricao || '';
+  portfolioEditForm.path = foto.path || '';
+  portfolioEditForm.index = index;
+  showEditPortfolioModal.value = true;
+};
+
+const fecharEditarPortfolio = () => {
+  showEditPortfolioModal.value = false;
+  portfolioEditForm.id = null;
+  portfolioEditForm.url = '';
+  portfolioEditForm.titulo = '';
+  portfolioEditForm.descricao = '';
+  portfolioEditForm.path = '';
+  portfolioEditForm.index = -1;
+};
+
+const salvarEdicaoPortfolio = async () => {
+  salvandoPortfolio.value = true;
+  try {
+    const index = portfolioEditForm.index;
+    const item = perfilStore.portfolio[index];
+    if (!item) {
+      $q.notify({ type: 'negative', message: 'Item não encontrado', position: 'top' });
+      return;
+    }
+
+    // 🔥 Atualiza os dados localmente
+    const updatedItem = {
+      ...item,
+      titulo: portfolioEditForm.titulo,
+      descricao: portfolioEditForm.descricao,
+    };
+
+    // 🔥 Envia para o backend via PUT ou PATCH
+    const response = await api.put(`/prestador/portfolio/${item.id}`, {
+      titulo: portfolioEditForm.titulo,
+      descricao: portfolioEditForm.descricao,
+    });
+
+    if (response.data?.success) {
+      perfilStore.portfolio[index] = updatedItem;
+      $q.notify({ type: 'positive', message: 'Portfólio atualizado!', position: 'top' });
+      fecharEditarPortfolio();
+    } else {
+      $q.notify({ type: 'negative', message: 'Erro ao atualizar portfólio', position: 'top' });
+    }
+  } catch (error) {
+    console.error('Erro ao salvar edição do portfólio:', error);
+    $q.notify({ type: 'negative', message: 'Erro ao atualizar portfólio', position: 'top' });
+  } finally {
+    salvandoPortfolio.value = false;
+  }
+};
+
 const removerFotoPortfolio = (index: number) => {
   $q.dialog({
     title: 'Remover foto',
-    message: 'Deseja remover esta foto?',
+    message: 'Deseja remover esta foto do portfólio?',
     cancel: { label: 'Cancelar', flat: true },
     ok: { label: 'Remover', color: 'negative', unelevated: true },
   }).onOk(() => {
     void (async () => {
+      $q.loading.show({ message: 'Removendo foto...' });
       const success = await perfilStore.removePortfolio(index);
+      $q.loading.hide();
       $q.notify({ type: success ? 'positive' : 'negative', message: success ? 'Foto removida!' : 'Erro ao remover foto', position: 'top' });
     })();
   });
 };
 
-const verPortfolio = (index: number) => { if (perfilStore.portfolio[index]) portfolioSelecionado.value = perfilStore.portfolio[index]; };
-
-const editarDisponibilidade = () => {
-  const horarios = perfilStore.disponibilidade?.horarios_padrao || {};
-  diasDaSemana.forEach((dia) => {
-    const hrs = horarios[dia.key];
-    disponibilidadeAtiva.value[dia.key] = !!(hrs && hrs.length > 0);
-    disponibilidadeHorariosSelecionados.value[dia.key] = hrs || [];
-  });
-  editDisponibilidade.value = true;
+const verPortfolio = (index: number) => {
+  const foto = perfilStore.portfolio[index];
+  if (foto) {
+    abrirEditarPortfolio(foto, index);
+  }
 };
-const cancelarEditarDisponibilidade = () => { editDisponibilidade.value = false; };
 
-const salvarDisponibilidade = async () => {
-  salvandoDisponibilidade.value = true;
-  try {
-    const horarios: Record<string, string[]> = {};
-    diasDaSemana.forEach((dia) => {
-      horarios[dia.key] = disponibilidadeAtiva.value[dia.key] ? disponibilidadeHorariosSelecionados.value[dia.key] || [] : [];
-    });
-    const success = await perfilStore.updateDisponibilidade({ horarios_padrao: horarios });
-    if (success) {
-      $q.notify({ type: 'positive', message: 'Disponibilidade atualizada!', position: 'top' });
-      editDisponibilidade.value = false;
-    } else {
-      $q.notify({ type: 'negative', message: 'Erro ao atualizar disponibilidade', position: 'top' });
-    }
-  } catch { $q.notify({ type: 'negative', message: 'Erro ao atualizar disponibilidade', position: 'top' }); }
-  finally { salvandoDisponibilidade.value = false; }
-};
+// ===================== SERVIÇOS =====================
 
 const abrirFormServico = () => {
   editandoServico.value = false;
@@ -809,6 +916,7 @@ const handleEditarServico = (servico: ServicoItem) => {
   servicoForm.icone = servico.icone || 'handyman';
   showServicoForm.value = true;
 };
+
 const fecharFormServico = () => { showServicoForm.value = false; };
 
 const salvarServico = async () => {
@@ -847,6 +955,40 @@ const handleRemoverServico = (servicoId: number) => {
   });
 };
 
+// ===================== DISPONIBILIDADE =====================
+
+const editarDisponibilidade = () => {
+  const horarios = perfilStore.disponibilidade?.horarios_padrao || {};
+  diasDaSemana.forEach((dia) => {
+    const hrs = horarios[dia.key];
+    disponibilidadeAtiva.value[dia.key] = !!(hrs && hrs.length > 0);
+    disponibilidadeHorariosSelecionados.value[dia.key] = hrs || [];
+  });
+  editDisponibilidade.value = true;
+};
+
+const cancelarEditarDisponibilidade = () => { editDisponibilidade.value = false; };
+
+const salvarDisponibilidade = async () => {
+  salvandoDisponibilidade.value = true;
+  try {
+    const horarios: Record<string, string[]> = {};
+    diasDaSemana.forEach((dia) => {
+      horarios[dia.key] = disponibilidadeAtiva.value[dia.key] ? disponibilidadeHorariosSelecionados.value[dia.key] || [] : [];
+    });
+    const success = await perfilStore.updateDisponibilidade({ horarios_padrao: horarios });
+    if (success) {
+      $q.notify({ type: 'positive', message: 'Disponibilidade atualizada!', position: 'top' });
+      editDisponibilidade.value = false;
+    } else {
+      $q.notify({ type: 'negative', message: 'Erro ao atualizar disponibilidade', position: 'top' });
+    }
+  } catch { $q.notify({ type: 'negative', message: 'Erro ao atualizar disponibilidade', position: 'top' }); }
+  finally { salvandoDisponibilidade.value = false; }
+};
+
+// ===================== DOCUMENTOS =====================
+
 const uploadDocumento = () => {
   const input = document.createElement('input');
   input.type = 'file';
@@ -863,6 +1005,8 @@ const uploadDocumento = () => {
   };
   input.click();
 };
+
+// ===================== CARREGAR DADOS =====================
 
 const carregarDados = async () => {
   try {
@@ -1021,13 +1165,39 @@ $radius-xs: 8px;
   &__actions { display: flex; gap: 4px; }
 }
 
-.portfolio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
-.portfolio-item { position: relative; cursor: pointer; border-radius: $radius; overflow: hidden; transition: all 0.2s;
-  &:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-  .portfolio-overlay { position: absolute; top: 0; right: 0; background: rgba(0,0,0,0.6); padding: 4px; border-radius: 0 0 0 8px; opacity: 0; transition: opacity 0.2s; }
+.portfolio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.portfolio-item {
+  position: relative; cursor: pointer; border-radius: $radius; overflow: hidden; transition: all 0.2s;
+  &:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .portfolio-overlay {
+    position: absolute; top: 0; right: 0; padding: 8px; opacity: 0; transition: opacity 0.3s;
+    .portfolio-actions { display: flex; gap: 4px; background: rgba(0,0,0,0.7); padding: 6px; border-radius: 8px; }
+  }
   &:hover .portfolio-overlay { opacity: 1; }
+  .portfolio-info {
+    position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 12px;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    color: white; font-size: 0.75rem;
+    .portfolio-titulo { font-weight: 600; }
+    .portfolio-descricao { font-size: 0.65rem; opacity: 0.8; margin-top: 2px; }
+  }
 }
 .portfolio-img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+
+// ===================== MODAL EDITAR PORTFÓLIO =====================
+.edit-portfolio-modal {
+  min-width: 350px; max-width: 500px; width: 100%; border-radius: 20px !important; overflow: hidden;
+  .edit-portfolio-header {
+    display: flex; align-items: center; justify-content: space-between; padding: 16px 20px;
+    background: linear-gradient(135deg, $accent, #4a3bd4); color: white;
+    .text-h6 { color: white; margin: 0; }
+    .q-btn { color: rgba(255,255,255,0.8); &:hover { color: white; background: rgba(255,255,255,0.2); } }
+  }
+  .edit-portfolio-body { padding: 20px;
+    .portfolio-preview { text-align: center; margin-bottom: 16px; }
+  }
+  .edit-portfolio-actions { padding: 8px 20px 20px; gap: 8px; }
+}
 
 .disponibilidade-grid-view { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; @media (max-width: 480px) { grid-template-columns: 1fr; } }
 .disponibilidade-card { background: $surface; border-radius: $radius; padding: 16px; text-align: center; border: 1px solid $line;

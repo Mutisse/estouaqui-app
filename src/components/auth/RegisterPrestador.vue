@@ -110,7 +110,6 @@
               </template>
             </q-input>
           </div>
-          <!-- ✅ CORRIGIDO: Adicionada verificação de segurança -->
           <div class="password-strength" v-if="formData.password && passwordStrength">
             <div class="strength-bar" :class="passwordStrength.class"></div>
             <div class="strength-text" :class="passwordStrength.class">
@@ -306,13 +305,122 @@
           </div>
         </div>
 
-        <div class="location-status" v-if="carregandoLocalizacao">
-          <q-spinner size="14px" color="primary" />
-          <span>Obtendo sua localização...</span>
-        </div>
-        <div class="location-status success" v-else-if="localizacaoObtida">
-          <q-icon name="check_circle" size="14px" />
-          <span>Localização definida com sucesso!</span>
+        <!-- ===== LOCALIZAÇÃO OBRIGATÓRIA ===== -->
+        <div class="ea-input-group">
+          <label class="ea-input-label">📍 Localização <span class="required">*</span></label>
+
+          <div class="location-container">
+            <!-- Status -->
+            <div class="location-status" v-if="carregandoLocalizacao">
+              <q-spinner size="16px" color="primary" />
+              <span>Obtendo localização...</span>
+            </div>
+
+            <div class="location-status success" v-else-if="localizacaoObtida && localizacaoData">
+              <q-icon name="check_circle" size="16px" color="positive" />
+              <span>
+                ✅ Localização definida:
+                <strong>{{ localizacaoData.lat.toFixed(6) }}</strong>,
+                <strong>{{ localizacaoData.lng.toFixed(6) }}</strong>
+              </span>
+              <q-btn
+                flat
+                dense
+                round
+                icon="close"
+                size="xs"
+                color="negative"
+                @click="limparLocalizacao"
+                title="Limpar localização"
+              />
+            </div>
+
+            <div class="location-status error" v-else-if="hasError('localizacao')">
+              <q-icon name="error" size="16px" color="negative" />
+              <span class="text-negative">{{ getErrorMessage('localizacao') }}</span>
+            </div>
+
+            <div class="location-status" v-else>
+              <q-icon name="place" size="16px" color="grey-6" />
+              <span class="text-grey-6">Localização não definida</span>
+            </div>
+
+            <!-- Ações -->
+            <div class="location-actions">
+              <q-btn
+                unelevated
+                label="Obter localização automática"
+                icon="my_location"
+                color="primary"
+                @click="handleObterLocalizacao"
+                :loading="carregandoLocalizacao"
+                :disable="carregandoLocalizacao"
+                class="location-btn"
+              />
+
+              <q-btn
+                flat
+                label="Inserir manualmente"
+                icon="edit"
+                color="grey-6"
+                @click="abrirModalLocalizacao"
+                class="location-btn"
+              />
+            </div>
+
+            <!-- Modal de Localização Manual -->
+            <div v-if="mostrarModalLocalizacao" class="manual-location">
+              <div class="manual-location-header">
+                <span class="manual-location-title">Inserir coordenadas manualmente</span>
+                <q-btn flat round dense icon="close" @click="mostrarModalLocalizacao = false" />
+              </div>
+              <div class="row q-col-gutter-md">
+                <div class="col-6">
+                  <q-input
+                    v-model="latitudeManual"
+                    label="Latitude"
+                    outlined
+                    dense
+                    dark
+                    type="number"
+                    step="0.000001"
+                    placeholder="-25.969200"
+                    :error="!!erroLatitudeManual"
+                    :error-message="erroLatitudeManual"
+                    @update:model-value="erroLatitudeManual = ''"
+                  />
+                </div>
+                <div class="col-6">
+                  <q-input
+                    v-model="longitudeManual"
+                    label="Longitude"
+                    outlined
+                    dense
+                    dark
+                    type="number"
+                    step="0.000001"
+                    placeholder="32.573200"
+                    :error="!!erroLongitudeManual"
+                    :error-message="erroLongitudeManual"
+                    @update:model-value="erroLongitudeManual = ''"
+                  />
+                </div>
+              </div>
+              <div class="manual-location-actions">
+                <q-btn flat label="Cancelar" @click="mostrarModalLocalizacao = false" />
+                <q-btn
+                  unelevated
+                  label="Definir localização"
+                  color="primary"
+                  @click="definirLocalizacaoManualFn"
+                />
+              </div>
+              <div class="manual-location-hint">
+                <q-icon name="info" size="12px" />
+                Dica: Você pode obter coordenadas no Google Maps (clique com o botão direito)
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="ea-input-group">
@@ -407,7 +515,7 @@
           </div>
           <div class="review-item">
             <div class="review-label">Localização</div>
-            <div class="review-value" :class="{ 'text-warning': !localizacaoObtida }">
+            <div class="review-value" :class="{ 'text-success': localizacaoObtida, 'text-warning': !localizacaoObtida }">
               {{ localizacaoObtida ? '✅ Localização definida' : '⚠️ Localização não definida' }}
             </div>
           </div>
@@ -478,13 +586,41 @@ const router = useRouter();
 const $q = useQuasar();
 const registerStore = usePrestadorRegisterStore();
 
-// Estados locais do componente (apenas UI)
+// Estados locais
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const portfolioInputs = ref<(HTMLInputElement | null)[]>([null, null, null]);
 const fotoPerfilInput = ref<HTMLInputElement | null>(null);
 const documentoInput = ref<HTMLInputElement | null>(null);
 const carregandoDadosIniciais = ref(true);
+
+// 🔥 LOCALIZAÇÃO MANUAL
+const mostrarModalLocalizacao = ref(false);
+const latitudeManual = ref('');
+const longitudeManual = ref('');
+const erroLatitudeManual = ref('');
+const erroLongitudeManual = ref('');
+
+// 🔥 DADOS LOCAIS (não vêm do backend)
+const raioOptions = [
+  { label: '5 km', value: 5 },
+  { label: '10 km', value: 10 },
+  { label: '15 km', value: 15 },
+  { label: '20 km', value: 20 },
+  { label: '30 km', value: 30 },
+  { label: '50 km', value: 50 },
+  { label: '100 km', value: 100 },
+];
+
+const diasSemana = [
+  { label: 'Segunda-feira', value: 'monday' },
+  { label: 'Terça-feira', value: 'tuesday' },
+  { label: 'Quarta-feira', value: 'wednesday' },
+  { label: 'Quinta-feira', value: 'thursday' },
+  { label: 'Sexta-feira', value: 'friday' },
+  { label: 'Sábado', value: 'saturday' },
+  { label: 'Domingo', value: 'sunday' },
+];
 
 // Bindings para a store
 const loading = computed(() => registerStore.loading);
@@ -501,9 +637,8 @@ const validationErrors = computed(() => registerStore.validationErrors);
 const carregandoCategorias = computed(() => registerStore.carregandoCategorias);
 const carregandoLocalizacao = computed(() => registerStore.carregandoLocalizacao);
 const localizacaoObtida = computed(() => registerStore.localizacaoObtida);
+const localizacaoData = computed(() => registerStore.localizacaoData);
 const categoriasOptions = computed(() => registerStore.categoriasOptions);
-const raioOptions = computed(() => registerStore.raioOptions);
-const diasSemana = computed(() => registerStore.diasSemana);
 
 // Helpers para erros
 const hasError = (field: string): boolean => {
@@ -575,6 +710,72 @@ const onRaioChange = async (): Promise<void> => {
       });
     }
   }
+};
+
+const handleObterLocalizacao = async (): Promise<void> => {
+  try {
+    await registerStore.obterLocalizacaoAutomatica();
+    $q.notify({
+      type: 'positive',
+      message: '📍 Localização obtida com sucesso!',
+      position: 'top',
+      timeout: 2000,
+    });
+    clearError('localizacao');
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Erro ao obter localização';
+    $q.notify({
+      type: 'negative',
+      message: msg,
+      position: 'top',
+      timeout: 3000,
+    });
+  }
+};
+
+const abrirModalLocalizacao = (): void => {
+  mostrarModalLocalizacao.value = true;
+  latitudeManual.value = localizacaoData.value?.lat?.toString() || '';
+  longitudeManual.value = localizacaoData.value?.lng?.toString() || '';
+};
+
+const definirLocalizacaoManualFn = (): void => {
+  erroLatitudeManual.value = '';
+  erroLongitudeManual.value = '';
+
+  const lat = parseFloat(latitudeManual.value);
+  const lng = parseFloat(longitudeManual.value);
+
+  if (isNaN(lat) || lat < -90 || lat > 90) {
+    erroLatitudeManual.value = 'Latitude inválida (-90 a 90)';
+    return;
+  }
+
+  if (isNaN(lng) || lng < -180 || lng > 180) {
+    erroLongitudeManual.value = 'Longitude inválida (-180 a 180)';
+    return;
+  }
+
+  registerStore.definirLocalizacaoManual(lat, lng);
+  mostrarModalLocalizacao.value = false;
+  clearError('localizacao');
+
+  $q.notify({
+    type: 'positive',
+    message: '📍 Localização definida manualmente!',
+    position: 'top',
+    timeout: 2000,
+  });
+};
+
+const limparLocalizacao = (): void => {
+  registerStore.limparLocalizacao();
+  $q.notify({
+    type: 'info',
+    message: 'Localização removida. Defina uma nova.',
+    position: 'top',
+    timeout: 2000,
+  });
 };
 
 // Uploads
@@ -683,7 +884,7 @@ const handleRegister = async (): Promise<void> => {
   }
 };
 
-// Inicialização - Carrega todos os dados do backend
+// Inicialização
 onMounted(async () => {
   carregandoDadosIniciais.value = true;
 
@@ -758,6 +959,11 @@ $accent: #5b4bf5;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.7);
   margin-bottom: 8px;
+
+  .required {
+    color: #ef4444;
+    margin-left: 2px;
+  }
 }
 
 .ea-input-wrapper {
@@ -941,21 +1147,99 @@ $accent: #5b4bf5;
   }
 }
 
+// ===== LOCALIZAÇÃO =====
+.location-container {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .location-status {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
   font-size: 0.85rem;
-  margin-bottom: 16px;
 
   &.success {
-    background: rgba(72, 187, 120, 0.1);
-    color: #48bb78;
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+  }
+
+  &.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
   }
 }
 
+.location-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  .location-btn {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+.manual-location {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  &-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  &-title {
+    font-weight: 600;
+    color: #fff;
+    font-size: 0.9rem;
+  }
+
+  &-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+
+  &-hint {
+    margin-top: 8px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+.text-negative {
+  color: #f87171 !important;
+}
+
+.text-success {
+  color: #34d399 !important;
+}
+
+.text-warning {
+  color: #f59e0b !important;
+}
+
+.text-grey-6 {
+  color: #9ca3af !important;
+}
+
+// ===== DISPONIBILIDADE =====
 .availability-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1081,9 +1365,5 @@ $accent: #5b4bf5;
     background: lighten($accent, 6%);
     transform: translateY(-2px);
   }
-}
-
-.text-warning {
-  color: #f59e0b !important;
 }
 </style>

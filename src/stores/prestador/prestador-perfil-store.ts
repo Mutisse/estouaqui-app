@@ -1,3 +1,5 @@
+// stores/prestador/prestador-perfil-store.ts
+
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from 'src/boot/axios';
@@ -38,22 +40,35 @@ export interface PortfolioItem {
   created_at?: string;
 }
 
+// 🔥 INTERFACE ATUALIZADA COM TODOS OS CAMPOS
 export interface PerfilPrestadorData {
   id: number;
   nome: string;
   email: string;
   telefone: string;
   foto: string | null;
+
+  // 🔥 CAMPOS DA TABELA USERS (ADICIONADOS)
   profissao: string;
   sobre: string;
-  endereco: string;
+  latitude: number | null;        // ✅ ADICIONADO
+  longitude: number | null;       // ✅ ADICIONADO
+  raio_atendimento: number;       // ✅ ADICIONADO
+  disponivel: boolean;            // ✅ ADICIONADO
+  verificado: boolean;            // ✅ ADICIONADO
   media_avaliacao: number;
   total_avaliacoes: number;
+
+  // 🔥 CAMPOS DA TABELA prestador_profiles
+  endereco: string;
   portfolio: PortfolioItem[];
   categorias: CategoriaPrestadorData[];
   servicos: ServicoData[];
   disponibilidade: DisponibilidadeData | null;
   documento_verificado: boolean;
+  status_documento?: string;      // ✅ ADICIONADO
+  created_at?: string;            // ✅ ADICIONADO
+  updated_at?: string;            // ✅ ADICIONADO
 }
 
 export interface StatsData {
@@ -69,6 +84,9 @@ export interface UpdateProfileData {
   profissao?: string;
   sobre?: string;
   endereco?: string;
+  latitude?: number | null;      // ✅ ADICIONADO
+  longitude?: number | null;     // ✅ ADICIONADO
+  raio_atendimento?: number;     // ✅ ADICIONADO
 }
 
 // Opções de horários para disponibilidade
@@ -149,6 +167,12 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
   const totalAvaliacoes = computed(() => perfil.value?.total_avaliacoes || 0);
   const foto = computed(() => perfil.value?.foto || authStore.user?.foto || null);
 
+  // 🔥 NOVOS GETTERS PARA LOCALIZAÇÃO
+  const latitude = computed(() => perfil.value?.latitude ?? null);
+  const longitude = computed(() => perfil.value?.longitude ?? null);
+  const raioAtendimento = computed(() => perfil.value?.raio_atendimento ?? 10);
+  const disponivel = computed(() => perfil.value?.disponivel ?? true);
+
   const disponibilidadeHorariosFormatados = computed(() => {
     if (!disponibilidade.value?.horarios_padrao) return [];
 
@@ -177,12 +201,24 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
       const response = await api.get('/prestador/perfil');
 
       if (response.data?.success && response.data.data) {
-        perfil.value = response.data.data;
-        portfolio.value = response.data.data.portfolio || [];
-        servicos.value = response.data.data.servicos || [];
-        minhasCategorias.value = response.data.data.categorias || [];
-        disponibilidade.value = response.data.data.disponibilidade || null;
-        documentoVerificado.value = response.data.data.documento_verificado || false;
+        const data = response.data.data;
+
+        // 🔥 GARANTIR QUE OS CAMPOS EXISTAM
+        perfil.value = {
+          ...data,
+          latitude: data.latitude ?? null,
+          longitude: data.longitude ?? null,
+          raio_atendimento: data.raio_atendimento ?? 10,
+          disponivel: data.disponivel ?? true,
+          verificado: data.verificado ?? false,
+          status_documento: data.status_documento ?? 'pendente',
+        };
+
+        portfolio.value = data.portfolio || [];
+        servicos.value = data.servicos || [];
+        minhasCategorias.value = data.categorias || [];
+        disponibilidade.value = data.disponibilidade || null;
+        documentoVerificado.value = data.documento_verificado || false;
         dadosCarregados.value = true;
         ultimaAtualizacao.value = new Date();
         return perfil.value;
@@ -370,7 +406,6 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
       const item = portfolio.value[index];
       if (!item) return false;
 
-      // Usar o ID do item para remover
       const itemId = item.id;
 
       const response = await api.delete(`/prestador/portfolio/${itemId}`);
@@ -490,7 +525,9 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
 
     // Getters
     nomeCompleto, email, telefone, profissao, sobre, endereco,
-    rating, totalAvaliacoes, foto, disponibilidadeHorariosFormatados,
+    rating, totalAvaliacoes, foto,
+    latitude, longitude, raioAtendimento, disponivel,  // 🔥 NOVOS GETTERS
+    disponibilidadeHorariosFormatados,
 
     // READ
     fetchPerfilCompleto, fetchStats, fetchMinhasCategorias, fetchDisponibilidade,

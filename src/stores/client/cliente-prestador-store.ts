@@ -165,32 +165,21 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     return 'Erro desconhecido';
   };
 
-  /**
-   * Normaliza o portfolio (converte strings para objetos com URL)
-   */
-  /**
-   * Normaliza o portfolio (converte strings para objetos com URL)
-   */
   const normalizarPortfolio = (portfolio: unknown[]): PortfolioItem[] => {
     if (!portfolio || !Array.isArray(portfolio)) return [];
 
     return portfolio
       .map((item) => {
-        // Se for string
         if (typeof item === 'string') {
-          // Se já tem URL completa
           if (item.startsWith('http')) {
             return { url: item };
           }
-          // Se é caminho relativo
           return { url: `http://localhost:8000/storage/${item}` };
         }
 
-        // Se for objeto
         if (item && typeof item === 'object') {
           const obj = item as Record<string, unknown>;
 
-          // Se tem url
           if (obj.url && typeof obj.url === 'string') {
             return {
               url: obj.url,
@@ -200,7 +189,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
               path: typeof obj.path === 'string' ? obj.path : '',
             };
           }
-          // Se tem path
           if (obj.path && typeof obj.path === 'string') {
             return {
               url: `http://localhost:8000/storage/${obj.path}`,
@@ -216,13 +204,9 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
       })
       .filter((item) => item.url);
   };
+
   // ===================== AÇÕES PRINCIPAIS =====================
 
-  /**
-   * Busca detalhes completos do prestador
-   * ✅ CORRIGIDO: Usa rota pública /prestadores/{id}
-   * ✅ CORRIGIDO: Normaliza o portfolio
-   */
   const fetchPrestadorDetalhes = async (prestadorId: number) => {
     carregando.value = true;
     carregamentoInicial.value = true;
@@ -235,17 +219,14 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
       if (response.data?.success && response.data.data) {
         const data = response.data.data;
 
-        // ✅ NORMALIZAR PORTFOLIO
         if (data.portfolio) {
           data.portfolio = normalizarPortfolio(data.portfolio);
         }
 
-        // ✅ GARANTIR QUE AVALIAÇÕES EXISTEM
         if (!data.avaliacoes) {
           data.avaliacoes = [];
         }
 
-        // ✅ GARANTIR QUE SERVIÇOS EXISTEM
         if (!data.servicos) {
           data.servicos = [];
         }
@@ -267,10 +248,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     }
   };
 
-  /**
-   * Busca dados básicos do prestador
-   * ✅ CORRIGIDO: Usa rota pública /prestadores/{id}
-   */
   const fetchPrestadorBasico = async (prestadorId: number) => {
     carregando.value = true;
     try {
@@ -279,7 +256,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
       if (response.data?.success && response.data.data) {
         const data = response.data.data;
 
-        // Normalizar portfolio
         if (data.portfolio) {
           data.portfolio = normalizarPortfolio(data.portfolio);
         }
@@ -302,9 +278,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     }
   };
 
-  /**
-   * Busca serviços do prestador
-   */
   const fetchServicos = async (prestadorId: number) => {
     try {
       const response = await api.get(`/prestadores/${prestadorId}/servicos`);
@@ -321,9 +294,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     }
   };
 
-  /**
-   * Busca avaliações do prestador
-   */
   const fetchAvaliacoes = async (prestadorId: number, page: number = 1, limit: number = 10) => {
     try {
       const response = await api.get(`/prestadores/${prestadorId}/avaliacoes`, {
@@ -353,9 +323,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     }
   };
 
-  /**
-   * Busca portfólio do prestador
-   */
   const fetchPortfolio = async (prestadorId: number) => {
     try {
       const response = await api.get(`/prestadores/${prestadorId}/portfolio`);
@@ -374,9 +341,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
 
   // ===================== AÇÕES DE FAVORITO =====================
 
-  /**
-   * Verifica se o prestador está nos favoritos
-   */
   const verificarFavorito = async (prestadorId: number) => {
     try {
       const response = await api.get(`/favoritos/check/${prestadorId}`);
@@ -393,9 +357,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     }
   };
 
-  /**
-   * Adiciona prestador aos favoritos
-   */
   const adicionarFavorito = async (prestadorId: number) => {
     favoritoLoading.value = true;
     try {
@@ -415,9 +376,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     }
   };
 
-  /**
-   * Remove prestador dos favoritos
-   */
   const removerFavorito = async (prestadorId: number) => {
     favoritoLoading.value = true;
     try {
@@ -437,9 +395,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     }
   };
 
-  /**
-   * Alterna favorito (adiciona/remove)
-   */
   const toggleFavorito = async (prestadorId: number) => {
     if (favoritoLoading.value) return false;
 
@@ -452,9 +407,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
 
   // ===================== AÇÕES DE INTERAÇÃO =====================
 
-  /**
-   * Envia avaliação para o prestador
-   */
   const enviarAvaliacao = async (prestadorId: number, nota: number, comentario: string) => {
     try {
       const response = await api.post(`/prestadores/${prestadorId}/avaliar`, {
@@ -480,9 +432,6 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     }
   };
 
-  /**
-   * Reporta prestador
-   */
   const reportarPrestador = async (prestadorId: number, motivo: string, descricao: string) => {
     try {
       const response = await api.post(`/prestadores/${prestadorId}/reportar`, {
@@ -493,6 +442,37 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
       return response.data?.success || false;
     } catch (error) {
       console.error('Erro ao reportar prestador:', error);
+      return false;
+    }
+  };
+
+  // ===================== AÇÃO PARA CRIAR PEDIDO =====================
+
+  const criarPedido = async (
+    prestadorId: number,
+    data: {
+      descricao: string;
+      data: string;
+      hora: string;
+      endereco: string;
+      servico_id?: number;
+      categoria_id?: number;
+    },
+  ): Promise<boolean> => {
+    try {
+      const response = await api.post('/cliente/pedidos', {
+        prestador_id: prestadorId,
+        categoria_id: data.categoria_id,
+        servico_id: data.servico_id || null,
+        descricao: data.descricao,
+        data: data.data,
+        hora: data.hora,
+        endereco: data.endereco,
+      });
+
+      return response.data?.success || false;
+    } catch (error) {
+      console.error('Erro ao criar pedido:', error);
       return false;
     }
   };
@@ -597,6 +577,9 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     // Ações de interação
     enviarAvaliacao,
     reportarPrestador,
+
+    // Ação para criar pedido
+    criarPedido,
 
     // Utilitários
     getChipStyle,

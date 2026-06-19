@@ -77,6 +77,11 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
   const carregandoPromocoes = ref(false);
   const carregandoCriarPedido = ref(false);
 
+  // 🔥 ESTADOS PARA LOCALIZAÇÃO
+  const carregandoLocalizacao = ref(false);
+  const localizacaoObtida = ref(false);
+  const localizacaoData = ref<{ lat: number; lng: number } | null>(null);
+
   // Dados principais
   const categorias = ref<CategoriaData[]>([]);
   const prestadoresDestaque = ref<PrestadorData[]>([]);
@@ -217,6 +222,68 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     if (index !== -1) {
       validationErrors.value.splice(index, 1);
     }
+  };
+
+  // ========== 🔥 LOCALIZAÇÃO ==========
+
+  /**
+   * 🔥 Obtém localização do usuário (sem fallback automático)
+   */
+  const obterLocalizacaoAutomatica = async (): Promise<{ lat: number; lng: number }> => {
+    return new Promise((resolve, reject) => {
+      carregandoLocalizacao.value = true;
+
+      if (!navigator.geolocation) {
+        carregandoLocalizacao.value = false;
+        reject(new Error('Geolocalização não é suportada pelo seu navegador'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const data = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          localizacaoData.value = data;
+          localizacaoObtida.value = true;
+          carregandoLocalizacao.value = false;
+          resolve(data);
+        },
+        (error) => {
+          carregandoLocalizacao.value = false;
+          localizacaoObtida.value = false;
+          reject(new Error('Não foi possível obter sua localização: ' + error.message));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        }
+      );
+    });
+  };
+
+  /**
+   * 🔥 Busca localização ao abrir o modal
+   */
+  const buscarLocalizacaoParaPedido = async (): Promise<void> => {
+    try {
+      await obterLocalizacaoAutomatica();
+    } catch (error) {
+      // Apenas loga o erro, não bloqueia o fluxo
+      console.warn('⚠️ Localização não obtida:', error);
+      localizacaoObtida.value = false;
+      localizacaoData.value = null;
+    }
+  };
+
+  /**
+   * 🔥 Limpa a localização armazenada
+   */
+  const limparLocalizacao = (): void => {
+    localizacaoData.value = null;
+    localizacaoObtida.value = false;
   };
 
   // ========== ACTIONS - CARREGAMENTO DE DADOS ==========
@@ -393,7 +460,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
 
   /**
    * Endpoint: POST /cliente/pedidos
-   * Cria um novo pedido de serviço
+   * 🔥 ATUALIZADO: Cria um novo pedido com localização
    */
   const criarPedidoServico = async (data: NovoPedidoData): Promise<boolean> => {
     clearErrors();
@@ -435,6 +502,15 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
         formData.append('foto', data.foto);
       }
 
+      // 🔥 ENVIAR LOCALIZAÇÃO SE OBTIDA
+      if (localizacaoData.value) {
+        formData.append('latitude', String(localizacaoData.value.lat));
+        formData.append('longitude', String(localizacaoData.value.lng));
+       
+      } else {
+        console.warn('⚠️ Localização não disponível para envio');
+      }
+
       const response = await api.post<{ success: boolean; message?: string; data?: PedidoData }>(
         '/cliente/pedidos',
         formData,
@@ -446,6 +522,8 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
       if (response.data.success) {
         // Recarrega dados atualizados
         await Promise.all([fetchDashboard(), fetchMeusPedidos()]);
+        // 🔥 Limpa a localização após criar o pedido
+        limparLocalizacao();
         return true;
       }
 
@@ -577,6 +655,11 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     carregandoPromocoes.value = false;
     carregandoCriarPedido.value = false;
 
+    // 🔥 Resetar localização
+    carregandoLocalizacao.value = false;
+    localizacaoObtida.value = false;
+    localizacaoData.value = null;
+
     categorias.value = [];
     prestadoresDestaque.value = [];
     prestadoresTop.value = [];
@@ -605,6 +688,9 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     carregandoTop,
     carregandoPromocoes,
     carregandoCriarPedido,
+    carregandoLocalizacao,      // 🔥 NOVO
+    localizacaoObtida,          // 🔥 NOVO
+    localizacaoData,            // 🔥 NOVO
     categorias,
     prestadoresDestaque,
     prestadoresTop,
@@ -641,6 +727,11 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     clearErrors,
     clearError,
 
+    // 🔥 Actions - Localização
+    obterLocalizacaoAutomatica,   // 🔥 NOVO
+    buscarLocalizacaoParaPedido,  // 🔥 NOVO
+    limparLocalizacao,            // 🔥 NOVO
+
     // Actions - API
     fetchCategorias,
     fetchPrestadoresDestaque,
@@ -649,7 +740,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     fetchDashboard,
     fetchMeusPedidos,
     fetchNotificacoes,
-    criarPedidoServico,
+    criarPedidoServico,           // 🔥 ATUALIZADO
     validarCupom,
 
     // Actions - Modal e Upload

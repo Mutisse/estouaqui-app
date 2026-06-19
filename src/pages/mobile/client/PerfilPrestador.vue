@@ -42,8 +42,15 @@
         <!-- Header com imagem de capa -->
         <div class="profile-header">
           <button class="back-btn" @click="() => void router.back()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M15 18l-6-6 6-6"/>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
           <div class="cover-image" :style="{ backgroundImage: `url(${coverImage})` }">
@@ -60,16 +67,29 @@
             </div>
             <div class="profile-name-wrapper">
               <h2 class="profile-name">{{ prestadorStore.prestador.nome }}</h2>
-              <svg v-if="prestadorStore.prestador.verificado" width="20" height="20" viewBox="0 0 24 24" fill="#5B4BF5" class="verified-icon">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              <svg
+                v-if="prestadorStore.prestador.verificado"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="#5B4BF5"
+                class="verified-icon"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                />
               </svg>
             </div>
             <div class="profile-rating">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#F59E0B" stroke="none">
-                <polygon points="12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.63 12 2 9.19 8.63 2 9.24 7.46 13.97 5.82 21 12 17.27"/>
+                <polygon
+                  points="12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.63 12 2 9.19 8.63 2 9.24 7.46 13.97 5.82 21 12 17.27"
+                />
               </svg>
               <span class="rating-value">{{ prestadorStore.mediaFormatada }}</span>
-              <span class="rating-count">({{ prestadorStore.prestador.total_avaliacoes || 0 }} avaliações)</span>
+              <span class="rating-count"
+                >({{ prestadorStore.prestador.total_avaliacoes || 0 }} avaliações)</span
+              >
             </div>
           </div>
         </div>
@@ -82,8 +102,17 @@
             :disabled="prestadorStore.favoritoLoading"
             @click="() => void toggleFavorito()"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" :fill="prestadorStore.isFavorito ? '#EF4444' : 'none'" stroke="currentColor" stroke-width="2">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              :fill="prestadorStore.isFavorito ? '#EF4444' : 'none'"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+              />
             </svg>
             <span>{{ prestadorStore.isFavorito ? 'Favorito' : 'Adicionar aos favoritos' }}</span>
           </button>
@@ -92,31 +121,67 @@
         <!-- Informações rápidas -->
         <div class="info-cards">
           <div class="info-card">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
-              <path d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#5B4BF5"
+              stroke-width="2"
+            >
+              <path
+                d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"
+              />
             </svg>
             <div class="info-value">{{ prestadorStore.prestador.profissao || 'Profissional' }}</div>
             <div class="info-label">profissão</div>
           </div>
           <div class="info-card">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-              <polyline points="22 4 12 14.01 9 11.01"/>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#5B4BF5"
+              stroke-width="2"
+            >
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
-            <div class="info-value" :style="{ color: prestadorStore.statusCor }">{{ prestadorStore.statusFormatado }}</div>
+            <div class="info-value" :style="{ color: prestadorStore.statusCor }">
+              {{ prestadorStore.statusFormatado }}
+            </div>
             <div class="info-label">status</div>
           </div>
           <div class="info-card">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#5B4BF5"
+              stroke-width="2"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
-            <div class="info-value">{{ prestadorStore.prestador.verificado ? 'Verificado' : 'Não verificado' }}</div>
+            <div class="info-value">
+              {{ prestadorStore.prestador.verificado ? 'Verificado' : 'Não verificado' }}
+            </div>
             <div class="info-label">verificação</div>
           </div>
           <div class="info-card">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#5B4BF5"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path
+                d="M12 2v4M12 22v-4M4 12H2M6 12H4M20 12h-2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
+              />
             </svg>
             <div class="info-value">{{ prestadorStore.prestador.raio || 10 }} km</div>
             <div class="info-label">raio de ação</div>
@@ -133,9 +198,23 @@
         <div class="section">
           <h3 class="section-title">Especialidades</h3>
           <div class="categorias-list">
-            <div v-for="categoria in prestadorStore.prestador.categorias" :key="categoria.id" class="categoria-chip" :style="prestadorStore.getChipStyle(categoria.cor)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
+            <div
+              v-for="categoria in prestadorStore.prestador.categorias"
+              :key="categoria.id"
+              class="categoria-chip"
+              :style="prestadorStore.getChipStyle(categoria.cor)"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"
+                />
               </svg>
               {{ categoria.nome }}
             </div>
@@ -149,10 +228,23 @@
         <div v-if="prestadorStore.servicosOrdenados.length" class="section">
           <h3 class="section-title">Serviços oferecidos</h3>
           <div class="servicos-list">
-            <div v-for="servico in prestadorStore.servicosOrdenados" :key="servico.id" class="servico-item">
+            <div
+              v-for="servico in prestadorStore.servicosOrdenados"
+              :key="servico.id"
+              class="servico-item"
+            >
               <div class="servico-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
-                  <path d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#5B4BF5"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"
+                  />
                 </svg>
               </div>
               <div class="servico-info">
@@ -164,16 +256,28 @@
           </div>
         </div>
 
-        <!-- Portfólio - CORRIGIDO -->
+        <!-- Portfólio -->
         <div v-if="portfolioItems.length" class="section">
           <h3 class="section-title">Portfólio</h3>
           <div class="portfolio-grid">
-            <div v-for="(item, idx) in portfolioItems.slice(0, 6)" :key="idx" class="portfolio-item" @click="() => void verImagem(item.url)">
+            <div
+              v-for="(item, idx) in portfolioItems.slice(0, 6)"
+              :key="idx"
+              class="portfolio-item"
+              @click="() => void verImagem(item.url)"
+            >
               <img :src="item.url" :alt="item.titulo || `Portfólio ${idx + 1}`" />
               <div class="portfolio-overlay">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  stroke-width="2"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
                 </svg>
               </div>
               <div v-if="item.titulo" class="portfolio-title">{{ item.titulo }}</div>
@@ -181,20 +285,186 @@
           </div>
         </div>
 
+        <!-- 🔥 BOTÃO SOLICITAR SERVIÇO 🔥 -->
+        <div class="section pedido-section">
+          <button class="btn-solicitar-servico" @click="toggleFormulario">
+            <div class="btn-content">
+              <span class="btn-icon">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </span>
+              <span class="btn-text">Solicitar Serviço</span>
+              <span class="btn-arrow" :class="{ expanded: formularioAberto }">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </span>
+            </div>
+          </button>
+
+          <!-- 🔥 FORMULÁRIO EXPANSÍVEL 🔥 -->
+          <transition name="slide-expand">
+            <div v-if="formularioAberto" class="pedido-form-container">
+              <div class="pedido-form">
+                <div class="form-header">
+                  <h4>Enviar Solicitação</h4>
+                  <p class="form-subtitle">
+                    Preencha os dados para solicitar um serviço a
+                    <strong>{{ prestadorStore.prestador.nome }}</strong>
+                  </p>
+                </div>
+
+                <!-- Seleção de Serviço -->
+                <div class="form-group">
+                  <label class="form-label">Serviço desejado</label>
+                  <select v-model="pedidoForm.servico_id" class="form-select">
+                    <option :value="null">Selecione um serviço (opcional)</option>
+                    <option
+                      v-for="servico in prestadorStore.servicosOrdenados"
+                      :key="servico.id"
+                      :value="servico.id"
+                    >
+                      {{ servico.nome }} - {{ prestadorStore.formatarPreco(servico.preco) }}
+                    </option>
+                  </select>
+                </div>
+
+                <!-- 🔥 CAMPO CATEGORIA -->
+                <div class="form-group" v-if="!pedidoForm.servico_id">
+                  <label class="form-label">Categoria <span class="required">*</span></label>
+                  <select v-model="pedidoForm.categoria_id" class="form-select">
+                    <option :value="null">Selecione uma categoria</option>
+                    <option
+                      v-for="categoria in prestadorStore.prestador.categorias"
+                      :key="categoria.id"
+                      :value="categoria.id"
+                    >
+                      {{ categoria.nome }}
+                    </option>
+                  </select>
+                  <div class="form-hint" v-if="prestadorStore.prestador.categorias.length === 0">
+                    <span class="warning">⚠️ Prestador não possui categorias definidas</span>
+                  </div>
+                </div>
+
+                <!-- Descrição -->
+                <div class="form-group">
+                  <label class="form-label"
+                    >Descrição do serviço <span class="required">*</span></label
+                  >
+                  <textarea
+                    v-model="pedidoForm.descricao"
+                    class="form-textarea"
+                    placeholder="Descreva detalhadamente o que precisa ser feito..."
+                    rows="3"
+                    maxlength="500"
+                  ></textarea>
+                  <div class="char-counter">{{ pedidoForm.descricao.length }}/500</div>
+                </div>
+
+                <!-- Data e Hora -->
+                <div class="form-row">
+                  <div class="form-group half">
+                    <label class="form-label">Data <span class="required">*</span></label>
+                    <input
+                      v-model="pedidoForm.data"
+                      type="date"
+                      class="form-input"
+                      :min="dataMinima"
+                    />
+                  </div>
+                  <div class="form-group half">
+                    <label class="form-label">Hora <span class="required">*</span></label>
+                    <input v-model="pedidoForm.hora" type="time" class="form-input" step="1800" />
+                  </div>
+                </div>
+
+                <!-- Endereço -->
+                <div class="form-group">
+                  <label class="form-label">Endereço <span class="required">*</span></label>
+                  <input
+                    v-model="pedidoForm.endereco"
+                    type="text"
+                    class="form-input"
+                    placeholder="Digite o endereço onde o serviço será realizado"
+                  />
+                </div>
+
+                <!-- Informação de campos obrigatórios -->
+                <div class="form-hint"><span class="required">*</span> Campos obrigatórios</div>
+
+                <!-- Botão Enviar -->
+                <button
+                  class="btn-submit"
+                  :disabled="enviandoPedido || !formValido"
+                  @click="() => void enviarPedido()"
+                >
+                  <svg
+                    v-if="!enviandoPedido"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                  </svg>
+                  <q-spinner v-else size="20px" color="white" />
+                  <span>{{ enviandoPedido ? 'Enviando...' : 'Enviar Solicitação' }}</span>
+                </button>
+              </div>
+            </div>
+          </transition>
+        </div>
+
         <!-- Contato -->
         <div class="section">
           <h3 class="section-title">Contato</h3>
           <div class="contato-list">
             <div v-if="prestadorStore.prestador.telefone" class="contato-item" @click="ligar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#5B4BF5"
+                stroke-width="2"
+              >
+                <path
+                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+                />
               </svg>
               <span>{{ prestadorStore.prestador.telefone }}</span>
             </div>
             <div v-if="prestadorStore.prestador.email" class="contato-item" @click="enviarEmail">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B4BF5" stroke-width="2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#5B4BF5"
+                stroke-width="2"
+              >
+                <path
+                  d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                />
+                <polyline points="22,6 12,13 2,6" />
               </svg>
               <span>{{ prestadorStore.prestador.email }}</span>
             </div>
@@ -205,33 +475,74 @@
         <div v-if="prestadorStore.ultimasAvaliacoes.length" class="section">
           <h3 class="section-title">Últimas avaliações</h3>
           <div class="avaliacoes-list">
-            <div v-for="avaliacao in prestadorStore.ultimasAvaliacoes" :key="avaliacao.id" class="avaliacao-item">
+            <div
+              v-for="avaliacao in prestadorStore.ultimasAvaliacoes"
+              :key="avaliacao.id"
+              class="avaliacao-item"
+            >
               <div class="avaliacao-header">
-                <div class="avaliacao-avatar" :style="prestadorStore.getAvatarStyle(avaliacao.cliente?.nome || '')">
+                <div
+                  class="avaliacao-avatar"
+                  :style="prestadorStore.getAvatarStyle(avaliacao.cliente?.nome || '')"
+                >
                   {{ prestadorStore.getInitials(avaliacao.cliente?.nome || 'C') }}
                 </div>
                 <div class="avaliacao-info">
                   <div class="avaliacao-nome">{{ avaliacao.cliente?.nome || 'Cliente' }}</div>
                   <div class="avaliacao-stars">
                     <template v-for="star in 5" :key="star">
-                      <svg v-if="star <= avaliacao.nota" width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B" stroke="none">
-                        <polygon points="12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.63 12 2 9.19 8.63 2 9.24 7.46 13.97 5.82 21 12 17.27"/>
+                      <svg
+                        v-if="star <= avaliacao.nota"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="#F59E0B"
+                        stroke="none"
+                      >
+                        <polygon
+                          points="12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.63 12 2 9.19 8.63 2 9.24 7.46 13.97 5.82 21 12 17.27"
+                        />
                       </svg>
-                      <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="2">
-                        <polygon points="12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.63 12 2 9.19 8.63 2 9.24 7.46 13.97 5.82 21 12 17.27"/>
+                      <svg
+                        v-else
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#D1D5DB"
+                        stroke-width="2"
+                      >
+                        <polygon
+                          points="12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.63 12 2 9.19 8.63 2 9.24 7.46 13.97 5.82 21 12 17.27"
+                        />
                       </svg>
                     </template>
                   </div>
                 </div>
-                <div class="avaliacao-data">{{ prestadorStore.formatarData(avaliacao.created_at) }}</div>
+                <div class="avaliacao-data">
+                  {{ prestadorStore.formatarData(avaliacao.created_at) }}
+                </div>
               </div>
-              <p v-if="avaliacao.comentario" class="avaliacao-comentario">{{ avaliacao.comentario }}</p>
+              <p v-if="avaliacao.comentario" class="avaliacao-comentario">
+                {{ avaliacao.comentario }}
+              </p>
             </div>
           </div>
-          <button v-if="prestadorStore.prestador.total_avaliacoes > 3" class="view-all-btn" @click="() => void verTodasAvaliacoes()">
+          <button
+            v-if="prestadorStore.prestador.total_avaliacoes > 3"
+            class="view-all-btn"
+            @click="() => void verTodasAvaliacoes()"
+          >
             Ver todas as avaliações
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </button>
         </div>
@@ -241,10 +552,17 @@
 
       <!-- Erro -->
       <div v-else class="error-state">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <circle cx="12" cy="16" r="1" fill="#EF4444" stroke="none"/>
+        <svg
+          width="64"
+          height="64"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#EF4444"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <circle cx="12" cy="16" r="1" fill="#EF4444" stroke="none" />
         </svg>
         <h3>{{ prestadorStore.erro || 'Prestador não encontrado' }}</h3>
         <button class="back-action" @click="() => void router.back()">Voltar</button>
@@ -254,14 +572,41 @@
     <!-- Botão flutuante do chat -->
     <button v-if="prestadorStore.prestador" class="chat-fab" @click="() => void abrirChat()">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+        <path
+          d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
+        />
       </svg>
     </button>
+
+    <!-- ===================== -->
+    <!-- 🔥 DIALOG DE IMAGEM 🔥 -->
+    <!-- ===================== -->
+    <q-dialog v-model="dialogImageVisible">
+      <q-card style="max-width: 90vw; max-height: 90vh; background: transparent; box-shadow: none">
+        <q-card-section class="q-pa-none">
+          <q-img
+            :src="dialogImageSrc"
+            style="max-width: 90vw; max-height: 80vh; border-radius: 12px"
+            fit="contain"
+          />
+          <q-btn
+            flat
+            round
+            dense
+            icon="close"
+            class="absolute-top-right"
+            color="white"
+            style="background: rgba(0, 0, 0, 0.5); margin: 8px; z-index: 10"
+            v-close-popup
+          />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { usePrestadorStore, type PortfolioItem } from 'src/stores/client/cliente-prestador-store';
@@ -275,13 +620,85 @@ const $q = useQuasar();
 const prestadorStore = usePrestadorStore();
 
 const prestadorId = computed(() => Number(route.params.id));
-const coverImage = 'https://images.unsplash.com/photo-1577412647305-991150c7d163?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
 
-// ✅ Computed para normalizar o portfólio (garantir que tem url)
+// ============================================================
+// 🔥 IMAGEM DE CAPA - USANDO O BANNER 1
+// ============================================================
+const coverImage = '/baner/baner1.png';
+
+// ============================================================
+// DIALOG DE IMAGEM
+// ============================================================
+const dialogImageVisible = ref(false);
+const dialogImageSrc = ref('');
+
+// ============================================================
+// FORMULÁRIO DE PEDIDO
+// ============================================================
+const formularioAberto = ref(false);
+const enviandoPedido = ref(false);
+
+const pedidoForm = ref({
+  servico_id: null as number | null,
+  categoria_id: null as number | null,
+  descricao: '',
+  data: '',
+  hora: '',
+  endereco: '',
+});
+
+// Data mínima (hoje)
+const dataMinima = computed(() => {
+  const hoje = new Date();
+  return hoje.toISOString().split('T')[0];
+});
+
+// Validação do formulário
+const formValido = computed(() => {
+  const temCategoria =
+    pedidoForm.value.servico_id !== null || pedidoForm.value.categoria_id !== null;
+
+  return (
+    temCategoria &&
+    pedidoForm.value.descricao.trim().length >= 10 &&
+    pedidoForm.value.data !== '' &&
+    pedidoForm.value.hora !== '' &&
+    pedidoForm.value.endereco.trim().length >= 5
+  );
+});
+
+// ============================================================
+// COMPUTEDS
+// ============================================================
+
 const portfolioItems = computed(() => {
   if (!prestadorStore.prestador?.portfolio) return [];
   return prestadorStore.prestador.portfolio.filter((item): item is PortfolioItem => !!item.url);
 });
+
+// ============================================================
+// FUNÇÕES
+// ============================================================
+
+const verImagem = (img: string) => {
+  dialogImageSrc.value = img;
+  dialogImageVisible.value = true;
+};
+
+const toggleFormulario = () => {
+  formularioAberto.value = !formularioAberto.value;
+};
+
+const resetarFormulario = () => {
+  pedidoForm.value = {
+    servico_id: null,
+    categoria_id: null,
+    descricao: '',
+    data: '',
+    hora: '',
+    endereco: '',
+  };
+};
 
 const toggleFavorito = async () => {
   if (!prestadorStore.prestador) return;
@@ -293,13 +710,13 @@ const toggleFavorito = async () => {
       type: 'positive',
       message: prestadorStore.isFavorito ? 'Adicionado aos favoritos' : 'Removido dos favoritos',
       position: 'top',
-      timeout: 2000
+      timeout: 2000,
     });
   } else {
     $q.notify({
       type: 'negative',
       message: 'Erro ao alterar favorito',
-      position: 'top'
+      position: 'top',
     });
   }
 };
@@ -320,16 +737,103 @@ const abrirChat = () => {
   void router.push(`/mobile/chat/${prestadorId.value}`);
 };
 
-const verImagem = (img: string) => {
-  $q.dialog({
-    component: 'q-img',
-    componentProps: { src: img, style: 'max-width: 90vw; max-height: 90vh;' },
-  });
-};
-
 const verTodasAvaliacoes = () => {
   void router.push(`/mobile/prestador/${prestadorId.value}/avaliacoes`);
 };
+
+// ============================================================
+// ENVIAR PEDIDO
+// ============================================================
+
+const enviarPedido = async () => {
+  if (!formValido.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Preencha todos os campos obrigatórios',
+      position: 'top',
+    });
+    return;
+  }
+
+  enviandoPedido.value = true;
+
+  try {
+    const dadosPedido: {
+      descricao: string;
+      data: string;
+      hora: string;
+      endereco: string;
+      servico_id?: number;
+      categoria_id?: number;
+    } = {
+      descricao: pedidoForm.value.descricao,
+      data: pedidoForm.value.data,
+      hora: pedidoForm.value.hora,
+      endereco: pedidoForm.value.endereco,
+    };
+
+    if (pedidoForm.value.servico_id !== null) {
+      dadosPedido.servico_id = pedidoForm.value.servico_id;
+      const categoriaId =
+        pedidoForm.value.categoria_id || prestadorStore.prestador?.categorias?.[0]?.id;
+      if (categoriaId) {
+        dadosPedido.categoria_id = categoriaId;
+      }
+    } else if (pedidoForm.value.categoria_id !== null) {
+      dadosPedido.categoria_id = pedidoForm.value.categoria_id;
+    } else {
+      const primeiraCategoria = prestadorStore.prestador?.categorias?.[0]?.id;
+      if (primeiraCategoria) {
+        dadosPedido.categoria_id = primeiraCategoria;
+      } else {
+        $q.notify({
+          type: 'warning',
+          message: 'Prestador não possui categorias definidas',
+          position: 'top',
+        });
+        enviandoPedido.value = false;
+        return;
+      }
+    }
+
+    const success = await prestadorStore.criarPedido(prestadorId.value, dadosPedido);
+
+    if (success) {
+      $q.notify({
+        type: 'positive',
+        message: '✅ Pedido enviado com sucesso! O prestador será notificado.',
+        position: 'top',
+        timeout: 3000,
+      });
+
+      resetarFormulario();
+      formularioAberto.value = false;
+
+      setTimeout(() => {
+        void router.push('/mobile/meus-pedidos');
+      }, 1500);
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'Erro ao enviar pedido. Tente novamente.',
+        position: 'top',
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao enviar pedido:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao enviar pedido. Tente novamente.',
+      position: 'top',
+    });
+  } finally {
+    enviandoPedido.value = false;
+  }
+};
+
+// ============================================================
+// CARREGAR DADOS
+// ============================================================
 
 const carregarDados = async () => {
   try {
@@ -340,7 +844,7 @@ const carregarDados = async () => {
     $q.notify({
       type: 'negative',
       message: 'Erro ao carregar perfil do prestador',
-      position: 'top'
+      position: 'top',
     });
   }
 };
@@ -358,26 +862,28 @@ onUnmounted(() => {
 // =====================
 // VARIABLES
 // =====================
-$accent: #5B4BF5;
+$accent: #5b4bf5;
 $accent-light: rgba(91, 75, 245, 0.1);
-$success: #10B981;
-$warning: #F59E0B;
-$danger: #EF4444;
-$dark: #0A0A0F;
-$gray: #6B7280;
-$gray-light: #F3F4F6;
-$border: #E5E7EB;
-$white: #FFFFFF;
+$success: #10b981;
+$warning: #f59e0b;
+$danger: #ef4444;
+$dark: #0a0a0f;
+$gray: #6b7280;
+$gray-light: #f3f4f6;
+$border: #e5e7eb;
+$white: #ffffff;
 $radius: 16px;
 $radius-sm: 12px;
 $radius-xs: 8px;
 
-// =====================
-// SKELETON
-// =====================
+// ===================== SKELETON =====================
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .skeleton-loading {
@@ -385,71 +891,141 @@ $radius-xs: 8px;
   min-height: 100vh;
 }
 
-.skeleton-header { position: relative; min-height: 250px; }
+.skeleton-header {
+  position: relative;
+  min-height: 250px;
+}
 .skeleton-back-btn {
-  position: absolute; top: 10px; left: 10px; width: 40px; height: 40px; border-radius: 50%;
-  background: rgba(0,0,0,0.3); z-index: 10;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 10;
 }
 .skeleton-cover {
   height: 150px;
   background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
-  background-size: 200% 100%; animation: shimmer 1.5s infinite;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 .skeleton-avatar {
-  position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
-  width: 100px; height: 100px; border-radius: 50%;
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
   background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
-  background-size: 200% 100%; animation: shimmer 1.5s infinite;
-  border: 4px solid white; z-index: 5;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border: 4px solid white;
+  z-index: 5;
 }
 .skeleton-name {
-  position: absolute; top: 210px; left: 50%; transform: translateX(-50%);
-  width: 150px; height: 24px; border-radius: 12px;
+  position: absolute;
+  top: 210px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 24px;
+  border-radius: 12px;
   background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
-  background-size: 200% 100%; animation: shimmer 1.5s infinite;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 .skeleton-rating {
-  position: absolute; top: 245px; left: 50%; transform: translateX(-50%);
-  width: 120px; height: 20px; border-radius: 10px;
+  position: absolute;
+  top: 245px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 20px;
+  border-radius: 10px;
   background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
-  background-size: 200% 100%; animation: shimmer 1.5s infinite;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 .skeleton-favorite-btn {
-  margin: 16px auto; width: 180px; height: 40px; border-radius: 30px;
+  margin: 16px auto;
+  width: 180px;
+  height: 40px;
+  border-radius: 30px;
   background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
-  background-size: 200% 100%; animation: shimmer 1.5s infinite;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 .skeleton-info-cards {
-  display: flex; gap: 12px; padding: 0 16px; margin-bottom: 16px;
+  display: flex;
+  gap: 12px;
+  padding: 0 16px;
+  margin-bottom: 16px;
 }
 .skeleton-info-card {
-  flex: 1; height: 80px; background: white; border-radius: $radius-sm;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  flex: 1;
+  height: 80px;
+  background: white;
+  border-radius: $radius-sm;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 .skeleton-section {
-  background: white; margin: 12px; border-radius: $radius-sm; padding: 16px;
+  background: white;
+  margin: 12px;
+  border-radius: $radius-sm;
+  padding: 16px;
 }
 .skeleton-line {
-  height: 14px; border-radius: 7px; margin: 8px 0;
+  height: 14px;
+  border-radius: 7px;
+  margin: 8px 0;
   background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%; animation: shimmer 1.5s infinite;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
-.skeleton-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.skeleton-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
 .skeleton-chip {
-  width: 100px; height: 32px; border-radius: 16px;
+  width: 100px;
+  height: 32px;
+  border-radius: 16px;
   background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%; animation: shimmer 1.5s infinite;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 .skeleton-servico {
-  display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid $border;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid $border;
 }
 .skeleton-servico-icon {
-  width: 40px; height: 40px; border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%; animation: shimmer 1.5s infinite;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
-.skeleton-servico-info { flex: 1; }
-.w-40 { width: 40%; } .w-60 { width: 60%; } .w-80 { width: 80%; }
+.skeleton-servico-info {
+  flex: 1;
+}
+.w-40 {
+  width: 40%;
+}
+.w-60 {
+  width: 60%;
+}
+.w-80 {
+  width: 80%;
+}
 
 // =====================
 // LAYOUT PRINCIPAL
@@ -469,47 +1045,94 @@ $radius-xs: 8px;
   min-height: 250px;
 
   .back-btn {
-    position: absolute; top: 10px; left: 10px; z-index: 10;
-    width: 40px; height: 40px; border-radius: 50%;
-    background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
-    border: none; cursor: pointer; color: white;
-    display: flex; align-items: center; justify-content: center;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    border: none;
+    cursor: pointer;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s;
 
-    &:hover { background: rgba(0,0,0,0.6); transform: scale(1.05); }
+    &:hover {
+      background: rgba(0, 0, 0, 0.6);
+      transform: scale(1.05);
+    }
   }
 
   .cover-image {
-    height: 150px; background-size: cover; background-position: center; position: relative;
+    height: 150px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
     .cover-overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.6));
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.6));
     }
   }
 
   .profile-info {
-    position: relative; margin-top: -50px; padding: 0 20px 20px; text-align: center;
+    position: relative;
+    margin-top: -50px;
+    padding: 0 20px 20px;
+    text-align: center;
   }
 
   .profile-avatar {
-    width: 100px; height: 100px; margin: 0 auto 10px;
-    img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 10px;
+    img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
   }
 
   .profile-name-wrapper {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
 
   .profile-name {
-    font-size: 1.5rem; font-weight: 700; color: $dark; margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $dark;
+    margin: 0;
   }
 
-  .verified-icon { margin-top: 4px; }
+  .verified-icon {
+    margin-top: 4px;
+  }
 
   .profile-rating {
-    display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px;
-    .rating-value { font-weight: 600; color: $dark; }
-    .rating-count { color: $gray; font-size: 0.85rem; }
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 5px;
+    .rating-value {
+      font-weight: 600;
+      color: $dark;
+    }
+    .rating-count {
+      color: $gray;
+      font-size: 0.85rem;
+    }
   }
 }
 
@@ -517,18 +1140,37 @@ $radius-xs: 8px;
 // FAVORITE BUTTON
 // =====================
 .favorite-btn-wrapper {
-  display: flex; justify-content: center; margin: 16px 0;
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
 
   .favorite-btn {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 20px; border-radius: 30px;
-    background: white; border: 1px solid $border;
-    font-size: 0.85rem; font-weight: 500; color: $gray;
-    cursor: pointer; transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    border-radius: 30px;
+    background: white;
+    border: 1px solid $border;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: $gray;
+    cursor: pointer;
+    transition: all 0.2s;
 
-    &:hover { border-color: $danger; color: $danger; }
-    &.active { background: rgba(239,68,68,0.1); border-color: $danger; color: $danger; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:hover {
+      border-color: $danger;
+      color: $danger;
+    }
+    &.active {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: $danger;
+      color: $danger;
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 }
 
@@ -536,15 +1178,35 @@ $radius-xs: 8px;
 // INFO CARDS
 // =====================
 .info-cards {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 0 16px; margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 0 16px;
+  margin-bottom: 16px;
 
   .info-card {
-    background: white; padding: 12px 8px; border-radius: $radius-sm; text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    background: white;
+    padding: 12px 8px;
+    border-radius: $radius-sm;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
-    svg { margin-bottom: 8px; }
-    .info-value { font-size: 0.8rem; font-weight: 600; color: $dark; margin: 5px 0 2px; word-break: break-word; }
-    .info-label { font-size: 0.65rem; color: $gray; text-transform: uppercase; letter-spacing: 0.5px; }
+    svg {
+      margin-bottom: 8px;
+    }
+    .info-value {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: $dark;
+      margin: 5px 0 2px;
+      word-break: break-word;
+    }
+    .info-label {
+      font-size: 0.65rem;
+      color: $gray;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
   }
 }
 
@@ -552,30 +1214,50 @@ $radius-xs: 8px;
 // SECTIONS
 // =====================
 .section {
-  background: white; margin: 12px; border-radius: $radius; padding: 20px;
+  background: white;
+  margin: 12px;
+  border-radius: $radius;
+  padding: 20px;
 
   .section-title {
-    font-size: 1rem; font-weight: 600; color: $dark; margin: 0 0 16px;
-    padding-left: 10px; border-left: 3px solid $accent;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $dark;
+    margin: 0 0 16px;
+    padding-left: 10px;
+    border-left: 3px solid $accent;
   }
 
-  .section-text { color: $gray; line-height: 1.6; margin: 0; font-size: 0.9rem; }
+  .section-text {
+    color: $gray;
+    line-height: 1.6;
+    margin: 0;
+    font-size: 0.9rem;
+  }
 }
 
 // =====================
 // CATEGORIAS
 // =====================
 .categorias-list {
-  display: flex; flex-wrap: wrap; gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 
   .categoria-chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 14px; border-radius: 30px;
-    font-size: 0.8rem; font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 500;
   }
 
   .empty-chip {
-    color: $gray; font-size: 0.85rem; padding: 8px 0;
+    color: $gray;
+    font-size: 0.85rem;
+    padding: 8px 0;
   }
 }
 
@@ -584,18 +1266,43 @@ $radius-xs: 8px;
 // =====================
 .servicos-list {
   .servico-item {
-    display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid $border;
-    &:last-child { border-bottom: none; }
-
-    .servico-icon {
-      width: 44px; height: 44px; background: $accent-light; border-radius: $radius-xs;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid $border;
+    &:last-child {
+      border-bottom: none;
     }
 
-    .servico-info { flex: 1; }
-    .servico-nome { font-weight: 500; color: $dark; margin-bottom: 2px; }
-    .servico-preco { font-size: 0.75rem; color: $accent; font-weight: 600; }
-    .servico-duracao { font-size: 0.75rem; color: $gray; }
+    .servico-icon {
+      width: 44px;
+      height: 44px;
+      background: $accent-light;
+      border-radius: $radius-xs;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .servico-info {
+      flex: 1;
+    }
+    .servico-nome {
+      font-weight: 500;
+      color: $dark;
+      margin-bottom: 2px;
+    }
+    .servico-preco {
+      font-size: 0.75rem;
+      color: $accent;
+      font-weight: 600;
+    }
+    .servico-duracao {
+      font-size: 0.75rem;
+      color: $gray;
+    }
   }
 }
 
@@ -603,29 +1310,305 @@ $radius-xs: 8px;
 // PORTFÓLIO
 // =====================
 .portfolio-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 
   .portfolio-item {
-    position: relative; cursor: pointer; border-radius: $radius-xs; overflow: hidden; aspect-ratio: 1;
+    position: relative;
+    cursor: pointer;
+    border-radius: $radius-xs;
+    overflow: hidden;
+    aspect-ratio: 1;
 
-    img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+    }
 
     .portfolio-overlay {
-      position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.3s;
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s;
     }
 
     .portfolio-title {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-      padding: 8px; font-size: 0.7rem; color: white; text-align: center;
-      opacity: 0; transition: opacity 0.3s;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+      padding: 8px;
+      font-size: 0.7rem;
+      color: white;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.3s;
     }
 
     &:hover {
-      img { transform: scale(1.05); }
-      .portfolio-overlay { opacity: 1; }
-      .portfolio-title { opacity: 1; }
+      img {
+        transform: scale(1.05);
+      }
+      .portfolio-overlay {
+        opacity: 1;
+      }
+      .portfolio-title {
+        opacity: 1;
+      }
+    }
+  }
+}
+
+// =====================
+// BOTÃO SOLICITAR SERVIÇO
+// =====================
+.pedido-section {
+  background: white;
+  border-radius: $radius;
+  margin: 12px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid $border;
+  transition: all 0.3s;
+
+  &:focus-within {
+    border-color: $accent;
+    box-shadow: 0 0 0 3px rgba(91, 75, 245, 0.1);
+  }
+}
+
+.btn-solicitar-servico {
+  width: 100%;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, $accent, #7c6bf7);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+
+  &:hover {
+    background: linear-gradient(135deg, darken($accent, 5%), darken(#7c6bf7, 5%));
+  }
+
+  .btn-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+    width: 100%;
+  }
+
+  .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+
+    svg {
+      stroke: white;
+    }
+  }
+
+  .btn-text {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: left;
+    margin-left: 12px;
+  }
+
+  .btn-arrow {
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      stroke: white;
+    }
+
+    &.expanded {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+// =====================
+// FORMULÁRIO EXPANSÍVEL
+// =====================
+.pedido-form-container {
+  padding: 20px;
+  background: #fafafa;
+  border-top: 1px solid $border;
+}
+
+.slide-expand-enter-active,
+.slide-expand-leave-active {
+  transition: all 0.3s ease;
+  max-height: 1000px;
+  overflow: hidden;
+}
+
+.slide-expand-enter-from,
+.slide-expand-leave-to {
+  max-height: 0;
+  opacity: 0;
+  padding: 0 20px;
+}
+
+.pedido-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .form-header {
+    margin-bottom: 4px;
+
+    h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: $dark;
+      margin: 0 0 4px 0;
+    }
+
+    .form-subtitle {
+      font-size: 0.85rem;
+      color: $gray;
+      margin: 0;
+
+      strong {
+        color: $accent;
+      }
+    }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &.half {
+      flex: 1;
+    }
+  }
+
+  .form-row {
+    display: flex;
+    gap: 12px;
+
+    @media (max-width: 480px) {
+      flex-direction: column;
+    }
+  }
+
+  .form-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: $dark;
+
+    .required {
+      color: $danger;
+      margin-left: 2px;
+    }
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid $border;
+    border-radius: $radius-xs;
+    font-size: 0.85rem;
+    font-family: inherit;
+    background: $white;
+    transition: all 0.2s;
+    color: $dark;
+
+    &:focus {
+      outline: none;
+      border-color: $accent;
+      box-shadow: 0 0 0 3px rgba(91, 75, 245, 0.1);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .char-counter {
+    text-align: right;
+    font-size: 0.7rem;
+    color: $gray;
+  }
+
+  .form-hint {
+    font-size: 0.7rem;
+    color: $gray;
+    margin-top: -8px;
+
+    .required {
+      color: $danger;
+    }
+
+    .warning {
+      color: $warning;
+    }
+  }
+
+  .btn-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px;
+    background: $accent;
+    color: white;
+    border: none;
+    border-radius: $radius-sm;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 4px;
+
+    svg {
+      stroke: white;
+    }
+
+    &:hover:not(:disabled) {
+      background: darken($accent, 8%);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(91, 75, 245, 0.3);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
     }
   }
 }
@@ -635,13 +1618,27 @@ $radius-xs: 8px;
 // =====================
 .contato-list {
   .contato-item {
-    display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid $border;
-    cursor: pointer; transition: all 0.2s;
-    &:last-child { border-bottom: none; }
-    &:hover { transform: translateX(4px); }
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid $border;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover {
+      transform: translateX(4px);
+    }
 
-    span { color: $dark; font-size: 0.9rem; }
-    svg { flex-shrink: 0; }
+    span {
+      color: $dark;
+      font-size: 0.9rem;
+    }
+    svg {
+      flex-shrink: 0;
+    }
   }
 }
 
@@ -649,66 +1646,155 @@ $radius-xs: 8px;
 // AVALIAÇÕES
 // =====================
 .avaliacoes-list {
-  .avaliacao-item { padding: 14px 0; border-bottom: 1px solid $border; &:last-child { border-bottom: none; } }
+  .avaliacao-item {
+    padding: 14px 0;
+    border-bottom: 1px solid $border;
+    &:last-child {
+      border-bottom: none;
+    }
+  }
 
   .avaliacao-header {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
 
     .avaliacao-avatar {
-      width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: white; flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
     }
 
-    .avaliacao-info { flex: 1; }
-    .avaliacao-nome { font-weight: 500; color: $dark; font-size: 0.85rem; margin-bottom: 4px; }
-    .avaliacao-stars { display: flex; gap: 2px; }
-    .avaliacao-data { font-size: 0.7rem; color: $gray; }
+    .avaliacao-info {
+      flex: 1;
+    }
+    .avaliacao-nome {
+      font-weight: 500;
+      color: $dark;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+    .avaliacao-stars {
+      display: flex;
+      gap: 2px;
+    }
+    .avaliacao-data {
+      font-size: 0.7rem;
+      color: $gray;
+    }
   }
 
   .avaliacao-comentario {
-    margin: 0; font-size: 0.85rem; color: $gray; line-height: 1.5; padding-left: 52px;
+    margin: 0;
+    font-size: 0.85rem;
+    color: $gray;
+    line-height: 1.5;
+    padding-left: 52px;
   }
 }
 
 .view-all-btn {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  width: 100%; margin-top: 16px; padding: 10px;
-  background: none; border: 1px solid $border; border-radius: $radius-sm;
-  font-size: 0.8rem; font-weight: 500; color: $accent; cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px;
+  background: none;
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: $accent;
+  cursor: pointer;
   transition: all 0.2s;
 
-  &:hover { background: $accent-light; border-color: $accent; }
+  &:hover {
+    background: $accent-light;
+    border-color: $accent;
+  }
 }
 
 // =====================
 // BOTTOM SPACER & FAB
 // =====================
-.bottom-spacer { height: 80px; }
+.bottom-spacer {
+  height: 80px;
+}
 
 .chat-fab {
-  position: fixed !important; bottom: 90px !important; right: 20px !important;
+  position: fixed !important;
+  bottom: 90px !important;
+  right: 20px !important;
   z-index: 9999 !important;
-  width: 56px; height: 56px; border-radius: 50%;
-  background: $accent; border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: $accent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: 0 4px 12px rgba(91, 75, 245, 0.4);
   transition: all 0.2s;
 
-  &:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(91, 75, 245, 0.5); }
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(91, 75, 245, 0.5);
+  }
 }
 
 // =====================
 // ERROR STATE
 // =====================
 .error-state {
-  text-align: center; padding: 60px 20px;
+  text-align: center;
+  padding: 60px 20px;
 
-  h3 { font-size: 1.2rem; font-weight: 600; color: $dark; margin: 16px 0 20px; }
+  h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: $dark;
+    margin: 16px 0 20px;
+  }
 
   .back-action {
-    background: $accent; color: white; border: none; padding: 10px 24px; border-radius: 30px;
-    font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;
-    &:hover { background: lighten($accent, 6%); transform: translateY(-2px); }
+    background: $accent;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover {
+      background: lighten($accent, 6%);
+      transform: translateY(-2px);
+    }
   }
+}
+
+// =====================
+// DIALOG IMAGEM
+// =====================
+:deep(.q-dialog__inner) {
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(4px);
+}
+
+:deep(.q-card) {
+  background: transparent !important;
+  box-shadow: none !important;
 }
 </style>

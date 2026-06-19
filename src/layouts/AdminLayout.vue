@@ -527,7 +527,6 @@ const sair = async (): Promise<void> => {
 const carregarPerfil = async (): Promise<void> => {
   try {
     await perfilStore.carregarPerfil();
-    console.log('Perfil carregado:', perfilStore.perfil);
   } catch (error) {
     console.error('Erro ao carregar perfil:', error);
   }

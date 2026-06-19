@@ -650,10 +650,14 @@ const onRaioChange = async (): Promise<void> => {
   atualizarMarcadores();
 };
 
+// ===================== INICIAR MAPA CORRIGIDO =====================
+
 const iniciarMapa = async (): Promise<void> => {
   store.carregandoMapa = true;
   try {
+    // 🔥 AGUARDAR O DOM SER RENDERIZADO
     await nextTick();
+
     const mapContainer = document.getElementById('map');
     if (!mapContainer) {
       console.error('Elemento do mapa não encontrado');
@@ -661,8 +665,24 @@ const iniciarMapa = async (): Promise<void> => {
       return;
     }
 
-    map = L.map('map', { zoomControl: false, minZoom: MIN_ZOOM, maxZoom: MAX_ZOOM })
-      .setView([-25.9692, 32.5732], DEFAULT_ZOOM);
+    // 🔥 VERIFICAR SE O CONTAINER ESTÁ VISÍVEL
+    if (mapContainer.offsetHeight === 0 || mapContainer.offsetWidth === 0) {
+      console.warn('Container do mapa não está visível, aguardando...');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      // Tentar novamente
+      const mapContainerRetry = document.getElementById('map');
+      if (!mapContainerRetry || mapContainerRetry.offsetHeight === 0) {
+        throw new Error('Container do mapa não está disponível');
+      }
+    }
+
+    // 🔥 INICIALIZAR MAPA APENAS SE O CONTAINER EXISTIR
+    map = L.map('map', {
+      zoomControl: false,
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
+    }).setView([-25.9692, 32.5732], DEFAULT_ZOOM);
+
     store.setMapInstance(map);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
@@ -670,15 +690,30 @@ const iniciarMapa = async (): Promise<void> => {
       maxZoom: MAX_ZOOM,
     }).addTo(map);
 
-    setTimeout(() => { if (map) map.invalidateSize(); }, 100);
+    // 🔥 FORÇAR O MAPA A CALCULAR O TAMANHO CORRETO
+    setTimeout(() => {
+      if (map) {
+        map.invalidateSize();
+      }
+    }, 200);
+
     await store.carregarDadosIniciais();
 
     if (store.localizacao) {
-      atualizarLocalizacaoUsuario(store.localizacao.lat, store.localizacao.lng, store.localizacao.accuracy);
+      atualizarLocalizacaoUsuario(
+        store.localizacao.lat,
+        store.localizacao.lng,
+        store.localizacao.accuracy
+      );
       atualizarMarcadores();
     }
   } catch (error) {
     console.error('Erro ao iniciar mapa:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao carregar o mapa',
+      position: 'top'
+    });
   } finally {
     store.carregandoMapa = false;
   }
@@ -686,10 +721,19 @@ const iniciarMapa = async (): Promise<void> => {
 
 // ===================== CICLO DE VIDA =====================
 
+// 🔥 CORRIGIDO: Dar tempo para o DOM renderizar
 onMounted(() => {
-  setTimeout(() => void iniciarMapa(), 100);
+  // Aguardar o próximo tick e mais um pequeno delay para garantir
+  setTimeout(() => {
+    void iniciarMapa();
+  }, 200);
+
   window.addEventListener('resize', () => {
-    if (map && map.getContainer()) setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+    if (map && map.getContainer()) {
+      setTimeout(() => {
+        if (map) map.invalidateSize();
+      }, 200);
+    }
   });
 });
 

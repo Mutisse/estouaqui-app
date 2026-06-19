@@ -220,43 +220,43 @@ export const useAdminSuporteStore = defineStore('adminSuporte', () => {
   const temPaginaAnterior = computed(() => paginacao.value.current_page > 1);
   const totalNaoLidas = computed(() => chatTickets.value.reduce((acc, t) => acc + (t.nao_lidas || 0), 0));
 
-  // Cores
-  const statusColors: Record<TicketStatus, string> = {
+  // Cores e labels - disponíveis via computed para uso no componente
+  const statusColors = computed(() => ({
     aberto: 'negative',
     em_andamento: 'warning',
     resolvido: 'positive',
     fechado: 'grey',
-  };
+  }));
 
-  const prioridadeColors: Record<TicketPrioridade, string> = {
+  const prioridadeColors = computed(() => ({
     baixa: 'info',
     media: 'warning',
     alta: 'orange',
     urgente: 'negative',
-  };
+  }));
 
-  const statusLabels: Record<TicketStatus, string> = {
+  const statusLabels = computed(() => ({
     aberto: 'Aberto',
     em_andamento: 'Em Andamento',
     resolvido: 'Resolvido',
     fechado: 'Fechado',
-  };
+  }));
 
-  const prioridadeLabels: Record<TicketPrioridade, string> = {
+  const prioridadeLabels = computed(() => ({
     baixa: 'Baixa',
     media: 'Média',
     alta: 'Alta',
     urgente: 'Urgente',
-  };
+  }));
 
-  const categoriaLabels: Record<string, string> = {
+  const categoriaLabels = computed(() => ({
     tecnico: 'Problema Técnico',
     duvida: 'Dúvida',
     reclamacao: 'Reclamação',
     sugestao: 'Sugestão',
     financeiro: 'Financeiro',
     outros: 'Outros',
-  };
+  }));
 
   // ===================== FUNÇÕES AUXILIARES =====================
 
@@ -322,8 +322,17 @@ export const useAdminSuporteStore = defineStore('adminSuporte', () => {
   const carregarEstatisticas = async (): Promise<void> => {
     try {
       const response = await api.get<ApiResponse<EstatisticasSuporte>>('/admin/suporte/estatisticas');
-      if (response.data?.success) {
-        estatisticas.value = response.data.data;
+      if (response.data?.success && response.data.data) {
+        estatisticas.value = {
+          total: response.data.data.total || 0,
+          abertos: response.data.data.abertos || 0,
+          em_andamento: response.data.data.em_andamento || 0,
+          resolvidos: response.data.data.resolvidos || 0,
+          fechados: response.data.data.fechados || 0,
+          urgentes: response.data.data.urgentes || 0,
+          tempo_medio_resposta: response.data.data.tempo_medio_resposta || 0,
+          tickets_por_categoria: response.data.data.tickets_por_categoria || {},
+        };
       }
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
@@ -521,7 +530,6 @@ export const useAdminSuporteStore = defineStore('adminSuporte', () => {
       const response = await api.post<ApiResponse<ChatMensagem>>(`/admin/suporte/chat/tickets/${ticketId}/enviar`, { mensagem });
       if (response.data?.success && response.data.data) {
         chatMensagens.value.push(response.data.data);
-        // ✅ Corrigido: verificar se ticketIndex é válido antes de usar
         const ticketIndex = chatTickets.value.findIndex(t => t.id === ticketId);
         if (ticketIndex !== -1 && chatTickets.value[ticketIndex]) {
           chatTickets.value[ticketIndex].ultima_mensagem = mensagem;
@@ -543,7 +551,6 @@ export const useAdminSuporteStore = defineStore('adminSuporte', () => {
 
     isPolling.value = true;
     pollingInterval = setInterval(() => {
-      // ✅ Correção: usar void para promises
       void (async () => {
         if (!chatSelecionado.value || chatSelecionado.value.id !== ticketId) return;
 
@@ -573,7 +580,6 @@ export const useAdminSuporteStore = defineStore('adminSuporte', () => {
   const marcarChatLidas = async (ticketId: number): Promise<void> => {
     try {
       await api.put(`/admin/suporte/chat/tickets/${ticketId}/marcar-lidas`);
-      // ✅ Corrigido: verificar se ticketIndex é válido antes de usar
       const ticketIndex = chatTickets.value.findIndex(t => t.id === ticketId);
       if (ticketIndex !== -1 && chatTickets.value[ticketIndex]) {
         chatTickets.value[ticketIndex].nao_lidas = 0;

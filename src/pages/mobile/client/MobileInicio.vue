@@ -53,7 +53,6 @@
       <!-- Header -->
       <div class="page-header">
         <div class="page-header__left">
-          <!-- Avatar com fallback igual ao perfil -->
           <div class="user-avatar-wrapper">
             <div
               v-if="avatarError"
@@ -97,16 +96,67 @@
         </div>
       </div>
 
-      <!-- Banner promocional -->
-      <div class="promo-banner" @click="verPromocao">
-        <div class="promo-banner__icon">
-          <q-icon name="emoji_people" size="24px" color="white" />
+      <!-- ========================================================== -->
+      <!-- 🔥 BANNER DE PROMOÇÕES COM IMAGENS -->
+      <!-- ========================================================== -->
+      <div class="banner-carousel">
+        <q-carousel
+          v-model="bannerSlide"
+          animated
+          swipeable
+          infinite
+          autoplay
+          :autoplay-interval="60000"
+          transition-next="slide-right"
+          transition-prev="slide-left"
+          class="banner-carousel__carousel"
+          height="180px"
+          arrows
+          navigation
+          navigation-position="bottom"
+          padding
+        >
+          <q-carousel-slide
+            v-for="(banner, index) in banners"
+            :key="index"
+            :name="index"
+            class="banner-carousel__slide"
+            @click="clickBanner(banner)"
+          >
+            <q-img
+              :src="banner.image"
+              class="banner-carousel__image"
+              fit="cover"
+              :alt="banner.title"
+              loading="lazy"
+            >
+              <!-- Overlay com texto -->
+              <div class="banner-carousel__overlay">
+                <div class="banner-carousel__content">
+                  <div class="banner-carousel__badge" v-if="banner.badge">
+                    {{ banner.badge }}
+                  </div>
+                  <div class="banner-carousel__title">{{ banner.title }}</div>
+                  <div class="banner-carousel__subtitle">{{ banner.subtitle }}</div>
+                  <div class="banner-carousel__cta" v-if="banner.cta">
+                    {{ banner.cta }}
+                  </div>
+                </div>
+              </div>
+            </q-img>
+          </q-carousel-slide>
+        </q-carousel>
+
+        <!-- Indicadores de slide -->
+        <div class="banner-carousel__indicators">
+          <span
+            v-for="(banner, index) in banners"
+            :key="index"
+            class="banner-carousel__dot"
+            :class="{ 'banner-carousel__dot--active': bannerSlide === index }"
+            @click="bannerSlide = index"
+          />
         </div>
-        <div class="promo-banner__body">
-          <div class="promo-banner__title">Ganhe 500 MZN</div>
-          <div class="promo-banner__sub">Indique um amigo e ganhe bónus</div>
-        </div>
-        <div class="promo-banner__cta">Saber mais</div>
       </div>
 
       <!-- Categorias populares -->
@@ -328,78 +378,188 @@
       />
     </q-page-sticky>
 
-    <!-- Modal criar pedido -->
-    <q-dialog v-model="modalCriarPedido" persistent>
+    <!-- MODAL CRIAR PEDIDO -->
+    <q-dialog v-model="modalCriarPedido" persistent @show="onModalOpen">
       <q-card class="modal-pedido">
         <div class="modal-pedido__head">
           <div class="modal-pedido__title">Novo pedido de serviço</div>
-          <div class="modal-pedido__sub">Descreva o que precisa</div>
+          <div class="modal-pedido__sub">Descreva o que precisa e quando deseja</div>
         </div>
 
-        <q-card-section class="modal-pedido__body">
-          <div class="field-label">Tipo de serviço *</div>
-          <q-select
-            v-model="novoPedido.categoria_id"
-            :options="categoriasOptions"
-            label="Selecione a categoria"
-            outlined
-            dense
-            class="field-input q-mb-md"
-            emit-value
-            map-options
-          />
+        <q-card-section class="modal-pedido__body q-pa-none">
+          <q-scroll-area class="modal-scroll-area" :style="{ height: '480px' }">
+            <div class="modal-content q-pa-md">
+              <!-- LOCALIZAÇÃO -->
+              <div v-if="carregandoLocalizacao" class="location-status location-status--loading">
+                <q-spinner size="16px" color="primary" />
+                <span>Obtendo sua localização...</span>
+              </div>
+              <div v-else-if="localizacaoObtida" class="location-status location-status--success">
+                <q-icon name="check_circle" size="16px" color="positive" />
+                <span>Localização obtida com sucesso!</span>
+              </div>
+              <div v-else-if="localizacaoErro" class="location-status location-status--error">
+                <q-icon name="error" size="16px" color="negative" />
+                <span>{{ localizacaoErro }}</span>
+                <q-btn flat dense no-caps label="Tentar novamente" @click="buscarLocalizacaoComEndereco" />
+              </div>
 
-          <div class="field-label">Descrição *</div>
-          <q-input
-            v-model="novoPedido.descricao"
-            type="textarea"
-            outlined
-            dense
-            placeholder="Ex: Preciso de um canalizador para reparar uma fuga..."
-            class="field-input q-mb-md"
-            rows="3"
-          />
-
-          <div class="field-label">Localização *</div>
-          <q-input
-            v-model="novoPedido.endereco"
-            outlined
-            dense
-            placeholder="Ex: Rua da Paz, 123, Maputo"
-            class="field-input q-mb-md"
-          >
-            <template v-slot:prepend>
-              <q-icon name="location_on" color="grey-5" />
-            </template>
-          </q-input>
-
-          <div class="field-label">Foto (opcional)</div>
-          <div class="photo-upload" @click="triggerFileInput">
-            <input
-              ref="fotoInput"
-              type="file"
-              accept="image/*"
-              style="display: none"
-              @change="handleFotoUpload"
-            />
-            <div v-if="fotoPreview" class="photo-upload__preview">
-              <img :src="fotoPreview" alt="Preview" />
-              <q-btn
-                flat
-                round
+              <!-- CATEGORIA -->
+              <div class="field-label">Tipo de serviço *</div>
+              <q-select
+                v-model="novoPedido.categoria_id"
+                :options="categoriasOptions"
+                label="Selecione a categoria"
+                outlined
                 dense
-                icon="close"
-                size="sm"
-                class="photo-upload__remove"
-                @click.stop="removerFoto"
+                class="field-input q-mb-md"
+                emit-value
+                map-options
               />
+
+              <!-- DESCRIÇÃO -->
+              <div class="field-label">Descrição *</div>
+              <q-input
+                v-model="novoPedido.descricao"
+                type="textarea"
+                outlined
+                dense
+                placeholder="Ex: Preciso de um canalizador para reparar uma fuga..."
+                class="field-input q-mb-md"
+                rows="3"
+              />
+
+              <!-- AGENDAMENTO -->
+              <div class="agendamento-section">
+                <div class="section-divider">
+                  <span class="section-divider__text">📅 Agendamento</span>
+                </div>
+
+                <div class="row q-col-gutter-sm">
+                  <div class="col-12 col-sm-6">
+                    <div class="field-label">Data do serviço *</div>
+                    <q-input
+                      v-model="dataPedidoInput"
+                      type="date"
+                      outlined
+                      dense
+                      class="field-input"
+                      :rules="[(val) => !!val || 'Selecione uma data']"
+                    >
+                      <template v-slot:prepend>
+                        <q-icon name="event" color="primary" />
+                      </template>
+                    </q-input>
+                  </div>
+
+                  <div class="col-12 col-sm-6">
+                    <div class="field-label">Hora do serviço *</div>
+                    <q-input
+                      v-model="horaPedidoInput"
+                      type="time"
+                      outlined
+                      dense
+                      class="field-input"
+                      :rules="[(val) => !!val || 'Selecione uma hora']"
+                    >
+                      <template v-slot:prepend>
+                        <q-icon name="access_time" color="primary" />
+                      </template>
+                    </q-input>
+                  </div>
+                </div>
+
+                <div v-if="dataPedidoInput && horaPedidoInput" class="agendamento-resumo">
+                  <q-icon name="event_available" size="18px" color="primary" />
+                  <span>
+                    <strong>Agendado para:</strong>
+                    {{ dataPedidoFormatadaCompleta }}
+                  </span>
+                </div>
+
+                <div class="agendamento-obs">
+                  <q-icon name="info" size="14px" color="grey-6" />
+                  <span>Escolha a data e hora que prefere para o serviço</span>
+                </div>
+              </div>
+
+              <!-- LOCALIZAÇÃO -->
+              <div class="field-label">Localização *</div>
+              <div class="endereco-wrapper">
+                <q-input
+                  v-model="novoPedido.endereco"
+                  outlined
+                  dense
+                  placeholder="Ex: Rua da Paz, 123, Maputo"
+                  class="field-input q-mb-sm"
+                  :loading="carregandoLocalizacao || carregandoEndereco"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="location_on" color="grey-5" />
+                  </template>
+                  <template v-slot:append>
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      icon="my_location"
+                      color="primary"
+                      size="sm"
+                      :loading="carregandoLocalizacao"
+                      @click="buscarLocalizacaoComEndereco"
+                      title="Usar localização atual"
+                    />
+                  </template>
+                </q-input>
+
+                <div v-if="localizacaoObtida && localizacaoData" class="coordenadas-info">
+                  <q-icon name="check_circle" size="16px" color="positive" />
+                  <span>
+                    <strong>📍 Coordenadas:</strong>
+                    {{ localizacaoData.lat.toFixed(6) }}, {{ localizacaoData.lng.toFixed(6) }}
+                  </span>
+                  <q-btn
+                    flat
+                    dense
+                    no-caps
+                    label="Remover"
+                    color="negative"
+                    size="sm"
+                    @click="removerLocalizacao"
+                  />
+                </div>
+              </div>
+
+              <!-- FOTO -->
+              <div class="field-label">Foto (opcional)</div>
+              <div class="photo-upload" @click="triggerFileInput">
+                <input
+                  ref="fotoInput"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                  @change="handleFotoUpload"
+                />
+                <div v-if="fotoPreview" class="photo-upload__preview">
+                  <img :src="fotoPreview" alt="Preview" />
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="close"
+                    size="sm"
+                    class="photo-upload__remove"
+                    @click.stop="removerFoto"
+                  />
+                </div>
+                <div v-else class="photo-upload__placeholder">
+                  <q-icon name="add_a_photo" size="28px" color="grey-4" />
+                  <div class="photo-upload__text">Clique para adicionar foto</div>
+                  <div class="photo-upload__hint">JPG, PNG até 5MB</div>
+                </div>
+              </div>
             </div>
-            <div v-else class="photo-upload__placeholder">
-              <q-icon name="add_a_photo" size="28px" color="grey-4" />
-              <div class="photo-upload__text">Clique para adicionar foto</div>
-              <div class="photo-upload__hint">JPG, PNG até 5MB</div>
-            </div>
-          </div>
+          </q-scroll-area>
         </q-card-section>
 
         <q-card-actions align="right" class="modal-pedido__actions">
@@ -418,7 +578,6 @@
     </q-dialog>
   </q-page>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -426,18 +585,67 @@ import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/login-store';
 import { useClienteInicioStore } from 'src/stores/client/cliente-inicio-store';
 
+// ============================================================
+// DEFINIÇÃO DO NOME DO COMPONENTE
+// ============================================================
 defineOptions({ name: 'MobileInicio' });
 
+// ============================================================
+// ROUTER, QUASAR E STORES
+// ============================================================
 const router = useRouter();
 const $q = useQuasar();
 const authStore = useAuthStore();
 const inicioStore = useClienteInicioStore();
 
-// ===================== ESTADOS PARA AVATAR =====================
+// ============================================================
+// ESTADOS LOCAIS
+// ============================================================
+
+// --- Avatar ---
 const avatarError = ref(false);
 const fotoTimestamp = ref(Date.now());
 
-// ===================== COMPUTED PARA AVATAR =====================
+// --- Localização ---
+const localizacaoErro = ref<string | null>(null);
+const carregandoEndereco = ref(false);
+
+// --- Data e Hora do Pedido ---
+const dataPedidoInput = ref<string>('');
+const horaPedidoInput = ref<string>('');
+
+// --- Banner ---
+const bannerSlide = ref(0);
+
+// --- Referências DOM ---
+const fotoInput = ref<HTMLInputElement | null>(null);
+
+// ============================================================
+// BANNERS
+// ============================================================
+const banners = [
+  {
+    image: '/baner/baner1.png',
+    title: 'Ganhe 500 MZN',
+    subtitle: 'Indique um amigo e ganhe bónus',
+    badge: '🔥 Promoção',
+    cta: 'Saber mais →',
+    link: '/mobile/promocoes',
+  },
+  {
+    image: '/baner/baner2.png',
+    title: 'Serviços Profissionais',
+    subtitle: 'Encontre os melhores prestadores da sua região',
+    badge: '⭐ Destaque',
+    cta: 'Explorar →',
+    link: '/mobile/lista-prestadores',
+  },
+];
+
+// ============================================================
+// COMPUTEDS - AVATAR
+// ============================================================
+
 const avatarUrl = computed(() => {
   if (authStore.user?.foto) {
     if (authStore.user.foto.startsWith('http')) {
@@ -469,7 +677,6 @@ const avatarColor = computed(() => {
   return colors[index] || '#5B4BF5';
 });
 
-// Computed para as iniciais do avatar (com segurança)
 const avatarIniciais = computed(() => {
   const nome = authStore.user?.nome || '';
   if (!nome.trim()) return 'U';
@@ -477,7 +684,6 @@ const avatarIniciais = computed(() => {
   const partes = nome.trim().split(' ');
 
   if (partes.length === 1) {
-    // ✅ Verificação segura para partes[0]
     const primeiraParte = partes[0];
     if (primeiraParte && primeiraParte.length > 0) {
       return primeiraParte.charAt(0).toUpperCase();
@@ -495,23 +701,18 @@ const avatarIniciais = computed(() => {
   return (primeiraLetra + ultimaLetra).toUpperCase();
 });
 
-// ===================== WATCH para atualizar avatar quando foto mudar =====================
-watch(
-  () => authStore.user?.foto,
-  () => {
-    fotoTimestamp.value = Date.now();
-    avatarError.value = false;
-  },
-);
+// ============================================================
+// COMPUTEDS - DADOS DA STORE
+// ============================================================
 
-// Referências DOM
-const fotoInput = ref<HTMLInputElement | null>(null);
-
-// Bindings para a store
 const carregandoInicial = computed(() => inicioStore.carregandoInicial);
 const carregandoDestaque = computed(() => inicioStore.carregandoDestaque);
 const carregandoTop = computed(() => inicioStore.carregandoTop);
 const carregandoCriarPedido = computed(() => inicioStore.carregandoCriarPedido);
+const carregandoLocalizacao = computed(() => inicioStore.carregandoLocalizacao);
+const localizacaoObtida = computed(() => inicioStore.localizacaoObtida);
+const localizacaoData = computed(() => inicioStore.localizacaoData);
+
 const modalCriarPedido = computed({
   get: () => inicioStore.modalCriarPedidoAberto,
   set: (value) => {
@@ -519,11 +720,13 @@ const modalCriarPedido = computed({
       inicioStore.abrirModalCriarPedido();
     } else {
       inicioStore.fecharModalCriarPedido();
+      localizacaoErro.value = null;
+      dataPedidoInput.value = '';
+      horaPedidoInput.value = '';
     }
   },
 });
 
-// Dados da store
 const categoriasPopulares = computed(() => inicioStore.categoriasPopulares);
 const prestadoresDestaque = computed(() => inicioStore.prestadoresDestaqueLimitados);
 const prestadoresTop = computed(() => inicioStore.prestadoresTopLimitados);
@@ -541,26 +744,209 @@ const novoPedido = computed({
   set: (value) => inicioStore.atualizarNovoPedido(value),
 });
 
-// Computed locais
-const userName = computed<string>(() => authStore.user?.nome?.split(' ')[0] || 'Utilizador');
-const diaSemana = computed(() => new Date().toLocaleDateString('pt-PT', { weekday: 'long' }));
-const dataFormatada = computed(() =>
-  new Date().toLocaleDateString('pt-PT', { day: 'numeric', month: 'long' }),
-);
+// ============================================================
+// COMPUTEDS - DATA E HORA
+// ============================================================
 
-// Constantes
+const userName = computed<string>(() => authStore.user?.nome?.split(' ')[0] || 'Utilizador');
+
+const dataAtual = ref(new Date());
+
+let dataInterval: ReturnType<typeof setInterval> | null = null;
+
+const diaSemana = computed(() => {
+  return dataAtual.value.toLocaleDateString('pt-PT', { weekday: 'long' });
+});
+
+const dataFormatada = computed(() => {
+  return dataAtual.value.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long' });
+});
+
+const dataHoraCombinada = computed(() => {
+  if (!dataPedidoInput.value || !horaPedidoInput.value) return null;
+  return `${dataPedidoInput.value}T${horaPedidoInput.value}:00`;
+});
+
+const dataPedidoFormatadaCompleta = computed(() => {
+  if (!dataPedidoInput.value || !horaPedidoInput.value) return '';
+
+  const partesData = dataPedidoInput.value.split('-').map(Number);
+  const partesHora = horaPedidoInput.value.split(':').map(Number);
+
+  const ano = partesData[0] ?? new Date().getFullYear();
+  const mes = partesData[1] ?? 1;
+  const dia = partesData[2] ?? 1;
+  const hora = partesHora[0] ?? 0;
+  const minuto = partesHora[1] ?? 0;
+
+  const dataObj = new Date(ano, mes - 1, dia, hora, minuto);
+
+  return dataObj.toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+});
+
+// ============================================================
+// CONSTANTES
+// ============================================================
+
 const defaultImage = 'https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_1280.png';
 
-// Navegação
+// ============================================================
+// WATCHERS
+// ============================================================
+
+watch(
+  () => authStore.user?.foto,
+  () => {
+    fotoTimestamp.value = Date.now();
+    avatarError.value = false;
+  },
+);
+
+// ============================================================
+// FUNÇÕES DE NAVEGAÇÃO
+// ============================================================
+
 const goTo = (path: string) => void router.push(path);
 const verPrestador = (id: number) => id && void router.push(`/mobile/perfil-prestador/${id}`);
 const verPedido = (id: number) => id && void router.push(`/mobile/detalhes-pedido/${id}`);
 const buscarPorCategoria = (id: number) =>
   id && void router.push(`/mobile/lista-prestadores?categoria=${id}`);
-const verPromocao = () => void router.push('/mobile/promocoes');
 
-// Ações do modal
-const abrirModalCriarPedido = () => inicioStore.abrirModalCriarPedido();
+// ============================================================
+// FUNÇÃO DO BANNER
+// ============================================================
+
+const clickBanner = (banner: { link: string; title: string }) => {
+  if (banner.link) {
+    void router.push(banner.link);
+  } else {
+    $q.notify({
+      type: 'info',
+      message: `Promoção: ${banner.title}`,
+      position: 'top',
+      timeout: 2000,
+    });
+  }
+};
+
+// ============================================================
+// FUNÇÕES DE LOCALIZAÇÃO
+// ============================================================
+
+const obterEnderecoPorCoordenadas = async (lat: number, lng: number): Promise<string | null> => {
+  carregandoEndereco.value = true;
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=pt`
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.display_name) {
+        return data.display_name;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Erro ao obter endereço:', error);
+    return null;
+  } finally {
+    carregandoEndereco.value = false;
+  }
+};
+
+const buscarLocalizacaoComEndereco = async () => {
+  localizacaoErro.value = null;
+
+  try {
+    await inicioStore.buscarLocalizacaoParaPedido();
+
+    if (inicioStore.localizacaoObtida && inicioStore.localizacaoData) {
+      const { lat, lng } = inicioStore.localizacaoData;
+
+      const endereco = await obterEnderecoPorCoordenadas(lat, lng);
+
+      if (endereco) {
+        novoPedido.value.endereco = endereco;
+        $q.notify({
+          type: 'positive',
+          message: '📍 Endereço obtido automaticamente!',
+          position: 'top',
+          timeout: 2500,
+        });
+      } else {
+        novoPedido.value.endereco = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        $q.notify({
+          type: 'warning',
+          message: '⚠️ Não foi possível obter o endereço. Use as coordenadas.',
+          position: 'top',
+          timeout: 3000,
+        });
+      }
+    }
+  } catch (err) {
+    const error = err as Error;
+    const msg = error.message || 'Não foi possível obter localização';
+    localizacaoErro.value = msg;
+    $q.notify({
+      type: 'negative',
+      message: msg,
+      position: 'top',
+      timeout: 3000,
+    });
+  }
+};
+
+const removerLocalizacao = () => {
+  inicioStore.localizacaoData = null;
+  inicioStore.localizacaoObtida = false;
+  localizacaoErro.value = null;
+
+  $q.notify({
+    type: 'info',
+    message: 'Localização removida',
+    position: 'top',
+    timeout: 1500,
+  });
+};
+
+// ============================================================
+// FUNÇÃO ON MODAL OPEN
+// ============================================================
+
+const onModalOpen = async () => {
+  localizacaoErro.value = null;
+
+  await buscarLocalizacaoComEndereco();
+
+  const agora = new Date();
+  agora.setMinutes(agora.getMinutes() + 30);
+
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const dia = String(agora.getDate()).padStart(2, '0');
+  const hora = String(agora.getHours()).padStart(2, '0');
+  const minuto = String(agora.getMinutes()).padStart(2, '0');
+
+  dataPedidoInput.value = `${ano}-${mes}-${dia}`;
+  horaPedidoInput.value = `${hora}:${minuto}`;
+};
+
+// ============================================================
+// FUNÇÕES DO MODAL
+// ============================================================
+
+const abrirModalCriarPedido = () => {
+  inicioStore.abrirModalCriarPedido();
+};
+
 const triggerFileInput = () => fotoInput.value?.click();
 
 const handleFotoUpload = (event: Event) => {
@@ -576,20 +962,93 @@ const handleFotoUpload = (event: Event) => {
       });
     }
   }
+  if (target) target.value = '';
 };
 
 const removerFoto = () => inicioStore.removerFoto();
 
+// ============================================================
+// FUNÇÃO CRIAR PEDIDO
+// ============================================================
+
 const criarPedido = async () => {
-  const success = await inicioStore.criarPedidoServico(inicioStore.novoPedido);
+  if (!dataPedidoInput.value || !horaPedidoInput.value) {
+    $q.notify({
+      type: 'negative',
+      message: 'Por favor, selecione a data e hora do serviço',
+      position: 'top',
+    });
+    return;
+  }
+
+  const dataHora = new Date(`${dataPedidoInput.value}T${horaPedidoInput.value}:00`);
+  const agora = new Date();
+  if (dataHora < agora) {
+    $q.notify({
+      type: 'negative',
+      message: 'A data e hora devem ser no futuro',
+      position: 'top',
+    });
+    return;
+  }
+
+  if (!novoPedido.value.endereco?.trim()) {
+    $q.notify({
+      type: 'negative',
+      message: 'Por favor, informe a localização',
+      position: 'top',
+    });
+    return;
+  }
+
+  if (!inicioStore.localizacaoObtida) {
+    try {
+      const confirm = await new Promise<boolean>((resolve) => {
+        $q.dialog({
+          title: 'Localização não obtida',
+          message: 'Deseja continuar sem enviar sua localização? O prestador pode ter dificuldade em encontrar o endereço.',
+          persistent: true,
+          ok: {
+            label: 'Continuar mesmo assim',
+            color: 'primary',
+          },
+          cancel: {
+            label: 'Tentar obter localização',
+            color: 'grey',
+          },
+        }).onOk(() => resolve(true))
+          .onCancel(() => resolve(false));
+      });
+
+      if (!confirm) {
+        await buscarLocalizacaoComEndereco();
+        return;
+      }
+    } catch {
+      await buscarLocalizacaoComEndereco();
+      return;
+    }
+  }
+
+  const dadosPedido = {
+    ...inicioStore.novoPedido,
+    agendado_para: dataHoraCombinada.value,
+    data_pedido: dataPedidoInput.value,
+    hora_pedido: horaPedidoInput.value,
+  };
+
+  const success = await inicioStore.criarPedidoServico(dadosPedido);
 
   if (success) {
     $q.notify({
       type: 'positive',
-      message: 'Pedido publicado com sucesso!',
+      message: `Pedido agendado para ${dataPedidoFormatadaCompleta.value}`,
       position: 'top',
     });
     inicioStore.fecharModalCriarPedido();
+    localizacaoErro.value = null;
+    dataPedidoInput.value = '';
+    horaPedidoInput.value = '';
   } else {
     const error = inicioStore.validationErrors[0];
     $q.notify({
@@ -599,6 +1058,10 @@ const criarPedido = async () => {
     });
   }
 };
+
+// ============================================================
+// FUNÇÕES DE PROMOÇÃO
+// ============================================================
 
 const usarPromocao = async (promo: { codigo: string }) => {
   if (!promo?.codigo) return;
@@ -612,7 +1075,10 @@ const usarPromocao = async (promo: { codigo: string }) => {
   }
 };
 
-// Helpers de estilo
+// ============================================================
+// HELPERS DE ESTILO
+// ============================================================
+
 const getCatIconStyle = (cor?: string) => inicioStore.getCatIconStyle(cor);
 const getAvatarStyle = (nome: string) => inicioStore.getAvatarStyle(nome);
 const getInitials = (nome: string) => inicioStore.getInitials(nome);
@@ -633,20 +1099,33 @@ const getPromoGradient = (promo: { id: number }) => {
   };
 };
 
-// Inicialização
+// ============================================================
+// CICLO DE VIDA
+// ============================================================
+
 onMounted(() => {
+  dataInterval = setInterval(() => {
+    dataAtual.value = new Date();
+  }, 60000);
+
   void inicioStore.carregarDadosIniciais();
+
+  // ✅ Inicia o carrossel automaticamente
+  bannerSlide.value = 0;
 });
 
 onUnmounted(() => {
+  if (dataInterval) {
+    clearInterval(dataInterval);
+    dataInterval = null;
+  }
   inicioStore.resetarStore();
 });
 </script>
-
 <style scoped lang="scss">
-// =====================
+// ============================================================
 // TOKENS
-// =====================
+// ============================================================
 $primary: #667eea;
 $primary-2: #764ba2;
 $primary-light: rgba(102, 126, 234, 0.09);
@@ -665,9 +1144,9 @@ $radius: 14px;
 $radius-sm: 10px;
 $radius-xs: 8px;
 
-// =====================
+// ============================================================
 // SKELETON
-// =====================
+// ============================================================
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -814,18 +1293,18 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
+// ============================================================
 // LAYOUT
-// =====================
+// ============================================================
 .inicio-page {
   background: $bg;
   min-height: 100vh;
   padding-bottom: 20px;
 }
 
-// =====================
+// ============================================================
 // HEADER
-// =====================
+// ============================================================
 .page-header {
   background: $surface;
   padding: 20px 16px 16px;
@@ -841,9 +1320,9 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
+// ============================================================
 // AVATAR HEADER
-// =====================
+// ============================================================
 .user-avatar-wrapper {
   position: relative;
   flex-shrink: 0;
@@ -902,9 +1381,9 @@ $radius-xs: 8px;
   text-transform: capitalize;
 }
 
-// =====================
+// ============================================================
 // STATS PILLS
-// =====================
+// ============================================================
 .stats-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -952,123 +1431,235 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
-// PROMO BANNER
-// =====================
-.promo-banner {
-  background: $primary;
-  border-radius: $radius;
-  padding: 16px;
+// ============================================================
+// BANNER CAROUSEL - TEXTO MELHORADO
+// ============================================================
+.banner-carousel {
   margin: 0 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
   position: relative;
+  border-radius: $radius;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 
-  &::after,
-  &::before {
-    content: '';
+  &__carousel {
+    border-radius: $radius;
+    overflow: hidden;
+    background: #1a1a2e;
+
+    :deep(.q-carousel__slide) {
+      padding: 0 !important;
+    }
+
+    :deep(.q-carousel__control) {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 20px;
+      padding: 4px 8px;
+    }
+
+    :deep(.q-carousel__navigation) {
+      bottom: 12px !important;
+
+      .q-btn {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        width: 10px;
+        height: 10px;
+        min-width: 10px;
+        padding: 0;
+        margin: 0 4px;
+        transition: all 0.3s;
+
+        &--active {
+          background: #ffffff;
+          transform: scale(1.3);
+          width: 14px;
+          height: 14px;
+          min-width: 14px;
+        }
+      }
+    }
+
+    :deep(.q-carousel__arrow) {
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      color: white;
+      transition: all 0.3s;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.6);
+        transform: scale(1.1);
+      }
+    }
+  }
+
+  &__slide {
+    cursor: pointer;
+    height: 100%;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+
+    :deep(.q-img__image) {
+      object-fit: cover;
+    }
+  }
+
+  // 🔥 OVERLAY MELHORADO - MAIS ESCURO E CONTRASTANTE
+  &__overlay {
     position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    pointer-events: none;
-  }
-  &::after {
-    width: 90px;
-    height: 90px;
-    right: -15px;
-    top: -20px;
-  }
-  &::before {
-    width: 60px;
-    height: 60px;
-    right: 40px;
-    bottom: -25px;
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  &__icon {
-    width: 46px;
-    height: 46px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.18);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.75) 0%,
+      rgba(0, 0, 0, 0.5) 40%,
+      rgba(0, 0, 0, 0.3) 70%,
+      rgba(0, 0, 0, 0.1) 100%
+    );
     display: flex;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    padding: 20px 24px;
   }
-  &__body {
-    flex: 1;
-    position: relative;
-    z-index: 1;
+
+  &__content {
+    max-width: 70%;
+    color: #ffffff;
+    animation: fadeInUp 0.6s ease;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
   }
-  &__title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 2px;
-  }
-  &__sub {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.8);
-  }
-  &__cta {
-    background: rgba(255, 255, 255, 0.18);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 5px 12px;
+
+  &__badge {
+    display: inline-block;
+    background: rgba(255, 215, 0, 0.25);
+    backdrop-filter: blur(4px);
+    padding: 3px 14px;
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    white-space: nowrap;
-    cursor: pointer;
-    position: relative;
-    z-index: 1;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #ffd700;
+    margin-bottom: 8px;
+    border: 1px solid rgba(255, 215, 0, 0.2);
   }
-}
 
-// =====================
-// SECTION
-// =====================
-.page-section {
-  margin-bottom: 24px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 16px;
-  margin-bottom: 12px;
-
-  .section-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: $ink;
-    margin: 0;
+  &__title {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 4px;
+    color: #ffffff;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.3px;
   }
-  .section-link {
-    font-size: 12px;
-    color: $primary;
+
+  &__subtitle {
+    font-size: 13px;
     font-weight: 500;
-    padding: 3px 8px !important;
-    border-radius: $radius-xs !important;
+    opacity: 0.95;
+    margin-bottom: 8px;
+    color: #f0f0f0;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  &__cta {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    padding: 5px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    transition: all 0.3s;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+
     &:hover {
-      background: $primary-light !important;
+      background: rgba(255, 255, 255, 0.35);
+      transform: translateX(4px);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  &__indicators {
+    display: none;
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    gap: 6px;
+    z-index: 10;
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &--active {
+      background: #ffffff;
+      transform: scale(1.3);
     }
   }
 }
 
-.loading-center {
-  text-align: center;
-  padding: 20px 0;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-// =====================
+// ============================================================
+// RESPONSIVIDADE DO BANNER
+// ============================================================
+@media (max-width: 480px) {
+  .banner-carousel {
+    &__content {
+      max-width: 80%;
+    }
+
+    &__title {
+      font-size: 18px;
+    }
+
+    &__subtitle {
+      font-size: 11px;
+    }
+
+    &__badge {
+      font-size: 9px;
+      padding: 2px 10px;
+    }
+
+    &__cta {
+      font-size: 10px;
+      padding: 4px 12px;
+    }
+  }
+}
+
+// ============================================================
 // CATEGORIAS
-// =====================
+// ============================================================
 .cats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1111,9 +1702,9 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
+// ============================================================
 // DESTAQUE GRID
-// =====================
+// ============================================================
 .dest-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1161,9 +1752,9 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
+// ============================================================
 // PROMOÇÕES
-// =====================
+// ============================================================
 .promo-list {
   display: flex;
   flex-direction: column;
@@ -1214,9 +1805,9 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
+// ============================================================
 // TOP LIST
-// =====================
+// ============================================================
 .top-list {
   display: flex;
   flex-direction: column;
@@ -1277,9 +1868,9 @@ $radius-xs: 8px;
   white-space: nowrap;
 }
 
-// =====================
+// ============================================================
 // ORDERS LIST
-// =====================
+// ============================================================
 .orders-list {
   display: flex;
   flex-direction: column;
@@ -1361,9 +1952,9 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
+// ============================================================
 // FAB
-// =====================
+// ============================================================
 .fab-btn {
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4) !important;
   transition: all 0.3s !important;
@@ -1373,9 +1964,9 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
+// ============================================================
 // EMPTY STATE
-// =====================
+// ============================================================
 .empty-state {
   background: $surface;
   border-radius: $radius;
@@ -1401,9 +1992,46 @@ $radius-xs: 8px;
   }
 }
 
-// =====================
+// ============================================================
+// SECTION
+// ============================================================
+.page-section {
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  margin-bottom: 12px;
+
+  .section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: $ink;
+    margin: 0;
+  }
+  .section-link {
+    font-size: 12px;
+    color: $primary;
+    font-weight: 500;
+    padding: 3px 8px !important;
+    border-radius: $radius-xs !important;
+    &:hover {
+      background: $primary-light !important;
+    }
+  }
+}
+
+.loading-center {
+  text-align: center;
+  padding: 20px 0;
+}
+
+// ============================================================
 // MODAL
-// =====================
+// ============================================================
 .modal-pedido {
   min-width: 320px;
   max-width: 480px;
@@ -1426,7 +2054,7 @@ $radius-xs: 8px;
     color: rgba(255, 255, 255, 0.85);
   }
   &__body {
-    padding: 16px 20px;
+    padding: 0 !important;
   }
   &__actions {
     padding: 8px 20px 20px !important;
@@ -1434,6 +2062,25 @@ $radius-xs: 8px;
   }
 }
 
+// ============================================================
+// SCROLL AREA
+// ============================================================
+.modal-scroll-area {
+  width: 100%;
+  max-height: 480px;
+
+  .q-scrollarea__content {
+    padding: 0 !important;
+  }
+}
+
+.modal-content {
+  padding: 16px 20px !important;
+}
+
+// ============================================================
+// FIELD LABEL
+// ============================================================
 .field-label {
   font-size: 12px;
   font-weight: 500;
@@ -1457,6 +2104,9 @@ $radius-xs: 8px;
   font-weight: 600 !important;
 }
 
+// ============================================================
+// PHOTO UPLOAD
+// ============================================================
 .photo-upload {
   border: 1.5px dashed $line;
   border-radius: $radius-sm;
@@ -1491,8 +2141,6 @@ $radius-xs: 8px;
     background: $surface !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
   }
-  &__placeholder {
-  }
   &__text {
     font-size: 13px;
     color: $muted;
@@ -1503,6 +2151,126 @@ $radius-xs: 8px;
     font-size: 11px;
     color: lighten($muted, 10%);
     margin-top: 3px;
+  }
+}
+
+// ============================================================
+// LOCALIZAÇÃO STATUS
+// ============================================================
+.location-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: $radius-xs;
+  margin-bottom: 14px;
+  font-size: 12px;
+
+  &--loading {
+    background: $primary-light;
+    color: $primary;
+  }
+  &--success {
+    background: $green-light;
+    color: darken($green, 15%);
+  }
+  &--error {
+    background: rgba(239, 68, 68, 0.08);
+    color: #b91c1c;
+    flex-wrap: wrap;
+  }
+
+  .q-btn {
+    margin-left: 4px;
+    font-size: 11px;
+    color: $primary;
+    min-height: 24px;
+    padding: 0 8px;
+  }
+}
+
+// ============================================================
+// SEÇÃO DE AGENDAMENTO
+// ============================================================
+.agendamento-section {
+  background: $bg;
+  border-radius: $radius-sm;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid $line;
+}
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+
+  &__text {
+    font-size: 13px;
+    font-weight: 600;
+    color: $ink-2;
+    background: $bg;
+    padding-right: 10px;
+  }
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: $line;
+  }
+}
+
+.agendamento-resumo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: $primary-light;
+  border-radius: $radius-xs;
+  margin-top: 10px;
+  font-size: 13px;
+  color: $ink-2;
+
+  strong {
+    color: $ink;
+  }
+}
+
+.agendamento-obs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: $muted;
+}
+
+// ============================================================
+// ENDEREÇO COM LOCALIZAÇÃO
+// ============================================================
+.endereco-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.coordenadas-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: $green-light;
+  border-radius: $radius-xs;
+  font-size: 12px;
+  color: darken($green, 15%);
+  flex-wrap: wrap;
+
+  .q-btn {
+    font-size: 11px;
+    min-height: 24px;
+    padding: 0 8px;
   }
 }
 </style>

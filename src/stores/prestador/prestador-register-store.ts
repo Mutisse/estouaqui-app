@@ -50,23 +50,6 @@ interface CategoriaAPI {
   icone?: string;
 }
 
-// 🔥 TIPO CORRETO para o que o backend realmente retorna
-interface ConfiguracaoPrestadorAPI {
-  tempo_medio_resposta: number;
-  raio_atendimento_maximo: number;
-  max_servicos_ativos: number;
-  comissao_plataforma: number;
-  dias_antecedencia_minima: number;
-  cancelamento_gratis_horas: number;
-  avaliacao_minima: number;
-  max_fotos_servico: number;
-  max_videos_servico: number;
-  tamanho_max_arquivo_mb: number;
-  formatos_imagem: string[];
-  pagamento_automatico: boolean;
-  dias_para_pagamento: number;
-}
-
 export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => {
   // ===================== ESTADOS =====================
   const loading = ref(false);
@@ -97,37 +80,13 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
   const disponibilidade = ref<Record<string, DisponibilidadeItem>>({});
   const validationErrors = ref<ValidationError[]>([]);
 
-  // Dados auxiliares
+  // Dados auxiliares - APENAS CATEGORIAS (vêm do backend)
   const categoriasOptions = ref<Array<{ label: string; value: number }>>([]);
 
-  // 🔥 REMOVIDO: raioOptions, diasSemana - não vêm do backend
-  // Em vez disso, criamos listas locais fixas
-  const raioOptions = ref<Array<{ label: string; value: number }>>([
-    { label: '5 km', value: 5 },
-    { label: '10 km', value: 10 },
-    { label: '15 km', value: 15 },
-    { label: '20 km', value: 20 },
-    { label: '30 km', value: 30 },
-    { label: '50 km', value: 50 },
-    { label: '100 km', value: 100 },
-  ]);
-
-  const diasSemana = ref<Array<{ label: string; value: string }>>([
-    { label: 'Segunda-feira', value: 'monday' },
-    { label: 'Terça-feira', value: 'tuesday' },
-    { label: 'Quarta-feira', value: 'wednesday' },
-    { label: 'Quinta-feira', value: 'thursday' },
-    { label: 'Sexta-feira', value: 'friday' },
-    { label: 'Sábado', value: 'saturday' },
-    { label: 'Domingo', value: 'sunday' },
-  ]);
-
-  // Configurações do backend (armazenar para uso)
-  const configuracoesSistema = ref<ConfiguracaoPrestadorAPI | null>(null);
+  // 🔥 REMOVIDO: raioOptions, diasSemana - AGORA SÃO DEFINIDOS NO COMPONENTE
 
   const dadosCarregados = ref(false);
   const carregandoCategorias = ref(false);
-  const carregandoConfiguracoes = ref(false);
   const carregandoLocalizacao = ref(false);
   const localizacaoObtida = ref(false);
   const localizacaoData = ref<{ lat: number; lng: number } | null>(null);
@@ -234,8 +193,11 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
       errors.push({ field: 'raio', message: 'Selecione o raio de atuação' });
     }
 
-    if (!localizacaoObtida.value) {
-      errors.push({ field: 'localizacao', message: 'Defina sua localização' });
+    if (!localizacaoObtida.value || !localizacaoData.value) {
+      errors.push({
+        field: 'localizacao',
+        message: 'Defina sua localização (clique em "Obter localização" ou insira manualmente)',
+      });
     }
 
     validationErrors.value = errors;
@@ -324,7 +286,7 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
 
       if (!navigator.geolocation) {
         carregandoLocalizacao.value = false;
-        reject(new Error('Geolocalização não suportada'));
+        reject(new Error('Geolocalização não é suportada pelo seu navegador'));
         return;
       }
 
@@ -341,7 +303,7 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
         (error) => {
           carregandoLocalizacao.value = false;
           localizacaoObtida.value = false;
-          reject(new Error(error.message));
+          reject(new Error('Não foi possível obter sua localização: ' + error.message));
         },
         {
           enableHighAccuracy: true,
@@ -352,7 +314,17 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
     });
   };
 
-  // ===================== ENDPOINTS - APENAS O QUE O BACKEND RETORNA =====================
+  const definirLocalizacaoManual = (lat: number, lng: number): void => {
+    localizacaoData.value = { lat, lng };
+    localizacaoObtida.value = true;
+  };
+
+  const limparLocalizacao = (): void => {
+    localizacaoData.value = null;
+    localizacaoObtida.value = false;
+  };
+
+  // ===================== ENDPOINTS =====================
 
   const carregarCategorias = async (): Promise<void> => {
     carregandoCategorias.value = true;
@@ -380,38 +352,11 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
     }
   };
 
-  /**
-   * 🔥 CORREÇÃO: Carregar apenas as configurações que o backend retorna
-   * SEM esperar listas de raios, dias, etc.
-   */
-  const carregarConfiguracoes = async (): Promise<void> => {
-    carregandoConfiguracoes.value = true;
-    try {
-      const response = await api.get('/configuracoes/prestador');
-
-      if (!response.data?.success) {
-        throw new Error('Resposta da API de configurações inválida');
-      }
-
-      // Apenas armazenar as configurações que vieram
-      configuracoesSistema.value = response.data.data as ConfiguracaoPrestadorAPI;
-
-    } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
-      // Não lançar erro, apenas logar - as configs não são obrigatórias
-      // throw new Error('Não foi possível carregar as configurações. Tente novamente.');
-    } finally {
-      carregandoConfiguracoes.value = false;
-    }
-  };
-
   const carregarDadosAuxiliares = async (): Promise<void> => {
     if (dadosCarregados.value) return;
 
     try {
-      // Carregar apenas o que precisa
       await carregarCategorias();
-      await carregarConfiguracoes();
       dadosCarregados.value = true;
     } catch (error) {
       console.error('Erro ao carregar dados auxiliares:', error);
@@ -660,14 +605,11 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
     passwordStrength,
     validationErrors,
     carregandoCategorias,
-    carregandoConfiguracoes,
     carregandoLocalizacao,
     localizacaoObtida,
+    localizacaoData,
     categoriasOptions,
-    raioOptions,
-    diasSemana,
     dadosCarregados,
-    configuracoesSistema,
 
     // Navegação
     nextStep,
@@ -681,10 +623,11 @@ export const usePrestadorRegisterStore = defineStore('prestadorRegister', () => 
 
     // Localização
     obterLocalizacaoAutomatica,
+    definirLocalizacaoManual,
+    limparLocalizacao,
 
     // Endpoints
     carregarCategorias,
-    carregarConfiguracoes,
     carregarDadosAuxiliares,
     getCategoriaNome,
 

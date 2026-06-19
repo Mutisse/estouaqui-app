@@ -136,10 +136,11 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
 
   // ===================== AÇÕES =====================
 
+  // ✅ CORRIGIDO: /cliente/perfil
   const fetchPerfil = async () => {
     isLoading.value = true;
     try {
-      const response = await api.get('/perfil');
+      const response = await api.get('/cliente/perfil');
       if (response.data?.success) {
         userData.value = response.data.data;
         return response.data.data;
@@ -153,10 +154,11 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
     }
   };
 
+  // ✅ CORRIGIDO: /cliente/perfil/dashboard
   const fetchDashboard = async () => {
     isLoading.value = true;
     try {
-      const response = await api.get('/perfil/dashboard');
+      const response = await api.get('/cliente/perfil/dashboard');
       if (response.data?.success) {
         dashboard.value = response.data.data;
         return response.data.data;
@@ -170,14 +172,15 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
     }
   };
 
+  // ✅ CORRIGIDO: todas as rotas com /cliente/perfil
   const fetchAllPerfilData = async () => {
     isLoading.value = true;
     try {
       const [perfilRes, dashboardRes, enderecosRes, configRes] = await Promise.all([
-        api.get('/perfil').catch(() => ({ data: { success: true, data: null } })),
-        api.get('/perfil/dashboard').catch(() => ({ data: { success: true, data: null } })),
-        api.get('/perfil/enderecos').catch(() => ({ data: { success: true, data: [] } })),
-        api.get('/perfil/configuracoes').catch(() => ({ data: { success: true, data: configuracoes.value } })),
+        api.get('/cliente/perfil').catch(() => ({ data: { success: true, data: null } })),
+        api.get('/cliente/perfil/dashboard').catch(() => ({ data: { success: true, data: null } })),
+        api.get('/cliente/enderecos').catch(() => ({ data: { success: true, data: [] } })),
+        api.get('/cliente/configuracoes').catch(() => ({ data: { success: true, data: configuracoes.value } })),
       ]);
 
       if (perfilRes.data?.success && perfilRes.data.data) userData.value = perfilRes.data.data;
@@ -199,11 +202,11 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
     }
   };
 
-  // ✅ ATUALIZADO: Aceita endereço
+  // ✅ CORRIGIDO: /cliente/perfil
   const atualizarPerfil = async (dados: UpdatePerfilData) => {
     isSaving.value = true;
     try {
-      const response = await api.put('/perfil', dados);
+      const response = await api.put('/cliente/perfil', dados);
       if (response.data?.success && response.data.data) {
         userData.value = { ...userData.value, ...response.data.data } as PerfilUser;
         return response.data.data;
@@ -217,42 +220,48 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
     }
   };
 
+  // ✅ CORRIGIDO: /cliente/perfil/foto
   const atualizarFoto = async (file: File): Promise<string | null> => {
+    // 🔥 VALIDAÇÃO ANTES DE ENVIAR
+    if (file.size > 5 * 1024 * 1024) {
+        throw new Error('A imagem deve ter no máximo 5MB');
+    }
+
+    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+    if (!tiposPermitidos.includes(file.type)) {
+        throw new Error('Formato inválido. Use JPG, PNG ou GIF');
+    }
+
     isSaving.value = true;
     try {
-      const formData = new FormData();
-      formData.append('foto', file);
+        const formData = new FormData();
+        formData.append('foto', file); // 🔥 O NOME DO CAMPO DEVE SER 'foto'
 
-      const response = await api.post('/perfil/foto', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+        const response = await api.post('/cliente/perfil/foto', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
 
-      console.log('📸 Resposta upload foto:', response.data);
-
-      if (response.data?.success && response.data.data?.foto) {
-        const novaFotoUrl = response.data.data.foto;
-
-        if (userData.value) {
-          userData.value.foto = novaFotoUrl;
+        if (response.data?.success && response.data.data?.foto) {
+            const novaFotoUrl = response.data.data.foto;
+            if (userData.value) {
+                userData.value.foto = novaFotoUrl;
+            }
+            return novaFotoUrl;
         }
-
-        console.log('✅ Foto atualizada:', novaFotoUrl);
-        return novaFotoUrl;
-      }
-
-      throw new Error(response.data?.message || 'Erro ao atualizar foto');
+        throw new Error(response.data?.message || 'Erro ao atualizar foto');
     } catch (error) {
-      console.error('❌ Erro ao atualizar foto:', error);
-      throw error;
+        console.error('❌ Erro ao atualizar foto:', error);
+        throw error;
     } finally {
-      isSaving.value = false;
+        isSaving.value = false;
     }
-  };
+};
 
+  // ✅ CORRIGIDO: /cliente/perfil/foto
   const removerFoto = async () => {
     isSaving.value = true;
     try {
-      const response = await api.delete('/perfil/foto');
+      const response = await api.delete('/cliente/perfil/foto');
       if (response.data?.success && userData.value) {
         userData.value.foto = null;
         return true;
@@ -268,10 +277,11 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
 
   // ===================== ENDEREÇOS =====================
 
+  // ✅ CORRIGIDO: /cliente/enderecos
   const fetchEnderecos = async () => {
     isLoading.value = true;
     try {
-      const response = await api.get('/perfil/enderecos');
+      const response = await api.get('/cliente/enderecos');
       if (response.data?.success) {
         enderecos.value = response.data.data || [];
         return enderecos.value;
@@ -285,10 +295,11 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
     }
   };
 
+  // ✅ CORRIGIDO: /cliente/enderecos
   const adicionarEndereco = async (endereco: Omit<Endereco, 'id'>) => {
     isSaving.value = true;
     try {
-      const response = await api.post('/perfil/enderecos', endereco);
+      const response = await api.post('/cliente/enderecos', endereco);
       if (response.data?.success && response.data.data) {
         enderecos.value.push(response.data.data);
         return response.data.data;
@@ -302,10 +313,11 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
     }
   };
 
+  // ✅ CORRIGIDO: /cliente/enderecos/{id}
   const atualizarEndereco = async (id: number, endereco: Partial<Endereco>) => {
     isSaving.value = true;
     try {
-      const response = await api.put(`/perfil/enderecos/${id}`, endereco);
+      const response = await api.put(`/cliente/enderecos/${id}`, endereco);
       if (response.data?.success && response.data.data) {
         const index = enderecos.value.findIndex(e => e.id === id);
         if (index !== -1) {
@@ -322,10 +334,11 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
     }
   };
 
+  // ✅ CORRIGIDO: /cliente/enderecos/{id}
   const removerEndereco = async (id: number) => {
     isSaving.value = true;
     try {
-      const response = await api.delete(`/perfil/enderecos/${id}`);
+      const response = await api.delete(`/cliente/enderecos/${id}`);
       if (response.data?.success) {
         enderecos.value = enderecos.value.filter(e => e.id !== id);
         return true;
@@ -339,10 +352,11 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
     }
   };
 
+  // ✅ CORRIGIDO: /cliente/enderecos/{id}/principal
   const definirEnderecoPrincipal = async (id: number) => {
     isSaving.value = true;
     try {
-      const response = await api.put(`/perfil/enderecos/${id}/principal`);
+      const response = await api.put(`/cliente/enderecos/${id}/principal`);
       if (response.data?.success) {
         enderecos.value.forEach(e => {
           e.principal = e.id === id;
@@ -360,10 +374,11 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
 
   // ===================== CONFIGURAÇÕES =====================
 
+  // ✅ CORRIGIDO: /cliente/configuracoes
   const fetchConfiguracoes = async () => {
     isLoading.value = true;
     try {
-      const response = await api.get('/perfil/configuracoes');
+      const response = await api.get('/cliente/configuracoes');
       if (response.data?.success) {
         configuracoes.value = { ...configuracoes.value, ...response.data.data };
         return configuracoes.value;
@@ -377,10 +392,11 @@ export const usePerfilStore = defineStore('clientePerfil', () => {
     }
   };
 
+  // ✅ CORRIGIDO: /cliente/configuracoes
   const atualizarConfiguracoes = async (dados: Partial<Configuracoes>) => {
     isSaving.value = true;
     try {
-      const response = await api.put('/perfil/configuracoes', dados);
+      const response = await api.put('/cliente/configuracoes', dados);
       if (response.data?.success) {
         configuracoes.value = { ...configuracoes.value, ...response.data.data };
         return configuracoes.value;

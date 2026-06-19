@@ -200,13 +200,29 @@
       <router-view />
     </q-page-container>
 
-    <!-- ===== RODAPÉ COM TABS ===== -->
+    <!-- ===== RODAPÉ COM 5 TABS ===== -->
     <q-footer class="ea-footer-tabs">
       <q-tabs class="ea-tabs" indicator-color="transparent" active-color="white" narrow-indicator stretch>
+
+        <!-- 1. INÍCIO -->
         <q-route-tab to="/mobile/inicio" icon="home" label="Início" class="ea-tab-item" active-class="ea-tab-active" />
+
+        <!-- 2. MAPA -->
         <q-route-tab to="/mobile/mapa" icon="map" label="Mapa" class="ea-tab-item" active-class="ea-tab-active" />
-        <q-route-tab to="/mobile/lista-prestadores" icon="list" label="Prestadores" class="ea-tab-item" active-class="ea-tab-active" />
+
+        <!-- 3. PROPOSTAS RECEBIDAS -->
+        <q-route-tab to="/mobile/propostas-recebidas" icon="request_quote" label="Propostas" class="ea-tab-item" active-class="ea-tab-active">
+          <q-badge v-if="propostasCount > 0" color="red" floating class="tab-badge">
+            {{ propostasCount > 99 ? '99+' : propostasCount }}
+          </q-badge>
+        </q-route-tab>
+
+        <!-- 4. MEUS PEDIDOS -->
+        <q-route-tab to="/mobile/meus-pedidos" icon="assignment" label="Pedidos" class="ea-tab-item" active-class="ea-tab-active" />
+
+        <!-- 5. PERFIL -->
         <q-route-tab to="/mobile/perfil" icon="person" label="Perfil" class="ea-tab-item" active-class="ea-tab-active" />
+
       </q-tabs>
     </q-footer>
 
@@ -262,16 +278,19 @@ import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/login-store';
 import { useClienteLayoutStore, type NotificacaoData } from 'src/stores/client/cliente-layout-store';
 import { usePerfilStore } from 'src/stores/client/cliente-perfil-store';
+import { useClientePropostasStore } from 'src/stores/client/cliente-propostas-store';
 
 const router = useRouter();
 const $q = useQuasar();
 const authStore = useAuthStore();
 const layoutStore = useClienteLayoutStore();
-const perfilStore = usePerfilStore(); // ✅ Nome correto da store
+const perfilStore = usePerfilStore();
+const propostasStore = useClientePropostasStore();
 
 // ===================== ESTADOS =====================
 const notificationsMenuOpen = ref(false);
 const avatarError = ref(false);
+const propostasCount = ref(0);
 
 // Computed para acesso fácil
 const leftDrawerOpen = computed({
@@ -297,29 +316,19 @@ const notificationsDialog = computed({
 });
 
 const userName = computed(() => {
-  // ✅ Primeiro tenta do perfilStore, depois do authStore
   return perfilStore.userData?.nome || authStore.user?.nome || 'Cliente';
 });
 
-// ✅ CORRIGIDO: Buscar foto do perfilStore (que é atualizado após upload)
 const userAvatar = computed(() => {
-  // Se houver erro no avatar, usa fallback
-  if (avatarError.value) {
-    return `https://ui-avatars.com/api/?background=5B4BF5&color=fff&bold=true&size=100&name=${encodeURIComponent(userName.value)}`;
-  }
-
-  // ✅ Prioriza a foto do perfilStore (mais atualizada)
+  // 🔥 SEM FALLBACK - APENAS A FOTO DO PERFIL
   const fotoPerfil = perfilStore.userData?.foto;
   if (fotoPerfil && fotoPerfil !== 'null' && fotoPerfil !== '') {
-    // Se já tem URL completa, usa direto
     if (fotoPerfil.startsWith('http')) {
       return fotoPerfil;
     }
-    // Se é caminho relativo, adiciona storage
     return `http://localhost:8000/storage/${fotoPerfil}`;
   }
 
-  // ✅ Fallback para foto do authStore
   const fotoAuth = authStore.user?.foto;
   if (fotoAuth && fotoAuth !== 'null' && fotoAuth !== '') {
     if (fotoAuth.startsWith('http')) {
@@ -328,8 +337,8 @@ const userAvatar = computed(() => {
     return `http://localhost:8000/storage/${fotoAuth}`;
   }
 
-  // ✅ Fallback para avatar com iniciais
-  return `https://ui-avatars.com/api/?background=5B4BF5&color=fff&bold=true&size=100&name=${encodeURIComponent(userName.value)}`;
+  // 🔥 SE NÃO TIVER FOTO, NÃO MOSTRA NADA
+  return '';
 });
 
 // ===================== FUNÇÕES =====================
@@ -410,7 +419,7 @@ const abrirNotificacao = async (notificacao: NotificacaoData): Promise<void> => 
 
   const rotasPorTipo: Record<string, string> = {
     pedido: '/mobile/meus-pedidos',
-    proposta: '/mobile/meus-pedidos',
+    proposta: '/mobile/propostas-recebidas',
     avaliacao: '/mobile/lista-prestadores',
     favorito: '/mobile/favoritos',
     promocao: '/mobile/promocoes',
@@ -423,28 +432,36 @@ const abrirNotificacao = async (notificacao: NotificacaoData): Promise<void> => 
   void router.push(rota);
 };
 
-// ✅ Carregar dados do perfil
+// 🔥 Carregar contagem de propostas usando o store
+const carregarPropostasCount = async (): Promise<void> => {
+  try {
+    const count = await propostasStore.contarPropostasPendentes();
+    propostasCount.value = count;
+  } catch (error) {
+    console.error('Erro ao carregar contagem de propostas:', error);
+    propostasCount.value = 0;
+  }
+};
+
+// Carregar dados do perfil
 const carregarPerfil = async () => {
   try {
     await perfilStore.fetchPerfil();
-    console.log('Perfil carregado:', perfilStore.userData);
   } catch (error) {
     console.error('Erro ao carregar perfil:', error);
   }
 };
 
-// ✅ Watch para quando o perfil mudar (após upload de foto)
+// Watch para quando o perfil mudar (após upload de foto)
 watch(() => perfilStore.userData?.foto, (novaFoto) => {
   if (novaFoto) {
     avatarError.value = false;
-    console.log('Foto do perfil atualizada:', novaFoto);
   }
 });
 
 onMounted(async () => {
-  // ✅ Carregar perfil primeiro para ter a foto
   await carregarPerfil();
-
+  await carregarPropostasCount();
   void layoutStore.carregarDadosIniciais();
   layoutStore.iniciarPollingNotificacoes(30000);
   window.addEventListener('scroll', onScroll, { passive: true });
@@ -455,8 +472,6 @@ onUnmounted(() => {
   window.removeEventListener('scroll', onScroll);
 });
 </script>
-
-
 
 <style scoped lang="scss">
 // =====================
@@ -671,9 +686,6 @@ $radius-xs: 8px;
   }
 }
 
-// ==========================================
-// CORREÇÃO DAS CORES DAS NOTIFICAÇÕES (DROPDOWN)
-// ==========================================
 .notifications-card {
   background: $ink !important;
   color: #fff;
@@ -697,7 +709,6 @@ $radius-xs: 8px;
     }
   }
 
-  // ✅ CORREÇÃO: texto das notificações em branco
   .q-item__label {
     color: rgba(255, 255, 255, 0.85) !important;
 
@@ -741,20 +752,6 @@ $radius-xs: 8px;
   border-left: 3px solid $accent;
 }
 
-.notification-item {
-  border-radius: 10px;
-  margin: 2px;
-
-  &:hover {
-    background: rgba(255,255,255,0.05);
-  }
-}
-
-.notification-unread {
-  background: rgba($accent, 0.08);
-  border-left: 3px solid $accent;
-}
-
 // =====================
 // PAGE CONTAINER
 // =====================
@@ -765,7 +762,7 @@ $radius-xs: 8px;
 }
 
 // =====================
-// FOOTER TABS
+// FOOTER TABS (5 TABS)
 // =====================
 .ea-footer-tabs {
   background: $ink !important;
@@ -781,23 +778,30 @@ $radius-xs: 8px;
   background: $ink;
   color: rgba(255,255,255,0.6);
   height: 60px;
+  display: flex;
+  justify-content: space-around;
 }
 
 .ea-tab-item {
   min-height: 60px;
   transition: all 0.2s ease;
   color: rgba(255,255,255,0.6);
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px;
 
   :deep(.q-tab__icon) {
-    font-size: 22px;
+    font-size: 20px;
     margin-bottom: 2px;
     color: rgba(255,255,255,0.5);
   }
 
   :deep(.q-tab__label) {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     color: rgba(255,255,255,0.5);
+    white-space: nowrap;
   }
 
   &:active {
@@ -818,16 +822,23 @@ $radius-xs: 8px;
   }
 }
 
+// 🔥 BADGE DAS PROPOSTAS NO FOOTER
+.tab-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 9px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 50%;
+}
+
 // =====================
 // NOTIFICAÇÕES MODAL
 // =====================
 .notifications-dialog :deep(.q-dialog__inner) {
   margin-top: 56px;
-}
-
-.notification-unread {
-  background: rgba($accent, 0.1);
-  border-left: 3px solid $accent;
 }
 
 // =====================
@@ -859,17 +870,20 @@ $radius-xs: 8px;
   }
 }
 
+@media (max-width: 400px) {
+  .ea-tab-item {
+    :deep(.q-tab__icon) {
+      font-size: 18px;
+    }
+    :deep(.q-tab__label) {
+      font-size: 9px;
+    }
+  }
+}
+
 @media (max-width: 360px) {
   .ea-logo__text {
     font-size: 0.85rem;
-  }
-
-  .ea-tab-item :deep(.q-tab__icon) {
-    font-size: 20px;
-  }
-
-  .ea-tab-item :deep(.q-tab__label) {
-    font-size: 10px;
   }
 
   .notifications-card {

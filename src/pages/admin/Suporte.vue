@@ -46,7 +46,7 @@
               <q-icon name="confirmation_number" size="28px" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ formatNumber(estatisticas.total) }}</div>
+              <div class="stat-value">{{ formatNumber(estatisticas?.total || 0) }}</div>
               <div class="stat-label">Total Tickets</div>
             </div>
           </div>
@@ -55,7 +55,7 @@
               <q-icon name="error" size="28px" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ formatNumber(estatisticas.abertos) }}</div>
+              <div class="stat-value">{{ formatNumber(estatisticas?.abertos || 0) }}</div>
               <div class="stat-label">Abertos</div>
             </div>
           </div>
@@ -64,7 +64,7 @@
               <q-icon name="pending" size="28px" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ formatNumber(estatisticas.em_andamento) }}</div>
+              <div class="stat-value">{{ formatNumber(estatisticas?.em_andamento || 0) }}</div>
               <div class="stat-label">Em Andamento</div>
             </div>
           </div>
@@ -73,8 +73,30 @@
               <q-icon name="priority_high" size="28px" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ formatNumber(estatisticas.urgentes) }}</div>
+              <div class="stat-value">{{ formatNumber(estatisticas?.urgentes || 0) }}</div>
               <div class="stat-label">Urgentes</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção de Categorias -->
+        <div class="categorias-section" v-if="estatisticas?.tickets_por_categoria">
+          <div class="categorias-header">
+            <q-icon name="category" size="20px" color="primary" />
+            <span class="categorias-title">Distribuição por Categoria</span>
+          </div>
+          <div class="categorias-grid">
+            <div
+              v-for="(count, categoria) in estatisticas.tickets_por_categoria"
+              :key="categoria"
+              class="categoria-item"
+            >
+              <span class="categoria-nome">{{ getCategoriaLabel(categoria) }}</span>
+              <span class="categoria-count">{{ count }}</span>
+            </div>
+            <div v-if="Object.keys(estatisticas.tickets_por_categoria).length === 0" class="categoria-empty">
+              <q-icon name="info" size="16px" />
+              <span>Nenhuma categoria registrada</span>
             </div>
           </div>
         </div>
@@ -177,7 +199,7 @@
 
           <template v-slot:body-cell-categoria="props">
             <q-td :props="props">
-              {{ categoriaLabels[props.row.categoria] || props.row.categoria }}
+              {{ getCategoriaLabel(props.row.categoria) }}
             </q-td>
           </template>
 
@@ -396,9 +418,10 @@
               </div>
             </div>
             <div class="ticket-header-actions">
+              <!-- 🔥 CORRIGIDO: usando opcoesStatusFiltradas -->
               <q-select
                 v-model="ticketStatus"
-                :options="opcoesStatus.filter((s) => s.value !== '')"
+                :options="opcoesStatusFiltradas"
                 label="Status"
                 dense
                 outlined
@@ -407,9 +430,10 @@
                 map-options
                 @update:model-value="onStatusChange"
               />
+              <!-- 🔥 CORRIGIDO: usando opcoesPrioridadeFiltradas -->
               <q-select
                 v-model="ticketPrioridade"
-                :options="opcoesPrioridade.filter((p) => p.value !== '')"
+                :options="opcoesPrioridadeFiltradas"
                 label="Prioridade"
                 dense
                 outlined
@@ -438,9 +462,7 @@
           </div>
           <div class="info-row">
             <span class="info-label">Categoria:</span>
-            <span class="info-value">{{
-              categoriaLabels[ticketDetalhes?.categoria || ''] || ticketDetalhes?.categoria
-            }}</span>
+            <span class="info-value">{{ getCategoriaLabel(ticketDetalhes?.categoria || '') }}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Criado em:</span>
@@ -571,10 +593,7 @@
             </div>
             <div class="info-row">
               <strong>Categoria:</strong>
-              {{
-                categoriaLabels[ticketVisualizacao?.categoria || ''] ||
-                ticketVisualizacao?.categoria
-              }}
+              {{ getCategoriaLabel(ticketVisualizacao?.categoria || '') }}
             </div>
             <div class="info-row">
               <strong>Criado em:</strong> {{ formatarDataCompleta(ticketVisualizacao?.created_at) }}
@@ -594,8 +613,9 @@
     </q-dialog>
   </div>
 </template>
+
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { storeToRefs } from 'pinia';
 import {
@@ -620,8 +640,6 @@ const {
   opcoesStatus,
   opcoesPrioridade,
   opcoesCategoria,
-  // ❌ REMOVIDAS: statusColors, prioridadeColors, statusLabels, prioridadeLabels
-  categoriaLabels,
   temPaginaAnterior,
   temProximaPagina,
   totalNaoLidas,
@@ -652,7 +670,24 @@ const {
   marcarChatLidas,
 } = suporteStore;
 
-// Estados locais
+// ===================== COMPUTADOS SEGUROS =====================
+// 🔥 CORREÇÃO: Verifica se opcoesStatus existe antes de acessar .value
+const opcoesStatusFiltradas = computed(() => {
+  if (!opcoesStatus || typeof opcoesStatus.value === 'undefined' || !Array.isArray(opcoesStatus.value)) {
+    return [];
+  }
+  return opcoesStatus.value.filter((s: { value: string }) => s.value !== '');
+});
+
+// 🔥 CORREÇÃO: Verifica se opcoesPrioridade existe antes de acessar .value
+const opcoesPrioridadeFiltradas = computed(() => {
+  if (!opcoesPrioridade || typeof opcoesPrioridade.value === 'undefined' || !Array.isArray(opcoesPrioridade.value)) {
+    return [];
+  }
+  return opcoesPrioridade.value.filter((p: { value: string }) => p.value !== '');
+});
+
+// ===================== ESTADOS LOCAIS =====================
 const abaAtual = ref('tickets');
 const ticketModalVisible = ref(false);
 const detalhesModalVisible = ref(false);
@@ -676,7 +711,22 @@ const tableColumns = [
   { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' as const },
 ];
 
-// Funções auxiliares
+// ===================== FUNÇÕES AUXILIARES =====================
+
+// 🔥 FUNÇÃO PARA OBTER LABEL DA CATEGORIA
+const getCategoriaLabel = (categoria: string): string => {
+  if (!categoria) return '—';
+  const labels: Record<string, string> = {
+    tecnico: 'Problema Técnico',
+    duvida: 'Dúvida',
+    reclamacao: 'Reclamação',
+    sugestao: 'Sugestão',
+    financeiro: 'Financeiro',
+    outros: 'Outros',
+  };
+  return labels[categoria] || categoria;
+};
+
 const formatNumber = (num: number): string => new Intl.NumberFormat('pt-PT').format(num);
 
 const getAvatarUrl = (nome: string): string => {
@@ -744,7 +794,7 @@ const getPrioridadeIcon = (prioridade: string): string => {
   return icons[prioridade] || 'flag';
 };
 
-// ✅ Funções seguras para acessar cores e labels
+// Funções para cores e labels
 const getStatusColor = (status: string): string => {
   const colorMap: Record<string, string> = {
     aberto: 'negative',
@@ -799,7 +849,7 @@ const scrollToBottomChat = async (): Promise<void> => {
   }
 };
 
-// Ações de filtro
+// ===================== AÇÕES DE FILTRO =====================
 const onSearchChange = (value: string | number | null): void => {
   setFiltro('search', String(value ?? ''));
 };
@@ -816,7 +866,7 @@ const handleLimparFiltros = (): void => {
   limparFiltros();
 };
 
-// Ações do ticket
+// ===================== AÇÕES DO TICKET =====================
 const abrirTicket = async (ticket: Ticket): Promise<void> => {
   const dados = await buscarTicket(ticket.id);
   if (dados) {
@@ -866,7 +916,6 @@ const enviarResposta = async (): Promise<void> => {
   }
 };
 
-// ✅ CORRIGIDO: onOk sem async/await direto
 const confirmarFecharTicket = (): void => {
   $q.dialog({
     title: 'Fechar ticket',
@@ -888,7 +937,6 @@ const executarFecharTicket = async (): Promise<void> => {
   }
 };
 
-// ✅ CORRIGIDO: responderDoDetalhes com void
 const responderDoDetalhes = (): void => {
   if (ticketVisualizacao.value) {
     detalhesModalVisible.value = false;
@@ -896,7 +944,6 @@ const responderDoDetalhes = (): void => {
   }
 };
 
-// ✅ CORRIGIDO: onOk sem async/await direto
 const confirmarExclusao = (id: number): void => {
   $q.dialog({
     title: 'Confirmar exclusão',
@@ -915,7 +962,7 @@ const executarExclusao = async (id: number): Promise<void> => {
   }
 };
 
-// Ações do Chat
+// ===================== AÇÕES DO CHAT =====================
 const selecionarChat = async (ticket: ChatTicket): Promise<void> => {
   if (chatSelecionado.value) {
     pararPolling();
@@ -937,7 +984,6 @@ const enviarChatMensagemFn = async (): Promise<void> => {
   }
 };
 
-// Funções wrapper para evitar promises no watch
 const carregarChatAba = (): void => {
   void carregarChatTickets();
 };
@@ -947,7 +993,7 @@ const limparChatSelecionado = (): void => {
   chatSelecionado.value = null;
 };
 
-// ✅ CORRIGIDO: watch com void
+// ===================== WATCHERS =====================
 watch(abaAtual, (novaAba) => {
   if (novaAba === 'chat') {
     carregarChatAba();
@@ -956,7 +1002,7 @@ watch(abaAtual, (novaAba) => {
   }
 });
 
-// ✅ CORRIGIDO: onMounted com void
+// ===================== CICLO DE VIDA =====================
 onMounted(() => {
   void carregarTickets();
   void carregarEstatisticas();
@@ -1011,7 +1057,7 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .stat-card {
@@ -1067,6 +1113,68 @@ onUnmounted(() => {
       font-size: 13px;
       color: #6b7280;
       margin-top: 4px;
+    }
+  }
+}
+
+// Seção de Categorias
+.categorias-section {
+  background: white;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  .categorias-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    .categorias-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: #374151;
+    }
+  }
+
+  .categorias-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .categoria-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f3f4f6;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+
+      .categoria-nome {
+        color: #374151;
+      }
+
+      .categoria-count {
+        background: #667eea;
+        color: white;
+        font-weight: 600;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        min-width: 20px;
+        text-align: center;
+      }
+    }
+
+    .categoria-empty {
+      color: #9ca3af;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 0;
     }
   }
 }
@@ -1683,6 +1791,13 @@ onUnmounted(() => {
 
   .chat-area {
     min-height: 400px;
+  }
+
+  .categorias-grid {
+    .categoria-item {
+      font-size: 12px;
+      padding: 4px 10px;
+    }
   }
 }
 </style>

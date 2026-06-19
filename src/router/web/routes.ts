@@ -57,8 +57,9 @@ const routes: RouteRecordRaw[] = [
       { path: 'enderecos', component: () => import('pages/mobile/client/Enderecos.vue') },
       { path: 'configuracoes', component: () => import('pages/mobile/client/Configuracoes.vue') },
       { path: 'notificacoes', component: () => import('pages/mobile/client/Notificacoes.vue') },
-      {
-  path: 'suporte',
+      { path: 'propostas-recebidas', component: () => import('pages/mobile/client/PropostasRecebidas.vue') },
+      {path: 'suporte',
+
   component: () => import('pages/mobile/Suporte.vue'),
 }
     ],
