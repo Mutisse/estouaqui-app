@@ -52,7 +52,6 @@
     <!-- CONTEÚDO REAL -->
     <template v-else>
       <template v-if="dashboardStore.dashboard">
-
         <!-- Stats principais -->
         <div class="stats-grid">
           <div
@@ -77,11 +76,7 @@
 
         <!-- Stats secundárias -->
         <div class="sec-grid">
-          <div
-            v-for="card in dashboardStore.cardsSecundarios"
-            :key="card.title"
-            class="sec-card"
-          >
+          <div v-for="card in dashboardStore.cardsSecundarios" :key="card.title" class="sec-card">
             <div class="sec-icon" :class="`si-${card.colorKey}`">
               <q-icon :name="card.icon" size="20px" />
             </div>
@@ -97,7 +92,14 @@
           <div class="card">
             <div class="card-head">
               <span class="card-title">Atividade — últimos 7 dias</span>
-              <q-btn flat dense no-caps label="Ver relatório →" class="card-link" to="/admin/relatorios" />
+              <q-btn
+                flat
+                dense
+                no-caps
+                label="Ver relatório →"
+                class="card-link"
+                to="/admin/relatorios"
+              />
             </div>
             <div class="card-body">
               <div class="bars-wrap">
@@ -107,7 +109,10 @@
                   class="bar-col"
                 >
                   <div class="bar-v">{{ item.valor }}</div>
-                  <div class="bar-b" :style="{ height: item.altura + 'px', background: item.cor }"></div>
+                  <div
+                    class="bar-b"
+                    :style="{ height: item.altura + 'px', background: item.cor }"
+                  ></div>
                   <div class="bar-d">{{ item.dia }}</div>
                 </div>
                 <div v-if="dashboardStore.atividadeFormatada.length === 0" class="no-data-text">
@@ -132,12 +137,17 @@
                   <span class="dist-val">{{ formatNumber(tipo.value) }}</span>
                 </div>
                 <div class="dist-bar">
-                  <div class="dist-fill" :style="{ width: tipo.percent + '%', background: tipo.color }"></div>
+                  <div
+                    class="dist-fill"
+                    :style="{ width: tipo.percent + '%', background: tipo.color }"
+                  ></div>
                 </div>
               </div>
               <div class="dist-total">
                 <span class="dt-lbl">Total de utilizadores</span>
-                <span class="dt-val">{{ formatNumber(dashboardStore.dashboard.total_usuarios || 0) }}</span>
+                <span class="dt-val">{{
+                  formatNumber(dashboardStore.dashboard.total_usuarios || 0)
+                }}</span>
               </div>
             </div>
           </div>
@@ -148,7 +158,14 @@
           <div class="card">
             <div class="card-head">
               <span class="card-title">Últimos utilizadores</span>
-              <q-btn flat dense no-caps label="Ver todos →" class="card-link" to="/admin/utilizadores" />
+              <q-btn
+                flat
+                dense
+                no-caps
+                label="Ver todos →"
+                class="card-link"
+                to="/admin/utilizadores"
+              />
             </div>
             <div class="list-wrap">
               <div
@@ -180,7 +197,14 @@
           <div class="card">
             <div class="card-head">
               <span class="card-title">Serviços recentes</span>
-              <q-btn flat dense no-caps label="Ver todos →" class="card-link" to="/admin/servicos" />
+              <q-btn
+                flat
+                dense
+                no-caps
+                label="Ver todos →"
+                class="card-link"
+                to="/admin/servicos"
+              />
             </div>
             <div class="list-wrap">
               <div
@@ -213,15 +237,17 @@
           </div>
         </div>
 
-        <!-- Ações rápidas -->
+        <!-- 🔥 AÇÕES RÁPIDAS - COM RESTRIÇÕES -->
+        <!-- 🔥 AÇÕES RÁPIDAS - COM RESTRIÇÕES (CORRIGIDO) -->
         <div class="card">
           <div class="card-head">
             <span class="card-title">Ações rápidas</span>
           </div>
           <div class="actions-inner">
             <div class="actions-row">
+              <!-- 🔥 Ações disponíveis para todos (Admin e Root) -->
               <div
-                v-for="action in acoesRapidas"
+                v-for="action in acoesBasicas"
                 :key="action.label"
                 class="act-card"
                 @click="novaAcao(action.tipo)"
@@ -231,42 +257,74 @@
                 </div>
                 <div class="act-lbl">{{ action.label }}</div>
               </div>
+
+              <!-- 🔥 Ações APENAS para ROOT - usando template wrapper -->
+              <template v-if="isRoot">
+                <div
+                  v-for="action in acoesRoot"
+                  :key="action.label"
+                  class="act-card"
+                  @click="novaAcao(action.tipo)"
+                >
+                  <div class="act-icon" :class="`si-${action.colorKey}`">
+                    <q-icon :name="action.icon" size="22px" />
+                  </div>
+                  <div class="act-lbl">{{ action.label }}</div>
+                </div>
+              </template>
             </div>
           </div>
         </div>
-
       </template>
 
       <!-- Se não houver dashboard -->
       <div v-else class="no-data-container">
         <q-icon name="dashboard" size="64px" color="grey-5" />
         <p>Carregando dados do dashboard...</p>
-        <q-btn color="primary" label="Recarregar" @click="recarregar" :loading="dashboardStore.isLoading" />
+        <q-btn
+          color="primary"
+          label="Recarregar"
+          @click="recarregar"
+          :loading="dashboardStore.isLoading"
+        />
       </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAdminDashboardStore } from 'src/stores/admin/admin-dashboard-store';
+import { useAuthStore } from 'src/stores/login-store';
 import { useQuasar } from 'quasar';
 
 defineOptions({ name: 'AdminDashboard' });
 
 const router = useRouter();
 const dashboardStore = useAdminDashboardStore();
+const authStore = useAuthStore();
 const $q = useQuasar();
 
-// Config estática
-const acoesRapidas = [
+// ===================== 🔥 VERIFICAR SE É ROOT =====================
+const isRoot = computed(() => authStore.user?.tipo === 'root');
+
+// ===================== 🔥 AÇÕES POR TIPO DE USUÁRIO =====================
+
+// Ações básicas (disponíveis para todos - Admin e Root)
+const acoesBasicas = [
   { label: 'Novo Admin', icon: 'person_add', tipo: 'admin', colorKey: 'blue' },
   { label: 'Verificar Prestador', icon: 'handyman', tipo: 'prestador', colorKey: 'red' },
   { label: 'Nova Categoria', icon: 'category', tipo: 'categoria', colorKey: 'gold' },
   { label: 'Relatório', icon: 'receipt', tipo: 'relatorio', colorKey: 'green' },
+];
+
+// Ações exclusivas para ROOT
+const acoesRoot = [
   { label: 'Configurações', icon: 'settings', tipo: 'config', colorKey: 'slate' },
   { label: 'Suporte', icon: 'support', tipo: 'suporte', colorKey: 'red' },
+  { label: 'Backup', icon: 'backup', tipo: 'backup', colorKey: 'teal' },
+  { label: 'Logs do Sistema', icon: 'history', tipo: 'logs', colorKey: 'purple' },
 ];
 
 // Funções auxiliares para badges
@@ -275,7 +333,7 @@ const getUserBadgeClass = (tipo: string): string => {
     prestador: 'badge-pr',
     admin: 'badge-admin',
     root: 'badge-root',
-    cliente: 'badge-cl'
+    cliente: 'badge-cl',
   };
   return classes[tipo] || 'badge-cl';
 };
@@ -285,7 +343,7 @@ const getUserBadgeLabel = (tipo: string): string => {
     prestador: 'Prestador',
     admin: 'Admin',
     root: 'Root',
-    cliente: 'Cliente'
+    cliente: 'Cliente',
   };
   return labels[tipo] || tipo;
 };
@@ -295,11 +353,17 @@ const formatNumber = (num: number): string => new Intl.NumberFormat('pt-PT').for
 
 const formatNumberValue = (value: number | string, isCurrency?: boolean): string => {
   if (isCurrency) return formatMoney(value as number);
-  return typeof value === 'number' ? new Intl.NumberFormat('pt-PT').format(value || 0) : String(value || 0);
+  return typeof value === 'number'
+    ? new Intl.NumberFormat('pt-PT').format(value || 0)
+    : String(value || 0);
 };
 
 const formatMoney = (num: number): string =>
-  new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'MZN', minimumFractionDigits: 0 }).format(num || 0);
+  new Intl.NumberFormat('pt-PT', {
+    style: 'currency',
+    currency: 'MZN',
+    minimumFractionDigits: 0,
+  }).format(num || 0);
 
 const formatarData = (dataString: string): string => {
   if (!dataString) return '—';
@@ -325,7 +389,12 @@ const getAvatarStyle = (nome: string) => ({
 });
 
 const getInitials = (nome: string): string =>
-  (nome || '??').split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
+  (nome || '??')
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
 
 // Actions
 const verUtilizador = (id: number): void => {
@@ -348,6 +417,8 @@ const novaAcao = (tipo: string): void => {
     relatorio: '/admin/relatorios',
     config: '/admin/configuracoes',
     suporte: '/admin/suporte',
+    backup: '/admin/backups',
+    logs: '/admin/logs',
   };
   if (rotas[tipo]) {
     void router.push(rotas[tipo]);
@@ -364,13 +435,13 @@ onMounted(() => {
 
 <style scoped lang="scss">
 // ─── TOKENS ───────────────────────────────────────────────────────────────
-$a: #667EEA;
-$green: #10B981;
-$gold: #F59E0B;
-$red: #EF4444;
-$teal: #06B6D4;
-$purple: #764BA2;
-$slate: #607D8B;
+$a: #667eea;
+$green: #10b981;
+$gold: #f59e0b;
+$red: #ef4444;
+$teal: #06b6d4;
+$purple: #764ba2;
+$slate: #607d8b;
 $a-l: rgba(102, 126, 234, 0.09);
 $gl: rgba(16, 185, 129, 0.1);
 $gol: rgba(245, 158, 11, 0.1);
@@ -378,12 +449,12 @@ $rl: rgba(239, 68, 68, 0.1);
 $tl: rgba(6, 182, 212, 0.1);
 $pl: rgba(118, 75, 162, 0.1);
 $sll: #eceff1;
-$ink: #0D0D1A;
-$ink2: #3D3D55;
-$muted: #9898B2;
+$ink: #0d0d1a;
+$ink2: #3d3d55;
+$muted: #9898b2;
 $line: rgba(0, 0, 0, 0.07);
-$sur: #FFFFFF;
-$bg: #F2F2F7;
+$sur: #ffffff;
+$bg: #f2f2f7;
 $r: 12px;
 $rs: 8px;
 
@@ -395,8 +466,12 @@ $rs: 8px;
 
 // ─── SHIMMER ──────────────────────────────────────────────────────────────
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 %shimmer {
@@ -406,42 +481,111 @@ $rs: 8px;
   border-radius: 6px;
 }
 
-.skeleton-box { @extend %shimmer; }
-.s-icon { width: 40px; height: 40px; border-radius: 10px; }
-.s-badge { width: 48px; height: 22px; }
-.s-val { width: 80px; height: 28px; margin: 12px 0 6px; }
-.s-lbl { width: 110px; height: 12px; }
-.s-icon-sm { width: 38px; height: 38px; border-radius: $rs; }
-.s-val-sm { width: 60px; height: 20px; margin-bottom: 5px; }
-.s-lbl-sm { width: 80px; height: 11px; }
-.s-av { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; @extend %shimmer; }
-.s-nm { width: 120px; height: 13px; margin-bottom: 5px; }
-.s-em { width: 160px; height: 10px; }
-.s-bdg { width: 64px; height: 22px; border-radius: 10px; @extend %shimmer; }
+.skeleton-box {
+  @extend %shimmer;
+}
+.s-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+.s-badge {
+  width: 48px;
+  height: 22px;
+}
+.s-val {
+  width: 80px;
+  height: 28px;
+  margin: 12px 0 6px;
+}
+.s-lbl {
+  width: 110px;
+  height: 12px;
+}
+.s-icon-sm {
+  width: 38px;
+  height: 38px;
+  border-radius: $rs;
+}
+.s-val-sm {
+  width: 60px;
+  height: 20px;
+  margin-bottom: 5px;
+}
+.s-lbl-sm {
+  width: 80px;
+  height: 11px;
+}
+.s-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  @extend %shimmer;
+}
+.s-nm {
+  width: 120px;
+  height: 13px;
+  margin-bottom: 5px;
+}
+.s-em {
+  width: 160px;
+  height: 10px;
+}
+.s-bdg {
+  width: 64px;
+  height: 22px;
+  border-radius: 10px;
+  @extend %shimmer;
+}
 
 .skeleton-stat-card {
-  background: $sur; border-radius: $r; padding: 18px; border: 1px solid $line;
-  .skeleton-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  background: $sur;
+  border-radius: $r;
+  padding: 18px;
+  border: 1px solid $line;
+  .skeleton-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
 }
 
 .skeleton-sec-card {
-  background: $sur; border-radius: $r; padding: 14px 16px; border: 1px solid $line;
-  display: flex; align-items: center; gap: 12px;
+  background: $sur;
+  border-radius: $r;
+  padding: 14px 16px;
+  border: 1px solid $line;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .skeleton-chart {
-  height: 200px; background: $sur; border-radius: $r; border: 1px solid $line;
+  height: 200px;
+  background: $sur;
+  border-radius: $r;
+  border: 1px solid $line;
   @extend %shimmer;
 }
 
 .skeleton-list-card {
-  background: $sur; border-radius: $r; border: 1px solid $line; overflow: hidden;
+  background: $sur;
+  border-radius: $r;
+  border: 1px solid $line;
+  overflow: hidden;
 }
 
 .skeleton-list-item {
-  display: flex; align-items: center; gap: 11px;
-  padding: 12px 18px; border-bottom: 1px solid $line;
-  &:last-child { border-bottom: none; }
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 18px;
+  border-bottom: 1px solid $line;
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 // ─── STATS GRID ───────────────────────────────────────────────────────────
@@ -453,13 +597,17 @@ $rs: 8px;
 }
 
 .stat-card {
-  background: $sur; border-radius: $r; padding: 18px;
+  background: $sur;
+  border-radius: $r;
+  padding: 18px;
   border: 1px solid $line;
   transition: transform 0.2s;
   position: relative;
   overflow: hidden;
 
-  &:hover { transform: translateY(-2px); }
+  &:hover {
+    transform: translateY(-2px);
+  }
 
   &::after {
     content: '';
@@ -472,45 +620,101 @@ $rs: 8px;
     opacity: 0.07;
     pointer-events: none;
   }
-  &.sc-blue::after { background: $a; }
-  &.sc-green::after { background: $green; }
-  &.sc-gold::after { background: $gold; }
-  &.sc-teal::after { background: $teal; }
-  &.sc-red::after { background: $red; }
-  &.sc-purple::after { background: $purple; }
+  &.sc-blue::after {
+    background: $a;
+  }
+  &.sc-green::after {
+    background: $green;
+  }
+  &.sc-gold::after {
+    background: $gold;
+  }
+  &.sc-teal::after {
+    background: $teal;
+  }
+  &.sc-red::after {
+    background: $red;
+  }
+  &.sc-purple::after {
+    background: $purple;
+  }
 
-  &__top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
 }
 
 .stat-icon {
-  width: 40px; height: 40px; border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.stat-val { font-size: 26px; font-weight: 700; color: $ink; line-height: 1; margin-bottom: 4px; }
-.stat-lbl { font-size: 11px; color: $muted; }
+.stat-val {
+  font-size: 26px;
+  font-weight: 700;
+  color: $ink;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-lbl {
+  font-size: 11px;
+  color: $muted;
+}
 
 .stat-trend {
-  font-size: 11px; font-weight: 600;
+  font-size: 11px;
+  font-weight: 600;
   padding: 2px 7px;
   border-radius: 20px;
   display: flex;
   align-items: center;
   gap: 2px;
 }
-.trend-up { background: $gl; color: darken($green, 10%); }
-.trend-dn { background: $rl; color: darken($red, 10%); }
+.trend-up {
+  background: $gl;
+  color: darken($green, 10%);
+}
+.trend-dn {
+  background: $rl;
+  color: darken($red, 10%);
+}
 
 // ─── ICON COLOURS ─────────────────────────────────────────────────────────
-.si-blue { background: $a-l; color: $a; }
-.si-green { background: $gl; color: $green; }
-.si-gold { background: $gol; color: $gold; }
-.si-teal { background: $tl; color: $teal; }
-.si-red { background: $rl; color: $red; }
-.si-purple { background: $pl; color: $purple; }
-.si-slate { background: $sll; color: $slate; }
+.si-blue {
+  background: $a-l;
+  color: $a;
+}
+.si-green {
+  background: $gl;
+  color: $green;
+}
+.si-gold {
+  background: $gol;
+  color: $gold;
+}
+.si-teal {
+  background: $tl;
+  color: $teal;
+}
+.si-red {
+  background: $rl;
+  color: $red;
+}
+.si-purple {
+  background: $pl;
+  color: $purple;
+}
+.si-slate {
+  background: $sll;
+  color: $slate;
+}
 
 // ─── SEC GRID ─────────────────────────────────────────────────────────────
 .sec-grid {
@@ -529,7 +733,9 @@ $rs: 8px;
   align-items: center;
   gap: 12px;
   transition: transform 0.2s;
-  &:hover { transform: translateY(-1px); }
+  &:hover {
+    transform: translateY(-1px);
+  }
 }
 
 .sec-icon {
@@ -542,8 +748,17 @@ $rs: 8px;
   flex-shrink: 0;
 }
 
-.sec-val { font-size: 18px; font-weight: 700; color: $ink; line-height: 1; margin-bottom: 3px; }
-.sec-lbl { font-size: 11px; color: $muted; }
+.sec-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: $ink;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.sec-lbl {
+  font-size: 11px;
+  color: $muted;
+}
 
 // ─── CHARTS ROW ───────────────────────────────────────────────────────────
 .charts-row {
@@ -569,7 +784,11 @@ $rs: 8px;
   border-bottom: 1px solid $line;
 }
 
-.card-title { font-size: 13px; font-weight: 600; color: $ink; }
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: $ink;
+}
 
 .card-link {
   font-size: 11px;
@@ -577,10 +796,14 @@ $rs: 8px;
   font-weight: 500;
   padding: 3px 8px !important;
   border-radius: 6px !important;
-  &:hover { background: $a-l !important; }
+  &:hover {
+    background: $a-l !important;
+  }
 }
 
-.card-body { padding: 18px; }
+.card-body {
+  padding: 18px;
+}
 
 // ─── BARS ─────────────────────────────────────────────────────────────────
 .bars-wrap {
@@ -598,27 +821,51 @@ $rs: 8px;
   gap: 4px;
 }
 
-.bar-v { font-size: 10px; color: $muted; font-weight: 500; }
-.bar-b { width: 100%; border-radius: 5px 5px 0 0; min-height: 4px; transition: height 0.3s; }
-.bar-d { font-size: 10px; color: $muted; }
+.bar-v {
+  font-size: 10px;
+  color: $muted;
+  font-weight: 500;
+}
+.bar-b {
+  width: 100%;
+  border-radius: 5px 5px 0 0;
+  min-height: 4px;
+  transition: height 0.3s;
+}
+.bar-d {
+  font-size: 10px;
+  color: $muted;
+}
 
 // ─── DISTRIBUTION ─────────────────────────────────────────────────────────
-.dist-item { margin-bottom: 14px; }
+.dist-item {
+  margin-bottom: 14px;
+}
 
 .dist-head {
   display: flex;
   justify-content: space-between;
   margin-bottom: 5px;
 }
-.dist-lbl { font-size: 12px; color: $ink2; }
-.dist-val { font-size: 12px; font-weight: 600; color: $ink; }
+.dist-lbl {
+  font-size: 12px;
+  color: $ink2;
+}
+.dist-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: $ink;
+}
 
 .dist-bar {
   height: 6px;
   border-radius: 3px;
   background: $bg;
 }
-.dist-fill { height: 100%; border-radius: 3px; }
+.dist-fill {
+  height: 100%;
+  border-radius: 3px;
+}
 
 .dist-total {
   display: flex;
@@ -627,8 +874,15 @@ $rs: 8px;
   margin-top: 2px;
   border-top: 1px solid $line;
 }
-.dt-lbl { font-size: 12px; color: $ink2; }
-.dt-val { font-size: 14px; font-weight: 700; color: $a; }
+.dt-lbl {
+  font-size: 12px;
+  color: $ink2;
+}
+.dt-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: $a;
+}
 
 // ─── LISTS ROW ────────────────────────────────────────────────────────────
 .lists-row {
@@ -638,7 +892,11 @@ $rs: 8px;
   margin-bottom: 14px;
 }
 
-.list-wrap { max-height: 380px; overflow-y: auto; scrollbar-width: thin; }
+.list-wrap {
+  max-height: 380px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
 
 .list-item {
   display: flex;
@@ -648,8 +906,12 @@ $rs: 8px;
   border-bottom: 1px solid $line;
   cursor: pointer;
   transition: background 0.15s;
-  &:last-child { border-bottom: none; }
-  &:hover { background: $a-l; }
+  &:last-child {
+    border-bottom: none;
+  }
+  &:hover {
+    background: $a-l;
+  }
 }
 
 .li-av {
@@ -675,7 +937,10 @@ $rs: 8px;
   flex-shrink: 0;
 }
 
-.li-info { flex: 1; min-width: 0; }
+.li-info {
+  flex: 1;
+  min-width: 0;
+}
 .li-name {
   font-size: 13px;
   font-weight: 500;
@@ -684,11 +949,26 @@ $rs: 8px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.li-sub { font-size: 11px; color: $muted; }
+.li-sub {
+  font-size: 11px;
+  color: $muted;
+}
 
-.li-right { text-align: right; flex-shrink: 0; }
-.li-date { font-size: 10px; color: $muted; margin-top: 3px; }
-.li-price { font-size: 12px; font-weight: 700; color: $a; margin-bottom: 3px; }
+.li-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+.li-date {
+  font-size: 10px;
+  color: $muted;
+  margin-top: 3px;
+}
+.li-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: $a;
+  margin-bottom: 3px;
+}
 
 .li-badge {
   font-size: 10px;
@@ -698,17 +978,43 @@ $rs: 8px;
   white-space: nowrap;
   display: inline-block;
 }
-.badge-cl { background: $a-l; color: $a; }
-.badge-pr { background: $pl; color: $purple; }
-.badge-admin { background: $rl; color: $red; }
-.badge-root { background: #1f293720; color: #1f2937; }
-.badge-ok { background: $gl; color: darken($green, 12%); }
-.badge-pend { background: $gol; color: darken($gold, 20%); }
-.badge-prog { background: $a-l; color: $a; }
-.badge-cancel { background: $rl; color: darken($red, 10%); }
+.badge-cl {
+  background: $a-l;
+  color: $a;
+}
+.badge-pr {
+  background: $pl;
+  color: $purple;
+}
+.badge-admin {
+  background: $rl;
+  color: $red;
+}
+.badge-root {
+  background: #1f293720;
+  color: #1f2937;
+}
+.badge-ok {
+  background: $gl;
+  color: darken($green, 12%);
+}
+.badge-pend {
+  background: $gol;
+  color: darken($gold, 20%);
+}
+.badge-prog {
+  background: $a-l;
+  color: $a;
+}
+.badge-cancel {
+  background: $rl;
+  color: darken($red, 10%);
+}
 
 // ─── ACTIONS ──────────────────────────────────────────────────────────────
-.actions-inner { padding: 16px 18px; }
+.actions-inner {
+  padding: 16px 18px;
+}
 
 .actions-row {
   display: grid;
@@ -729,7 +1035,10 @@ $rs: 8px;
     transform: translateY(-3px);
     border-color: $a;
     background: $a-l;
-    .act-icon { background: $a; color: #fff; }
+    .act-icon {
+      background: $a;
+      color: #fff;
+    }
   }
 }
 
@@ -745,7 +1054,11 @@ $rs: 8px;
   transition: all 0.2s;
 }
 
-.act-lbl { font-size: 11px; font-weight: 500; color: $ink2; }
+.act-lbl {
+  font-size: 11px;
+  font-weight: 500;
+  color: $ink2;
+}
 
 // ─── NO DATA ──────────────────────────────────────────────────────────────
 .no-data-container {
@@ -773,21 +1086,37 @@ $rs: 8px;
 
 // ─── RESPONSIVE ───────────────────────────────────────────────────────────
 @media (max-width: 1280px) {
-  .stats-grid, .sec-grid { grid-template-columns: repeat(2, 1fr); }
-  .charts-row { grid-template-columns: 1fr; }
-  .actions-row { grid-template-columns: repeat(3, 1fr); }
+  .stats-grid,
+  .sec-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+  .actions-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 1024px) {
-  .lists-row { grid-template-columns: 1fr; }
+  .lists-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
-  .actions-row { grid-template-columns: repeat(2, 1fr); }
+  .actions-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 480px) {
-  .stats-grid, .sec-grid { grid-template-columns: 1fr; }
-  .actions-row { grid-template-columns: 1fr; }
+  .stats-grid,
+  .sec-grid {
+    grid-template-columns: 1fr;
+  }
+  .actions-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

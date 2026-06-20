@@ -84,7 +84,6 @@ export interface UpdateProfileData {
   raio_atendimento?: number;
 }
 
-// 🔥 Interface para Categoria Disponível (com campos obrigatórios)
 export interface CategoriaDisponivel {
   id: number;
   nome: string;
@@ -182,7 +181,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
       thursday: 'Quinta',
       friday: 'Sexta',
       saturday: 'Sábado',
-      sunday: 'Domingo'
+      sunday: 'Domingo',
     };
     return Object.entries(disponibilidade.value.horarios_padrao)
       .filter(([, horarios]) => horarios.length > 0)
@@ -264,7 +263,9 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     }
   };
 
-  const fetchDisponibilidade = async (forceRefresh = false): Promise<DisponibilidadeData | null> => {
+  const fetchDisponibilidade = async (
+    forceRefresh = false,
+  ): Promise<DisponibilidadeData | null> => {
     if (dadosCarregados.value && !forceRefresh && disponibilidade.value) {
       return disponibilidade.value;
     }
@@ -339,7 +340,9 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
 
   const addCategoria = async (categoriaId: number): Promise<boolean> => {
     try {
-      const response = await api.post('/prestador/perfil/categorias', { categoria_id: categoriaId });
+      const response = await api.post('/prestador/perfil/categorias', {
+        categoria_id: categoriaId,
+      });
       if (response.data?.success) {
         await fetchMinhasCategorias(true);
         return true;
@@ -398,7 +401,10 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     }
   };
 
-  const atualizarPortfolio = async (id: number, data: { titulo?: string; descricao?: string }): Promise<PortfolioItem | null> => {
+  const atualizarPortfolio = async (
+    id: number,
+    data: { titulo?: string; descricao?: string },
+  ): Promise<PortfolioItem | null> => {
     try {
       const response = await api.put(`/prestador/portfolio/${id}`, data);
       if (response.data?.success && response.data.data) {
@@ -436,17 +442,37 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     }
   };
 
-  // ===================== PERFIL =====================
+  // ===================== 🔥 PERFIL - CORRIGIDO (SEM 'any') =====================
 
+  /**
+   * 🔥 ATUALIZAR PERFIL - Envia todos os campos
+   */
   const updateProfile = async (data: UpdateProfileData): Promise<boolean> => {
     try {
-      const response = await api.put('/prestador/perfil', data);
+      // 🔥 CONSTRUIR OBJETO COM TODOS OS CAMPOS - TIPADO
+      const payload: UpdateProfileData = {};
+
+      if (data.nome !== undefined) payload.nome = data.nome;
+      if (data.telefone !== undefined) payload.telefone = data.telefone;
+      if (data.email !== undefined) payload.email = data.email;
+      if (data.profissao !== undefined) payload.profissao = data.profissao;
+      if (data.sobre !== undefined) payload.sobre = data.sobre;
+      if (data.endereco !== undefined) payload.endereco = data.endereco;
+      if (data.latitude !== undefined) payload.latitude = data.latitude;
+      if (data.longitude !== undefined) payload.longitude = data.longitude;
+      if (data.raio_atendimento !== undefined) payload.raio_atendimento = data.raio_atendimento;
+
+      console.log('📤 Atualizando perfil:', payload);
+
+      const response = await api.put('/prestador/perfil', payload);
+
       if (response.data?.success) {
         await fetchPerfilCompleto(true);
         return true;
       }
       return false;
-    } catch {
+    } catch (error) {
+      console.error('❌ Erro ao atualizar perfil:', error);
       return false;
     }
   };
@@ -506,63 +532,100 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     }
   };
 
-  // 🔥 BUSCAR TODAS AS CATEGORIAS (retorna CategoriaDisponivel[])
- // stores/prestador/prestador-perfil-store.ts
+  // ===================== 🔥 BUSCAR TODAS AS CATEGORIAS =====================
 
-// 🔥 CORRIGIDO - Sem usar 'any'
-const buscarTodasCategorias = async (): Promise<CategoriaDisponivel[]> => {
-  try {
-    const response = await api.get('/categorias');
-    if (response.data?.success && response.data.data) {
-      return response.data.data.map((cat: { id: number; nome: string; icone?: string; cor?: string; descricao?: string }) => ({
-        id: cat.id,
-        nome: cat.nome,
-        icone: cat.icone || 'category',
-        cor: cat.cor || 'primary',
-        descricao: cat.descricao || '',
-      }));
+  const buscarTodasCategorias = async (): Promise<CategoriaDisponivel[]> => {
+    try {
+      const response = await api.get('/categorias');
+      if (response.data?.success && response.data.data) {
+        return response.data.data.map(
+          (cat: {
+            id: number;
+            nome: string;
+            icone?: string;
+            cor?: string;
+            descricao?: string;
+          }) => ({
+            id: cat.id,
+            nome: cat.nome,
+            icone: cat.icone || 'category',
+            cor: cat.cor || 'primary',
+            descricao: cat.descricao || '',
+          }),
+        );
+      }
+      return [];
+    } catch (error) {
+      console.error('Erro ao buscar categorias:', error);
+      return [];
     }
-    return [];
-  } catch (error) {
-    console.error('Erro ao buscar categorias:', error);
-    return [];
-  }
-};
+  };
 
   return {
     // Estados
-    isLoading, error, perfil, portfolio, servicos, minhasCategorias,
-    disponibilidade, documentoVerificado, stats, dadosCarregados, ultimaAtualizacao,
+    isLoading,
+    error,
+    perfil,
+    portfolio,
+    servicos,
+    minhasCategorias,
+    disponibilidade,
+    documentoVerificado,
+    stats,
+    dadosCarregados,
+    ultimaAtualizacao,
 
     // Getters
-    nomeCompleto, email, telefone, profissao, sobre, endereco,
-    rating, totalAvaliacoes, foto,
-    latitude, longitude, raioAtendimento, disponivel,
+    nomeCompleto,
+    email,
+    telefone,
+    profissao,
+    sobre,
+    endereco,
+    rating,
+    totalAvaliacoes,
+    foto,
+    latitude,
+    longitude,
+    raioAtendimento,
+    disponivel,
     disponibilidadeHorariosFormatados,
 
     // READ
-    fetchPerfilCompleto, fetchStats, fetchMinhasCategorias, fetchDisponibilidade,
+    fetchPerfilCompleto,
+    fetchStats,
+    fetchMinhasCategorias,
+    fetchDisponibilidade,
 
     // SERVIÇOS
-    adicionarServico, atualizarServico, removerServico,
+    adicionarServico,
+    atualizarServico,
+    removerServico,
 
     // CATEGORIAS
-    addCategoria, removeCategoria, buscarTodasCategorias,
+    addCategoria,
+    removeCategoria,
+    buscarTodasCategorias,
 
     // PORTFÓLIO
-    addPortfolio, removePortfolio, atualizarPortfolio,
+    addPortfolio,
+    removePortfolio,
+    atualizarPortfolio,
 
     // FOTO
     updateAvatar,
 
-    // PERFIL
+    // 🔥 PERFIL (CORRIGIDO)
     updateProfile,
 
     // DISPONIBILIDADE
     updateDisponibilidade,
 
     // LOGOUT
-    logout, deleteAccount, limparStore, carregarTodosDados,
+    logout,
+    deleteAccount,
+    limparStore,
+    carregarTodosDados,
   };
 });
 

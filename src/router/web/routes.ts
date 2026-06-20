@@ -57,16 +57,18 @@ const routes: RouteRecordRaw[] = [
       { path: 'enderecos', component: () => import('pages/mobile/client/Enderecos.vue') },
       { path: 'configuracoes', component: () => import('pages/mobile/client/Configuracoes.vue') },
       { path: 'notificacoes', component: () => import('pages/mobile/client/Notificacoes.vue') },
-      { path: 'propostas-recebidas', component: () => import('pages/mobile/client/PropostasRecebidas.vue') },
-      {path: 'suporte',
-
-  component: () => import('pages/mobile/Suporte.vue'),
-}
+      {
+        path: 'propostas-recebidas',
+        component: () => import('pages/mobile/client/PropostasRecebidas.vue'),
+      },
+      {
+        path: 'suporte',
+        component: () => import('pages/mobile/Suporte.vue'),
+      },
     ],
   },
 
-  // Rotas Admin
-  // Rotas Admin - TELA INDEPENDENTE (sem AuthLayout)
+  // 🔥 Rotas Admin (CORRIGIDO)
   {
     path: '/admin/login',
     component: () => import('components/auth/AdminLogin.vue'),
@@ -79,6 +81,8 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: 'dashboard', component: () => import('pages/admin/Dashboard.vue') },
       { path: 'utilizadores', component: () => import('pages/admin/Utilizadores.vue') },
+      // 🔥 ROTA DO PERFIL DO UTILIZADOR (MOVIDA PARA CÁ)
+      { path: 'utilizadores/:id', component: () => import('pages/admin/PerfilUtilizador.vue') },
       { path: 'prestadores', component: () => import('pages/admin/Prestadores.vue') },
       { path: 'pedidos', component: () => import('pages/admin/Pedidos.vue') },
       { path: 'servicos', component: () => import('pages/admin/Servicos.vue') },
@@ -133,19 +137,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/mobile/prestador/PedidosDisponiveis.vue'),
       },
       { path: 'portfolio', component: () => import('pages/mobile/prestador/Portfolio.vue') },
-      // Na secão do prestador
       { path: 'precos', component: () => import('pages/mobile/prestador/PrestadorPrecos.vue') },
-      // Na secção do prestador
       {
         path: 'relatorio-financeiro',
         component: () => import('pages/mobile/prestador/RelatorioFinanceiro.vue'),
       },
-      // Para PRESTADOR (dentro do grupo /mobile/prestador)
-{
-  path: 'suporte',
-  component: () => import('pages/mobile/Suporte.vue'),
-
-},
+      {
+        path: 'suporte',
+        component: () => import('pages/mobile/Suporte.vue'),
+      },
+      // 🔥 REMOVIDA A ROTA DUPLICADA DAQUI
     ],
   },
 

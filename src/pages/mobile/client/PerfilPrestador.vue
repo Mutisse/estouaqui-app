@@ -317,7 +317,7 @@
             </div>
           </button>
 
-          <!-- 🔥 FORMULÁRIO EXPANSÍVEL 🔥 -->
+          <!-- 🔥 FORMULÁRIO EXPANSÍVEL - CORRIGIDO -->
           <transition name="slide-expand">
             <div v-if="formularioAberto" class="pedido-form-container">
               <div class="pedido-form">
@@ -329,25 +329,10 @@
                   </p>
                 </div>
 
-                <!-- Seleção de Serviço -->
+                <!-- 🔥 1. CATEGORIA - PRIMEIRO (OBRIGATÓRIO) -->
                 <div class="form-group">
-                  <label class="form-label">Serviço desejado</label>
-                  <select v-model="pedidoForm.servico_id" class="form-select">
-                    <option :value="null">Selecione um serviço (opcional)</option>
-                    <option
-                      v-for="servico in prestadorStore.servicosOrdenados"
-                      :key="servico.id"
-                      :value="servico.id"
-                    >
-                      {{ servico.nome }} - {{ prestadorStore.formatarPreco(servico.preco) }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- 🔥 CAMPO CATEGORIA -->
-                <div class="form-group" v-if="!pedidoForm.servico_id">
                   <label class="form-label">Categoria <span class="required">*</span></label>
-                  <select v-model="pedidoForm.categoria_id" class="form-select">
+                  <select v-model="pedidoForm.categoria_id" class="form-select" @change="onCategoriaChange">
                     <option :value="null">Selecione uma categoria</option>
                     <option
                       v-for="categoria in prestadorStore.prestador.categorias"
@@ -362,7 +347,40 @@
                   </div>
                 </div>
 
-                <!-- Descrição -->
+                <!-- 🔥 2. SERVIÇOS - APARECE APÓS SELECIONAR CATEGORIA -->
+                <div class="form-group" v-if="pedidoForm.categoria_id">
+                  <label class="form-label">
+                    Serviço desejado
+                    <span class="optional">(opcional)</span>
+                  </label>
+                  <select v-model="pedidoForm.servico_id" class="form-select">
+                    <option :value="null">Selecione um serviço (opcional)</option>
+                    <option
+                      v-for="servico in servicosFiltrados"
+                      :key="servico.id"
+                      :value="servico.id"
+                    >
+                      {{ servico.nome }} - {{ prestadorStore.formatarPreco(servico.preco) }}
+                    </option>
+                  </select>
+
+                  <!-- 🔥 MENSAGEM QUANDO NÃO HÁ SERVIÇOS -->
+                  <div v-if="servicosFiltrados.length === 0" class="form-hint">
+                    <span class="info">ℹ️ Nenhum serviço específico cadastrado para esta categoria</span>
+                  </div>
+
+                  <!-- 🔥 MOSTRA QUANTOS SERVIÇOS ENCONTRADOS -->
+                  <div v-else class="form-hint success">
+                    <span>✅ {{ servicosFiltrados.length }} serviço(s) disponível(is)</span>
+                  </div>
+                </div>
+
+                <!-- 🔥 3. MENSAGEM PARA SELECIONAR CATEGORIA PRIMEIRO -->
+                <div v-else class="form-hint info-box">
+                  <span>ℹ️ Selecione uma categoria para ver os serviços disponíveis</span>
+                </div>
+
+                <!-- 4. Descrição -->
                 <div class="form-group">
                   <label class="form-label"
                     >Descrição do serviço <span class="required">*</span></label
@@ -377,7 +395,7 @@
                   <div class="char-counter">{{ pedidoForm.descricao.length }}/500</div>
                 </div>
 
-                <!-- Data e Hora -->
+                <!-- 5. Data e Hora -->
                 <div class="form-row">
                   <div class="form-group half">
                     <label class="form-label">Data <span class="required">*</span></label>
@@ -394,7 +412,7 @@
                   </div>
                 </div>
 
-                <!-- Endereço -->
+                <!-- 6. Endereço -->
                 <div class="form-group">
                   <label class="form-label">Endereço <span class="required">*</span></label>
                   <input
@@ -622,7 +640,7 @@ const prestadorStore = usePrestadorStore();
 const prestadorId = computed(() => Number(route.params.id));
 
 // ============================================================
-// 🔥 IMAGEM DE CAPA - USANDO O BANNER 1
+// 🔥 IMAGEM DE CAPA
 // ============================================================
 const coverImage = '/baner/baner1.png';
 
@@ -653,13 +671,34 @@ const dataMinima = computed(() => {
   return hoje.toISOString().split('T')[0];
 });
 
-// Validação do formulário
-const formValido = computed(() => {
-  const temCategoria =
-    pedidoForm.value.servico_id !== null || pedidoForm.value.categoria_id !== null;
+// ============================================================
+// 🔥 SERVIÇOS FILTRADOS POR CATEGORIA
+// ============================================================
 
+// Computed para filtrar serviços pela categoria selecionada
+const servicosFiltrados = computed(() => {
+  if (!pedidoForm.value.categoria_id) return [];
+  if (!prestadorStore.prestador?.servicos) return [];
+
+  // 🔥 FILTRAR SERVIÇOS PELA CATEGORIA
+  return prestadorStore.prestador.servicos.filter(
+    servico => servico.categoria_id === pedidoForm.value.categoria_id
+  );
+});
+
+// Função chamada quando a categoria muda
+const onCategoriaChange = () => {
+  // Resetar o serviço selecionado quando mudar a categoria
+  pedidoForm.value.servico_id = null;
+};
+
+// ============================================================
+// 🔥 VALIDAÇÃO DO FORMULÁRIO
+// ============================================================
+
+const formValido = computed(() => {
   return (
-    temCategoria &&
+    pedidoForm.value.categoria_id !== null &&
     pedidoForm.value.descricao.trim().length >= 10 &&
     pedidoForm.value.data !== '' &&
     pedidoForm.value.hora !== '' &&
@@ -742,7 +781,7 @@ const verTodasAvaliacoes = () => {
 };
 
 // ============================================================
-// ENVIAR PEDIDO
+// 🔥 ENVIAR PEDIDO
 // ============================================================
 
 const enviarPedido = async () => {
@@ -763,38 +802,18 @@ const enviarPedido = async () => {
       data: string;
       hora: string;
       endereco: string;
-      servico_id?: number;
-      categoria_id?: number;
+      categoria_id: number;
+      servico_id?: number | null;
     } = {
       descricao: pedidoForm.value.descricao,
       data: pedidoForm.value.data,
       hora: pedidoForm.value.hora,
       endereco: pedidoForm.value.endereco,
+      categoria_id: pedidoForm.value.categoria_id!,
+      servico_id: pedidoForm.value.servico_id || null,
     };
 
-    if (pedidoForm.value.servico_id !== null) {
-      dadosPedido.servico_id = pedidoForm.value.servico_id;
-      const categoriaId =
-        pedidoForm.value.categoria_id || prestadorStore.prestador?.categorias?.[0]?.id;
-      if (categoriaId) {
-        dadosPedido.categoria_id = categoriaId;
-      }
-    } else if (pedidoForm.value.categoria_id !== null) {
-      dadosPedido.categoria_id = pedidoForm.value.categoria_id;
-    } else {
-      const primeiraCategoria = prestadorStore.prestador?.categorias?.[0]?.id;
-      if (primeiraCategoria) {
-        dadosPedido.categoria_id = primeiraCategoria;
-      } else {
-        $q.notify({
-          type: 'warning',
-          message: 'Prestador não possui categorias definidas',
-          position: 'top',
-        });
-        enviandoPedido.value = false;
-        return;
-      }
-    }
+    console.log('📤 Enviando pedido:', dadosPedido);
 
     const success = await prestadorStore.criarPedido(prestadorId.value, dadosPedido);
 
@@ -820,7 +839,7 @@ const enviarPedido = async () => {
       });
     }
   } catch (error) {
-    console.error('Erro ao enviar pedido:', error);
+    console.error('❌ Erro ao enviar pedido:', error);
     $q.notify({
       type: 'negative',
       message: 'Erro ao enviar pedido. Tente novamente.',
@@ -867,6 +886,7 @@ $accent-light: rgba(91, 75, 245, 0.1);
 $success: #10b981;
 $warning: #f59e0b;
 $danger: #ef4444;
+$info: #3b82f6;
 $dark: #0a0a0f;
 $gray: #6b7280;
 $gray-light: #f3f4f6;
@@ -878,158 +898,32 @@ $radius-xs: 8px;
 
 // ===================== SKELETON =====================
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-.skeleton-loading {
-  background: $gray-light;
-  min-height: 100vh;
-}
+.skeleton-loading { background: $gray-light; min-height: 100vh; }
+.skeleton-header { position: relative; min-height: 250px; }
+.skeleton-back-btn { position: absolute; top: 10px; left: 10px; width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.3); z-index: 10; }
+.skeleton-cover { height: 150px; background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton-avatar { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border: 4px solid white; z-index: 5; }
+.skeleton-name { position: absolute; top: 210px; left: 50%; transform: translateX(-50%); width: 150px; height: 24px; border-radius: 12px; background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton-rating { position: absolute; top: 245px; left: 50%; transform: translateX(-50%); width: 120px; height: 20px; border-radius: 10px; background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton-favorite-btn { margin: 16px auto; width: 180px; height: 40px; border-radius: 30px; background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton-info-cards { display: flex; gap: 12px; padding: 0 16px; margin-bottom: 16px; }
+.skeleton-info-card { flex: 1; height: 80px; background: white; border-radius: $radius-sm; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+.skeleton-section { background: white; margin: 12px; border-radius: $radius-sm; padding: 16px; }
+.skeleton-line { height: 14px; border-radius: 7px; margin: 8px 0; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.skeleton-chip { width: 100px; height: 32px; border-radius: 16px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton-servico { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid $border; }
+.skeleton-servico-icon { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton-servico-info { flex: 1; }
+.w-40 { width: 40%; }
+.w-60 { width: 60%; }
+.w-80 { width: 80%; }
 
-.skeleton-header {
-  position: relative;
-  min-height: 250px;
-}
-.skeleton-back-btn {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 10;
-}
-.skeleton-cover {
-  height: 150px;
-  background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.skeleton-avatar {
-  position: absolute;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border: 4px solid white;
-  z-index: 5;
-}
-.skeleton-name {
-  position: absolute;
-  top: 210px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 150px;
-  height: 24px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.skeleton-rating {
-  position: absolute;
-  top: 245px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 120px;
-  height: 20px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.skeleton-favorite-btn {
-  margin: 16px auto;
-  width: 180px;
-  height: 40px;
-  border-radius: 30px;
-  background: linear-gradient(90deg, #d0d0d0 25%, #e0e0e0 50%, #d0d0d0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.skeleton-info-cards {
-  display: flex;
-  gap: 12px;
-  padding: 0 16px;
-  margin-bottom: 16px;
-}
-.skeleton-info-card {
-  flex: 1;
-  height: 80px;
-  background: white;
-  border-radius: $radius-sm;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-.skeleton-section {
-  background: white;
-  margin: 12px;
-  border-radius: $radius-sm;
-  padding: 16px;
-}
-.skeleton-line {
-  height: 14px;
-  border-radius: 7px;
-  margin: 8px 0;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.skeleton-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-.skeleton-chip {
-  width: 100px;
-  height: 32px;
-  border-radius: 16px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.skeleton-servico {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid $border;
-}
-.skeleton-servico-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-.skeleton-servico-info {
-  flex: 1;
-}
-.w-40 {
-  width: 40%;
-}
-.w-60 {
-  width: 60%;
-}
-.w-80 {
-  width: 80%;
-}
-
-// =====================
-// LAYOUT PRINCIPAL
-// =====================
+// ===================== LAYOUT PRINCIPAL =====================
 .perfil-prestador-page {
   background: $gray-light;
   min-height: 100vh;
@@ -1037,9 +931,7 @@ $radius-xs: 8px;
   position: relative;
 }
 
-// =====================
-// PROFILE HEADER
-// =====================
+// ===================== PROFILE HEADER =====================
 .profile-header {
   position: relative;
   min-height: 250px;
@@ -1052,7 +944,7 @@ $radius-xs: 8px;
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0,0,0,0.4);
     backdrop-filter: blur(8px);
     border: none;
     cursor: pointer;
@@ -1061,11 +953,7 @@ $radius-xs: 8px;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.6);
-      transform: scale(1.05);
-    }
+    &:hover { background: rgba(0,0,0,0.6); transform: scale(1.05); }
   }
 
   .cover-image {
@@ -1076,7 +964,7 @@ $radius-xs: 8px;
     .cover-overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.6));
+      background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.6));
     }
   }
 
@@ -1097,7 +985,7 @@ $radius-xs: 8px;
       border-radius: 50%;
       object-fit: cover;
       border: 4px solid white;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
   }
 
@@ -1108,16 +996,8 @@ $radius-xs: 8px;
     gap: 8px;
   }
 
-  .profile-name {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: $dark;
-    margin: 0;
-  }
-
-  .verified-icon {
-    margin-top: 4px;
-  }
+  .profile-name { font-size: 1.5rem; font-weight: 700; color: $dark; margin: 0; }
+  .verified-icon { margin-top: 4px; }
 
   .profile-rating {
     display: flex;
@@ -1125,20 +1005,12 @@ $radius-xs: 8px;
     justify-content: center;
     gap: 5px;
     margin-top: 5px;
-    .rating-value {
-      font-weight: 600;
-      color: $dark;
-    }
-    .rating-count {
-      color: $gray;
-      font-size: 0.85rem;
-    }
+    .rating-value { font-weight: 600; color: $dark; }
+    .rating-count { color: $gray; font-size: 0.85rem; }
   }
 }
 
-// =====================
-// FAVORITE BUTTON
-// =====================
+// ===================== FAVORITE BUTTON =====================
 .favorite-btn-wrapper {
   display: flex;
   justify-content: center;
@@ -1157,26 +1029,13 @@ $radius-xs: 8px;
     color: $gray;
     cursor: pointer;
     transition: all 0.2s;
-
-    &:hover {
-      border-color: $danger;
-      color: $danger;
-    }
-    &.active {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: $danger;
-      color: $danger;
-    }
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+    &:hover { border-color: $danger; color: $danger; }
+    &.active { background: rgba(239,68,68,0.1); border-color: $danger; color: $danger; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
 }
 
-// =====================
-// INFO CARDS
-// =====================
+// ===================== INFO CARDS =====================
 .info-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1189,30 +1048,14 @@ $radius-xs: 8px;
     padding: 12px 8px;
     border-radius: $radius-sm;
     text-align: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-
-    svg {
-      margin-bottom: 8px;
-    }
-    .info-value {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: $dark;
-      margin: 5px 0 2px;
-      word-break: break-word;
-    }
-    .info-label {
-      font-size: 0.65rem;
-      color: $gray;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    svg { margin-bottom: 8px; }
+    .info-value { font-size: 0.8rem; font-weight: 600; color: $dark; margin: 5px 0 2px; word-break: break-word; }
+    .info-label { font-size: 0.65rem; color: $gray; text-transform: uppercase; letter-spacing: 0.5px; }
   }
 }
 
-// =====================
-// SECTIONS
-// =====================
+// ===================== SECTIONS =====================
 .section {
   background: white;
   margin: 12px;
@@ -1227,23 +1070,14 @@ $radius-xs: 8px;
     padding-left: 10px;
     border-left: 3px solid $accent;
   }
-
-  .section-text {
-    color: $gray;
-    line-height: 1.6;
-    margin: 0;
-    font-size: 0.9rem;
-  }
+  .section-text { color: $gray; line-height: 1.6; margin: 0; font-size: 0.9rem; }
 }
 
-// =====================
-// CATEGORIAS
-// =====================
+// ===================== CATEGORIAS =====================
 .categorias-list {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-
   .categoria-chip {
     display: inline-flex;
     align-items: center;
@@ -1253,17 +1087,10 @@ $radius-xs: 8px;
     font-size: 0.8rem;
     font-weight: 500;
   }
-
-  .empty-chip {
-    color: $gray;
-    font-size: 0.85rem;
-    padding: 8px 0;
-  }
+  .empty-chip { color: $gray; font-size: 0.85rem; padding: 8px 0; }
 }
 
-// =====================
-// SERVIÇOS
-// =====================
+// ===================== SERVIÇOS =====================
 .servicos-list {
   .servico-item {
     display: flex;
@@ -1271,44 +1098,23 @@ $radius-xs: 8px;
     gap: 14px;
     padding: 14px 0;
     border-bottom: 1px solid $border;
-    &:last-child {
-      border-bottom: none;
-    }
+    &:last-child { border-bottom: none; }
 
     .servico-icon {
-      width: 44px;
-      height: 44px;
+      width: 44px; height: 44px;
       background: $accent-light;
       border-radius: $radius-xs;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-
-    .servico-info {
-      flex: 1;
-    }
-    .servico-nome {
-      font-weight: 500;
-      color: $dark;
-      margin-bottom: 2px;
-    }
-    .servico-preco {
-      font-size: 0.75rem;
-      color: $accent;
-      font-weight: 600;
-    }
-    .servico-duracao {
-      font-size: 0.75rem;
-      color: $gray;
-    }
+    .servico-info { flex: 1; }
+    .servico-nome { font-weight: 500; color: $dark; margin-bottom: 2px; }
+    .servico-preco { font-size: 0.75rem; color: $accent; font-weight: 600; }
+    .servico-duracao { font-size: 0.75rem; color: $gray; }
   }
 }
 
-// =====================
-// PORTFÓLIO
-// =====================
+// ===================== PORTFÓLIO =====================
 .portfolio-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1321,30 +1127,16 @@ $radius-xs: 8px;
     overflow: hidden;
     aspect-ratio: 1;
 
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.3s;
-    }
-
+    img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
     .portfolio-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.3s;
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.3s;
     }
-
     .portfolio-title {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
       padding: 8px;
       font-size: 0.7rem;
       color: white;
@@ -1352,24 +1144,15 @@ $radius-xs: 8px;
       opacity: 0;
       transition: opacity 0.3s;
     }
-
     &:hover {
-      img {
-        transform: scale(1.05);
-      }
-      .portfolio-overlay {
-        opacity: 1;
-      }
-      .portfolio-title {
-        opacity: 1;
-      }
+      img { transform: scale(1.05); }
+      .portfolio-overlay { opacity: 1; }
+      .portfolio-title { opacity: 1; }
     }
   }
 }
 
-// =====================
-// BOTÃO SOLICITAR SERVIÇO
-// =====================
+// ===================== BOTÃO SOLICITAR SERVIÇO =====================
 .pedido-section {
   background: white;
   border-radius: $radius;
@@ -1378,11 +1161,7 @@ $radius-xs: 8px;
   overflow: hidden;
   border: 1px solid $border;
   transition: all 0.3s;
-
-  &:focus-within {
-    border-color: $accent;
-    box-shadow: 0 0 0 3px rgba(91, 75, 245, 0.1);
-  }
+  &:focus-within { border-color: $accent; box-shadow: 0 0 0 3px rgba(91,75,245,0.1); }
 }
 
 .btn-solicitar-servico {
@@ -1393,10 +1172,7 @@ $radius-xs: 8px;
   cursor: pointer;
   transition: all 0.3s;
   position: relative;
-
-  &:hover {
-    background: linear-gradient(135deg, darken($accent, 5%), darken(#7c6bf7, 5%));
-  }
+  &:hover { background: linear-gradient(135deg, darken($accent,5%), darken(#7c6bf7,5%)); }
 
   .btn-content {
     display: flex;
@@ -1410,15 +1186,11 @@ $radius-xs: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255,255,255,0.15);
     border-radius: 50%;
-    width: 36px;
-    height: 36px;
+    width: 36px; height: 36px;
     flex-shrink: 0;
-
-    svg {
-      stroke: white;
-    }
+    svg { stroke: white; }
   }
 
   .btn-text {
@@ -1434,20 +1206,12 @@ $radius-xs: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-
-    svg {
-      stroke: white;
-    }
-
-    &.expanded {
-      transform: rotate(180deg);
-    }
+    svg { stroke: white; }
+    &.expanded { transform: rotate(180deg); }
   }
 }
 
-// =====================
-// FORMULÁRIO EXPANSÍVEL
-// =====================
+// ===================== FORMULÁRIO EXPANSÍVEL =====================
 .pedido-form-container {
   padding: 20px;
   background: #fafafa;
@@ -1460,7 +1224,6 @@ $radius-xs: 8px;
   max-height: 1000px;
   overflow: hidden;
 }
-
 .slide-expand-enter-from,
 .slide-expand-leave-to {
   max-height: 0;
@@ -1475,53 +1238,29 @@ $radius-xs: 8px;
 
   .form-header {
     margin-bottom: 4px;
-
-    h4 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: $dark;
-      margin: 0 0 4px 0;
-    }
-
-    .form-subtitle {
-      font-size: 0.85rem;
-      color: $gray;
-      margin: 0;
-
-      strong {
-        color: $accent;
-      }
-    }
+    h4 { font-size: 1rem; font-weight: 600; color: $dark; margin: 0 0 4px 0; }
+    .form-subtitle { font-size: 0.85rem; color: $gray; margin: 0; strong { color: $accent; } }
   }
 
   .form-group {
     display: flex;
     flex-direction: column;
     gap: 6px;
-
-    &.half {
-      flex: 1;
-    }
+    &.half { flex: 1; }
   }
 
   .form-row {
     display: flex;
     gap: 12px;
-
-    @media (max-width: 480px) {
-      flex-direction: column;
-    }
+    @media (max-width: 480px) { flex-direction: column; }
   }
 
   .form-label {
     font-size: 0.8rem;
     font-weight: 500;
     color: $dark;
-
-    .required {
-      color: $danger;
-      margin-left: 2px;
-    }
+    .required { color: $danger; margin-left: 2px; }
+    .optional { color: $gray; font-weight: 400; font-size: 0.7rem; }
   }
 
   .form-input,
@@ -1536,42 +1275,29 @@ $radius-xs: 8px;
     background: $white;
     transition: all 0.2s;
     color: $dark;
-
-    &:focus {
-      outline: none;
-      border-color: $accent;
-      box-shadow: 0 0 0 3px rgba(91, 75, 245, 0.1);
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+    &:focus { outline: none; border-color: $accent; box-shadow: 0 0 0 3px rgba(91,75,245,0.1); }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
   }
 
-  .form-textarea {
-    resize: vertical;
-    min-height: 80px;
-  }
-
-  .char-counter {
-    text-align: right;
-    font-size: 0.7rem;
-    color: $gray;
-  }
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .char-counter { text-align: right; font-size: 0.7rem; color: $gray; }
 
   .form-hint {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
+    margin-top: 4px;
+    .required { color: $danger; }
+    .warning { color: $warning; }
+    .info { color: $gray; }
+    .success { color: $success; }
+  }
+
+  .info-box {
+    background: rgba($info, 0.08);
+    padding: 10px 14px;
+    border-radius: $radius-xs;
+    border-left: 3px solid $info;
     color: $gray;
-    margin-top: -8px;
-
-    .required {
-      color: $danger;
-    }
-
-    .warning {
-      color: $warning;
-    }
+    font-size: 0.8rem;
   }
 
   .btn-submit {
@@ -1591,31 +1317,19 @@ $radius-xs: 8px;
     transition: all 0.3s;
     margin-top: 4px;
 
-    svg {
-      stroke: white;
-    }
+    svg { stroke: white; }
 
     &:hover:not(:disabled) {
       background: darken($accent, 8%);
       transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(91, 75, 245, 0.3);
+      box-shadow: 0 4px 16px rgba(91,75,245,0.3);
     }
-
-    &:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
+    &:active:not(:disabled) { transform: translateY(0); }
+    &:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
   }
 }
 
-// =====================
-// CONTATO
-// =====================
+// ===================== CONTATO =====================
 .contato-list {
   .contato-item {
     display: flex;
@@ -1625,33 +1339,20 @@ $radius-xs: 8px;
     border-bottom: 1px solid $border;
     cursor: pointer;
     transition: all 0.2s;
-    &:last-child {
-      border-bottom: none;
-    }
-    &:hover {
-      transform: translateX(4px);
-    }
+    &:last-child { border-bottom: none; }
+    &:hover { transform: translateX(4px); }
 
-    span {
-      color: $dark;
-      font-size: 0.9rem;
-    }
-    svg {
-      flex-shrink: 0;
-    }
+    span { color: $dark; font-size: 0.9rem; }
+    svg { flex-shrink: 0; }
   }
 }
 
-// =====================
-// AVALIAÇÕES
-// =====================
+// ===================== AVALIAÇÕES =====================
 .avaliacoes-list {
   .avaliacao-item {
     padding: 14px 0;
     border-bottom: 1px solid $border;
-    &:last-child {
-      border-bottom: none;
-    }
+    &:last-child { border-bottom: none; }
   }
 
   .avaliacao-header {
@@ -1661,35 +1362,17 @@ $radius-xs: 8px;
     margin-bottom: 10px;
 
     .avaliacao-avatar {
-      width: 40px;
-      height: 40px;
+      width: 40px; height: 40px;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
       color: white;
       flex-shrink: 0;
     }
-
-    .avaliacao-info {
-      flex: 1;
-    }
-    .avaliacao-nome {
-      font-weight: 500;
-      color: $dark;
-      font-size: 0.85rem;
-      margin-bottom: 4px;
-    }
-    .avaliacao-stars {
-      display: flex;
-      gap: 2px;
-    }
-    .avaliacao-data {
-      font-size: 0.7rem;
-      color: $gray;
-    }
+    .avaliacao-info { flex: 1; }
+    .avaliacao-nome { font-weight: 500; color: $dark; font-size: 0.85rem; margin-bottom: 4px; }
+    .avaliacao-stars { display: flex; gap: 2px; }
+    .avaliacao-data { font-size: 0.7rem; color: $gray; }
   }
 
   .avaliacao-comentario {
@@ -1717,19 +1400,11 @@ $radius-xs: 8px;
   color: $accent;
   cursor: pointer;
   transition: all 0.2s;
-
-  &:hover {
-    background: $accent-light;
-    border-color: $accent;
-  }
+  &:hover { background: $accent-light; border-color: $accent; }
 }
 
-// =====================
-// BOTTOM SPACER & FAB
-// =====================
-.bottom-spacer {
-  height: 80px;
-}
+// ===================== BOTTOM SPACER & FAB =====================
+.bottom-spacer { height: 80px; }
 
 .chat-fab {
   position: fixed !important;
@@ -1745,54 +1420,30 @@ $radius-xs: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(91, 75, 245, 0.4);
+  box-shadow: 0 4px 12px rgba(91,75,245,0.4);
   transition: all 0.2s;
-
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(91, 75, 245, 0.5);
-  }
+  &:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(91,75,245,0.5); }
 }
 
-// =====================
-// ERROR STATE
-// =====================
+// ===================== ERROR STATE =====================
 .error-state {
   text-align: center;
   padding: 60px 20px;
-
-  h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: $dark;
-    margin: 16px 0 20px;
-  }
-
+  h3 { font-size: 1.2rem; font-weight: 600; color: $dark; margin: 16px 0 20px; }
   .back-action {
-    background: $accent;
-    color: white;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 30px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    &:hover {
-      background: lighten($accent, 6%);
-      transform: translateY(-2px);
-    }
+    background: $accent; color: white; border: none;
+    padding: 10px 24px; border-radius: 30px;
+    font-size: 0.9rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+    &:hover { background: lighten($accent,6%); transform: translateY(-2px); }
   }
 }
 
-// =====================
-// DIALOG IMAGEM
-// =====================
+// ===================== DIALOG IMAGEM =====================
 :deep(.q-dialog__inner) {
-  background: rgba(0, 0, 0, 0.85) !important;
+  background: rgba(0,0,0,0.85) !important;
   backdrop-filter: blur(4px);
 }
-
 :deep(.q-card) {
   background: transparent !important;
   box-shadow: none !important;

@@ -15,12 +15,13 @@ export interface User {
   telefone: string;
   foto: string | null;
   tipo: 'root' | 'admin' | 'cliente' | 'prestador';
+  status?: 'ativo' | 'desativado' | 'bloqueado' | 'pendente' | 'reprovado';
+  verificado?: boolean;
+  disponivel?: boolean;
   profissao?: string;
   media_avaliacao?: number;
   total_avaliacoes?: number;
   sobre?: string;
-  verificado?: boolean;
-  disponivel?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -30,9 +31,10 @@ interface LoginResponse {
   token: string;
   user: User;
   message?: string;
+  aviso?: string;
 }
 
-// ===================== ENDPOINTS (direto do backend) =====================
+// ===================== ENDPOINTS =====================
 
 const AUTH_ENDPOINTS = {
   LOGIN: '/auth/login',
@@ -58,6 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false);
   const loading = ref(false);
   const initialized = ref(false);
+  const loginAviso = ref<string | null>(null);
 
   // ===================== PRIVATE FUNCTIONS =====================
 
@@ -86,7 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
       type,
       message,
       position: 'top',
-      timeout: 3000,
+      timeout: 4000,
     };
     if (icon) options.icon = icon;
     $q.notify(options);
@@ -100,6 +103,32 @@ export const useAuthStore = defineStore('auth', () => {
   const isCliente = computed(() => user.value?.tipo === 'cliente');
   const isPrestador = computed(() => user.value?.tipo === 'prestador');
 
+  // Status
+  const isAtivo = computed(() => user.value?.status === 'ativo');
+  const isPendente = computed(() => user.value?.status === 'pendente');
+  const isBloqueado = computed(() => user.value?.status === 'bloqueado');
+  const isDesativado = computed(() => user.value?.status === 'desativado');
+  const isReprovado = computed(() => user.value?.status === 'reprovado');
+
+  // 🔥 VERIFICAÇÃO - GETTERS ADICIONAIS
+  const isVerificado = computed(() => user.value?.verificado === true);
+  const isNaoVerificado = computed(() => user.value?.verificado === false);
+  const statusVerificacao = computed(() => {
+    if (user.value?.verificado === true) return 'Verificado';
+    if (user.value?.tipo === 'prestador' && user.value?.status === 'pendente') return 'Pendente';
+    return 'Não verificado';
+  });
+  const corVerificacao = computed(() => {
+    if (user.value?.verificado === true) return 'positive';
+    if (user.value?.tipo === 'prestador' && user.value?.status === 'pendente') return 'warning';
+    return 'grey';
+  });
+  const iconeVerificacao = computed(() => {
+    if (user.value?.verificado === true) return 'verified';
+    if (user.value?.tipo === 'prestador' && user.value?.status === 'pendente') return 'pending';
+    return 'info';
+  });
+
   // Dados básicos
   const userId = computed(() => user.value?.id || 0);
   const userNome = computed(() => user.value?.nome || 'Usuário');
@@ -107,6 +136,9 @@ export const useAuthStore = defineStore('auth', () => {
   const userTelefone = computed(() => user.value?.telefone || '');
   const userFoto = computed(() => user.value?.foto);
   const userTipo = computed(() => user.value?.tipo || 'cliente');
+  const userStatus = computed(() => user.value?.status || 'ativo');
+  const userVerificado = computed(() => user.value?.verificado || false);
+  const userDisponivel = computed(() => user.value?.disponivel || false);
 
   // Avatar com fallback
   const userAvatar = computed(() => {
@@ -120,8 +152,6 @@ export const useAuthStore = defineStore('auth', () => {
   const userMediaAvaliacao = computed(() => user.value?.media_avaliacao || 0);
   const userTotalAvaliacoes = computed(() => user.value?.total_avaliacoes || 0);
   const userSobre = computed(() => user.value?.sobre || '');
-  const userVerificado = computed(() => user.value?.verificado || false);
-  const userDisponivel = computed(() => user.value?.disponivel || false);
 
   // ===================== ACTIONS =====================
 
@@ -131,8 +161,12 @@ export const useAuthStore = defineStore('auth', () => {
     initialized.value = true;
   };
 
+  /**
+   * 🔥 LOGIN - COM VERIFICAÇÃO DE STATUS
+   */
   const login = async (emailOrPhone: string, password: string): Promise<boolean> => {
     loading.value = true;
+    loginAviso.value = null;
 
     try {
       const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrPhone);
@@ -151,16 +185,44 @@ export const useAuthStore = defineStore('auth', () => {
       );
 
       if (response.data?.success === true) {
-        user.value = response.data.user;
-        token.value = response.data.token;
+        const data = response.data;
+
+        // 🔥 VERIFICAR STATUS DO USUÁRIO
+        if (data.user.status) {
+          switch (data.user.status) {
+            case 'bloqueado':
+              showNotification('negative', '❌ A sua conta foi bloqueada. Contacte o suporte.', 'block');
+              return false;
+            case 'desativado':
+              showNotification('negative', '❌ A sua conta foi desativada. Contacte o suporte.', 'block');
+              return false;
+            case 'reprovado':
+              showNotification('negative', '❌ O seu cadastro foi reprovado. Contacte o suporte.', 'block');
+              return false;
+          }
+        }
+
+        user.value = data.user;
+        token.value = data.token;
         isAuthenticated.value = true;
 
-        localStorage.setItem('auth_token', response.data.token);
-        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+        // 🔥 SALVAR AVISO (para prestadores pendentes)
+        if (data.aviso) {
+          loginAviso.value = data.aviso;
+          showNotification('warning', data.aviso, 'info');
+        }
 
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
 
-        showNotification('positive', `Bem-vindo, ${user.value.nome}!`, 'check_circle');
+        api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+
+        // 🔥 MENSAGEM DE BOAS-VINDAS COM STATUS
+        let welcomeMsg = `Bem-vindo, ${user.value.nome}!`;
+        if (user.value.status === 'pendente') {
+          welcomeMsg = `Bem-vindo, ${user.value.nome}! Aguarde a verificação da sua conta.`;
+        }
+        showNotification('positive', welcomeMsg, 'check_circle');
         return true;
       }
 
@@ -168,7 +230,8 @@ export const useAuthStore = defineStore('auth', () => {
       return false;
     } catch (err) {
       const error = err as AxiosError<{ error?: string; message?: string }>;
-      showNotification('negative', error.response?.data?.error || error.response?.data?.message || 'Erro no login');
+      const msg = error.response?.data?.error || error.response?.data?.message || 'Erro no login';
+      showNotification('negative', msg);
       return false;
     } finally {
       loading.value = false;
@@ -179,6 +242,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     const currentToken = token.value;
     clearLocalData();
+    loginAviso.value = null;
     showNotification('positive', 'Logout realizado com sucesso!', 'logout');
 
     if (currentToken) {
@@ -195,6 +259,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
     token.value = null;
     isAuthenticated.value = false;
+    loginAviso.value = null;
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
     delete api.defaults.headers.common['Authorization'];
@@ -212,7 +277,14 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await api.get(AUTH_ENDPOINTS.VERIFY);
-      return response.data?.success === true;
+      if (response.data?.success) {
+        if (response.data.user) {
+          user.value = { ...user.value, ...response.data.user };
+          localStorage.setItem('auth_user', JSON.stringify(user.value));
+        }
+        return true;
+      }
+      return false;
     } catch {
       return false;
     }
@@ -328,12 +400,27 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     loading,
     initialized,
+    loginAviso,
 
     // Getters (tipo de usuário)
     isRoot,
     isAdmin,
     isCliente,
     isPrestador,
+
+    // Getters (status)
+    isAtivo,
+    isPendente,
+    isBloqueado,
+    isDesativado,
+    isReprovado,
+
+    // 🔥 Getters (verificação)
+    isVerificado,
+    isNaoVerificado,
+    statusVerificacao,
+    corVerificacao,
+    iconeVerificacao,
 
     // Getters (dados básicos)
     userId,
@@ -343,14 +430,15 @@ export const useAuthStore = defineStore('auth', () => {
     userFoto,
     userAvatar,
     userTipo,
+    userStatus,
+    userVerificado,
+    userDisponivel,
 
     // Getters (dados específicos - prestador)
     userProfissao,
     userMediaAvaliacao,
     userTotalAvaliacoes,
     userSobre,
-    userVerificado,
-    userDisponivel,
 
     // Actions
     initialize,

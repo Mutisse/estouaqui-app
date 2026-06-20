@@ -14,6 +14,7 @@ export interface Utilizador {
   email: string;
   telefone: string;
   tipo: 'cliente' | 'prestador' | 'admin' | 'root';
+  status: 'ativo' | 'desativado' | 'bloqueado' | 'pendente' | 'reprovado';
   verificado: boolean;
   disponivel: boolean;
   foto: string | null;
@@ -21,6 +22,30 @@ export interface Utilizador {
   sobre?: string;
   media_avaliacao?: number;
   total_avaliacoes?: number;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  raio_atendimento?: number;
+  categorias?: Array<{
+    id: number;
+    nome: string;
+    icone?: string;
+    cor?: string;
+    slug?: string;
+  }>;
+  servicos?: Array<{
+    id: number;
+    nome: string;
+    descricao?: string;
+    preco: number;
+    duracao: number;
+    categoria_id?: number;
+  }>;
+  configuracoes?: {
+    notificacoes_email?: boolean;
+    notificacoes_push?: boolean;
+    idioma?: string;
+    tema?: string;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +64,7 @@ export interface FiltrosUtilizadores {
   search: string;
   tipo: string;
   verificado: string;
+  status: string;
   page: number;
   perPage: number;
 }
@@ -56,6 +82,7 @@ interface ApiParams {
   search?: string;
   tipo?: string;
   verificado?: boolean;
+  status?: string;
 }
 
 // ===================== STORE =====================
@@ -63,7 +90,7 @@ interface ApiParams {
 export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => {
   const authStore = useAuthStore();
 
-  // Estados
+  // ===================== ESTADOS =====================
   const isLoading = ref(false);
   const isSaving = ref(false);
   const error = ref<string | null>(null);
@@ -82,13 +109,15 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
     search: '',
     tipo: '',
     verificado: '',
+    status: '',
     page: 1,
     perPage: 15,
   });
 
   const utilizadorSelecionado = ref<Utilizador | null>(null);
 
-  // Getters
+  // ===================== GETTERS =====================
+
   const totalUtilizadores = computed(() => paginacao.value.total);
   const temUtilizadores = computed(() => utilizadores.value.length > 0);
   const temProximaPagina = computed(() => paginacao.value.current_page < paginacao.value.last_page);
@@ -116,6 +145,10 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
       resultado = resultado.filter((u) => u.verificado === verificado);
     }
 
+    if (filtros.value.status) {
+      resultado = resultado.filter((u) => u.status === filtros.value.status);
+    }
+
     return resultado;
   });
 
@@ -140,6 +173,7 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
       if (filtros.value.search) params.search = filtros.value.search;
       if (filtros.value.tipo) params.tipo = filtros.value.tipo;
       if (filtros.value.verificado) params.verificado = filtros.value.verificado === 'sim';
+      if (filtros.value.status) params.status = filtros.value.status;
 
       const response = await api.get('/admin/utilizadores', { params });
 
@@ -157,8 +191,9 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
         utilizadores.value = response.data;
       }
     } catch (err) {
+      const axiosError = err as AxiosError;
       console.error('Erro ao carregar utilizadores:', err);
-      error.value = (err as AxiosError).message || 'Erro ao carregar utilizadores';
+      error.value = axiosError.message || 'Erro ao carregar utilizadores';
     } finally {
       isLoading.value = false;
     }
@@ -174,8 +209,9 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
       }
       return null;
     } catch (err) {
+      const axiosError = err as AxiosError;
       console.error('Erro ao buscar utilizador:', err);
-      error.value = (err as AxiosError).message || 'Erro ao buscar utilizador';
+      error.value = axiosError.message || 'Erro ao buscar utilizador';
       return null;
     } finally {
       isLoading.value = false;
@@ -194,8 +230,9 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
       }
       return null;
     } catch (err) {
+      const axiosError = err as AxiosError;
       console.error('Erro ao criar utilizador:', err);
-      error.value = (err as AxiosError).message || 'Erro ao criar utilador';
+      error.value = axiosError.message || 'Erro ao criar utilizador';
       return null;
     } finally {
       isSaving.value = false;
@@ -214,8 +251,9 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
       }
       return null;
     } catch (err) {
+      const axiosError = err as AxiosError;
       console.error('Erro ao atualizar utilizador:', err);
-      error.value = (err as AxiosError).message || 'Erro ao atualizar utilizador';
+      error.value = axiosError.message || 'Erro ao atualizar utilizador';
       return null;
     } finally {
       isSaving.value = false;
@@ -234,15 +272,19 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
       }
       return false;
     } catch (err) {
+      const axiosError = err as AxiosError;
       console.error('Erro ao excluir utilizador:', err);
-      error.value = (err as AxiosError).message || 'Erro ao excluir utilizador';
+      error.value = axiosError.message || 'Erro ao excluir utilizador';
       return false;
     } finally {
       isSaving.value = false;
     }
   };
 
-  // ✅ NOVA FUNÇÃO: Verificar utilizador (prestador)
+  // ==========================================
+  // 🔥 AÇÕES DE GESTÃO DE STATUS
+  // ==========================================
+
   const verificarUtilizador = async (id: number): Promise<boolean> => {
     isSaving.value = true;
     error.value = null;
@@ -255,18 +297,148 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
       }
       return false;
     } catch (err) {
+      const axiosError = err as AxiosError;
       console.error('Erro ao verificar utilizador:', err);
-      error.value = (err as AxiosError).message || 'Erro ao verificar utilizador';
+      error.value = axiosError.message || 'Erro ao verificar utilizador';
       return false;
     } finally {
       isSaving.value = false;
     }
   };
 
+  const aprovarUtilizador = async (id: number): Promise<boolean> => {
+    isSaving.value = true;
+    error.value = null;
+
+    try {
+      const response = await api.put(`/admin/utilizadores/${id}/aprovar`);
+      if (response.data?.success) {
+        await carregarUtilizadores(false);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      console.error('Erro ao aprovar utilizador:', err);
+      error.value = axiosError.message || 'Erro ao aprovar utilizador';
+      return false;
+    } finally {
+      isSaving.value = false;
+    }
+  };
+
+  const reprovarUtilizador = async (id: number): Promise<boolean> => {
+    isSaving.value = true;
+    error.value = null;
+
+    try {
+      const response = await api.put(`/admin/utilizadores/${id}/reprovar`);
+      if (response.data?.success) {
+        await carregarUtilizadores(false);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      console.error('Erro ao reprovar utilizador:', err);
+      error.value = axiosError.message || 'Erro ao reprovar utilizador';
+      return false;
+    } finally {
+      isSaving.value = false;
+    }
+  };
+
+  const ativarUtilizador = async (id: number): Promise<boolean> => {
+    isSaving.value = true;
+    error.value = null;
+
+    try {
+      const response = await api.put(`/admin/utilizadores/${id}/ativar`);
+      if (response.data?.success) {
+        await carregarUtilizadores(false);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      console.error('Erro ao ativar utilizador:', err);
+      error.value = axiosError.message || 'Erro ao ativar utilizador';
+      return false;
+    } finally {
+      isSaving.value = false;
+    }
+  };
+
+  const desativarUtilizador = async (id: number): Promise<boolean> => {
+    isSaving.value = true;
+    error.value = null;
+
+    try {
+      const response = await api.put(`/admin/utilizadores/${id}/desativar`);
+      if (response.data?.success) {
+        await carregarUtilizadores(false);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      console.error('Erro ao desativar utilizador:', err);
+      error.value = axiosError.message || 'Erro ao desativar utilizador';
+      return false;
+    } finally {
+      isSaving.value = false;
+    }
+  };
+
+  const bloquearUtilizador = async (id: number): Promise<boolean> => {
+    isSaving.value = true;
+    error.value = null;
+
+    try {
+      const response = await api.put(`/admin/utilizadores/${id}/bloquear`);
+      if (response.data?.success) {
+        await carregarUtilizadores(false);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      console.error('Erro ao bloquear utilizador:', err);
+      error.value = axiosError.message || 'Erro ao bloquear utilizador';
+      return false;
+    } finally {
+      isSaving.value = false;
+    }
+  };
+
+  const desbloquearUtilizador = async (id: number): Promise<boolean> => {
+    isSaving.value = true;
+    error.value = null;
+
+    try {
+      const response = await api.put(`/admin/utilizadores/${id}/desbloquear`);
+      if (response.data?.success) {
+        await carregarUtilizadores(false);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      console.error('Erro ao desbloquear utilizador:', err);
+      error.value = axiosError.message || 'Erro ao desbloquear utilizador';
+      return false;
+    } finally {
+      isSaving.value = false;
+    }
+  };
+
+  // ===================== FILTROS E PAGINAÇÃO =====================
+
   const setFiltro = (key: keyof FiltrosUtilizadores, value: string | number): void => {
     if (key === 'search') filtros.value.search = value as string;
     else if (key === 'tipo') filtros.value.tipo = value as string;
     else if (key === 'verificado') filtros.value.verificado = value as string;
+    else if (key === 'status') filtros.value.status = value as string;
     else if (key === 'page') filtros.value.page = value as number;
     else if (key === 'perPage') filtros.value.perPage = value as number;
 
@@ -281,6 +453,7 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
       search: '',
       tipo: '',
       verificado: '',
+      status: '',
       page: 1,
       perPage: 15,
     };
@@ -310,6 +483,7 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
       search: '',
       tipo: '',
       verificado: '',
+      status: '',
       page: 1,
       perPage: 15,
     };
@@ -318,7 +492,12 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
     error.value = null;
   };
 
+  // ==========================================
+  // 🔥 EXPORTAÇÕES
+  // ==========================================
+
   return {
+    // Estados
     isLoading,
     isSaving,
     error,
@@ -328,17 +507,31 @@ export const useAdminUtilizadoresStore = defineStore('adminUtilizadores', () => 
     paginacao,
     filtros,
     utilizadorSelecionado,
+
+    // Getters
     totalUtilizadores,
     temUtilizadores,
     temProximaPagina,
     temPaginaAnterior,
     utilizadoresFiltrados,
+
+    // CRUD
     carregarUtilizadores,
     buscarUtilizador,
     criarUtilizador,
     atualizarUtilizador,
     removerUtilizador,
-    verificarUtilizador, // ✅ ADICIONADO
+
+    // Ações de Status
+    verificarUtilizador,
+    aprovarUtilizador,
+    reprovarUtilizador,
+    ativarUtilizador,
+    desativarUtilizador,
+    bloquearUtilizador,
+    desbloquearUtilizador,
+
+    // Filtros e Paginação
     setFiltro,
     limparFiltros,
     mudarPagina,

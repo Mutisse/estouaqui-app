@@ -1,4 +1,5 @@
 // stores/client/cliente-prestador-store.ts
+
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from 'src/boot/axios';
@@ -18,6 +19,7 @@ export interface PrestadorServico {
   preco: number;
   duracao: number;
   tempo_estimado?: string;
+  categoria_id?: number;
 }
 
 export interface PrestadorAvaliacao {
@@ -58,6 +60,27 @@ export interface PrestadorData {
   portfolio: PortfolioItem[];
   avaliacoes: PrestadorAvaliacao[];
   created_at: string;
+}
+
+// 🔥 INTERFACE PARA CRIAÇÃO DE PEDIDO - TIPADA CORRETAMENTE
+export interface CriarPedidoData {
+  descricao: string;
+  data: string;
+  hora: string;
+  endereco: string;
+  servico_id?: number | null;
+  categoria_id?: number;
+}
+
+// 🔥 INTERFACE PARA PAYLOAD DO PEDIDO
+export interface PedidoPayload {
+  prestador_id: number;
+  categoria_id: number;
+  descricao: string;
+  data: string;
+  hora: string;
+  endereco: string;
+  servico_id?: number;
 }
 
 interface ApiErrorResponse {
@@ -446,33 +469,43 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     }
   };
 
-  // ===================== AÇÃO PARA CRIAR PEDIDO =====================
+  // ===================== 🔥 CRIAÇÃO DE PEDIDO - CORRIGIDO (SEM 'any') =====================
 
   const criarPedido = async (
     prestadorId: number,
-    data: {
-      descricao: string;
-      data: string;
-      hora: string;
-      endereco: string;
-      servico_id?: number;
-      categoria_id?: number;
-    },
+    data: CriarPedidoData,
   ): Promise<boolean> => {
     try {
-      const response = await api.post('/cliente/pedidos', {
+      // 🔥 CONSTRUIR PAYLOAD COM TIPO CORRETO
+      const payload: PedidoPayload = {
         prestador_id: prestadorId,
-        categoria_id: data.categoria_id,
-        servico_id: data.servico_id || null,
+        categoria_id: data.categoria_id || 0,
         descricao: data.descricao,
         data: data.data,
         hora: data.hora,
         endereco: data.endereco,
-      });
+      };
+
+      // 🔥 SÓ ADICIONAR servico_id SE FOR UM NÚMERO VÁLIDO
+      if (data.servico_id !== null && data.servico_id !== undefined) {
+        payload.servico_id = data.servico_id;
+      }
+
+      console.log('📤 Payload do pedido:', payload);
+
+      const response = await api.post('/cliente/pedidos', payload);
+
+      console.log('✅ Resposta do pedido:', response.data);
 
       return response.data?.success || false;
     } catch (error) {
-      console.error('Erro ao criar pedido:', error);
+      console.error('❌ Erro ao criar pedido:', error);
+
+      if (error instanceof AxiosError) {
+        const data = error.response?.data as ApiErrorResponse;
+        console.error('❌ Detalhes do erro:', data);
+      }
+
       return false;
     }
   };
@@ -578,7 +611,7 @@ export const usePrestadorStore = defineStore('clientePrestador', () => {
     enviarAvaliacao,
     reportarPrestador,
 
-    // Ação para criar pedido
+    // 🔥 Ação para criar pedido (CORRIGIDA - SEM 'any')
     criarPedido,
 
     // Utilitários

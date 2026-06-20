@@ -15,7 +15,7 @@
           <div class="brand-icon">EA</div>
           <div>
             <div class="brand-name">EstouAqui</div>
-            <div class="brand-tag">{{ isRoot ? 'Root Admin' : 'Gestor' }}</div>
+            <div class="brand-tag">{{ isRoot ? 'Root Admin' : 'Administrador' }}</div>
           </div>
         </div>
         <div class="sidebar-close" @click="sidebarAberta = false">
@@ -24,7 +24,7 @@
       </div>
 
       <nav class="sidebar-nav">
-        <!-- PRINCIPAL (NEGÓCIO) -->
+        <!-- PRINCIPAL -->
         <div class="nav-section">
           <div class="nav-section-label">Principal</div>
 
@@ -56,7 +56,7 @@
           </router-link>
         </div>
 
-        <!-- GESTÃO (NEGÓCIO) -->
+        <!-- GESTÃO -->
         <div class="nav-section">
           <div class="nav-section-label">Gestão</div>
 
@@ -92,8 +92,8 @@
           </router-link>
         </div>
 
-        <!-- SUPORTE (NEGÓCIO) -->
-        <div class="nav-section">
+        <!-- 🔥 SUPORTE - APENAS ROOT -->
+        <div v-if="isRoot" class="nav-section">
           <div class="nav-section-label">Suporte</div>
 
           <router-link to="/admin/suporte" class="nav-item" active-class="active" @click="sidebarAberta = false">
@@ -108,7 +108,7 @@
           </router-link>
         </div>
 
-        <!-- SISTEMA (APENAS ROOT) -->
+        <!-- SISTEMA - APENAS ROOT -->
         <div v-if="isRoot" class="nav-section">
           <div class="nav-section-label">Sistema</div>
 
@@ -186,7 +186,7 @@
             <span class="tb-shortcut">⌘K</span>
           </div>
 
-          <!-- DROPDOWN DE NOTIFICAÇÕES COM EFEITO DE ROTAÇÃO -->
+          <!-- DROPDOWN DE NOTIFICAÇÕES -->
           <q-btn-dropdown
             flat
             round
@@ -215,9 +215,10 @@
                 </button>
               </div>
 
+              <!-- 🔥 ALTERADO: Mostrar no máximo 5 notificações -->
               <div class="notification-list" v-if="notificacoes.length > 0">
                 <div
-                  v-for="notif in notificacoes.slice(0, 10)"
+                  v-for="notif in notificacoes.slice(0, 5)"
                   :key="notif.id"
                   class="notification-item"
                   :class="{ unread: notif.lida === 0 || notif.lida === false }"
@@ -229,7 +230,8 @@
                   <div class="notification-content">
                     <div class="notification-title">{{ notif.titulo }}</div>
                     <div class="notification-message">{{ truncarTexto(notif.mensagem, 60) }}</div>
-                    <div class="notification-time">{{ formatarDataRelativa(notif.created_at) }}</div>
+                    <!-- 🔥 ALTERADO: Mostrar horário completo -->
+                    <div class="notification-time">{{ formatarHorarioCompleto(notif.created_at) }}</div>
                   </div>
                   <div v-if="notif.lida === 0 || notif.lida === false" class="notification-unread-dot"></div>
                 </div>
@@ -268,6 +270,7 @@
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -298,7 +301,7 @@ const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 const adminStore = useAdminStore();
-const perfilStore = useAdminPerfilStore(); // ✅ Adicionar store de perfil
+const perfilStore = useAdminPerfilStore();
 const $q = useQuasar();
 
 // ==================== RESPONSIVIDADE =====================
@@ -320,26 +323,21 @@ const dropdownAberto = ref(false);
 // ===================== FOTO DO PERFIL =====================
 const fotoTimestamp = ref(Date.now());
 
-// ✅ CORRIGIDO: Buscar foto do perfilStore (mais atualizado)
 const fotoPerfil = computed(() => {
   const foto = perfilStore.perfil?.foto || authStore.user?.foto;
   if (foto && foto !== 'null' && foto !== '') {
-    // Se já tem URL completa
     if (foto.startsWith('http')) {
       return `${foto}${foto.includes('?') ? '&' : '?'}t=${fotoTimestamp.value}`;
     }
-    // Se é caminho relativo
     return `http://localhost:8000/storage/${foto}?t=${fotoTimestamp.value}`;
   }
   return '';
 });
 
-// ✅ Watch para quando a foto do perfil mudar
 watch(
   () => perfilStore.perfil?.foto,
   () => {
     fotoTimestamp.value = Date.now();
-    console.log('Foto do perfil atualizada:', perfilStore.perfil?.foto);
   },
   { immediate: true }
 );
@@ -425,22 +423,40 @@ const truncarTexto = (texto: string, max: number): string => {
   return texto.substring(0, max) + '...';
 };
 
-const formatarDataRelativa = (dataString: string): string => {
+// 🔥 NOVA FUNÇÃO: Formatar horário completo
+const formatarHorarioCompleto = (dataString: string): string => {
   if (!dataString) return '';
   const date = new Date(dataString);
   const hoje = new Date();
   const diffDias = Math.floor((hoje.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
-  if (diffDias === 0) return 'Hoje';
-  if (diffDias === 1) return 'Ontem';
-  if (diffDias < 7) return `${diffDias} dias atrás`;
-  return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+  // Se for hoje, mostrar apenas a hora
+  if (diffDias === 0) {
+    return `Hoje, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
+  // Se for ontem, mostrar "Ontem" + hora
+  if (diffDias === 1) {
+    return `Ontem, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
+  // Se for há menos de 7 dias, mostrar o dia da semana + hora
+  if (diffDias < 7) {
+    const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    return `${diasSemana[date.getDay()]}, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
+  // Para mais de 7 dias, mostrar data completa + hora
+  return date.toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }) + `, ${date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
 // ===================== DADOS DO USUÁRIO =====================
 const isRoot = computed(() => authStore.user?.tipo === 'root');
 
-// ✅ Buscar nome do perfilStore
 const adminNome = computed(() => {
   const nome = perfilStore.perfil?.nome || authStore.user?.nome;
   return nome?.split(' ')[0] || 'Administrador';
@@ -448,10 +464,9 @@ const adminNome = computed(() => {
 
 const adminRole = computed(() => {
   if (isRoot.value) return 'Root Administrator';
-  return 'Business Manager';
+  return 'Administrator';
 });
 
-// ✅ Buscar iniciais do perfilStore
 const adminInitials = computed(() => {
   const nome = perfilStore.perfil?.nome || authStore.user?.nome || 'AD';
   return nome
@@ -512,18 +527,17 @@ const focarBusca = () =>
   $q.notify({ type: 'info', message: 'Busca global em breve', position: 'top' });
 const atualizarDados = async (): Promise<void> => {
   await adminStore.recarregarDados();
-  await perfilStore.carregarPerfil(); // ✅ Atualizar perfil também
+  await perfilStore.carregarPerfil();
   await carregarNotificacoes();
   $q.notify({ type: 'positive', message: 'Dados atualizados!', position: 'top', timeout: 2000 });
 };
 
 const sair = async (): Promise<void> => {
   await authStore.logout();
-  perfilStore.limparStore(); // ✅ Limpar store de perfil
+  perfilStore.limparStore();
   void router.push('/admin/login');
 };
 
-// ✅ Carregar perfil ao montar o componente
 const carregarPerfil = async (): Promise<void> => {
   try {
     await perfilStore.carregarPerfil();
@@ -536,7 +550,7 @@ const carregarPerfil = async (): Promise<void> => {
 onMounted(async () => {
   await Promise.all([
     adminStore.recarregarDados(),
-    carregarPerfil(), // ✅ Carregar perfil
+    carregarPerfil(),
     carregarNotificacoes()
   ]);
 
@@ -552,6 +566,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
 });
 </script>
+
 <style scoped lang="scss">
 // ─── TOKENS ───────────────────────────────────────────────────────────────
 $a: #667eea;
@@ -580,7 +595,7 @@ $sidebar: #16163a;
 $r: 12px;
 $rs: 8px;
 
-// ─── ANIMAÇÃO DO ÍCONE (VIRAR DE CABEÇA PARA BAIXO) ───────────────────────
+// ─── ANIMAÇÃO DO ÍCONE ───────────────────────────────────────────────────
 .notification-icon-animated {
   transition: transform 0.3s ease-in-out;
   display: inline-block;
@@ -588,19 +603,6 @@ $rs: 8px;
 
 .notification-icon-animated.icon-rotated {
   transform: rotate(180deg);
-}
-
-// ─── SHIMMER ──────────────────────────────────────────────────────────────
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-%shimmer {
-  background: linear-gradient(90deg, #e4e4ec 25%, #f0f0f6 50%, #e4e4ec 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 6px;
 }
 
 // ─── SHELL ────────────────────────────────────────────────────────────────
@@ -1004,9 +1006,10 @@ $rs: 8px;
   }
 }
 
+// 🔥 ALTERADO: Remover scroll vertical - max-height removido
 .notification-list {
-  max-height: 400px;
-  overflow-y: auto;
+  // max-height: 400px; ← REMOVIDO
+  // overflow-y: auto;   ← REMOVIDO
 }
 
 .notification-item {

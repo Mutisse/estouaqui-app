@@ -706,11 +706,25 @@ const handleFileUpload = async (event: Event) => {
   }
 };
 
+// ===================== 🔥 SALVAR PERFIL - CORRIGIDO =====================
+
 const salvarPerfil = async () => {
   if (!validarForm()) return;
   loadingSalvar.value = true;
   try {
-    const success = await perfilStore.updateProfile({ nome: editForm.nome, telefone: editForm.telefone, endereco: editForm.endereco });
+    // 🔥 ENVIAR TODOS OS CAMPOS DO FORMULÁRIO
+    const dados = {
+      nome: editForm.nome,
+      telefone: editForm.telefone,
+      email: editForm.email,
+      profissao: editForm.profissao,
+      sobre: editForm.sobre,
+      endereco: editForm.endereco,
+    };
+
+    console.log('📤 Enviando dados do perfil:', dados);
+
+    const success = await perfilStore.updateProfile(dados);
     if (success) {
       $q.notify({ type: 'positive', message: 'Perfil atualizado!', position: 'top' });
       editMode.value = false;
@@ -719,7 +733,8 @@ const salvarPerfil = async () => {
     } else {
       $q.notify({ type: 'negative', message: 'Erro ao atualizar perfil', position: 'top' });
     }
-  } catch {
+  } catch (error) {
+    console.error('❌ Erro ao salvar perfil:', error);
     $q.notify({ type: 'negative', message: 'Erro ao atualizar', position: 'top' });
   } finally {
     loadingSalvar.value = false;
