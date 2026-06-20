@@ -1,4 +1,5 @@
 // stores/client/cliente-chat-store.ts
+
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from 'src/boot/axios';
@@ -38,6 +39,14 @@ export interface PrestadorChatInfo {
   last_seen?: string;
 }
 
+export interface ClienteChatInfo {
+  id: number;
+  nome: string;
+  foto: string | null;
+  email?: string;
+  telefone?: string;
+}
+
 export interface ChatData {
   id: number;
   prestador_id: number;
@@ -45,6 +54,7 @@ export interface ChatData {
   ultima_mensagem?: string;
   ultima_mensagem_data?: string;
   prestador?: PrestadorChatInfo;
+  cliente?: ClienteChatInfo;
   mensagens_nao_lidas?: number;
 }
 
@@ -63,6 +73,7 @@ export const useChatStore = defineStore('clienteChat', () => {
   const prestadorAtual = ref<PrestadorChatInfo | null>(null);
   const erro = ref<string | null>(null);
   const ultimoIdMensagem = ref(0);
+  const temMaisMensagens = ref(true);
   let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
   // ===================== GETTERS =====================
@@ -162,7 +173,7 @@ export const useChatStore = defineStore('clienteChat', () => {
     erro.value = null;
 
     try {
-      const response = await api.get('/chat/chats');
+      const response = await api.get('/cliente/chat/chats');
 
       if (response.data?.success && response.data.data) {
         chats.value = response.data.data;
@@ -226,7 +237,7 @@ export const useChatStore = defineStore('clienteChat', () => {
     erro.value = null;
 
     try {
-      const response = await api.get(`/chat/mensagens/${prestadorId}`, {
+      const response = await api.get(`/cliente/chat/mensagens/${prestadorId}`, {
         params: { limit },
       });
 
@@ -237,6 +248,10 @@ export const useChatStore = defineStore('clienteChat', () => {
         if (ultimaMsg && ultimaMsg.id) {
           ultimoIdMensagem.value = ultimaMsg.id;
         }
+
+        // Verificar se tem mais mensagens
+        temMaisMensagens.value = response.data.data.length >= limit;
+
         return mensagens.value;
       }
 
@@ -250,6 +265,61 @@ export const useChatStore = defineStore('clienteChat', () => {
     }
   };
 
+  /**
+   * 🔥 Carregar mais mensagens antigas (paginação)
+   */
+  const carregarMaisMensagens = async (
+    prestadorId: number,
+    limit: number = 20
+  ): Promise<MensagemData[]> => {
+    if (!prestadorId || mensagens.value.length === 0) {
+      temMaisMensagens.value = false;
+      return [];
+    }
+
+    carregando.value = true;
+
+    try {
+      // Pega o ID da mensagem mais antiga
+      const mensagemMaisAntiga = mensagens.value[0];
+      const beforeId = mensagemMaisAntiga?.id || 0;
+
+      if (!beforeId) {
+        temMaisMensagens.value = false;
+        return [];
+      }
+
+      const response = await api.get(`/cliente/chat/mensagens/${prestadorId}`, {
+        params: {
+          limit,
+          before_id: beforeId,
+        },
+      });
+
+      if (response.data?.success && response.data.data) {
+        const novasMensagens = response.data.data.map(normalizarMensagem);
+
+        if (novasMensagens.length > 0) {
+          // Adiciona no início da lista
+          mensagens.value = [...novasMensagens, ...mensagens.value];
+          temMaisMensagens.value = novasMensagens.length >= limit;
+        } else {
+          temMaisMensagens.value = false;
+        }
+
+        return novasMensagens;
+      }
+
+      temMaisMensagens.value = false;
+      return [];
+    } catch (error) {
+      console.error('Erro ao carregar mais mensagens:', error);
+      return [];
+    } finally {
+      carregando.value = false;
+    }
+  };
+
   const fetchLatestMessages = async (
     prestadorId: number,
     lastId: number,
@@ -257,7 +327,7 @@ export const useChatStore = defineStore('clienteChat', () => {
     if (!prestadorId) return [];
 
     try {
-      const response = await api.get(`/chat/mensagens/${prestadorId}/novas`, {
+      const response = await api.get(`/cliente/chat/mensagens/${prestadorId}/novas`, {
         params: { ultimo_id: lastId },
       });
 
@@ -282,7 +352,7 @@ export const useChatStore = defineStore('clienteChat', () => {
     erro.value = null;
 
     try {
-      const response = await api.post(`/chat/enviar/${prestadorId}`, { message });
+      const response = await api.post(`/cliente/chat/enviar/${prestadorId}`, { message });
 
       if (response.data?.success && response.data.data) {
         const novaMensagem = normalizarMensagem({
@@ -310,7 +380,7 @@ export const useChatStore = defineStore('clienteChat', () => {
     if (!prestadorId) return false;
 
     try {
-      const response = await api.post(`/chat/marcar-lidas/${prestadorId}`);
+      const response = await api.post(`/cliente/chat/marcar-lidas/${prestadorId}`);
 
       if (response.data?.success) {
         mensagens.value.forEach((msg) => {
@@ -318,6 +388,10 @@ export const useChatStore = defineStore('clienteChat', () => {
             msg.lida = true;
           }
         });
+        const chat = chats.value.find(c => c.prestador_id === prestadorId);
+        if (chat) {
+          chat.mensagens_nao_lidas = 0;
+        }
         return true;
       }
 
@@ -325,6 +399,21 @@ export const useChatStore = defineStore('clienteChat', () => {
     } catch (error) {
       console.error('Erro ao marcar mensagens como lidas:', error);
       return false;
+    }
+  };
+
+  const fetchNaoLidas = async (): Promise<number> => {
+    try {
+      const response = await api.get('/cliente/chat/nao-lidas');
+
+      if (response.data?.success) {
+        return response.data.total || 0;
+      }
+
+      return 0;
+    } catch (error) {
+      console.error('Erro ao buscar mensagens não lidas:', error);
+      return 0;
     }
   };
 
@@ -337,10 +426,15 @@ export const useChatStore = defineStore('clienteChat', () => {
       const novasMensagens = await fetchLatestMessages(prestadorId, ultimoIdMensagem.value);
 
       if (novasMensagens && novasMensagens.length > 0) {
-        mensagens.value = [...mensagens.value, ...novasMensagens];
-        const ultimaNovaMsg = novasMensagens[novasMensagens.length - 1];
-        if (ultimaNovaMsg && ultimaNovaMsg.id) {
-          ultimoIdMensagem.value = ultimaNovaMsg.id;
+        const idsExistentes = new Set(mensagens.value.map(m => m.id));
+        const mensagensNovas = novasMensagens.filter(m => !idsExistentes.has(m.id));
+
+        if (mensagensNovas.length > 0) {
+          mensagens.value = [...mensagens.value, ...mensagensNovas];
+          const ultimaNovaMsg = mensagensNovas[mensagensNovas.length - 1];
+          if (ultimaNovaMsg && ultimaNovaMsg.id) {
+            ultimoIdMensagem.value = ultimaNovaMsg.id;
+          }
         }
       }
     } catch (error) {
@@ -370,6 +464,7 @@ export const useChatStore = defineStore('clienteChat', () => {
     prestadorAtual.value = null;
     erro.value = null;
     ultimoIdMensagem.value = 0;
+    temMaisMensagens.value = true;
     carregando.value = false;
     carregamentoInicial.value = true;
     enviando.value = false;
@@ -378,8 +473,11 @@ export const useChatStore = defineStore('clienteChat', () => {
 
   const carregarChat = async (prestadorId: number): Promise<void> => {
     carregamentoInicial.value = true;
+    temMaisMensagens.value = true;
     try {
       await Promise.all([fetchPrestadorInfo(prestadorId), fetchMensagens(prestadorId)]);
+      await fetchChats();
+      await markMessagesAsRead(prestadorId);
     } catch (error) {
       console.error('Erro ao carregar chat:', error);
       erro.value = getErrorMessage(error);
@@ -400,6 +498,7 @@ export const useChatStore = defineStore('clienteChat', () => {
     prestadorAtual,
     erro,
     ultimoIdMensagem,
+    temMaisMensagens,
 
     // Getters
     hasNewMessages,
@@ -422,9 +521,11 @@ export const useChatStore = defineStore('clienteChat', () => {
 
     // Ações - Mensagens
     fetchMensagens,
+    carregarMaisMensagens,
     fetchLatestMessages,
     sendMessage,
     markMessagesAsRead,
+    fetchNaoLidas,
 
     // Ações - Polling
     buscarNovasMensagens,

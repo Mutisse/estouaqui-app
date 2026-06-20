@@ -471,13 +471,13 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { api } from 'src/boot/axios';
 import {
   usePrestadorPerfilStore,
   opcoesHorarios,
   iconeOptions,
   diasDaSemana,
   type PortfolioItem,
+  type CategoriaDisponivel,
 } from 'src/stores/prestador/prestador-perfil-store';
 
 defineOptions({ name: 'PrestadorPerfil' });
@@ -506,14 +506,6 @@ interface ServicoItem {
   preco: number;
   duracao: number;
   icone?: string;
-}
-
-interface CategoriaDisponivel {
-  id: number;
-  nome: string;
-  icone: string;
-  cor: string;
-  descricao?: string;
 }
 
 interface PortfolioEditForm {
@@ -553,7 +545,6 @@ const showServicoForm = ref(false);
 const editandoServico = ref(false);
 const servicoEditandoId = ref<number | null>(null);
 
-// 🔥 ESTADOS PARA EDIÇÃO DO PORTFÓLIO
 const showEditPortfolioModal = ref(false);
 const salvandoPortfolio = ref(false);
 const portfolioEditForm = reactive<PortfolioEditForm>({
@@ -594,7 +585,6 @@ const salvandoCategorias = ref(false);
 const salvandoDisponibilidade = ref(false);
 const salvandoServico = ref(false);
 
-// ✅ FUNÇÃO AUXILIAR PARA URL DO PORTFÓLIO
 const obterUrlFoto = (foto: string | PortfolioItem): string => {
   if (!foto) return '';
   if (typeof foto === 'string') return foto;
@@ -736,21 +726,17 @@ const salvarPerfil = async () => {
   }
 };
 
+// 🔥 BUSCAR CATEGORIAS - USANDO A STORE
 const buscarTodasCategorias = async () => {
   carregandoCategorias.value = true;
   try {
-    const response = await api.get('/categorias');
-    if (response.data?.success && response.data.data) {
-      todasCategorias.value = response.data.data.map((cat: CategoriaDisponivel) => ({
-        id: cat.id,
-        nome: cat.nome,
-        icone: cat.icone || 'category',
-        cor: cat.cor || 'primary',
-        descricao: cat.descricao,
-      }));
-    }
-  } catch { $q.notify({ type: 'negative', message: 'Erro ao carregar categorias', position: 'top' }); }
-  finally { carregandoCategorias.value = false; }
+    const result = await perfilStore.buscarTodasCategorias();
+    todasCategorias.value = result;
+  } catch {
+    $q.notify({ type: 'negative', message: 'Erro ao carregar categorias', position: 'top' });
+  } finally {
+    carregandoCategorias.value = false;
+  }
 };
 
 const categoriaSelecionada = (id: number) => categoriasSelecionadas.value.includes(id);
@@ -780,7 +766,7 @@ const salvarCategoriasExpansivel = async () => {
   finally { salvandoCategorias.value = false; }
 };
 
-// ===================== PORTFÓLIO - EDIÇÃO COMPLETA =====================
+// ===================== PORTFÓLIO =====================
 
 const adicionarFotoPortfolio = () => {
   const input = document.createElement('input');
@@ -795,7 +781,6 @@ const adicionarFotoPortfolio = () => {
         $q.loading.hide();
         if (result) {
           $q.notify({ type: 'positive', message: 'Foto adicionada!', position: 'top' });
-          // 🔥 Abre o modal para editar título/descrição
           const index = perfilStore.portfolio.length - 1;
           const item = perfilStore.portfolio[index];
           if (item) {
@@ -843,21 +828,12 @@ const salvarEdicaoPortfolio = async () => {
       return;
     }
 
-    // 🔥 Atualiza os dados localmente
-    const updatedItem = {
-      ...item,
-      titulo: portfolioEditForm.titulo,
-      descricao: portfolioEditForm.descricao,
-    };
-
-    // 🔥 Envia para o backend via PUT ou PATCH
-    const response = await api.put(`/prestador/portfolio/${item.id}`, {
+    const result = await perfilStore.atualizarPortfolio(item.id, {
       titulo: portfolioEditForm.titulo,
       descricao: portfolioEditForm.descricao,
     });
 
-    if (response.data?.success) {
-      perfilStore.portfolio[index] = updatedItem;
+    if (result) {
       $q.notify({ type: 'positive', message: 'Portfólio atualizado!', position: 'top' });
       fecharEditarPortfolio();
     } else {
@@ -1184,7 +1160,6 @@ $radius-xs: 8px;
 }
 .portfolio-img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
 
-// ===================== MODAL EDITAR PORTFÓLIO =====================
 .edit-portfolio-modal {
   min-width: 350px; max-width: 500px; width: 100%; border-radius: 20px !important; overflow: hidden;
   .edit-portfolio-header {

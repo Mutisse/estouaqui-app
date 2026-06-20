@@ -40,35 +40,30 @@ export interface PortfolioItem {
   created_at?: string;
 }
 
-// 🔥 INTERFACE ATUALIZADA COM TODOS OS CAMPOS
 export interface PerfilPrestadorData {
   id: number;
   nome: string;
   email: string;
   telefone: string;
   foto: string | null;
-
-  // 🔥 CAMPOS DA TABELA USERS (ADICIONADOS)
   profissao: string;
   sobre: string;
-  latitude: number | null;        // ✅ ADICIONADO
-  longitude: number | null;       // ✅ ADICIONADO
-  raio_atendimento: number;       // ✅ ADICIONADO
-  disponivel: boolean;            // ✅ ADICIONADO
-  verificado: boolean;            // ✅ ADICIONADO
+  latitude: number | null;
+  longitude: number | null;
+  raio_atendimento: number;
+  disponivel: boolean;
+  verificado: boolean;
   media_avaliacao: number;
   total_avaliacoes: number;
-
-  // 🔥 CAMPOS DA TABELA prestador_profiles
   endereco: string;
   portfolio: PortfolioItem[];
   categorias: CategoriaPrestadorData[];
   servicos: ServicoData[];
   disponibilidade: DisponibilidadeData | null;
   documento_verificado: boolean;
-  status_documento?: string;      // ✅ ADICIONADO
-  created_at?: string;            // ✅ ADICIONADO
-  updated_at?: string;            // ✅ ADICIONADO
+  status_documento?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface StatsData {
@@ -84,12 +79,22 @@ export interface UpdateProfileData {
   profissao?: string;
   sobre?: string;
   endereco?: string;
-  latitude?: number | null;      // ✅ ADICIONADO
-  longitude?: number | null;     // ✅ ADICIONADO
-  raio_atendimento?: number;     // ✅ ADICIONADO
+  latitude?: number | null;
+  longitude?: number | null;
+  raio_atendimento?: number;
 }
 
-// Opções de horários para disponibilidade
+// 🔥 Interface para Categoria Disponível (com campos obrigatórios)
+export interface CategoriaDisponivel {
+  id: number;
+  nome: string;
+  icone: string;
+  cor: string;
+  descricao?: string;
+}
+
+// ===================== EXPORTAÇÕES PARA O FRONTEND =====================
+
 export const opcoesHorarios = [
   { label: '08:00 - 09:00', value: '08:00-09:00' },
   { label: '09:00 - 10:00', value: '09:00-10:00' },
@@ -105,7 +110,6 @@ export const opcoesHorarios = [
   { label: '19:00 - 20:00', value: '19:00-20:00' },
 ];
 
-// Opções de ícones para serviços
 export const iconeOptions = [
   { label: '🛠️ Ferramentas', value: 'handyman' },
   { label: '🔧 Chave Inglesa', value: 'build' },
@@ -117,7 +121,7 @@ export const iconeOptions = [
   { label: '🔒 Segurança', value: 'security' },
 ];
 
-export const diasDaSemana = [
+export const diasDaSemana: { key: string; label: string }[] = [
   { key: 'monday', label: 'Segunda-feira' },
   { key: 'tuesday', label: 'Terça-feira' },
   { key: 'wednesday', label: 'Quarta-feira' },
@@ -136,7 +140,6 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  // Dados do perfil
   const perfil = ref<PerfilPrestadorData | null>(null);
   const portfolio = ref<PortfolioItem[]>([]);
   const servicos = ref<ServicoData[]>([]);
@@ -144,14 +147,12 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
   const disponibilidade = ref<DisponibilidadeData | null>(null);
   const documentoVerificado = ref(false);
 
-  // Estatísticas
   const stats = ref<StatsData>({
     servicos: 0,
     pedidos_pendentes: 0,
     avaliacao_media: 0,
   });
 
-  // Controle de dados carregados
   const dadosCarregados = ref(false);
   const ultimaAtualizacao = ref<Date | null>(null);
 
@@ -167,7 +168,6 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
   const totalAvaliacoes = computed(() => perfil.value?.total_avaliacoes || 0);
   const foto = computed(() => perfil.value?.foto || authStore.user?.foto || null);
 
-  // 🔥 NOVOS GETTERS PARA LOCALIZAÇÃO
   const latitude = computed(() => perfil.value?.latitude ?? null);
   const longitude = computed(() => perfil.value?.longitude ?? null);
   const raioAtendimento = computed(() => perfil.value?.raio_atendimento ?? 10);
@@ -175,12 +175,15 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
 
   const disponibilidadeHorariosFormatados = computed(() => {
     if (!disponibilidade.value?.horarios_padrao) return [];
-
     const diasMap: Record<string, string> = {
-      monday: 'Segunda', tuesday: 'Terça', wednesday: 'Quarta',
-      thursday: 'Quinta', friday: 'Sexta', saturday: 'Sábado', sunday: 'Domingo'
+      monday: 'Segunda',
+      tuesday: 'Terça',
+      wednesday: 'Quarta',
+      thursday: 'Quinta',
+      friday: 'Sexta',
+      saturday: 'Sábado',
+      sunday: 'Domingo'
     };
-
     return Object.entries(disponibilidade.value.horarios_padrao)
       .filter(([, horarios]) => horarios.length > 0)
       .map(([dia, horarios]) => ({
@@ -193,17 +196,12 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
 
   const fetchPerfilCompleto = async (forceRefresh = false): Promise<PerfilPrestadorData | null> => {
     if (dadosCarregados.value && !forceRefresh) return perfil.value;
-
     isLoading.value = true;
     error.value = null;
-
     try {
       const response = await api.get('/prestador/perfil');
-
       if (response.data?.success && response.data.data) {
         const data = response.data.data;
-
-        // 🔥 GARANTIR QUE OS CAMPOS EXISTAM
         perfil.value = {
           ...data,
           latitude: data.latitude ?? null,
@@ -213,7 +211,6 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
           verificado: data.verificado ?? false,
           status_documento: data.status_documento ?? 'pendente',
         };
-
         portfolio.value = data.portfolio || [];
         servicos.value = data.servicos || [];
         minhasCategorias.value = data.categorias || [];
@@ -237,7 +234,6 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     if (dadosCarregados.value && !forceRefresh && stats.value.servicos > 0) {
       return stats.value;
     }
-
     try {
       const response = await api.get('/prestador/perfil/stats');
       if (response.data?.success && response.data.data) {
@@ -248,8 +244,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
         };
       }
       return stats.value;
-    } catch (err) {
-      console.error('Erro ao buscar stats:', err);
+    } catch {
       return stats.value;
     }
   };
@@ -258,15 +253,13 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     if (dadosCarregados.value && !forceRefresh && minhasCategorias.value.length > 0) {
       return minhasCategorias.value;
     }
-
     try {
       const response = await api.get('/prestador/perfil/categorias');
       if (response.data?.success && response.data.data) {
         minhasCategorias.value = response.data.data;
       }
       return minhasCategorias.value;
-    } catch (err) {
-      console.error('Erro ao buscar categorias:', err);
+    } catch {
       return [];
     }
   };
@@ -275,20 +268,18 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     if (dadosCarregados.value && !forceRefresh && disponibilidade.value) {
       return disponibilidade.value;
     }
-
     try {
       const response = await api.get('/prestador/perfil/disponibilidade');
       if (response.data?.success && response.data.data) {
         disponibilidade.value = response.data.data;
       }
       return disponibilidade.value;
-    } catch (err) {
-      console.error('Erro ao buscar disponibilidade:', err);
+    } catch {
       return null;
     }
   };
 
-  // ===================== SERVIÇOS CRUD =====================
+  // ===================== SERVIÇOS =====================
 
   const adicionarServico = async (servico: Omit<ServicoData, 'id'>): Promise<boolean> => {
     try {
@@ -298,8 +289,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Erro ao adicionar serviço:', err);
+    } catch {
       return false;
     }
   };
@@ -312,8 +302,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Erro ao atualizar serviço:', err);
+    } catch {
       return false;
     }
   };
@@ -326,8 +315,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Erro ao remover serviço:', err);
+    } catch {
       return false;
     }
   };
@@ -342,8 +330,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Erro ao atualizar disponibilidade:', err);
+    } catch {
       return false;
     }
   };
@@ -358,8 +345,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Erro ao adicionar categoria:', err);
+    } catch {
       return false;
     }
   };
@@ -372,8 +358,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Erro ao remover categoria:', err);
+    } catch {
       return false;
     }
   };
@@ -383,20 +368,17 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
   const addPortfolio = async (file: File): Promise<PortfolioItem | null> => {
     const formData = new FormData();
     formData.append('foto', file);
-
     try {
       const response = await api.post('/prestador/portfolio', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
       if (response.data?.success && response.data.data) {
         const newItem: PortfolioItem = response.data.data;
         portfolio.value.push(newItem);
         return newItem;
       }
       return null;
-    } catch (err) {
-      console.error('Erro ao adicionar ao portfólio:', err);
+    } catch {
       return null;
     }
   };
@@ -405,19 +387,31 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     try {
       const item = portfolio.value[index];
       if (!item) return false;
-
-      const itemId = item.id;
-
-      const response = await api.delete(`/prestador/portfolio/${itemId}`);
-
+      const response = await api.delete(`/prestador/portfolio/${item.id}`);
       if (response.data?.success) {
         portfolio.value.splice(index, 1);
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Erro ao remover do portfólio:', err);
+    } catch {
       return false;
+    }
+  };
+
+  const atualizarPortfolio = async (id: number, data: { titulo?: string; descricao?: string }): Promise<PortfolioItem | null> => {
+    try {
+      const response = await api.put(`/prestador/portfolio/${id}`, data);
+      if (response.data?.success && response.data.data) {
+        const index = portfolio.value.findIndex((item) => item.id === id);
+        if (index !== -1) {
+          portfolio.value[index] = { ...portfolio.value[index], ...response.data.data };
+        }
+        return response.data.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Erro ao atualizar portfólio:', error);
+      return null;
     }
   };
 
@@ -426,12 +420,10 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
   const updateAvatar = async (file: File): Promise<string | null> => {
     const formData = new FormData();
     formData.append('foto', file);
-
     try {
       const response = await api.post('/prestador/perfil/foto', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
       if (response.data?.success && response.data.data?.foto) {
         const fotoUrl = response.data.data.foto;
         if (perfil.value) perfil.value.foto = fotoUrl;
@@ -439,8 +431,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
         return fotoUrl;
       }
       return null;
-    } catch (err) {
-      console.error('Erro ao atualizar foto:', err);
+    } catch {
       return null;
     }
   };
@@ -455,8 +446,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Erro ao atualizar perfil:', err);
+    } catch {
       return false;
     }
   };
@@ -468,8 +458,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
       await authStore.logout();
       limparStore();
       return true;
-    } catch (err) {
-      console.error('Erro ao fazer logout:', err);
+    } catch {
       return false;
     }
   };
@@ -483,8 +472,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Erro ao excluir conta:', err);
+    } catch {
       return false;
     }
   };
@@ -518,6 +506,29 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     }
   };
 
+  // 🔥 BUSCAR TODAS AS CATEGORIAS (retorna CategoriaDisponivel[])
+ // stores/prestador/prestador-perfil-store.ts
+
+// 🔥 CORRIGIDO - Sem usar 'any'
+const buscarTodasCategorias = async (): Promise<CategoriaDisponivel[]> => {
+  try {
+    const response = await api.get('/categorias');
+    if (response.data?.success && response.data.data) {
+      return response.data.data.map((cat: { id: number; nome: string; icone?: string; cor?: string; descricao?: string }) => ({
+        id: cat.id,
+        nome: cat.nome,
+        icone: cat.icone || 'category',
+        cor: cat.cor || 'primary',
+        descricao: cat.descricao || '',
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('Erro ao buscar categorias:', error);
+    return [];
+  }
+};
+
   return {
     // Estados
     isLoading, error, perfil, portfolio, servicos, minhasCategorias,
@@ -526,7 +537,7 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     // Getters
     nomeCompleto, email, telefone, profissao, sobre, endereco,
     rating, totalAvaliacoes, foto,
-    latitude, longitude, raioAtendimento, disponivel,  // 🔥 NOVOS GETTERS
+    latitude, longitude, raioAtendimento, disponivel,
     disponibilidadeHorariosFormatados,
 
     // READ
@@ -536,10 +547,10 @@ export const usePrestadorPerfilStore = defineStore('prestadorPerfil', () => {
     adicionarServico, atualizarServico, removerServico,
 
     // CATEGORIAS
-    addCategoria, removeCategoria,
+    addCategoria, removeCategoria, buscarTodasCategorias,
 
     // PORTFÓLIO
-    addPortfolio, removePortfolio,
+    addPortfolio, removePortfolio, atualizarPortfolio,
 
     // FOTO
     updateAvatar,

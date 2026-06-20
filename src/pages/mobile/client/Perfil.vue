@@ -32,6 +32,7 @@
       <div class="profile-header">
         <div class="profile-header__top">
           <div class="profile-avatar">
+            <!-- 🔥 FALLBACK COM INICIAIS -->
             <div
               v-if="avatarError"
               class="avatar-placeholder"
@@ -39,9 +40,18 @@
             >
               {{ perfilStore.iniciaisNome }}
             </div>
+
+            <!-- 🔥 IMAGEM DO AVATAR -->
             <q-avatar v-else size="80px">
-              <img :src="avatarUrlComTimestamp" alt="Avatar" @error="avatarError = true" />
+              <img
+                :src="avatarUrlComTimestamp"
+                alt="Avatar"
+                @load="onImageLoad"
+                @error="onImageError"
+              />
             </q-avatar>
+
+            <!-- 🔥 BOTÃO DE EDIÇÃO -->
             <button class="avatar-edit-btn" @click="abrirSelecaoFoto">
               <q-icon name="camera_alt" size="16px" />
             </button>
@@ -53,6 +63,7 @@
               @change="handleFileUpload"
             />
           </div>
+
           <div class="profile-info">
             <h2 class="profile-name">{{ perfilStore.nomeCompleto }}</h2>
             <div class="profile-type" :class="perfilStore.userData?.tipo">
@@ -75,6 +86,7 @@
             </div>
           </div>
         </div>
+
         <button class="edit-profile-btn" @click="toggleEditMode">
           <svg
             v-if="!editMode"
@@ -396,7 +408,7 @@ const router = useRouter();
 const perfilStore = usePerfilStore();
 const $q = useQuasar();
 
-// Estados
+// ===================== ESTADOS =====================
 const avatarError = ref(false);
 const editMode = ref(false);
 const salvando = ref(false);
@@ -405,7 +417,7 @@ const fotoPreview = ref<string | null>(null);
 const fotoArquivo = ref<File | null>(null);
 const fotoTimestamp = ref(Date.now());
 
-// Interfaces
+// ===================== INTERFACES =====================
 interface FormData {
   nome: string;
   email: string;
@@ -428,26 +440,18 @@ interface DadosAtualizados {
   sobre?: string;
 }
 
-// ✅ WATCH: Monitora mudanças na foto do userData e atualiza o timestamp
-watch(
-  () => perfilStore.userData?.foto,
-  (novaFoto, fotoAntiga) => {
-    if (novaFoto !== fotoAntiga) {
-      $q.notify('🖼️ Foto do perfil mudou:');
-      fotoTimestamp.value = Date.now();
-      avatarError.value = false;
-    }
-  },
-);
+// ===================== COMPUTED =====================
 
-// Computed para URL do avatar com timestamp (força recarregar)
+// 🔥 URL DO AVATAR COM TIMESTAMP (FORÇA RECARREGAR)
 const avatarUrlComTimestamp = computed(() => {
   const url = perfilStore.avatarUrl;
+  console.log('🔍 URL do avatar:', url);
   if (!url) return url;
-  return `${url}${url.includes('?') ? '&' : '?'}t=${fotoTimestamp.value}`;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}t=${fotoTimestamp.value}`;
 });
 
-// Formulário
+// ===================== FORMULÁRIO =====================
 const form = reactive<FormData>({
   nome: '',
   email: '',
@@ -456,14 +460,48 @@ const form = reactive<FormData>({
   sobre: '',
 });
 
-// Erros
 const errors = reactive<FormErrors>({
   nome: '',
   email: '',
   telefone: '',
 });
 
-// Validar formulário
+// ===================== MÉTODOS DA IMAGEM =====================
+
+// 🔥 QUANDO A IMAGEM CARREGA COM SUCESSO
+const onImageLoad = () => {
+  console.log('✅ Imagem carregou com sucesso!');
+  avatarError.value = false;
+};
+
+// 🔥 QUANDO A IMAGEM FALHA AO CARREGAR
+const onImageError = () => {
+  console.log('❌ Erro ao carregar imagem:', perfilStore.avatarUrl);
+  avatarError.value = true;
+};
+
+// 🔥 FORÇAR RECARREGAMENTO DA IMAGEM
+const forcarRecarregarImagem = () => {
+  console.log('🔄 Forçando recarregamento da imagem');
+  avatarError.value = false;
+  fotoTimestamp.value = Date.now();
+};
+
+// ===================== WATCH =====================
+
+// 🔥 MONITORA MUDANÇAS NA FOTO
+watch(
+  () => perfilStore.userData?.foto,
+  (novaFoto, fotoAntiga) => {
+    if (novaFoto !== fotoAntiga) {
+      console.log('🖼️ Foto mudou:', novaFoto);
+      fotoTimestamp.value = Date.now();
+      avatarError.value = false;
+    }
+  },
+);
+
+// ===================== VALIDAÇÃO =====================
 const validarForm = (): boolean => {
   let isValid = true;
   errors.nome = '';
@@ -492,7 +530,7 @@ const validarForm = (): boolean => {
   return isValid;
 };
 
-// Carregar dados do usuário no formulário
+// ===================== CARREGAR DADOS =====================
 const carregarDadosNoForm = () => {
   const user = perfilStore.userData;
   if (user) {
@@ -504,7 +542,7 @@ const carregarDadosNoForm = () => {
   }
 };
 
-// Alternar modo de edição
+// ===================== EDIÇÃO =====================
 const toggleEditMode = () => {
   if (editMode.value) {
     carregarDadosNoForm();
@@ -514,12 +552,11 @@ const toggleEditMode = () => {
   editMode.value = !editMode.value;
 };
 
-// Abrir seletor de foto
+// ===================== FOTO =====================
 const abrirSelecaoFoto = () => {
   fileInput.value?.click();
 };
 
-// ✅ UPLOAD AUTOMÁTICO: Quando seleciona a foto, faz upload imediato
 const handleFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
@@ -549,7 +586,6 @@ const handleFileUpload = async (event: Event) => {
   fotoArquivo.value = file;
   fotoPreview.value = URL.createObjectURL(file);
 
-  // ✅ FAZER UPLOAD AUTOMÁTICO AGORA
   salvando.value = true;
   try {
     console.log('📸 Enviando foto automaticamente...');
@@ -577,7 +613,6 @@ const handleFileUpload = async (event: Event) => {
       message: 'Erro ao enviar foto. Tente novamente.',
       position: 'top',
     });
-    // Limpar preview em caso de erro
     fotoPreview.value = null;
     fotoArquivo.value = null;
   } finally {
@@ -585,14 +620,13 @@ const handleFileUpload = async (event: Event) => {
   }
 };
 
-// Salvar alterações (apenas dados textuais, pois a foto já foi enviada)
+// ===================== SALVAR PERFIL =====================
 const salvarAlteracoes = async () => {
   if (!validarForm()) return;
 
   salvando.value = true;
 
   try {
-    // Atualizar dados do perfil (sem foto, pois já foi enviada)
     const dadosAtualizados: DadosAtualizados = {
       nome: form.nome,
       email: form.email,
@@ -607,7 +641,6 @@ const salvarAlteracoes = async () => {
     await perfilStore.atualizarPerfil(dadosAtualizados);
     console.log('✅ Dados do perfil atualizados');
 
-    // Recarregar dados do store
     await perfilStore.fetchAllPerfilData();
 
     $q.notify({
@@ -632,7 +665,7 @@ const salvarAlteracoes = async () => {
   }
 };
 
-// ✅ FUNÇÃO DE NAVEGAÇÃO CORRIGIDA
+// ===================== NAVEGAÇÃO =====================
 const irPara = (rota: string) => {
   void router.push(`/mobile/${rota}`);
 };
@@ -641,6 +674,7 @@ const ajuda = () => {
   $q.notify({ type: 'info', message: 'Ajuda disponível em breve', position: 'top' });
 };
 
+// ===================== LOGOUT =====================
 const handleLogout = async () => {
   try {
     await perfilStore.logoutAndClear();
@@ -674,10 +708,13 @@ const confirmLogout = () => {
   });
 };
 
+// ===================== INICIALIZAÇÃO =====================
 const carregarDadosIniciais = async () => {
   try {
     await perfilStore.fetchAllPerfilData();
     carregarDadosNoForm();
+    // 🔥 FORÇA RECARREGAR A IMAGEM APÓS CARREGAR OS DADOS
+    forcarRecarregarImagem();
   } catch (error) {
     console.error('Erro ao carregar dados:', error);
     $q.notify({
@@ -687,6 +724,10 @@ const carregarDadosIniciais = async () => {
     });
   }
 };
+
+// 🔥 EXPORTA O BOTÃO DE DEBUG (opcional)
+// Adicione isso no template se quiser um botão de debug
+// <button @click="forcarRecarregarImagem">Recarregar</button>
 
 onMounted(() => {
   void carregarDadosIniciais();
@@ -883,6 +924,21 @@ $radius-xs: 8px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
+// 🔥 ESTILOS PARA O Q-AVATAR
+:deep(.q-avatar) {
+  width: 80px !important;
+  height: 80px !important;
+  border-radius: 50% !important;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
 .profile-info {
   flex: 1;
 }
@@ -940,7 +996,7 @@ $radius-xs: 8px;
 }
 
 // =====================
-// EDIT FORM SECTION (EXPANSÍVEL)
+// EDIT FORM SECTION
 // =====================
 .edit-form-section {
   background: $white;
