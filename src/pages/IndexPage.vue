@@ -1,6 +1,5 @@
 <template>
   <q-page class="ea-page">
-
     <!-- ===== HERO ===== -->
     <section class="ea-hero">
       <div class="ea-hero__bg">
@@ -28,12 +27,12 @@
         </div>
 
         <h1 class="ea-hero__heading">
-          O profissional certo,<br>
+          O profissional certo,<br />
           <span class="ea-heading-accent">perto de si</span>
         </h1>
 
         <p class="ea-hero__sub">
-          Conectamos clientes e prestadores de serviços em Moçambique —<br class="ea-br-hide">
+          Conectamos clientes e prestadores de serviços em Moçambique —<br class="ea-br-hide" />
           rápido, seguro e sem complicações.
         </p>
 
@@ -42,17 +41,15 @@
             <span>Preciso de um serviço</span>
             <q-icon name="arrow_forward" size="18px" />
           </a>
-          <a href="/auth/register-prestador" class="ea-cta-ghost">
-            Oferecer serviços
-          </a>
+          <a href="/auth/register-prestador" class="ea-cta-ghost"> Oferecer serviços </a>
         </div>
 
         <div class="ea-hero__trust">
           <div class="ea-trust-avatars">
-            <div class="ea-trust-av" style="background:#C8B6E2">A</div>
-            <div class="ea-trust-av" style="background:#B6D4E2">M</div>
-            <div class="ea-trust-av" style="background:#E2C8B6">F</div>
-            <div class="ea-trust-av" style="background:#B6E2C8">J</div>
+            <div class="ea-trust-av" style="background: #c8b6e2">A</div>
+            <div class="ea-trust-av" style="background: #b6d4e2">M</div>
+            <div class="ea-trust-av" style="background: #e2c8b6">F</div>
+            <div class="ea-trust-av" style="background: #b6e2c8">J</div>
           </div>
           <span class="ea-trust-text"><strong>1.200+</strong> clientes satisfeitos este mês</span>
         </div>
@@ -161,17 +158,20 @@
       <div class="ea-container ea-why__inner">
         <div class="ea-why__left">
           <div class="ea-section-label">Porquê nós</div>
-          <h2 class="ea-section-title">Construído para<br>Moçambique</h2>
+          <h2 class="ea-section-title">Construído para<br />Moçambique</h2>
           <p class="ea-why__body">
-            Uma plataforma pensada para a realidade local — com geolocalização inteligente, pagamento flexível e suporte em português.
+            Uma plataforma pensada para a realidade local — com geolocalização inteligente,
+            pagamento flexível e suporte em português.
           </p>
           <a href="/sobre" class="ea-link-arrow">Saber mais <span>→</span></a>
 
           <div class="ea-why__image-block">
             <q-img
-              src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=700&q=80"
+              src="/baner/baner5.png"
               class="ea-why__img"
-              :ratio="4/3"
+              :ratio="4 / 3"
+              spinner-color="primary"
+              fit="cover"
             />
             <div class="ea-why__img-badge">
               <span>⭐ 4.8</span>
@@ -181,7 +181,12 @@
         </div>
 
         <div class="ea-why__right">
-          <div v-for="(r, i) in reasons" :key="i" class="ea-reason" :style="`animation-delay: ${i * 0.1}s`">
+          <div
+            v-for="(r, i) in reasons"
+            :key="i"
+            class="ea-reason"
+            :style="`animation-delay: ${i * 0.1}s`"
+          >
             <div class="ea-reason__icon" :style="`background: ${r.bg}`">
               <q-icon :name="r.icon" size="20px" />
             </div>
@@ -193,7 +198,9 @@
 
           <!-- Mini testimonial -->
           <div class="ea-testimonial">
-            <p class="ea-testimonial__text">"Encontrei um eletricista em menos de 10 minutos. Serviço excelente e preço justo!"</p>
+            <p class="ea-testimonial__text">
+              "Encontrei um eletricista em menos de 10 minutos. Serviço excelente e preço justo!"
+            </p>
             <div class="ea-testimonial__author">
               <div class="ea-testimonial__av">AM</div>
               <div>
@@ -214,7 +221,7 @@
       </div>
       <div class="ea-container ea-cta__inner">
         <div class="ea-cta__label">Comece hoje</div>
-        <h2 class="ea-cta__title">Pronto para<br>começar?</h2>
+        <h2 class="ea-cta__title">Pronto para<br />começar?</h2>
         <p class="ea-cta__sub">Junte-se à maior comunidade de serviços locais de Moçambique</p>
         <div class="ea-cta__btns">
           <a href="/auth/register-cliente" class="ea-cta-white">
@@ -228,65 +235,96 @@
         <div class="ea-cta__note">Gratuito • Sem cartão de crédito • Acesso imediato</div>
       </div>
     </section>
-
   </q-page>
 </template>
 
 <script setup lang="ts">
-defineOptions({ name: 'HomePage' })
-import { useRouter } from 'vue-router'
-const router = useRouter()
+defineOptions({ name: 'HomePage' });
+import { useRouter } from 'vue-router';
+const router = useRouter();
 
 const stats = [
   { value: '500+', label: 'Prestadores verificados' },
   { value: '1.2k+', label: 'Clientes activos' },
   { value: '3k+', label: 'Serviços realizados' },
   { value: '4.8★', label: 'Avaliação média' },
-]
+];
 
 const steps = [
-  { icon: 'search', title: 'Encontre', description: 'Pesquise por categoria, localização ou nome. Veja perfis e avaliações reais.' },
-  { icon: 'chat', title: 'Conecte', description: 'Converse com o prestador, combine horário, local e preço.' },
-  { icon: 'star', title: 'Avalie', description: 'Após o serviço, avalie e ajude a comunidade a crescer.' },
-]
+  {
+    icon: 'search',
+    title: 'Encontre',
+    description: 'Pesquise por categoria, localização ou nome. Veja perfis e avaliações reais.',
+  },
+  {
+    icon: 'chat',
+    title: 'Conecte',
+    description: 'Converse com o prestador, combine horário, local e preço.',
+  },
+  {
+    icon: 'star',
+    title: 'Avalie',
+    description: 'Após o serviço, avalie e ajude a comunidade a crescer.',
+  },
+];
 
 const categorias = [
-  { nome: 'Eletricista',    icon: 'bolt',        hex: '#F59E0B', bgHex: '#FEF3C7', count: 45 },
-  { nome: 'Canalizador',   icon: 'water_drop',   hex: '#3B82F6', bgHex: '#DBEAFE', count: 32 },
-  { nome: 'Pintor',        icon: 'brush',       hex: '#8B5CF6', bgHex: '#EDE9FE', count: 28 },
-  { nome: 'Informático',   icon: 'computer',    hex: '#10B981', bgHex: '#D1FAE5', count: 56 },
-  { nome: 'Cabeleireiro',  icon: 'content_cut', hex: '#EC4899', bgHex: '#FCE7F3', count: 34 },
-  { nome: 'Manicure',      icon: 'spa',         hex: '#F472B6', bgHex: '#FDF2F8', count: 41 },
-  { nome: 'Limpeza',       icon: 'cleaning_services', hex: '#06B6D4', bgHex: '#CFFAFE', count: 23 },
-  { nome: 'Motorista',     icon: 'directions_car', hex: '#14B8A6', bgHex: '#CCFBF1', count: 67 },
-]
+  { nome: 'Eletricista', icon: 'bolt', hex: '#F59E0B', bgHex: '#FEF3C7', count: 45 },
+  { nome: 'Canalizador', icon: 'water_drop', hex: '#3B82F6', bgHex: '#DBEAFE', count: 32 },
+  { nome: 'Pintor', icon: 'brush', hex: '#8B5CF6', bgHex: '#EDE9FE', count: 28 },
+  { nome: 'Informático', icon: 'computer', hex: '#10B981', bgHex: '#D1FAE5', count: 56 },
+  { nome: 'Cabeleireiro', icon: 'content_cut', hex: '#EC4899', bgHex: '#FCE7F3', count: 34 },
+  { nome: 'Manicure', icon: 'spa', hex: '#F472B6', bgHex: '#FDF2F8', count: 41 },
+  { nome: 'Limpeza', icon: 'cleaning_services', hex: '#06B6D4', bgHex: '#CFFAFE', count: 23 },
+  { nome: 'Motorista', icon: 'directions_car', hex: '#14B8A6', bgHex: '#CCFBF1', count: 67 },
+];
 
 const reasons = [
-  { icon: 'verified',     bg: '#EDE9FE', title: 'Prestadores verificados', description: 'Todos passam por verificação de identidade e têm avaliações auténticas.' },
-  { icon: 'location_on',  bg: '#D1FAE5', title: 'Geolocalização inteligente', description: 'Encontra os profissionais mais próximos de si em tempo real.' },
-  { icon: 'bolt',         bg: '#FEF3C7', title: 'Resposta em minutos', description: 'A maioria dos prestadores responde em menos de 15 minutos.' },
-  { icon: 'support_agent',bg: '#DBEAFE', title: 'Suporte dedicado', description: 'Equipa de suporte disponível para resolver qualquer questão.' },
-]
+  {
+    icon: 'verified',
+    bg: '#EDE9FE',
+    title: 'Prestadores verificados',
+    description: 'Todos passam por verificação de identidade e têm avaliações auténticas.',
+  },
+  {
+    icon: 'location_on',
+    bg: '#D1FAE5',
+    title: 'Geolocalização inteligente',
+    description: 'Encontra os profissionais mais próximos de si em tempo real.',
+  },
+  {
+    icon: 'bolt',
+    bg: '#FEF3C7',
+    title: 'Resposta em minutos',
+    description: 'A maioria dos prestadores responde em menos de 15 minutos.',
+  },
+  {
+    icon: 'support_agent',
+    bg: '#DBEAFE',
+    title: 'Suporte dedicado',
+    description: 'Equipa de suporte disponível para resolver qualquer questão.',
+  },
+];
 
 const buscarPorCategoria = (categoria: string) => {
-  void router.push(`/mobile/lista-prestadores?categoria=${categoria}`)
-}
+  void router.push(`/mobile/lista-prestadores?categoria=${categoria}`);
+};
 </script>
 
 <style scoped lang="scss">
 // =====================
 //  TOKENS
 // =====================
-$ink: #0A0A0F;
-$ink-2: #3D3D4E;
-$ink-3: #7B7B8E;
-$surface: #FFFFFF;
-$surface-2: #F7F7FA;
-$surface-3: #EDEDF2;
-$accent: #5B4BF5;      // electric violet
-$accent-2: #7C3AED;
-$accent-light: #EDE9FE;
-$gold: #F59E0B;
+$ink: #0a0a0f;
+$ink-2: #3d3d4e;
+$ink-3: #7b7b8e;
+$surface: #ffffff;
+$surface-2: #f7f7fa;
+$surface-3: #ededf2;
+$accent: #5b4bf5; // electric violet
+$accent-2: #7c3aed;
+$accent-light: #ede9fe;
+$gold: #f59e0b;
 $radius-sm: 10px;
 $radius-md: 16px;
 $radius-lg: 24px;
@@ -338,8 +376,8 @@ $radius-xl: 32px;
     position: absolute;
     inset: 0;
     background-image:
-      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
     background-size: 60px 60px;
   }
 
@@ -349,19 +387,25 @@ $radius-xl: 32px;
     filter: blur(120px);
 
     &--1 {
-      width: 600px; height: 600px;
-      top: -200px; right: -100px;
-      background: radial-gradient(circle, rgba(91,75,245,0.45) 0%, transparent 70%);
+      width: 600px;
+      height: 600px;
+      top: -200px;
+      right: -100px;
+      background: radial-gradient(circle, rgba(91, 75, 245, 0.45) 0%, transparent 70%);
     }
     &--2 {
-      width: 400px; height: 400px;
-      bottom: 100px; left: -100px;
-      background: radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%);
+      width: 400px;
+      height: 400px;
+      bottom: 100px;
+      left: -100px;
+      background: radial-gradient(circle, rgba(124, 58, 237, 0.3) 0%, transparent 70%);
     }
     &--3 {
-      width: 300px; height: 300px;
-      top: 40%; right: 30%;
-      background: radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%);
+      width: 300px;
+      height: 300px;
+      top: 40%;
+      right: 30%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
     }
   }
 
@@ -387,7 +431,13 @@ $radius-xl: 32px;
   &__image-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to right, $ink 0%, $ink 10%, rgba(10,10,15,0.55) 60%, transparent 100%);
+    background: linear-gradient(
+      to right,
+      $ink 0%,
+      $ink 10%,
+      rgba(10, 10, 15, 0.55) 60%,
+      transparent 100%
+    );
 
     @media (max-width: 900px) {
       background: transparent;
@@ -409,9 +459,9 @@ $radius-xl: 32px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.85);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 0.85rem;
     font-weight: 500;
     padding: 6px 14px;
@@ -432,7 +482,7 @@ $radius-xl: 32px;
 
   &__sub {
     font-size: clamp(1.05rem, 2vw, 1.25rem);
-    color: rgba(255,255,255,0.6);
+    color: rgba(255, 255, 255, 0.6);
     line-height: 1.6;
     margin: 0 0 40px;
     max-width: 560px;
@@ -476,7 +526,7 @@ $radius-xl: 32px;
     align-items: center;
     gap: 8px;
     z-index: 5;
-    color: rgba(255,255,255,0.3);
+    color: rgba(255, 255, 255, 0.3);
     font-size: 0.75rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -488,14 +538,14 @@ $radius-xl: 32px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #4ADE80;
-  box-shadow: 0 0 8px #4ADE80;
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
   flex-shrink: 0;
 }
 
 // Heading accent
 .ea-heading-accent {
-  background: linear-gradient(135deg, $accent 0%, #A78BFA 50%, $gold 100%);
+  background: linear-gradient(135deg, $accent 0%, #a78bfa 50%, $gold 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -514,32 +564,32 @@ $radius-xl: 32px;
   border-radius: 100px;
   text-decoration: none;
   transition: all 0.25s;
-  box-shadow: 0 0 0 0 rgba(91,75,245,0);
+  box-shadow: 0 0 0 0 rgba(91, 75, 245, 0);
 
   &:hover {
     background: lighten($accent, 5%);
     transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(91,75,245,0.45);
+    box-shadow: 0 12px 32px rgba(91, 75, 245, 0.45);
   }
 }
 .ea-cta-ghost {
   display: inline-flex;
   align-items: center;
-  color: rgba(255,255,255,0.75);
+  color: rgba(255, 255, 255, 0.75);
   font-size: 1rem;
   font-weight: 500;
   padding: 14px 24px;
-  border: 1px solid rgba(255,255,255,0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 100px;
   text-decoration: none;
   backdrop-filter: blur(8px);
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   transition: all 0.25s;
 
   &:hover {
     color: #fff;
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.3);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
   }
 }
 
@@ -560,19 +610,23 @@ $radius-xl: 32px;
     border: 2px solid $ink;
     margin-left: -8px;
 
-    &:first-child { margin-left: 0; }
+    &:first-child {
+      margin-left: 0;
+    }
   }
 }
 .ea-trust-text {
   font-size: 0.85rem;
-  color: rgba(255,255,255,0.55);
-  strong { color: rgba(255,255,255,0.85); }
+  color: rgba(255, 255, 255, 0.55);
+  strong {
+    color: rgba(255, 255, 255, 0.85);
+  }
 }
 
 // Float cards
 .ea-float-card {
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(20px);
   border-radius: $radius-md;
   padding: 14px 20px;
@@ -582,9 +636,18 @@ $radius-xl: 32px;
   width: 240px;
   animation: ea-float linear infinite;
 
-  &--1 { animation-duration: 6s; animation-delay: 0s; }
-  &--2 { animation-duration: 7s; animation-delay: -2s; }
-  &--3 { animation-duration: 8s; animation-delay: -4s; }
+  &--1 {
+    animation-duration: 6s;
+    animation-delay: 0s;
+  }
+  &--2 {
+    animation-duration: 7s;
+    animation-delay: -2s;
+  }
+  &--3 {
+    animation-duration: 8s;
+    animation-delay: -4s;
+  }
 
   &__icon {
     display: flex;
@@ -592,20 +655,32 @@ $radius-xl: 32px;
     justify-content: center;
     color: $accent;
   }
-  &__title { font-size: 0.9rem; font-weight: 600; color: #fff; }
-  &__sub { font-size: 0.78rem; color: rgba(255,255,255,0.5); }
+  &__title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+  }
+  &__sub {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
 }
 
 @keyframes ea-float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 // Scroll hint line
 .ea-scroll-line {
   width: 1px;
   height: 40px;
-  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.3));
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.3));
 }
 
 // =====================
@@ -613,7 +688,7 @@ $radius-xl: 32px;
 // =====================
 .ea-stats-bar {
   background: $ink;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding: 32px 0;
 
   &__inner {
@@ -630,9 +705,11 @@ $radius-xl: 32px;
 .ea-stat {
   text-align: center;
   padding: 0 20px;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 
-  &:last-child { border-right: none; }
+  &:last-child {
+    border-right: none;
+  }
 
   &__value {
     font-size: 2rem;
@@ -643,7 +720,7 @@ $radius-xl: 32px;
 
   &__label {
     font-size: 0.82rem;
-    color: rgba(255,255,255,0.4);
+    color: rgba(255, 255, 255, 0.4);
     margin-top: 4px;
   }
 }
@@ -702,8 +779,13 @@ $radius-xl: 32px;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 
-  @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
-  @media (max-width: 500px) { grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 500px) {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
 }
 
 .ea-cat-card {
@@ -728,11 +810,16 @@ $radius-xl: 32px;
   &:hover {
     border-color: var(--cat-color);
     transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
 
-    &::before { opacity: 1; }
+    &::before {
+      opacity: 1;
+    }
 
-    .ea-cat-card__arrow { opacity: 1; transform: translateX(0); }
+    .ea-cat-card__arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 
   &__icon {
@@ -809,7 +896,9 @@ $radius-xl: 32px;
     height: 1px;
     background: linear-gradient(to right, $surface-3, transparent);
 
-    @media (max-width: 768px) { display: none; }
+    @media (max-width: 768px) {
+      display: none;
+    }
   }
 
   &__icon {
@@ -867,7 +956,10 @@ $radius-xl: 32px;
   }
 
   &__left {
-    .ea-section-label, .ea-section-title { text-align: left; }
+    .ea-section-label,
+    .ea-section-title {
+      text-align: left;
+    }
   }
 
   &__body {
@@ -884,7 +976,7 @@ $radius-xl: 32px;
     .ea-why__img {
       border-radius: $radius-lg;
       overflow: hidden;
-      box-shadow: 0 24px 48px rgba(0,0,0,0.1);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.1);
     }
   }
 
@@ -898,7 +990,7 @@ $radius-xl: 32px;
     display: flex;
     flex-direction: column;
     gap: 2px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 
     span:first-child {
       font-size: 1.2rem;
@@ -921,7 +1013,9 @@ $radius-xl: 32px;
   font-size: 0.95rem;
   text-decoration: none;
   transition: gap 0.2s;
-  &:hover { gap: 10px; }
+  &:hover {
+    gap: 10px;
+  }
 }
 
 .ea-reason {
@@ -937,7 +1031,7 @@ $radius-xl: 32px;
 
   &:hover {
     border-color: $accent;
-    box-shadow: 0 8px 24px rgba(91,75,245,0.08);
+    box-shadow: 0 8px 24px rgba(91, 75, 245, 0.08);
   }
 
   &__icon {
@@ -973,7 +1067,7 @@ $radius-xl: 32px;
 
   &__text {
     font-size: 0.95rem;
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255, 0.8);
     line-height: 1.6;
     font-style: italic;
     margin: 0 0 20px;
@@ -1007,7 +1101,7 @@ $radius-xl: 32px;
 
   &__role {
     font-size: 0.78rem;
-    color: rgba(255,255,255,0.45);
+    color: rgba(255, 255, 255, 0.45);
   }
 }
 
@@ -1033,14 +1127,18 @@ $radius-xl: 32px;
   filter: blur(100px);
 
   &--1 {
-    width: 500px; height: 500px;
-    top: -200px; left: -100px;
-    background: radial-gradient(circle, rgba(91,75,245,0.4) 0%, transparent 70%);
+    width: 500px;
+    height: 500px;
+    top: -200px;
+    left: -100px;
+    background: radial-gradient(circle, rgba(91, 75, 245, 0.4) 0%, transparent 70%);
   }
   &--2 {
-    width: 400px; height: 400px;
-    bottom: -150px; right: -50px;
-    background: radial-gradient(circle, rgba(245,158,11,0.2) 0%, transparent 70%);
+    width: 400px;
+    height: 400px;
+    bottom: -150px;
+    right: -50px;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%);
   }
 }
 
@@ -1056,8 +1154,8 @@ $radius-xl: 32px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: $accent;
-  background: rgba(91,75,245,0.15);
-  border: 1px solid rgba(91,75,245,0.3);
+  background: rgba(91, 75, 245, 0.15);
+  border: 1px solid rgba(91, 75, 245, 0.3);
   padding: 5px 14px;
   border-radius: 100px;
   margin-bottom: 24px;
@@ -1074,7 +1172,7 @@ $radius-xl: 32px;
 
 .ea-cta__sub {
   font-size: 1.1rem;
-  color: rgba(255,255,255,0.5);
+  color: rgba(255, 255, 255, 0.5);
   margin: 0 0 48px;
   line-height: 1.6;
 }
@@ -1103,34 +1201,34 @@ $radius-xl: 32px;
   &:hover {
     background: #f0effe;
     transform: translateY(-2px);
-    box-shadow: 0 16px 32px rgba(255,255,255,0.15);
+    box-shadow: 0 16px 32px rgba(255, 255, 255, 0.15);
   }
 }
 
 .ea-cta-outline-white {
   display: inline-flex;
   align-items: center;
-  color: rgba(255,255,255,0.75);
+  color: rgba(255, 255, 255, 0.75);
   font-size: 1rem;
   font-weight: 600;
   padding: 16px 32px;
-  border: 1.5px solid rgba(255,255,255,0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 100px;
   text-decoration: none;
   backdrop-filter: blur(8px);
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   transition: all 0.25s;
 
   &:hover {
     color: #fff;
-    border-color: rgba(255,255,255,0.4);
-    background: rgba(255,255,255,0.08);
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.08);
   }
 }
 
 .ea-cta__note {
   font-size: 0.82rem;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255, 255, 255, 0.3);
   letter-spacing: 0.04em;
 }
 
@@ -1138,6 +1236,8 @@ $radius-xl: 32px;
 //  UTILITIES
 // =====================
 .ea-br-hide {
-  @media (max-width: 600px) { display: none; }
+  @media (max-width: 600px) {
+    display: none;
+  }
 }
 </style>

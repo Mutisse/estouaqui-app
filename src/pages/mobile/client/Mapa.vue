@@ -100,7 +100,7 @@
         <span>Limpar rota</span>
       </button>
 
-      <!-- Botão Ver Rota (só aparece quando tem rota e painel fechado) -->
+      <!-- Botão Ver Rota -->
       <button
         v-if="store.rotaAtiva && !mostrarPainelInstrucoes && store.instrucoesRota.length > 0"
         class="show-route-btn"
@@ -114,7 +114,7 @@
       </button>
     </div>
 
-    <!-- ===== ROUTE PANEL (começa fechado) ===== -->
+    <!-- ===== ROUTE PANEL ===== -->
     <transition name="route-slide">
       <div v-if="mostrarPainelInstrucoes && store.instrucoesRota.length > 0" class="route-panel">
         <div class="route-panel__header">
@@ -246,6 +246,7 @@ let map: L.Map | null = null;
 let raioCircle: L.Circle | null = null;
 let isAutoUpdating = false;
 let rotaLine: L.Polyline | null = null;
+let isMapInitialized = false;
 const autoZoomRadius = ref(true);
 const mostrarPainelInstrucoes = ref(false);
 
@@ -269,7 +270,7 @@ const calcularZoomPorRaio = (raioKm: number): number => {
 };
 
 const atualizarRaioCircle = (lat: number, lng: number, raioKm: number): void => {
-  if (!map) return;
+  if (!map || !isMapInitialized) return;
   if (raioCircle) map.removeLayer(raioCircle);
   const raioMetros = raioKm * 1000;
   raioCircle = L.circle([lat, lng], {
@@ -285,7 +286,7 @@ const atualizarRaioCircle = (lat: number, lng: number, raioKm: number): void => 
 };
 
 const ajustarZoomParaRaio = (): void => {
-  if (!autoZoomRadius.value || !map || !store.localizacao || isAutoUpdating) return;
+  if (!autoZoomRadius.value || !map || !store.localizacao || isAutoUpdating || !isMapInitialized) return;
   isAutoUpdating = true;
   const zoomIdeal = calcularZoomPorRaio(store.filtros.raio_busca);
   map.setView([store.localizacao.lat, store.localizacao.lng], zoomIdeal);
@@ -293,7 +294,7 @@ const ajustarZoomParaRaio = (): void => {
 };
 
 const toggleAutoZoomRadius = () => {
-  if (autoZoomRadius.value && store.localizacao) ajustarZoomParaRaio();
+  if (autoZoomRadius.value && store.localizacao && isMapInitialized) ajustarZoomParaRaio();
 };
 
 // ===================== CONFIGURAÇÃO DO LEAFLET =====================
@@ -351,19 +352,25 @@ const tracejarRota = async (prestador: PrestadorMapaItem): Promise<void> => {
     const distanciaTotal = (route.distance / 1000).toFixed(1);
     const duracaoTotal = Math.round(route.duration / 60);
 
-    if (rotaLine && map) map.removeLayer(rotaLine);
-    if (store.getRouteLine() && map) map.removeLayer(store.getRouteLine()!);
+    if (rotaLine && map && isMapInitialized) map.removeLayer(rotaLine);
+    if (store.getRouteLine() && map && isMapInitialized) map.removeLayer(store.getRouteLine()!);
 
-    rotaLine = L.polyline(coordinates, {
-      color: '#5B4BF5',
-      weight: 6,
-      opacity: 0.9,
-      lineCap: 'round',
-      lineJoin: 'round',
-    }).addTo(map!);
+    if (map && isMapInitialized) {
+      rotaLine = L.polyline(coordinates, {
+        color: '#5B4BF5',
+        weight: 6,
+        opacity: 0.9,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(map);
 
-    store.setRouteLine(rotaLine);
-    store.setRotaAtiva(true);
+      store.setRouteLine(rotaLine);
+      store.setRotaAtiva(true);
+
+      // Ajustar zoom para ver a rota
+      const bounds = L.latLngBounds(coordinates);
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
 
     // 2. GERAR INSTRUÇÕES
     const instrucoes: Array<{ texto: string; icone: string; distancia: string }> = [];
@@ -399,24 +406,11 @@ const tracejarRota = async (prestador: PrestadorMapaItem): Promise<void> => {
           }
         }
 
-        let icone = 'directions';
-        const modifier = step.maneuver.modifier;
-
-        if (modifier === 'right' || modifier === 'slight right' || modifier === 'sharp right') {
-          icone = 'turn_right';
-        } else if (modifier === 'left' || modifier === 'slight left' || modifier === 'sharp left') {
-          icone = 'turn_left';
-        } else if (modifier === 'straight') {
-          icone = 'straight';
-        } else if (modifier === 'uturn') {
-          icone = 'u_turn';
-        }
-
         const distanciaPasso = step.distance ? formatarDistanciaPasso(step.distance) : '';
 
         instrucoes.push({
           texto: texto,
-          icone: icone,
+          icone: step.maneuver.modifier || 'directions',
           distancia: distanciaPasso,
         });
       }
@@ -436,10 +430,6 @@ const tracejarRota = async (prestador: PrestadorMapaItem): Promise<void> => {
 
     // Fechar painel se estiver aberto
     mostrarPainelInstrucoes.value = false;
-
-    // Ajustar zoom para ver a rota
-    const bounds = L.latLngBounds(coordinates);
-    map!.fitBounds(bounds, { padding: [50, 50] });
 
     $q.notify({
       message: `🛣️ Rota calculada: ${distanciaTotal} km, ~${duracaoTotal} min`,
@@ -484,11 +474,11 @@ const fecharPainelInstrucoes = (): void => {
 // ===================== FUNÇÃO PARA LIMPAR ROTA =====================
 
 const limparRota = (): void => {
-  if (rotaLine && map) {
+  if (rotaLine && map && isMapInitialized) {
     map.removeLayer(rotaLine);
     rotaLine = null;
   }
-  if (store.getRouteLine() && map) {
+  if (store.getRouteLine() && map && isMapInitialized) {
     map.removeLayer(store.getRouteLine()!);
     store.setRouteLine(null);
   }
@@ -562,7 +552,7 @@ const criarMarcadorUsuario = (): L.Marker => {
 };
 
 const atualizarMarcadores = (): void => {
-  if (!map) return;
+  if (!map || !isMapInitialized) return;
 
   let markersLayer = store.getMarkersLayer();
   if (markersLayer) {
@@ -581,7 +571,7 @@ const atualizarMarcadores = (): void => {
 };
 
 const atualizarLocalizacaoUsuario = (lat: number, lng: number, accuracy: number = 50): void => {
-  if (!map) return;
+  if (!map || !isMapInitialized) return;
 
   try {
     const userMarker = store.getUserMarker();
@@ -614,15 +604,15 @@ const atualizarLocalizacaoUsuario = (lat: number, lng: number, accuracy: number 
 // ===================== FUNÇÕES DO MAPA =====================
 
 const zoomIn = (): void => {
-  if (map) map.setZoom(Math.min(map.getZoom() + 1, MAX_ZOOM));
+  if (map && isMapInitialized) map.setZoom(Math.min(map.getZoom() + 1, MAX_ZOOM));
 };
 
 const zoomOut = (): void => {
-  if (map) map.setZoom(Math.max(map.getZoom() - 1, MIN_ZOOM));
+  if (map && isMapInitialized) map.setZoom(Math.max(map.getZoom() - 1, MIN_ZOOM));
 };
 
 const centralizarNaLocalizacao = (): void => {
-  if (!map || !store.localizacao) return;
+  if (!map || !store.localizacao || !isMapInitialized) return;
   map.setView([store.localizacao.lat, store.localizacao.lng], DEFAULT_ZOOM);
   if (store.getUserMarker()) store.getUserMarker()?.openPopup();
   $q.notify({ message: 'Mapa centralizado na sua localização', color: 'info', icon: 'my_location', timeout: 1500, position: 'bottom' });
@@ -653,6 +643,11 @@ const onRaioChange = async (): Promise<void> => {
 // ===================== INICIAR MAPA CORRIGIDO =====================
 
 const iniciarMapa = async (): Promise<void> => {
+  if (isMapInitialized) {
+    console.warn('Mapa já está inicializado');
+    return;
+  }
+
   store.carregandoMapa = true;
   try {
     // 🔥 AGUARDAR O DOM SER RENDERIZADO
@@ -683,6 +678,7 @@ const iniciarMapa = async (): Promise<void> => {
       maxZoom: MAX_ZOOM,
     }).setView([-25.9692, 32.5732], DEFAULT_ZOOM);
 
+    isMapInitialized = true;
     store.setMapInstance(map);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
@@ -691,11 +687,19 @@ const iniciarMapa = async (): Promise<void> => {
     }).addTo(map);
 
     // 🔥 FORÇAR O MAPA A CALCULAR O TAMANHO CORRETO
-    setTimeout(() => {
-      if (map) {
-        map.invalidateSize();
+    const forceResize = () => {
+      if (map && isMapInitialized) {
+        try {
+          map.invalidateSize();
+          console.log('✅ Mapa redimensionado com sucesso');
+        } catch (error) {
+          console.warn('Erro ao redimensionar mapa:', error);
+        }
       }
-    }, 200);
+    };
+
+    setTimeout(forceResize, 300);
+    setTimeout(forceResize, 800);
 
     await store.carregarDadosIniciais();
 
@@ -707,6 +711,9 @@ const iniciarMapa = async (): Promise<void> => {
       );
       atualizarMarcadores();
     }
+
+    console.log('✅ Mapa inicializado com sucesso');
+
   } catch (error) {
     console.error('Erro ao iniciar mapa:', error);
     $q.notify({
@@ -721,27 +728,50 @@ const iniciarMapa = async (): Promise<void> => {
 
 // ===================== CICLO DE VIDA =====================
 
-// 🔥 CORRIGIDO: Dar tempo para o DOM renderizar
 onMounted(() => {
-  // Aguardar o próximo tick e mais um pequeno delay para garantir
+  // 🔥 CORRIGIDO: Dar tempo para o DOM renderizar
+  const intervalId = setInterval(() => {
+    const mapContainer = document.getElementById('map');
+    if (mapContainer && mapContainer.offsetHeight > 0) {
+      clearInterval(intervalId);
+      void iniciarMapa();
+    }
+  }, 100);
+
+  // Timeout de segurança - se não carregar em 5 segundos, tentar mesmo assim
   setTimeout(() => {
-    void iniciarMapa();
-  }, 200);
+    clearInterval(intervalId);
+    if (!isMapInitialized) {
+      void iniciarMapa();
+    }
+  }, 5000);
 
   window.addEventListener('resize', () => {
-    if (map && map.getContainer()) {
+    if (map && isMapInitialized) {
       setTimeout(() => {
-        if (map) map.invalidateSize();
+        try {
+          if (map) map.invalidateSize();
+        } catch (error) {
+          console.warn('Erro no resize do mapa:', error);
+        }
       }, 200);
     }
   });
 });
 
 onUnmounted(() => {
-  if (rotaLine && map) map.removeLayer(rotaLine);
-  if (raioCircle && map) map.removeLayer(raioCircle);
-  if (map) map.remove();
-  store.limparStore();
+  try {
+    if (rotaLine && map && isMapInitialized) map.removeLayer(rotaLine);
+    if (raioCircle && map && isMapInitialized) map.removeLayer(raioCircle);
+    if (map) {
+      map.remove();
+      map = null;
+    }
+    isMapInitialized = false;
+    store.limparStore();
+  } catch (error) {
+    console.warn('Erro ao limpar mapa:', error);
+  }
 });
 </script>
 

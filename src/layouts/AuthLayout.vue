@@ -67,12 +67,13 @@
 
           <p class="ea-left-subtitle">{{ currentSubtitle }}</p>
 
-          <!-- Imagem -->
+          <!-- 🔥 IMAGEM COM BANNER LOCAL -->
           <div class="ea-auth-hero__image-wrapper">
             <q-img
               :src="currentImageSrc"
               class="ea-auth-hero__image"
               fit="cover"
+              spinner-color="primary"
             />
             <div class="ea-auth-hero__image-overlay"></div>
 
@@ -113,7 +114,7 @@ defineOptions({ name: 'AuthLayout' })
 const router = useRouter()
 const activeTab = ref<'login' | 'cliente' | 'prestador'>('login')
 
-// Configurações de cada tab
+// 🔥 CONFIGURAÇÕES COM BANNERS LOCAIS
 const tabConfig = {
   login: {
     component: LoginForm,
@@ -121,7 +122,7 @@ const tabConfig = {
     titleAccent: 'ao EstouAqui',
     subtitle: 'Faça login para aceder à sua conta',
     badgeText: 'Acesso rápido',
-    imageSrc: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=85'
+    imageSrc: '/baner/baner5.png'  // 🔥 Banner 1
   },
   cliente: {
     component: RegisterClienteForm,
@@ -129,7 +130,7 @@ const tabConfig = {
     titleAccent: 'de cliente',
     subtitle: 'Encontre os melhores profissionais perto de si',
     badgeText: 'Gratuito',
-    imageSrc: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=1200&q=85'
+    imageSrc: '/baner/baner4.png'  // 🔥 Banner 2
   },
   prestador: {
     component: RegisterPrestadorForm,
@@ -137,7 +138,7 @@ const tabConfig = {
     titleAccent: 'de prestador',
     subtitle: 'Ofereça os seus serviços e ganhe dinheiro',
     badgeText: 'Comece a ganhar',
-    imageSrc: 'https://images.unsplash.com/photo-1581091226033-d5c48150dbaa?auto=format&fit=crop&w=1200&q=85'
+    imageSrc: '/baner/baner6.png'  // 🔥 Banner 3
   }
 }
 
@@ -270,6 +271,8 @@ $radius-xl: 32px;
     width: 100%;
     height: auto;
     display: block;
+    min-height: 250px;
+    background: rgba(255,255,255,0.05);
   }
 
   &__image-overlay {
@@ -390,7 +393,7 @@ $radius-xl: 32px;
 }
 
 // =====================
-// CONTEÚDO DO LADO ESQUERDO (acima da imagem)
+// CONTEÚDO DO LADO ESQUERDO
 // =====================
 .ea-left-badge {
   display: inline-flex;

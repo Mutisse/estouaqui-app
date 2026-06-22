@@ -576,7 +576,7 @@ $warning: #F59E0B;
 $danger: #EF4444;
 $info: #3B82F6;
 $dark: #0A0A0F;
-$ink: #0A0A0F;  // 🔥 ADICIONADO PARA CORRIGIR O ERRO
+$ink: #0A0A0F;
 $gray: #6B7280;
 $gray-light: #F3F4F6;
 $border: #E5E7EB;
@@ -739,15 +739,22 @@ $radius-xs: 8px;
   padding: 8px 16px;
   gap: 8px;
   border-bottom: 1px solid $border;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    height: 0;
+  }
 }
 
 .tab-btn {
   flex: 1;
+  min-width: fit-content;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
   border-radius: $radius-sm;
@@ -757,6 +764,7 @@ $radius-xs: 8px;
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+  white-space: nowrap;
 
   &:hover {
     background: $accent-light;
@@ -867,6 +875,7 @@ $radius-xs: 8px;
 
 .proposta-info {
   flex: 1;
+  min-width: 0;
 }
 
 .proposta-servico {
@@ -874,6 +883,9 @@ $radius-xs: 8px;
   font-weight: 600;
   color: $dark;
   margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .proposta-prestador {
@@ -951,6 +963,7 @@ $radius-xs: 8px;
 
   span {
     flex: 1;
+    word-break: break-word;
   }
 }
 
@@ -1107,6 +1120,7 @@ $radius-xs: 8px;
       font-size: 0.9rem;
       color: $dark;
       line-height: 1.5;
+      word-break: break-word;
     }
   }
 }
@@ -1165,6 +1179,7 @@ $radius-xs: 8px;
 
   .proposta-actions {
     justify-content: center;
+    flex-wrap: wrap;
   }
 
   .modal-actions {
@@ -1179,6 +1194,22 @@ $radius-xs: 8px;
   .proposta-detalhes {
     flex-direction: column;
     gap: 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  .proposta-card {
+    &__footer {
+      flex-wrap: wrap;
+    }
+  }
+
+  .modal-header {
+    .modal-header-content {
+      .modal-title {
+        font-size: 0.95rem;
+      }
+    }
   }
 }
 </style>

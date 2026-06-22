@@ -96,7 +96,7 @@
             icon="verified"
             label="Verificar"
             @click="handleVerificar"
-            class="action-btn"
+            class="action-btn btn-verificar"
           />
 
           <template v-if="utilizador.tipo === 'prestador'">
@@ -107,7 +107,7 @@
               icon="check_circle"
               label="Aprovar"
               @click="handleAprovar"
-              class="action-btn"
+              class="action-btn btn-aprovar"
             />
             <q-btn
               v-if="utilizador.status === 'pendente'"
@@ -116,7 +116,7 @@
               icon="cancel"
               label="Reprovar"
               @click="handleReprovar"
-              class="action-btn"
+              class="action-btn btn-reprovar"
             />
           </template>
 
@@ -127,7 +127,7 @@
             icon="play_arrow"
             label="Ativar"
             @click="handleAtivar"
-            class="action-btn"
+            class="action-btn btn-ativar"
           />
           <q-btn
             v-if="utilizador.status === 'ativo'"
@@ -136,7 +136,7 @@
             icon="pause"
             label="Desativar"
             @click="handleDesativar"
-            class="action-btn"
+            class="action-btn btn-desativar"
           />
 
           <q-btn
@@ -146,7 +146,7 @@
             icon="lock_open"
             label="Desbloquear"
             @click="handleDesbloquear"
-            class="action-btn"
+            class="action-btn btn-desbloquear"
           />
           <q-btn
             v-if="utilizador.status !== 'bloqueado' && utilizador.status !== 'desativado'"
@@ -155,7 +155,7 @@
             icon="lock"
             label="Bloquear"
             @click="handleBloquear"
-            class="action-btn"
+            class="action-btn btn-bloquear"
           />
 
           <q-btn
@@ -164,7 +164,7 @@
             icon="delete"
             label="Excluir"
             @click="handleExcluir"
-            class="action-btn"
+            class="action-btn btn-excluir"
           />
         </div>
       </div>
@@ -291,7 +291,7 @@
               </label>
               <div class="info-value">
                 {{ (utilizador.media_avaliacao || 0).toFixed(1) }} ⭐
-                <span class="text-grey-6 text-caption">({{ utilizador.total_avaliacoes || 0 }} avaliações)</span>
+                <span class="text-caption">({{ utilizador.total_avaliacoes || 0 }} avaliações)</span>
               </div>
             </div>
           </div>
@@ -474,6 +474,7 @@
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -504,7 +505,7 @@ const toggleSection = (section: keyof typeof sections.value): void => {
   sections.value[section] = !sections.value[section];
 };
 
-// ===================== COMPUTEDS (SEM ANY) =====================
+// ===================== COMPUTEDS =====================
 
 const categorias = computed(() => {
   return utilizador.value?.categorias || [];
@@ -771,14 +772,17 @@ onMounted(() => {
 // ===================== VARIABLES =====================
 $accent: #5B4BF5;
 $accent-light: rgba(91, 75, 245, 0.08);
+$accent-hover: #4A3DD4;
 $green: #10B981;
+$green-light: rgba(16, 185, 129, 0.1);
 $gold: #F59E0B;
+$gold-light: rgba(245, 158, 11, 0.1);
 $red: #EF4444;
+$red-light: rgba(239, 68, 68, 0.1);
 $ink: #0A0A0F;
 $ink-2: #3D3D4E;
 $muted: #9898A8;
 $gray: #6B7280;
-$dark: #0A0A0F;
 $gray-light: #F3F4F6;
 $line: rgba(0, 0, 0, 0.06);
 $surface: #FFFFFF;
@@ -786,6 +790,8 @@ $bg: #F4F4F8;
 $radius: 16px;
 $radius-sm: 10px;
 $radius-xs: 8px;
+$shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+$shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
 
 // ===== SKELETON =====
 @keyframes shimmer {
@@ -803,7 +809,7 @@ $radius-xs: 8px;
   border-radius: $radius;
   padding: 24px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: $shadow;
 }
 
 .skeleton-header {
@@ -904,7 +910,14 @@ $radius-xs: 8px;
   padding: 12px 0;
 
   .skeleton-title { width: 40%; height: 20px; }
-  .skeleton-chevron { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+  .skeleton-chevron {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
 }
 
 // ===== CONTEÚDO PRINCIPAL =====
@@ -919,12 +932,19 @@ $radius-xs: 8px;
   margin: 0 auto;
 }
 
+// ===== PERFIL CARD =====
 .perfil-card {
   background: $surface;
   border-radius: $radius;
   padding: 24px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: $shadow;
+  border: 1px solid $line;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: $shadow-hover;
+  }
 
   .card-header {
     display: flex;
@@ -951,6 +971,7 @@ $radius-xs: 8px;
   }
 }
 
+// ===== HEADER CARD =====
 .header-card {
   display: flex;
   align-items: center;
@@ -961,12 +982,21 @@ $radius-xs: 8px;
     flex-shrink: 0;
     position: relative;
 
-    .perfil-avatar { border: 3px solid $accent; }
+    .perfil-avatar {
+      border: 3px solid $accent;
+      box-shadow: 0 4px 16px rgba($accent, 0.3);
+    }
+
     .perfil-status {
       position: absolute;
       bottom: -4px;
       right: -4px;
-      .status-badge { padding: 4px 10px; font-size: 11px; }
+
+      .status-badge {
+        padding: 4px 10px;
+        font-size: 11px;
+        border-radius: 20px;
+      }
     }
   }
 
@@ -978,9 +1008,27 @@ $radius-xs: 8px;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
-      .perfil-nome { margin: 0; font-size: 24px; font-weight: 700; color: $ink; }
-      .tipo-badge { padding: 4px 12px; font-size: 12px; }
-      .verified-badge { padding: 4px 12px; font-size: 12px; }
+
+      .perfil-nome {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: $ink;
+      }
+
+      .tipo-badge {
+        padding: 4px 12px;
+        font-size: 12px;
+        border-radius: 20px;
+      }
+
+      .verified-badge {
+        padding: 4px 12px;
+        font-size: 12px;
+        border-radius: 20px;
+        background: $green;
+        color: white;
+      }
     }
 
     .perfil-sub-info {
@@ -990,32 +1038,72 @@ $radius-xs: 8px;
       color: $gray;
       font-size: 14px;
       flex-wrap: wrap;
-      span { display: flex; align-items: center; gap: 4px; }
+
+      span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        .q-icon {
+          color: $muted;
+          font-size: 16px;
+        }
+      }
     }
   }
 }
 
+// ===== AÇÕES RÁPIDAS =====
 .actions-card {
   background: $surface;
   border-radius: $radius;
   padding: 16px 24px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: $shadow;
+  border: 1px solid $line;
 
   .actions-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    .action-btn { min-width: 120px; }
+    justify-content: flex-start;
+    align-items: center;
+
+    .action-btn {
+      min-width: 120px;
+      border-radius: 8px;
+      font-weight: 500;
+      text-transform: none;
+      font-size: 13px;
+      padding: 8px 16px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      &.btn-verificar { background: $accent; color: white; }
+      &.btn-aprovar { background: $green; color: white; }
+      &.btn-reprovar { background: $red; color: white; }
+      &.btn-ativar { background: $green; color: white; }
+      &.btn-desativar { background: $gold; color: white; }
+      &.btn-bloquear { background: $red; color: white; }
+      &.btn-desbloquear { background: $green; color: white; }
+      &.btn-excluir { background: $red; color: white; }
+    }
   }
 }
 
+// ===== INFO CARD =====
 .info-card .info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px 24px;
 
-  &.two-cols { grid-template-columns: 1fr 1fr; }
+  &.two-cols {
+    grid-template-columns: 1fr 1fr;
+  }
 
   .info-item {
     display: flex;
@@ -1030,9 +1118,14 @@ $radius-xs: 8px;
       gap: 6px;
       font-size: 12px;
       font-weight: 500;
-      color: #9ca3af;
+      color: $gray;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+
+      .q-icon {
+        font-size: 18px;
+        color: $accent;
+      }
     }
 
     .info-value {
@@ -1040,7 +1133,85 @@ $radius-xs: 8px;
       color: $ink;
       padding: 4px 0;
 
-      &.texto { line-height: 1.6; white-space: pre-wrap; }
+      &.texto {
+        line-height: 1.6;
+        white-space: pre-wrap;
+        background: $gray-light;
+        padding: 12px 16px;
+        border-radius: $radius-xs;
+      }
+    }
+  }
+}
+
+// ===== INFO GRID 2 COLUNAS - CORRIGIDO =====
+.info-grid.two-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    background: $bg;
+    border-radius: $radius-xs;
+    border: 1px solid $line;
+    transition: all 0.25s ease;
+
+    &:hover {
+      border-color: $accent;
+      background: $accent-light;
+      transform: translateY(-1px);
+    }
+
+    .info-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      color: $gray;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+
+      .q-icon {
+        font-size: 14px;
+        color: $accent;
+      }
+    }
+
+    .info-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: $ink;
+      padding: 2px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+
+      .q-badge {
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-weight: 500;
+
+        .q-icon {
+          font-size: 13px;
+        }
+      }
+
+      .text-caption {
+        font-size: 11px;
+        color: $gray;
+        font-weight: 400;
+      }
+
+      .text-grey-6 {
+        color: $gray;
+      }
     }
   }
 }
@@ -1058,7 +1229,9 @@ $radius-xs: 8px;
     cursor: pointer;
     transition: background 0.2s;
 
-    &:hover { background: $accent-light; }
+    &:hover {
+      background: $accent-light;
+    }
 
     .section-title {
       display: flex;
@@ -1071,10 +1244,18 @@ $radius-xs: 8px;
         font-size: 20px;
       }
 
-      h3 { margin: 0; font-size: 15px; font-weight: 600; color: $ink; }
+      h3 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        color: $ink;
+      }
     }
 
-    .section-badge { display: flex; align-items: center; }
+    .section-badge {
+      display: flex;
+      align-items: center;
+    }
   }
 
   .section-content {
@@ -1104,6 +1285,12 @@ $radius-xs: 8px;
     border-radius: 30px;
     font-size: 14px;
     font-weight: 500;
+    transition: all 0.2s;
+
+    &:hover {
+      transform: scale(1.03);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
   }
 }
 
@@ -1117,38 +1304,101 @@ $radius-xs: 8px;
     gap: 16px;
     padding: 14px 0;
     border-bottom: 1px solid $line;
+    transition: background 0.2s;
+
+    &:hover {
+      background: $accent-light;
+      padding-left: 8px;
+      padding-right: 8px;
+      border-radius: $radius-xs;
+    }
 
     &:last-child { border-bottom: none; }
 
     .servico-icon {
-      width: 44px; height: 44px;
+      width: 44px;
+      height: 44px;
       border-radius: 10px;
       background: rgba($accent, 0.1);
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
+      transition: all 0.2s;
+
+      &:hover {
+        background: $accent;
+        color: white;
+      }
     }
 
     .servico-info {
       flex: 1;
-      .servico-nome { font-weight: 600; color: $ink; margin-bottom: 2px; }
-      .servico-desc { font-size: 13px; color: $gray; }
+
+      .servico-nome {
+        font-weight: 600;
+        color: $ink;
+        margin-bottom: 2px;
+      }
+
+      .servico-desc {
+        font-size: 13px;
+        color: $gray;
+      }
     }
 
     .servico-detalhes {
       text-align: right;
       flex-shrink: 0;
-      .servico-preco { font-weight: 700; color: $accent; font-size: 16px; }
-      .servico-duracao { font-size: 12px; color: $gray; }
+
+      .servico-preco {
+        font-weight: 700;
+        color: $accent;
+        font-size: 16px;
+      }
+
+      .servico-duracao {
+        font-size: 12px;
+        color: $gray;
+      }
     }
   }
 }
 
-.back-section { text-align: center; margin-top: 16px; }
+// ===== BACK SECTION =====
+.back-section {
+  text-align: center;
+  margin-top: 16px;
+  padding: 16px;
 
+  .q-btn {
+    color: $gray;
+    font-weight: 500;
+    transition: all 0.2s;
+
+    &:hover {
+      color: $accent;
+      background: $accent-light;
+    }
+  }
+}
+
+// ===== ERROR STATE =====
 .error-state {
   text-align: center;
   padding: 60px 20px;
-  h3 { margin: 16px 0 20px; color: $ink; }
+  background: $surface;
+  border-radius: $radius;
+  box-shadow: $shadow;
+
+  h3 {
+    margin: 16px 0 20px;
+    color: $ink;
+  }
+
+  .q-icon {
+    color: $red;
+  }
 }
 
 // ===== RESPONSIVIDADE =====
@@ -1158,34 +1408,170 @@ $radius-xs: 8px;
     text-align: center;
     padding: 20px 16px;
 
-    .perfil-avatar-wrapper { margin-bottom: 8px; }
-    .perfil-header-info .perfil-nome-wrapper { justify-content: center; }
-    .perfil-header-info .perfil-sub-info { justify-content: center; flex-wrap: wrap; }
+    .perfil-avatar-wrapper {
+      margin-bottom: 8px;
+    }
+
+    .perfil-header-info {
+      .perfil-nome-wrapper {
+        justify-content: center;
+      }
+
+      .perfil-sub-info {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+    }
   }
 
-  .info-card .info-grid { grid-template-columns: 1fr; }
-  .actions-card .actions-grid { justify-content: center; .action-btn { min-width: 100px; flex: 1; } }
+  .info-card .info-grid,
+  .info-grid.two-cols {
+    grid-template-columns: 1fr;
+  }
+
+  .actions-card {
+    .actions-grid {
+      justify-content: center;
+
+      .action-btn {
+        min-width: 100px;
+        flex: 1 1 auto;
+        font-size: 12px;
+        padding: 8px 12px;
+      }
+    }
+  }
 
   .servico-item {
     flex-wrap: wrap;
-    .servico-detalhes { width: 100%; text-align: left; padding-left: 60px; }
+
+    .servico-detalhes {
+      width: 100%;
+      text-align: left;
+      padding-left: 60px;
+    }
   }
 
   .expandable-section {
-    .section-header { padding: 14px 16px; .section-title h3 { font-size: 14px; } }
-    .section-content { padding: 0 16px 16px; }
+    .section-header {
+      padding: 14px 16px;
+
+      .section-title h3 {
+        font-size: 14px;
+      }
+    }
+
+    .section-content {
+      padding: 0 16px 16px;
+    }
   }
 
   .skeleton-header {
     flex-direction: column;
     text-align: center;
+
     .skeleton-info .skeleton-name,
     .skeleton-info .skeleton-badge,
-    .skeleton-info .skeleton-sub { margin-left: auto; margin-right: auto; }
+    .skeleton-info .skeleton-sub {
+      margin-left: auto;
+      margin-right: auto;
+    }
   }
 
   .skeleton-info .skeleton-info-grid,
-  .skeleton-status .skeleton-status-grid { grid-template-columns: 1fr; }
-  .skeleton-actions .skeleton-actions-grid { justify-content: center; }
+  .skeleton-status .skeleton-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .skeleton-actions .skeleton-actions-grid {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .perfil-utilizador-page {
+    padding: 12px;
+  }
+
+  .perfil-card {
+    padding: 16px;
+  }
+
+  .header-card {
+    padding: 16px;
+
+    .perfil-avatar-wrapper .perfil-avatar {
+      width: 80px;
+      height: 80px;
+    }
+
+    .perfil-header-info .perfil-nome-wrapper .perfil-nome {
+      font-size: 20px;
+    }
+  }
+
+  .actions-card {
+    padding: 12px;
+
+    .actions-grid {
+      .action-btn {
+        min-width: 80px;
+        font-size: 11px;
+        padding: 6px 10px;
+
+        .q-icon {
+          font-size: 16px !important;
+        }
+      }
+    }
+  }
+
+  .info-card .info-grid .info-item .info-value {
+    font-size: 14px;
+  }
+
+  .info-grid.two-cols .info-item {
+    padding: 10px 12px;
+  }
+
+  .servicos-list .servico-item {
+    padding: 10px 0;
+
+    .servico-info .servico-nome {
+      font-size: 14px;
+    }
+
+    .servico-detalhes .servico-preco {
+      font-size: 14px;
+    }
+  }
+
+  .categorias-list .categoria-chip {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
+
+// ===== SCROLLBAR =====
+.servicos-list::-webkit-scrollbar,
+.skeleton-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.servicos-list::-webkit-scrollbar-track,
+.skeleton-container::-webkit-scrollbar-track {
+  background: $gray-light;
+  border-radius: 10px;
+}
+
+.servicos-list::-webkit-scrollbar-thumb,
+.skeleton-container::-webkit-scrollbar-thumb {
+  background: $accent;
+  border-radius: 10px;
+}
+
+.servicos-list::-webkit-scrollbar-thumb:hover,
+.skeleton-container::-webkit-scrollbar-thumb:hover {
+  background: $accent-hover;
 }
 </style>
