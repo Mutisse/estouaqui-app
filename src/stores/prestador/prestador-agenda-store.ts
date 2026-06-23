@@ -1,3 +1,5 @@
+// src/stores/prestador/prestador-agenda-store.ts
+
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from 'src/boot/axios';
@@ -56,6 +58,7 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
   // Dados da agenda
   const agenda = ref<AgendaItem[]>([]);
   const intervalos = ref<IntervaloItem[]>([]);
+  const horariosDisponiveis = ref<string[]>([]);
 
   const dadosCarregados = ref(false);
   const ultimaAtualizacao = ref<Date | null>(null);
@@ -85,6 +88,51 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
     return agenda.value.filter(item => item.ocupado);
   });
 
+  // ===================== AÇÕES - HORÁRIOS =====================
+
+  const fetchHorarios = async (): Promise<void> => {
+    try {
+      const response = await api.get('/prestador/agenda/horarios');
+      if (response.data?.success && response.data.data) {
+        horariosDisponiveis.value = response.data.data;
+      } else {
+        horariosDisponiveis.value = getDefaultHorarios();
+      }
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      console.error('Erro ao buscar horários:', axiosError);
+      horariosDisponiveis.value = getDefaultHorarios();
+    }
+  };
+
+  const atualizarHorarios = async (horarios: string[]): Promise<boolean> => {
+    isSaving.value = true;
+    try {
+      const response = await api.put('/prestador/agenda/horarios', { horarios });
+      if (response.data?.success) {
+        horariosDisponiveis.value = horarios;
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      console.error('Erro ao atualizar horários:', axiosError);
+      error.value = axiosError.message || 'Erro ao atualizar horários';
+      return false;
+    } finally {
+      isSaving.value = false;
+    }
+  };
+
+  const getDefaultHorarios = (): string[] => {
+    const horarios: string[] = [];
+    for (let h = 8; h <= 19; h++) {
+      horarios.push(`${String(h).padStart(2, '0')}:00`);
+      horarios.push(`${String(h).padStart(2, '0')}:30`);
+    }
+    return horarios;
+  };
+
   // ===================== AÇÕES - AGENDA =====================
 
   const fetchAgenda = async (params: FetchAgendaParams = {}): Promise<void> => {
@@ -110,8 +158,9 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
         ultimaAtualizacao.value = new Date();
       }
     } catch (err) {
-      console.error('Erro ao buscar agenda:', err);
-      error.value = (err as AxiosError).message || 'Erro ao carregar agenda';
+      const axiosError = err as AxiosError;
+      console.error('Erro ao buscar agenda:', axiosError);
+      error.value = axiosError.message || 'Erro ao carregar agenda';
     } finally {
       isLoading.value = false;
     }
@@ -122,10 +171,6 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
     await fetchAgenda({ semana: offset });
   };
 
-  /**
-   * Bloqueia um horário específico
-   * POST /api/prestador/agenda/bloquear
-   */
   const bloquearHorario = async (data: BloquearHorarioData): Promise<boolean> => {
     isSaving.value = true;
     try {
@@ -138,7 +183,6 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
         );
 
         if (index !== -1 && agenda.value[index]) {
-          // ✅ CORRIGIDO: Criar objeto com todas as propriedades obrigatórias
           const itemExistente = agenda.value[index];
           agenda.value[index] = {
             id: itemExistente.id,
@@ -150,7 +194,6 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
             motivo: data.motivo ?? null,
           };
         } else {
-          // ✅ CORRIGIDO: Criar objeto com todas as propriedades obrigatórias
           const novoBloqueio: AgendaItem = {
             id: novoId,
             data: data.data,
@@ -166,18 +209,15 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
       }
       return false;
     } catch (err) {
-      console.error('Erro ao bloquear horário:', err);
-      error.value = (err as AxiosError).message || 'Erro ao bloquear horário';
+      const axiosError = err as AxiosError;
+      console.error('Erro ao bloquear horário:', axiosError);
+      error.value = axiosError.message || 'Erro ao bloquear horário';
       return false;
     } finally {
       isSaving.value = false;
     }
   };
 
-  /**
-   * Desbloqueia um horário específico
-   * DELETE /api/prestador/agenda/bloquear/{id}
-   */
   const desbloquearHorario = async (id: number): Promise<boolean> => {
     isSaving.value = true;
     try {
@@ -191,17 +231,15 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
       }
       return false;
     } catch (err) {
-      console.error('Erro ao desbloquear horário:', err);
-      error.value = (err as AxiosError).message || 'Erro ao desbloquear horário';
+      const axiosError = err as AxiosError;
+      console.error('Erro ao desbloquear horário:', axiosError);
+      error.value = axiosError.message || 'Erro ao desbloquear horário';
       return false;
     } finally {
       isSaving.value = false;
     }
   };
 
-  /**
-   * Salva múltiplas alterações na agenda (bloquear/desbloquear)
-   */
   const salvarAlteracoes = async (
     novosBloqueios: BloquearHorarioData[],
     bloqueiosParaDesbloquear: number[]
@@ -218,8 +256,9 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
 
       return true;
     } catch (err) {
-      console.error('Erro ao salvar alterações:', err);
-      error.value = (err as AxiosError).message || 'Erro ao salvar alterações';
+      const axiosError = err as AxiosError;
+      console.error('Erro ao salvar alterações:', axiosError);
+      error.value = axiosError.message || 'Erro ao salvar alterações';
       return false;
     } finally {
       isSaving.value = false;
@@ -236,8 +275,9 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
         intervalos.value = response.data.data;
       }
     } catch (err) {
-      console.error('Erro ao buscar intervalos:', err);
-      error.value = (err as AxiosError).message || 'Erro ao carregar intervalos';
+      const axiosError = err as AxiosError;
+      console.error('Erro ao buscar intervalos:', axiosError);
+      error.value = axiosError.message || 'Erro ao carregar intervalos';
     } finally {
       isLoading.value = false;
     }
@@ -254,8 +294,9 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
       }
       return null;
     } catch (err) {
-      console.error('Erro ao criar intervalo:', err);
-      error.value = (err as AxiosError).message || 'Erro ao criar intervalo';
+      const axiosError = err as AxiosError;
+      console.error('Erro ao criar intervalo:', axiosError);
+      error.value = axiosError.message || 'Erro ao criar intervalo';
       return null;
     } finally {
       isSaving.value = false;
@@ -275,8 +316,9 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
       }
       return null;
     } catch (err) {
-      console.error('Erro ao atualizar intervalo:', err);
-      error.value = (err as AxiosError).message || 'Erro ao atualizar intervalo';
+      const axiosError = err as AxiosError;
+      console.error('Erro ao atualizar intervalo:', axiosError);
+      error.value = axiosError.message || 'Erro ao atualizar intervalo';
       return null;
     } finally {
       isSaving.value = false;
@@ -293,8 +335,9 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
       }
       return false;
     } catch (err) {
-      console.error('Erro ao deletar intervalo:', err);
-      error.value = (err as AxiosError).message || 'Erro ao deletar intervalo';
+      const axiosError = err as AxiosError;
+      console.error('Erro ao deletar intervalo:', axiosError);
+      error.value = axiosError.message || 'Erro ao deletar intervalo';
       return false;
     } finally {
       isSaving.value = false;
@@ -309,9 +352,11 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
       await Promise.all([
         fetchAgendaPorSemana(semanaOffset),
         fetchIntervalos(),
+        fetchHorarios(),
       ]);
     } catch (err) {
-      console.error('Erro ao carregar dados:', err);
+      const axiosError = err as AxiosError;
+      console.error('Erro ao carregar dados:', axiosError);
     } finally {
       isLoading.value = false;
     }
@@ -324,6 +369,7 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
   const limparStore = (): void => {
     agenda.value = [];
     intervalos.value = [];
+    horariosDisponiveis.value = [];
     dadosCarregados.value = false;
     ultimaAtualizacao.value = null;
     error.value = null;
@@ -337,6 +383,7 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
     error,
     agenda,
     intervalos,
+    horariosDisponiveis,
     dadosCarregados,
     ultimaAtualizacao,
     currentWeekOffset,
@@ -345,6 +392,11 @@ export const usePrestadorAgendaStore = defineStore('prestadorAgenda', () => {
     agendaPorData,
     horariosBloqueados,
     horariosOcupados,
+
+    // Horários
+    fetchHorarios,
+    atualizarHorarios,
+    getDefaultHorarios,
 
     // Agenda
     fetchAgenda,
