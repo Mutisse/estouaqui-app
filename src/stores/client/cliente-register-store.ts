@@ -13,6 +13,8 @@ export interface ClienteRegisterData {
   endereco?: string;
   password: string;
   foto?: File | null;
+  latitude?: number | null;   // 🔥 ADICIONADO
+  longitude?: number | null;  // 🔥 ADICIONADO
 }
 
 export interface ClienteRegisterResponse {
@@ -38,7 +40,6 @@ export interface PasswordStrength {
   score: number;
 }
 
-// ========== NOVOS TIPOS PARA ERROS DA API ==========
 interface ApiErrorResponse {
   success?: boolean;
   message?: string;
@@ -51,7 +52,6 @@ interface ApiErrorResponse {
   };
 }
 
-// Tipo para resposta da API
 interface ApiRegisterResponse {
   success: boolean;
   message?: string;
@@ -73,7 +73,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
   const registerSuccess = ref(false);
   const validationErrors = ref<ValidationError[]>([]);
 
-  // Dados do formulário (sem confirmPassword)
   const formData = ref<ClienteRegisterData>({
     nome: '',
     telefone: '',
@@ -81,9 +80,10 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
     endereco: '',
     password: '',
     foto: null,
+    latitude: null,
+    longitude: null,
   });
 
-  // Estado para preview da foto
   const photoPreview = ref<string | null>(null);
 
   // ========== GETTERS ==========
@@ -136,9 +136,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
 
   // ========== ACTIONS ==========
 
-  /**
-   * Valida o passo atual do formulário
-   */
   const validateStep = (step: number): boolean => {
     validationErrors.value = [];
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -190,9 +187,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
     return true;
   };
 
-  /**
-   * Avança para o próximo passo
-   */
   const nextStep = (): boolean => {
     if (validateStep(currentStep.value)) {
       if (currentStep.value < 4) {
@@ -203,27 +197,18 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
     return false;
   };
 
-  /**
-   * Volta para o passo anterior
-   */
   const prevStep = (): void => {
     if (currentStep.value > 1) {
       currentStep.value--;
     }
   };
 
-  /**
-   * Define o passo atual
-   */
   const setStep = (step: number): void => {
     if (step >= 1 && step <= 4) {
       currentStep.value = step;
     }
   };
 
-  /**
-   * Processa upload da foto
-   */
   const uploadPhoto = (file: File): boolean => {
     if (file.size > 5 * 1024 * 1024) {
       validationErrors.value.push({
@@ -243,9 +228,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
     return true;
   };
 
-  /**
-   * Remove a foto atual
-   */
   const removePhoto = (): void => {
     if (photoPreview.value) {
       URL.revokeObjectURL(photoPreview.value);
@@ -254,16 +236,10 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
     photoPreview.value = null;
   };
 
-  /**
-   * Atualiza dados do formulário
-   */
   const updateFormData = (data: Partial<ClienteRegisterData>): void => {
     formData.value = { ...formData.value, ...data };
   };
 
-  /**
-   * Atualiza campo específico
-   */
   const updateField = <K extends keyof ClienteRegisterData>(
     field: K,
     value: ClienteRegisterData[K],
@@ -271,9 +247,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
     formData.value[field] = value;
   };
 
-  /**
-   * Reseta o formulário
-   */
   const resetForm = (): void => {
     formData.value = {
       nome: '',
@@ -282,6 +255,8 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
       endereco: '',
       password: '',
       foto: null,
+      latitude: null,
+      longitude: null,
     };
     photoPreview.value = null;
     currentStep.value = 1;
@@ -291,7 +266,7 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
   };
 
   /**
-   * Endpoint: Registro de cliente - COM TIPOS CORRETOS (sem any)
+   * 🔥 CORRIGIDO: Registro de cliente - SÓ ENVIA FOTO SE EXISTIR
    */
   const registerCliente = async (): Promise<ClienteRegisterResponse> => {
     if (!validateStep(4)) {
@@ -315,8 +290,17 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
         formDataToSend.append('endereco', formData.value.endereco);
       }
 
-      if (formData.value.foto) {
+      // 🔥 SÓ ENVIA FOTO SE EXISTIR E FOR UM FILE VÁLIDO
+      if (formData.value.foto && formData.value.foto instanceof File) {
         formDataToSend.append('foto', formData.value.foto);
+      }
+
+      // 🔥 SÓ ENVIA LATITUDE/LONGITUDE SE EXISTIREM
+      if (formData.value.latitude !== null && formData.value.latitude !== undefined) {
+        formDataToSend.append('latitude', formData.value.latitude.toString());
+      }
+      if (formData.value.longitude !== null && formData.value.longitude !== undefined) {
+        formDataToSend.append('longitude', formData.value.longitude.toString());
       }
 
       const response = await api.post<ApiRegisterResponse>(
@@ -347,15 +331,12 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
         };
       }
     } catch (error) {
-      // Tipagem correta sem usar 'any'
       const axiosError = error as AxiosError<ApiErrorResponse>;
       console.error('Erro no registo:', axiosError);
 
-      // Tratamento de erro 422 (validação)
       if (axiosError.response?.status === 422) {
         const errorData = axiosError.response.data;
 
-        // Verifica se é erro de email já existente
         if (errorData?.errors?.email && errorData.errors.email.length > 0) {
           return {
             success: false,
@@ -363,7 +344,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
           };
         }
 
-        // Verifica se é erro de telefone já existente
         if (errorData?.errors?.telefone && errorData.errors.telefone.length > 0) {
           return {
             success: false,
@@ -371,7 +351,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
           };
         }
 
-        // Mensagem genérica de validação
         if (errorData?.message) {
           return {
             success: false,
@@ -393,9 +372,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
     }
   };
 
-  /**
-   * Verifica se email já existe
-   */
   const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
       const response = await api.get<{ exists: boolean }>(
@@ -407,9 +383,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
     }
   };
 
-  /**
-   * Verifica se telefone já existe
-   */
   const checkTelefoneExists = async (telefone: string): Promise<boolean> => {
     try {
       const response = await api.get<{ exists: boolean }>(
@@ -422,7 +395,6 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
   };
 
   return {
-    // State
     loading,
     currentStep,
     acceptTerms,
@@ -431,12 +403,10 @@ export const useClienteRegisterStore = defineStore('clienteRegister', () => {
     formData,
     photoPreview,
 
-    // Getters
     isFormValid,
     isStepValid,
     passwordStrength,
 
-    // Actions
     validateStep,
     nextStep,
     prevStep,
