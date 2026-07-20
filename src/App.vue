@@ -1,34 +1,41 @@
 <template>
-  <div v-if="loading" class="skeleton-loading-simple">
-    <!-- Skeleton do header -->
-    <div class="skeleton-header-simple">
-      <div class="skeleton-avatar-simple"></div>
-      <div class="skeleton-text">
-        <div class="skeleton-line-simple w-50"></div>
-        <div class="skeleton-line-simple w-30"></div>
-      </div>
-    </div>
-
-    <!-- Skeleton dos cards -->
-    <div class="skeleton-cards">
-      <div v-for="i in 6" :key="i" class="skeleton-card">
-        <div class="skeleton-card-avatar"></div>
-        <div class="skeleton-card-text">
-          <div class="skeleton-line-simple w-60"></div>
-          <div class="skeleton-line-simple w-40"></div>
+  <div>
+    <!-- LOADING SKELETON -->
+    <div v-if="loading" class="skeleton-loading-simple">
+      <div class="skeleton-header-simple">
+        <div class="skeleton-avatar-simple"></div>
+        <div class="skeleton-text">
+          <div class="skeleton-line-simple w-50"></div>
           <div class="skeleton-line-simple w-30"></div>
         </div>
       </div>
+      <div class="skeleton-cards">
+        <div v-for="i in 6" :key="i" class="skeleton-card">
+          <div class="skeleton-card-avatar"></div>
+          <div class="skeleton-card-text">
+            <div class="skeleton-line-simple w-60"></div>
+            <div class="skeleton-line-simple w-40"></div>
+            <div class="skeleton-line-simple w-30"></div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-  <router-view v-else />
 
-  <!-- Modal Global de Reportar Erro -->
-  <ReportarErroModal
-    v-model="showErrorModal"
-    :erro-capturado="currentError"
-    @enviado="onErrorReported"
-  />
+    <!-- ROUTER VIEW -->
+    <router-view v-else />
+
+    <!-- ============================================================
+         COMPONENTE PWA - INSTALAÇÃO
+         ============================================================ -->
+    <InstallPWA />
+
+    <!-- MODAL DE REPORTAR ERRO -->
+    <ReportarErroModal
+      v-model="showErrorModal"
+      :erro-capturado="currentError"
+      @enviado="onErrorReported"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -36,6 +43,7 @@ import { ref, onMounted, onErrorCaptured } from 'vue';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/login-store';
 import ReportarErroModal from 'src/components/ReportarErroModal.vue';
+import InstallPWA from 'src/components/InstallPWA.vue';
 import type { AxiosError } from 'axios';
 
 defineOptions({ name: 'App' });
@@ -48,7 +56,7 @@ interface ErrorInfo {
   codigo: string;
   stack: string;
   url: string;
-  contexto?: string; // ✅ opcional
+  contexto?: string;
   userAgent: string;
   timestamp: string;
 }
@@ -57,25 +65,22 @@ const loading = ref(true);
 const showErrorModal = ref(false);
 const currentError = ref<ErrorInfo | null>(null);
 
-// Flag para evitar múltiplos modals do mesmo erro
 let lastErrorTime = 0;
-const ERROR_COOLDOWN = 5000; // 5 segundos
+const ERROR_COOLDOWN = 5000;
 
-// Capturar erros do Vue (onErrorCaptured)
-// ✅ Opção 1: Remover a asserção (mais simples)
+// Capturar erros do Vue
 onErrorCaptured((err, instance, info) => {
   console.error('Erro capturado pelo Vue:', err, info);
   abrirModalErro(err instanceof Error ? err : new Error(String(err)), info);
   return false;
 });
-// Capturar erros globais do JavaScript
+
 const handleGlobalError = (event: ErrorEvent) => {
   console.error('Erro global capturado:', event.error);
   abrirModalErro(event.error || new Error(event.message), 'global');
   event.preventDefault();
 };
 
-// Capturar promessas rejeitadas
 const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
   console.error('Promise rejeitada:', event.reason);
   const erro = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
@@ -83,7 +88,6 @@ const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
   event.preventDefault();
 };
 
-// Abrir modal com informações do erro
 const abrirModalErro = (erro: Error, contexto?: string) => {
   const now = Date.now();
   if (now - lastErrorTime < ERROR_COOLDOWN) {
@@ -92,12 +96,10 @@ const abrirModalErro = (erro: Error, contexto?: string) => {
   }
   lastErrorTime = now;
 
-  // Extrair informações do erro
   let mensagem = erro.message || 'Erro desconhecido';
   let codigo = '';
   const stack = erro.stack || '';
 
-  // Tentar extrair código de status de erros HTTP/Axios
   const axiosError = erro as AxiosError;
   if (axiosError.response) {
     codigo = String(axiosError.response.status);
@@ -110,13 +112,11 @@ const abrirModalErro = (erro: Error, contexto?: string) => {
     codigo = axiosError.code;
   }
 
-  // Tentar extrair código de erro de APIs
   const statusMatch = mensagem.match(/(\d{3})/);
   if (statusMatch && statusMatch[1] && !codigo) {
     codigo = statusMatch[1];
   }
 
-  // ✅ Criar objeto sem undefined (só incluir contexto se existir)
   const errorData: ErrorInfo = {
     mensagem: mensagem,
     codigo: codigo,
@@ -126,7 +126,6 @@ const abrirModalErro = (erro: Error, contexto?: string) => {
     timestamp: new Date().toISOString(),
   };
 
-  // ✅ Só adicionar contexto se existir (evita undefined)
   if (contexto) {
     errorData.contexto = contexto;
   }
@@ -135,7 +134,6 @@ const abrirModalErro = (erro: Error, contexto?: string) => {
   showErrorModal.value = true;
 };
 
-// Quando o reporte é enviado com sucesso
 const onErrorReported = (success: boolean) => {
   if (success) {
     console.log('Erro reportado com sucesso ao suporte!');
@@ -148,7 +146,6 @@ const onErrorReported = (success: boolean) => {
   }
 };
 
-// Botão manual para reportar erro
 const reportarErroManual = () => {
   currentError.value = {
     mensagem: 'Reporte manual do utilizador',
@@ -161,7 +158,6 @@ const reportarErroManual = () => {
   showErrorModal.value = true;
 };
 
-// Expor função global para debug
 declare global {
   interface Window {
     reportarErro: () => void;
@@ -170,7 +166,6 @@ declare global {
 
 window.reportarErro = reportarErroManual;
 
-// Inicialização
 onMounted(() => {
   try {
     authStore.initialize();
@@ -183,7 +178,6 @@ onMounted(() => {
     }, 600);
   }
 
-  // Registrar handlers de erro
   window.addEventListener('error', handleGlobalError);
   window.addEventListener('unhandledrejection', handleUnhandledRejection);
 });

@@ -32,76 +32,10 @@ interface UserChoiceResult {
 }
 
 // ============================================================
-// EXTENDE A INTERFACE WINDOW
-// ============================================================
-declare global {
-  interface Window {
-    deferredInstallPrompt?: BeforeInstallPromptEvent;
-  }
-}
-
-// ============================================================
 // STATE
 // ============================================================
 const showInstallBanner = ref(false);
 const deferredInstallPrompt = ref<BeforeInstallPromptEvent | null>(null);
-let bannerTimeout: ReturnType<typeof setTimeout> | null = null;
-
-// ============================================================
-// FUNÇÃO PARA MOSTRAR O BANNER APÓS 3 SEGUNDOS
-// ============================================================
-function showBannerAfterDelay(): void {
-  // Verifica se já está instalado
-  if (window.matchMedia('(display-mode: standalone)').matches) {
-    showInstallBanner.value = false;
-    return;
-  }
-
-  // Verifica se já foi mostrado
-  if (localStorage.getItem('pwa-install-banner-dismissed')) {
-    showInstallBanner.value = false;
-    return;
-  }
-
-  // Verifica se já foi instalado
-  if (localStorage.getItem('pwa-installed') === 'true') {
-    showInstallBanner.value = false;
-    return;
-  }
-
-  // Verifica se a PWA está pronta para instalação
-  if (!deferredInstallPrompt.value) {
-    // Se não estiver pronta, tenta novamente após 2 segundos
-    setTimeout(() => {
-      showBannerAfterDelay();
-    }, 2000);
-    return;
-  }
-
-  // Mostra o banner após 3 segundos
-  bannerTimeout = setTimeout(() => {
-    showInstallBanner.value = true;
-  }, 3000);
-}
-
-// ============================================================
-// HANDLERS
-// ============================================================
-function handlePwaReady(event: Event): void {
-  const customEvent = event as CustomEvent<{ deferredInstallPrompt: BeforeInstallPromptEvent }>;
-  deferredInstallPrompt.value = customEvent.detail?.deferredInstallPrompt || null;
-
-  console.log('✅ PWA pronta para instalação!');
-
-  // Mostra o banner após 3 segundos
-  showBannerAfterDelay();
-}
-
-function handlePwaInstalled(): void {
-  showInstallBanner.value = false;
-  deferredInstallPrompt.value = null;
-  localStorage.setItem('pwa-installed', 'true');
-}
 
 // ============================================================
 // INSTALAÇÃO (CHAMADA POR CLICK DO USUÁRIO)
@@ -109,11 +43,15 @@ function handlePwaInstalled(): void {
 async function installApp(): Promise<void> {
   if (!deferredInstallPrompt.value) {
     console.warn('⚠️ PWA não está pronta para instalação.');
+    alert(
+      '📱 Para instalar o EstouAqui:\n\n' +
+      '🔹 Chrome/Edge: Clique no ícone de instalação na barra de endereço\n' +
+      '🔹 Safari: Toque em "Compartilhar" > "Adicionar à Tela de Início"'
+    );
     return;
   }
 
   try {
-    // AGORA COM INTERAÇÃO DO USUÁRIO (CLICK)
     await deferredInstallPrompt.value.prompt();
     const choiceResult: UserChoiceResult = await deferredInstallPrompt.value.userChoice;
 
@@ -137,45 +75,57 @@ function dismissBanner(): void {
 }
 
 // ============================================================
-// LIFECYCLE
+// LIFECYCLE - SIMPLES E DIRETO
 // ============================================================
 onMounted(() => {
-  // Verifica se já está instalado
+  console.log('🔍 InstallPWA: Iniciando...');
+
+  // 1. Verifica se já está instalado
   if (window.matchMedia('(display-mode: standalone)').matches) {
-    showInstallBanner.value = false;
+    console.log('📱 App já está instalado como PWA');
     return;
   }
 
-  // Verifica se já foi instalado antes
+  // 2. Verifica se já foi instalado antes
   if (localStorage.getItem('pwa-installed') === 'true') {
-    showInstallBanner.value = false;
+    console.log('📱 App já foi instalado anteriormente');
     return;
   }
 
-  // Verifica se o banner foi dispensado
+  // 3. Verifica se o banner foi dispensado
   if (localStorage.getItem('pwa-install-banner-dismissed')) {
-    showInstallBanner.value = false;
+    console.log('📱 Banner foi dispensado anteriormente');
     return;
   }
 
-  // ESCUTA EVENTOS
-  window.addEventListener('pwa-ready', handlePwaReady);
-  window.addEventListener('pwa-installed', handlePwaInstalled);
+  // 4. ESCUTA O EVENTO DE INSTALAÇÃO
+  window.addEventListener('beforeinstallprompt', (e: Event) => {
+    e.preventDefault();
+    deferredInstallPrompt.value = e as BeforeInstallPromptEvent;
+    console.log('✅ PWA pronta para instalação!');
+  });
 
-  // SE O EVENTO JÁ TIVER OCORRIDO ANTES DO onMounted
-  // Verifica se já tem o deferredInstallPrompt disponível
-  if (window.deferredInstallPrompt) {
-    deferredInstallPrompt.value = window.deferredInstallPrompt;
-    showBannerAfterDelay();
-  }
+  // 5. ESCUTA QUANDO FOR INSTALADO
+  window.addEventListener('appinstalled', () => {
+    console.log('✅ PWA instalada com sucesso!');
+    localStorage.setItem('pwa-installed', 'true');
+    showInstallBanner.value = false;
+  });
+
+  // 6. MOSTRA O BANNER APÓS 3 SEGUNDOS - GARANTIDO!
+  setTimeout(() => {
+    // Verifica novamente se já não foi instalado
+    if (!localStorage.getItem('pwa-installed') && !localStorage.getItem('pwa-install-banner-dismissed')) {
+      console.log('✅ MOSTRANDO BANNER APÓS 3 SEGUNDOS!');
+      showInstallBanner.value = true;
+    }
+  }, 3000);
+
+  console.log('🔍 InstallPWA: Timer de 3 segundos iniciado!');
 });
 
 onUnmounted(() => {
-  window.removeEventListener('pwa-ready', handlePwaReady);
-  window.removeEventListener('pwa-installed', handlePwaInstalled);
-  if (bannerTimeout) {
-    clearTimeout(bannerTimeout);
-  }
+  // Remove event listeners se necessário
 });
 </script>
 
