@@ -1,7 +1,10 @@
 <template>
   <div>
-    <!-- LOADING SKELETON -->
-    <div v-if="loading" class="skeleton-loading-simple">
+    <!-- SPLASH SCREEN - SÓ APARECE EM PWA -->
+    <SplashScreen v-if="showSplash" />
+
+    <!-- LOADING SKELETON (para navegação normal - web) -->
+    <div v-else-if="loading" class="skeleton-loading-simple">
       <div class="skeleton-header-simple">
         <div class="skeleton-avatar-simple"></div>
         <div class="skeleton-text">
@@ -24,12 +27,7 @@
     <!-- ROUTER VIEW -->
     <router-view v-else />
 
-    <!-- ============================================================
-         COMPONENTE PWA - INSTALAÇÃO
-         ============================================================ -->
     <InstallPWA />
-
-    <!-- MODAL DE REPORTAR ERRO -->
     <ReportarErroModal
       v-model="showErrorModal"
       :erro-capturado="currentError"
@@ -39,16 +37,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onErrorCaptured } from 'vue';
+import { ref, onMounted, onErrorCaptured, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/login-store';
 import ReportarErroModal from 'src/components/ReportarErroModal.vue';
 import InstallPWA from 'src/components/InstallPWA.vue';
+import SplashScreen from 'src/components/SplashScreen.vue';
 import type { AxiosError } from 'axios';
 
 defineOptions({ name: 'App' });
 
 const $q = useQuasar();
+const router = useRouter();
 const authStore = useAuthStore();
 
 interface ErrorInfo {
@@ -61,12 +62,26 @@ interface ErrorInfo {
   timestamp: string;
 }
 
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
 const loading = ref(true);
+const showSplash = ref(false);
 const showErrorModal = ref(false);
 const currentError = ref<ErrorInfo | null>(null);
 
 let lastErrorTime = 0;
 const ERROR_COOLDOWN = 5000;
+
+// 🔥 DETECTA PWA
+const isPWA = computed(() => {
+  const nav = window.navigator as NavigatorWithStandalone;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    nav.standalone === true
+  );
+});
 
 // Capturar erros do Vue
 onErrorCaptured((err, instance, info) => {
@@ -166,17 +181,79 @@ declare global {
 
 window.reportarErro = reportarErroManual;
 
-onMounted(() => {
+// 🔥🔥🔥 FUNÇÃO PRINCIPAL - SIMPLES E DIRETA 🔥🔥🔥
+const initializeApp = async (): Promise<void> => {
   try {
+    console.log('🚀 Inicializando app...');
+    console.log('📱 isPWA:', isPWA.value);
+
+    // 🔥 SE FOR PWA, MOSTRA SPLASH
+    if (isPWA.value) {
+      console.log('📱 PWA DETECTADO - Mostrando Splash Screen');
+      showSplash.value = true;
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    } else {
+      console.log('🌐 WEB NORMAL - Sem Splash Screen');
+    }
+
+    // 🔥 INICIALIZA AUTENTICAÇÃO
     authStore.initialize();
+
+    // 🔥 SE TIVER TOKEN, BUSCA USUÁRIO
+    if (authStore.token) {
+      console.log('🔑 Token encontrado, buscando usuário...');
+      await authStore.fetchUser();
+      console.log('👤 Usuário:', authStore.user?.nome);
+      console.log('📌 Tipo:', authStore.user?.tipo);
+    } else {
+      console.log('❌ Nenhum token encontrado');
+    }
+
+    // 🔥🔥🔥 REDIRECIONAMENTO - SÓ NO PWA 🔥🔥🔥
+    if (isPWA.value) {
+      console.log('🔄 Redirecionando PWA...');
+
+      if (!authStore.isAuthenticated) {
+        // 🚫 NÃO LOGADO → VAI PARA LOGIN
+        console.log('➡️ Usuário NÃO logado → /auth/login');
+        await router.replace('/auth/login');
+      } else {
+        // ✅ LOGADO → VAI PARA O DASHBOARD CORRETO
+        const userType = authStore.user?.tipo;
+
+        if (userType === 'admin' || userType === 'root') {
+          console.log('➡️ Admin → /admin/dashboard');
+          await router.replace('/admin/dashboard');
+        } else if (userType === 'prestador') {
+          console.log('➡️ Prestador → /mobile/prestador/dashboard');
+          await router.replace('/mobile/prestador/dashboard');
+        } else {
+          // Cliente ou qualquer outro
+          console.log('➡️ Cliente → /mobile/inicio');
+          await router.replace('/mobile/inicio');
+        }
+      }
+
+      // Aguarda o redirecionamento
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    // 🔥 ESCONDE SPLASH E LOADING
+    showSplash.value = false;
+    loading.value = false;
+
+    console.log('✅ App inicializado com sucesso!');
   } catch (err) {
-    console.error('Erro na inicialização:', err);
+    console.error('❌ Erro na inicialização:', err);
     abrirModalErro(err as Error, 'init');
-  } finally {
-    setTimeout(() => {
-      loading.value = false;
-    }, 600);
+    showSplash.value = false;
+    loading.value = false;
   }
+};
+
+onMounted(() => {
+  console.log('🔄 App montado - Iniciando...');
+  void initializeApp();
 
   window.addEventListener('error', handleGlobalError);
   window.addEventListener('unhandledrejection', handleUnhandledRejection);
