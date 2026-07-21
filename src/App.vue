@@ -3,8 +3,8 @@
     <!-- SPLASH SCREEN - SÓ APARECE EM PWA -->
     <SplashScreen v-if="showSplash" />
 
-    <!-- LOADING SKELETON (para navegação normal - web) -->
-    <div v-else-if="loading" class="skeleton-loading-simple">
+    <!-- LOADING SKELETON (SÓ MOSTRA SE loading É TRUE E NÃO É PWA) -->
+    <div v-else-if="loading && !isPWA" class="skeleton-loading-simple">
       <div class="skeleton-header-simple">
         <div class="skeleton-avatar-simple"></div>
         <div class="skeleton-text">
@@ -24,10 +24,15 @@
       </div>
     </div>
 
-    <!-- ROUTER VIEW -->
+    <!-- ROUTER VIEW - MOSTRA IMEDIATAMENTE NA WEB -->
     <router-view v-else />
 
+    <!-- ============================================================
+         COMPONENTE PWA - INSTALAÇÃO
+         ============================================================ -->
     <InstallPWA />
+
+    <!-- MODAL DE REPORTAR ERRO -->
     <ReportarErroModal
       v-model="showErrorModal"
       :erro-capturado="currentError"
@@ -66,7 +71,7 @@ interface NavigatorWithStandalone extends Navigator {
   standalone?: boolean;
 }
 
-const loading = ref(true);
+const loading = ref(false);
 const showSplash = ref(false);
 const showErrorModal = ref(false);
 const currentError = ref<ErrorInfo | null>(null);
@@ -74,13 +79,18 @@ const currentError = ref<ErrorInfo | null>(null);
 let lastErrorTime = 0;
 const ERROR_COOLDOWN = 5000;
 
-// 🔥 DETECTA PWA
+// 🔥 DETECTA PWA - SOMENTE STANDALONE (IGNORA localStorage)
 const isPWA = computed(() => {
   const nav = window.navigator as NavigatorWithStandalone;
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
     nav.standalone === true
   );
+});
+
+// 🔥 VERIFICA SE PODE INSTALAR (NA WEB)
+const canInstall = computed(() => {
+  return !isPWA.value && 'serviceWorker' in navigator;
 });
 
 // Capturar erros do Vue
@@ -181,19 +191,24 @@ declare global {
 
 window.reportarErro = reportarErroManual;
 
-// 🔥🔥🔥 FUNÇÃO PRINCIPAL - SIMPLES E DIRETA 🔥🔥🔥
+// 🔥 FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO
 const initializeApp = async (): Promise<void> => {
   try {
     console.log('🚀 Inicializando app...');
     console.log('📱 isPWA:', isPWA.value);
+    console.log('📱 canInstall:', canInstall.value);
 
-    // 🔥 SE FOR PWA, MOSTRA SPLASH
+    // 🔥 SÓ MOSTRA SPLASH SE FOR PWA
     if (isPWA.value) {
+      loading.value = true;
       console.log('📱 PWA DETECTADO - Mostrando Splash Screen');
       showSplash.value = true;
+      // Aguarda 2 segundos para o splash
       await new Promise((resolve) => setTimeout(resolve, 2000));
     } else {
-      console.log('🌐 WEB NORMAL - Sem Splash Screen');
+      console.log('🌐 WEB NORMAL - Carregando conteúdo imediato');
+      loading.value = false;
+      showSplash.value = false;
     }
 
     // 🔥 INICIALIZA AUTENTICAÇÃO
@@ -209,16 +224,14 @@ const initializeApp = async (): Promise<void> => {
       console.log('❌ Nenhum token encontrado');
     }
 
-    // 🔥🔥🔥 REDIRECIONAMENTO - SÓ NO PWA 🔥🔥🔥
+    // 🔥 REDIRECIONAMENTO - SÓ NO PWA
     if (isPWA.value) {
       console.log('🔄 Redirecionando PWA...');
 
       if (!authStore.isAuthenticated) {
-        // 🚫 NÃO LOGADO → VAI PARA LOGIN
         console.log('➡️ Usuário NÃO logado → /auth/login');
         await router.replace('/auth/login');
       } else {
-        // ✅ LOGADO → VAI PARA O DASHBOARD CORRETO
         const userType = authStore.user?.tipo;
 
         if (userType === 'admin' || userType === 'root') {
@@ -228,7 +241,6 @@ const initializeApp = async (): Promise<void> => {
           console.log('➡️ Prestador → /mobile/prestador/dashboard');
           await router.replace('/mobile/prestador/dashboard');
         } else {
-          // Cliente ou qualquer outro
           console.log('➡️ Cliente → /mobile/inicio');
           await router.replace('/mobile/inicio');
         }
@@ -238,7 +250,7 @@ const initializeApp = async (): Promise<void> => {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    // 🔥 ESCONDE SPLASH E LOADING
+    // 🔥 ESCONDE TUDO
     showSplash.value = false;
     loading.value = false;
 
@@ -253,8 +265,11 @@ const initializeApp = async (): Promise<void> => {
 
 onMounted(() => {
   console.log('🔄 App montado - Iniciando...');
+
+  // 🔥 INICIA APLICAÇÃO
   void initializeApp();
 
+  // 🔥 LISTENERS GLOBAIS
   window.addEventListener('error', handleGlobalError);
   window.addEventListener('unhandledrejection', handleUnhandledRejection);
 });

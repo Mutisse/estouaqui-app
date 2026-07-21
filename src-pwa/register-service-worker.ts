@@ -1,3 +1,4 @@
+// src/pwa/register-service-worker.ts
 import { register } from 'register-service-worker';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -12,27 +13,27 @@ interface UserChoiceResult {
 declare global {
   interface Window {
     installPWA: () => void;
-    showPWAInstallPrompt: () => void;
+    dismissInstallBanner: () => void;
   }
 }
 
 let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
-let isPwaInstalled = false;
 
-if (window.matchMedia('(display-mode: standalone)').matches) {
-  isPwaInstalled = true;
-}
-
+// 🔥 CAPTURA O EVENTO
 window.addEventListener('beforeinstallprompt', (e: Event) => {
   e.preventDefault();
   deferredInstallPrompt = e as BeforeInstallPromptEvent;
-  window.dispatchEvent(new CustomEvent('pwa-ready', {
-    detail: { deferredInstallPrompt: e }
-  }));
+  window.dispatchEvent(new CustomEvent('pwa-ready'));
 });
 
-function showInstallPrompt(): void {
-  if (!deferredInstallPrompt || isPwaInstalled) {
+// 🔥 FUNÇÃO PARA INSTALAR
+window.installPWA = function(): void {
+  if (!deferredInstallPrompt) {
+    alert(
+      '📱 Para instalar o EstouAqui:\n\n' +
+      '🔹 Chrome/Edge: Clique no ícone de instalação na barra de endereço\n' +
+      '🔹 Safari: Toque em "Compartilhar" > "Adicionar à Tela de Início"'
+    );
     return;
   }
 
@@ -41,29 +42,27 @@ function showInstallPrompt(): void {
   void deferredInstallPrompt.userChoice
     .then((choiceResult: UserChoiceResult) => {
       if (choiceResult.outcome === 'accepted') {
-        isPwaInstalled = true;
         localStorage.setItem('pwa-installed', 'true');
         window.dispatchEvent(new CustomEvent('pwa-installed'));
+        window.dispatchEvent(new CustomEvent('pwa-banner-update'));
       }
       deferredInstallPrompt = null;
     })
     .catch(() => {
       deferredInstallPrompt = null;
     });
-}
-
-window.installPWA = function(): void {
-  showInstallPrompt();
 };
 
-window.showPWAInstallPrompt = function(): void {
-  showInstallPrompt();
+// 🔥 FUNÇÃO PARA DISPENSAR
+window.dismissInstallBanner = function(): void {
+  localStorage.setItem('pwa-install-banner-dismissed', 'true');
+  window.dispatchEvent(new CustomEvent('pwa-banner-update'));
 };
 
 window.addEventListener('appinstalled', () => {
-  isPwaInstalled = true;
   localStorage.setItem('pwa-installed', 'true');
   window.dispatchEvent(new CustomEvent('pwa-installed'));
+  window.dispatchEvent(new CustomEvent('pwa-banner-update'));
 });
 
 register(process.env.SERVICE_WORKER_FILE, {
@@ -77,9 +76,5 @@ register(process.env.SERVICE_WORKER_FILE, {
   offline() {},
   error() {}
 });
-
-if (localStorage.getItem('pwa-installed') === 'true') {
-  isPwaInstalled = true;
-}
 
 export {};

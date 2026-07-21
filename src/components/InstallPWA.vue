@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showInstallBanner" class="install-banner">
+  <div v-if="showBanner" class="install-banner">
     <div class="banner-content">
       <div class="banner-icon">
         <q-icon name="install_mobile" size="24px" />
@@ -9,87 +9,66 @@
         <div class="text-caption">Tenha acesso rápido e offline</div>
       </div>
       <div class="banner-actions">
-        <q-btn flat dense label="Agora não" @click="dismissBanner" />
-        <q-btn flat dense label="Instalar" color="primary" @click="installApp" />
+        <q-btn flat dense label="Agora não" @click="handleDismiss" />
+        <q-btn flat dense label="Instalar" color="primary" @click="handleInstall" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
+const showBanner = ref(false);
 
-interface UserChoiceResult {
-  outcome: 'accepted' | 'dismissed';
-}
-
-const showInstallBanner = ref(false);
-const deferredInstallPrompt = ref<BeforeInstallPromptEvent | null>(null);
-
-async function installApp(): Promise<void> {
-  if (!deferredInstallPrompt.value) {
-    alert(
-      '📱 Para instalar o EstouAqui:\n\n' +
-      '🔹 Chrome/Edge: Clique no ícone de instalação na barra de endereço\n' +
-      '🔹 Safari: Toque em "Compartilhar" > "Adicionar à Tela de Início"'
-    );
-    return;
-  }
-
-  try {
-    await deferredInstallPrompt.value.prompt();
-    const choiceResult: UserChoiceResult = await deferredInstallPrompt.value.userChoice;
-
-    if (choiceResult.outcome === 'accepted') {
-      localStorage.setItem('pwa-installed', 'true');
-      showInstallBanner.value = false;
-    }
-  } catch (error) {
-    console.error('Erro ao instalar PWA:', error);
-  } finally {
-    deferredInstallPrompt.value = null;
+declare global {
+  interface Window {
+    installPWA: () => void;
+    dismissInstallBanner: () => void;
   }
 }
 
-function dismissBanner(): void {
-  showInstallBanner.value = false;
-  localStorage.setItem('pwa-install-banner-dismissed', 'true');
-}
+const checkAndShowBanner = () => {
+  // 🔥 VERIFICA SE PODE MOSTRAR O BANNER
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const isInstalled = localStorage.getItem('pwa-installed') === 'true';
+  const isDismissed = localStorage.getItem('pwa-install-banner-dismissed') === 'true';
+
+  // 🔥 MOSTRA O BANNER SE NÃO ESTIVER INSTALADO
+  showBanner.value = !isStandalone && !isInstalled && !isDismissed;
+};
+
+const handleInstall = () => {
+  if (window.installPWA) {
+    window.installPWA();
+    showBanner.value = false;
+  }
+};
+
+const handleDismiss = () => {
+  if (window.dismissInstallBanner) {
+    window.dismissInstallBanner();
+    showBanner.value = false;
+  }
+};
 
 onMounted(() => {
-  if (window.matchMedia('(display-mode: standalone)').matches) {
-    return;
-  }
+  // 🔥 VERIFICA IMEDIATAMENTE
+  checkAndShowBanner();
 
-  if (localStorage.getItem('pwa-installed') === 'true') {
-    return;
-  }
+  // 🔥 VERIFICA NOVAMENTE APÓS 3 SEGUNDOS
+  setTimeout(checkAndShowBanner, 3000);
 
-  if (localStorage.getItem('pwa-install-banner-dismissed')) {
-    return;
-  }
+  // 🔥 ESCUTA EVENTOS
+  window.addEventListener('pwa-banner-update', checkAndShowBanner);
+  window.addEventListener('pwa-ready', checkAndShowBanner);
+  window.addEventListener('appinstalled', checkAndShowBanner);
+});
 
-  window.addEventListener('beforeinstallprompt', (e: Event) => {
-    e.preventDefault();
-    deferredInstallPrompt.value = e as BeforeInstallPromptEvent;
-  });
-
-  window.addEventListener('appinstalled', () => {
-    localStorage.setItem('pwa-installed', 'true');
-    showInstallBanner.value = false;
-  });
-
-  setTimeout(() => {
-    if (!localStorage.getItem('pwa-installed') &&
-        !localStorage.getItem('pwa-install-banner-dismissed')) {
-      showInstallBanner.value = true;
-    }
-  }, 3000);
+onUnmounted(() => {
+  window.removeEventListener('pwa-banner-update', checkAndShowBanner);
+  window.removeEventListener('pwa-ready', checkAndShowBanner);
+  window.removeEventListener('appinstalled', checkAndShowBanner);
 });
 </script>
 
