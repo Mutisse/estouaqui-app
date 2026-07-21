@@ -302,7 +302,11 @@
                 :alt="prestador.nome"
                 @error="(e) => handleImageError(e, prestador)"
               />
-              <div v-else class="avatar-placeholder" :style="getAvatarStyle(prestador.id)">
+              <div
+                v-else
+                class="avatar-placeholder"
+                :style="{ background: getAvatarStyle(prestador.id) }"
+              >
                 {{ getInitials(prestador.nome) }}
               </div>
               <div
@@ -564,11 +568,24 @@ const searchQuery = computed({
   },
 });
 
-const getAvatarStyle = (id: number) => store.getAvatarStyle(id);
-const getInitials = (nome: string) => store.getInitials(nome);
-const formatarDistancia = (distancia?: number) => store.formatarDistancia(distancia);
+// ✅ CORREÇÃO: Retorna diretamente uma string com fallback
+const getAvatarStyle = (id: number): string => {
+  const style = store.getAvatarStyle(id);
+  // Se style for um objeto com background, extrai a string
+  if (typeof style === 'string') {
+    return style;
+  }
+  // Se for um objeto, tenta pegar o background
+  if (style && typeof style === 'object' && 'background' in style) {
+    return style.background || '#5B4BF5';
+  }
+  return '#5B4BF5';
+};
 
-// ✅ Função para formatar avaliação com segurança (corrige erro toFixed)
+const getInitials = (nome: string): string => store.getInitials(nome);
+const formatarDistancia = (distancia?: number): string => store.formatarDistancia(distancia);
+
+// ✅ Função para formatar avaliação com segurança
 const formatarAvaliacao = (media: number | string | null | undefined): string => {
   if (media === null || media === undefined) return '0.0';
   const numero = typeof media === 'string' ? parseFloat(media) : media;
@@ -576,20 +593,17 @@ const formatarAvaliacao = (media: number | string | null | undefined): string =>
   return numero.toFixed(1);
 };
 
+// ✅ CORREÇÃO: Tratamento de erro de imagem sem duplicação
 const handleImageError = (event: Event, prestador: PrestadorListaItem): void => {
   const img = event.target as HTMLImageElement;
+
+  // ✅ Marca o erro na store
   if (!store.imageErrors[prestador.id]) {
     store.handleImageError(prestador.id);
-    img.style.display = 'none';
-    const parent = img.parentElement;
-    if (parent) {
-      const placeholder = document.createElement('div');
-      placeholder.className = 'avatar-placeholder';
-      placeholder.style.cssText = `background: ${store.avatarGradients[Math.abs(prestador.id) % store.avatarGradients.length]}; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%; font-weight: 700; color: white; font-size: 1rem; text-transform: uppercase;`;
-      placeholder.innerText = getInitials(prestador.nome);
-      parent.appendChild(placeholder);
-    }
   }
+
+  // ✅ Esconde a imagem imediatamente
+  img.style.display = 'none';
 };
 
 const irParaPerfil = (id: number): void => {
@@ -1168,11 +1182,16 @@ $radius-xs: 8px;
     width: 60px;
     height: 60px;
     flex-shrink: 0;
-    img {
+
+    img, .avatar-placeholder {
       width: 100%;
       height: 100%;
       border-radius: 50%;
       object-fit: cover;
+    }
+
+    img {
+      display: block;
     }
   }
 
@@ -1251,6 +1270,7 @@ $radius-xs: 8px;
   height: 12px;
   border-radius: 50%;
   border: 2px solid $white;
+  z-index: 1;
   &.online {
     background: $success;
   }
@@ -1526,9 +1546,6 @@ $radius-xs: 8px;
 }
 
 .avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;

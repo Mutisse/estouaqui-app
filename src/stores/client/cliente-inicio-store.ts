@@ -153,9 +153,11 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
   });
 
   const temDados = computed<boolean>(() => {
-    return prestadoresDestaque.value.length > 0 ||
-           prestadoresTop.value.length > 0 ||
-           ultimosPedidos.value.length > 0;
+    return (
+      prestadoresDestaque.value.length > 0 ||
+      prestadoresTop.value.length > 0 ||
+      ultimosPedidos.value.length > 0
+    );
   });
 
   // ========== ACTIONS - DADOS AUXILIARES ==========
@@ -218,7 +220,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
   };
 
   const clearError = (field: string): void => {
-    const index = validationErrors.value.findIndex(err => err.field === field);
+    const index = validationErrors.value.findIndex((err) => err.field === field);
     if (index !== -1) {
       validationErrors.value.splice(index, 1);
     }
@@ -259,7 +261,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
           enableHighAccuracy: true,
           timeout: 10000,
           maximumAge: 0,
-        }
+        },
       );
     });
   };
@@ -298,9 +300,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     }
 
     try {
-      const response = await api.get<{ success: boolean; data: CategoriaData[] }>(
-        '/categorias'
-      );
+      const response = await api.get<{ success: boolean; data: CategoriaData[] }>('/categorias');
 
       if (response.data.success && response.data.data) {
         categorias.value = response.data.data;
@@ -329,7 +329,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
 
     try {
       const response = await api.get<{ success: boolean; data: PrestadorData[] }>(
-        '/prestadores/destaque'
+        '/prestadores/destaque',
       );
 
       if (response.data.success && response.data.data) {
@@ -354,7 +354,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
 
     try {
       const response = await api.get<{ success: boolean; data: PrestadorData[] }>(
-        '/prestadores/top'
+        '/prestadores/top',
       );
 
       if (response.data.success && response.data.data) {
@@ -378,9 +378,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     carregandoPromocoes.value = true;
 
     try {
-      const response = await api.get<{ success: boolean; data: PromocaoData[] }>(
-        '/promocoes'
-      );
+      const response = await api.get<{ success: boolean; data: PromocaoData[] }>('/promocoes');
 
       if (response.data.success && response.data.data) {
         promocoes.value = response.data.data;
@@ -402,7 +400,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
   const fetchDashboard = async (): Promise<DashboardData | null> => {
     try {
       const response = await api.get<{ success: boolean; data: DashboardData }>(
-        '/cliente/dashboard'
+        '/cliente/dashboard',
       );
 
       if (response.data.success && response.data.data) {
@@ -422,9 +420,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
    */
   const fetchMeusPedidos = async (): Promise<PedidoData[]> => {
     try {
-      const response = await api.get<{ success: boolean; data: PedidoData[] }>(
-        '/cliente/pedidos'
-      );
+      const response = await api.get<{ success: boolean; data: PedidoData[] }>('/cliente/pedidos');
 
       if (response.data.success && response.data.data) {
         ultimosPedidos.value = response.data.data;
@@ -444,7 +440,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
   const fetchNotificacoes = async (): Promise<NotificacaoData[]> => {
     try {
       const response = await api.get<{ success: boolean; data: NotificacaoData[] }>(
-        '/cliente/notificacoes'
+        '/cliente/notificacoes',
       );
 
       if (response.data.success && response.data.data) {
@@ -462,7 +458,13 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
    * Endpoint: POST /cliente/pedidos
    * 🔥 ATUALIZADO: Cria um novo pedido com localização
    */
-  const criarPedidoServico = async (data: NovoPedidoData): Promise<boolean> => {
+  // src/stores/client/cliente-inicio-store.ts
+
+  const criarPedidoServico = async (
+    data: NovoPedidoData & {
+      agendado_para?: string;
+    },
+  ): Promise<boolean> => {
     clearErrors();
 
     // Validações
@@ -490,6 +492,15 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
       return false;
     }
 
+    // 🔥 VALIDAÇÃO DO AGENDAMENTO
+    if (!data.agendado_para) {
+      validationErrors.value.push({
+        field: 'agendado_para',
+        message: 'Data e hora do serviço são obrigatórias',
+      });
+      return false;
+    }
+
     carregandoCriarPedido.value = true;
 
     try {
@@ -498,17 +509,16 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
       formData.append('descricao', data.descricao);
       formData.append('endereco', data.endereco);
 
+      // 🔥 ENVIA O agendado_para CORRETAMENTE
+      formData.append('agendado_para', data.agendado_para);
+
       if (data.foto) {
         formData.append('foto', data.foto);
       }
 
-      // 🔥 ENVIAR LOCALIZAÇÃO SE OBTIDA
       if (localizacaoData.value) {
         formData.append('latitude', String(localizacaoData.value.lat));
         formData.append('longitude', String(localizacaoData.value.lng));
-       
-      } else {
-        console.warn('⚠️ Localização não disponível para envio');
       }
 
       const response = await api.post<{ success: boolean; message?: string; data?: PedidoData }>(
@@ -516,13 +526,11 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
-        }
+        },
       );
 
       if (response.data.success) {
-        // Recarrega dados atualizados
         await Promise.all([fetchDashboard(), fetchMeusPedidos()]);
-        // 🔥 Limpa a localização após criar o pedido
         limparLocalizacao();
         return true;
       }
@@ -548,7 +556,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     try {
       const response = await api.post<{ success: boolean; data?: { desconto: number } }>(
         '/promocoes/validar',
-        { codigo }
+        { codigo },
       );
 
       return response.data.success;
@@ -688,9 +696,9 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     carregandoTop,
     carregandoPromocoes,
     carregandoCriarPedido,
-    carregandoLocalizacao,      // 🔥 NOVO
-    localizacaoObtida,          // 🔥 NOVO
-    localizacaoData,            // 🔥 NOVO
+    carregandoLocalizacao, // 🔥 NOVO
+    localizacaoObtida, // 🔥 NOVO
+    localizacaoData, // 🔥 NOVO
     categorias,
     prestadoresDestaque,
     prestadoresTop,
@@ -728,9 +736,9 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     clearError,
 
     // 🔥 Actions - Localização
-    obterLocalizacaoAutomatica,   // 🔥 NOVO
-    buscarLocalizacaoParaPedido,  // 🔥 NOVO
-    limparLocalizacao,            // 🔥 NOVO
+    obterLocalizacaoAutomatica, // 🔥 NOVO
+    buscarLocalizacaoParaPedido, // 🔥 NOVO
+    limparLocalizacao, // 🔥 NOVO
 
     // Actions - API
     fetchCategorias,
@@ -740,7 +748,7 @@ export const useClienteInicioStore = defineStore('clienteInicio', () => {
     fetchDashboard,
     fetchMeusPedidos,
     fetchNotificacoes,
-    criarPedidoServico,           // 🔥 ATUALIZADO
+    criarPedidoServico, // 🔥 ATUALIZADO
     validarCupom,
 
     // Actions - Modal e Upload

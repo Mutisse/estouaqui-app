@@ -180,7 +180,7 @@
             @click="buscarPorCategoria(categoria.id)"
           >
             <div class="cat-card__icon" :style="getCatIconStyle(categoria.cor)">
-              <q-icon :name="categoria.icone || 'category'" size="22px" />
+              <q-icon :name="getIconForCategory(categoria)" size="22px" />
             </div>
             <div class="cat-card__name">{{ categoria.nome }}</div>
             <div class="cat-card__count">{{ categoria.servicos_count || 0 }} serv.</div>
@@ -578,6 +578,7 @@
     </q-dialog>
   </q-page>
 </template>
+
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -589,6 +590,40 @@ import { useClienteInicioStore } from 'src/stores/client/cliente-inicio-store';
 // DEFINIÇÃO DO NOME DO COMPONENTE
 // ============================================================
 defineOptions({ name: 'MobileInicio' });
+
+// ============================================================
+// TIPOS
+// ============================================================
+
+// ✅ CORREÇÃO: Categoria com todas propriedades opcionais exceto id e nome
+interface Categoria {
+  id: number;
+  nome: string;
+  slug?: string;        // Opcional
+  icone?: string;
+  cor?: string;
+  servicos_count?: number;
+}
+
+interface Banner {
+  image: string;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  cta?: string;
+  link?: string;
+}
+
+// Interface para o pedido
+interface DadosPedido {
+  categoria_id: number;
+  descricao: string;
+  endereco: string;
+  data_pedido: string;
+  hora_pedido: string;
+  agendado_para?: string;
+  foto?: File | null;
+}
 
 // ============================================================
 // ROUTER, QUASAR E STORES
@@ -623,7 +658,7 @@ const fotoInput = ref<HTMLInputElement | null>(null);
 // ============================================================
 // BANNERS
 // ============================================================
-const banners = [
+const banners: Banner[] = [
   {
     image: '/baner/baner1.png',
     title: 'Ganhe 500 MZN',
@@ -762,8 +797,8 @@ const dataFormatada = computed(() => {
   return dataAtual.value.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long' });
 });
 
-const dataHoraCombinada = computed(() => {
-  if (!dataPedidoInput.value || !horaPedidoInput.value) return null;
+const dataHoraCombinada = computed((): string | undefined => {
+  if (!dataPedidoInput.value || !horaPedidoInput.value) return undefined;
   return `${dataPedidoInput.value}T${horaPedidoInput.value}:00`;
 });
 
@@ -797,6 +832,79 @@ const dataPedidoFormatadaCompleta = computed(() => {
 const defaultImage = 'https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_1280.png';
 
 // ============================================================
+// ✅ FUNÇÃO CORRIGIDA PARA OBTER ÍCONE - SEM ERROS DE TYPESCRIPT
+// ============================================================
+const getIconForCategory = (categoria: Categoria): string => {
+  // Mapeamento de nomes de categoria para ícones do Quasar/Material Icons
+  const iconMap: Record<string, string> = {
+    'Canalização': 'plumbing',
+    'Eletricidade': 'electrical_services',
+    'Pintura': 'brush',
+    'Limpeza': 'cleaning_services',
+    'Jardinagem': 'grass',
+    'Reparos Gerais': 'handyman',
+    'Carpintaria': 'carpentry',
+    'Alvenaria': 'construction',
+    'Serralharia': 'lock',
+    'Vidraria': 'glass',
+    'Tecnologia': 'computer',
+    'Transporte': 'local_shipping',
+    'Eventos': 'celebration',
+    'Saúde': 'health_and_safety',
+    'Beleza': 'spa',
+    'Educação': 'school',
+    'Fotografia': 'photo_camera',
+    'Tradução': 'translate',
+    'Design': 'brush',
+    'Marketing': 'campaign',
+  };
+
+  // Mapeamento por slug
+  const slugMap: Record<string, string> = {
+    'canalizacao': 'plumbing',
+    'eletricidade': 'electrical_services',
+    'pintura': 'brush',
+    'limpeza': 'cleaning_services',
+    'jardinagem': 'grass',
+    'reparos': 'handyman',
+    'reparos-gerais': 'handyman',
+    'carpintaria': 'carpentry',
+    'alvenaria': 'construction',
+    'serralharia': 'lock',
+    'vidraria': 'glass',
+    'tecnologia': 'computer',
+    'transporte': 'local_shipping',
+    'eventos': 'celebration',
+    'saude': 'health_and_safety',
+    'beleza': 'spa',
+    'educacao': 'school',
+    'fotografia': 'photo_camera',
+    'traducao': 'translate',
+    'design': 'brush',
+    'marketing': 'campaign',
+  };
+
+  // ✅ CORREÇÃO: Tentar pelo nome - garantindo que retorna string
+  if (categoria.nome && iconMap[categoria.nome]) {
+    const icon = iconMap[categoria.nome];
+    if (icon) {
+      return icon;
+    }
+  }
+
+  // ✅ CORREÇÃO: Tentar pelo slug - garantindo que retorna string
+  if (categoria.slug && slugMap[categoria.slug]) {
+    const icon = slugMap[categoria.slug];
+    if (icon) {
+      return icon;
+    }
+  }
+
+  // ✅ Fallback: sempre retorna uma string
+  return 'category';
+};
+
+// ============================================================
 // WATCHERS
 // ============================================================
 
@@ -822,7 +930,7 @@ const buscarPorCategoria = (id: number) =>
 // FUNÇÃO DO BANNER
 // ============================================================
 
-const clickBanner = (banner: { link: string; title: string }) => {
+const clickBanner = (banner: Banner) => {
   if (banner.link) {
     void router.push(banner.link);
   } else {
@@ -968,7 +1076,7 @@ const handleFotoUpload = (event: Event) => {
 const removerFoto = () => inicioStore.removerFoto();
 
 // ============================================================
-// FUNÇÃO CRIAR PEDIDO
+// ✅ FUNÇÃO CRIAR PEDIDO CORRIGIDA
 // ============================================================
 
 const criarPedido = async () => {
@@ -1030,13 +1138,26 @@ const criarPedido = async () => {
     }
   }
 
-  const dadosPedido = {
-    ...inicioStore.novoPedido,
-    agendado_para: dataHoraCombinada.value,
+  // ✅ CORREÇÃO: Construir o objeto de dados do pedido com tipagem correta
+  const dadosPedido: DadosPedido = {
+    categoria_id: novoPedido.value.categoria_id,
+    descricao: novoPedido.value.descricao || '',
+    endereco: novoPedido.value.endereco || '',
     data_pedido: dataPedidoInput.value,
     hora_pedido: horaPedidoInput.value,
   };
 
+  // ✅ Adicionar agendado_para apenas se disponível
+  if (dataHoraCombinada.value) {
+    dadosPedido.agendado_para = dataHoraCombinada.value;
+  }
+
+  // ✅ Adicionar foto apenas se disponível
+  if (novoPedido.value.foto) {
+    dadosPedido.foto = novoPedido.value.foto;
+  }
+
+  // ✅ Chamar a store com os dados tipados
   const success = await inicioStore.criarPedidoServico(dadosPedido);
 
   if (success) {
@@ -1122,6 +1243,7 @@ onUnmounted(() => {
   inicioStore.resetarStore();
 });
 </script>
+
 <style scoped lang="scss">
 // ============================================================
 // TOKENS

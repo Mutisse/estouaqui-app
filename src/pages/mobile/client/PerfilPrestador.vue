@@ -317,7 +317,7 @@
             </div>
           </button>
 
-          <!-- 🔥 FORMULÁRIO EXPANSÍVEL - CORRIGIDO -->
+          <!-- 🔥 FORMULÁRIO EXPANSÍVEL -->
           <transition name="slide-expand">
             <div v-if="formularioAberto" class="pedido-form-container">
               <div class="pedido-form">
@@ -329,7 +329,7 @@
                   </p>
                 </div>
 
-                <!-- 🔥 1. CATEGORIA - PRIMEIRO (OBRIGATÓRIO) -->
+                <!-- 1. CATEGORIA -->
                 <div class="form-group">
                   <label class="form-label">Categoria <span class="required">*</span></label>
                   <select v-model="pedidoForm.categoria_id" class="form-select" @change="onCategoriaChange">
@@ -347,7 +347,7 @@
                   </div>
                 </div>
 
-                <!-- 🔥 2. SERVIÇOS - APARECE APÓS SELECIONAR CATEGORIA -->
+                <!-- 2. SERVIÇOS -->
                 <div class="form-group" v-if="pedidoForm.categoria_id">
                   <label class="form-label">
                     Serviço desejado
@@ -364,23 +364,20 @@
                     </option>
                   </select>
 
-                  <!-- 🔥 MENSAGEM QUANDO NÃO HÁ SERVIÇOS -->
                   <div v-if="servicosFiltrados.length === 0" class="form-hint">
                     <span class="info">ℹ️ Nenhum serviço específico cadastrado para esta categoria</span>
                   </div>
 
-                  <!-- 🔥 MOSTRA QUANTOS SERVIÇOS ENCONTRADOS -->
                   <div v-else class="form-hint success">
                     <span>✅ {{ servicosFiltrados.length }} serviço(s) disponível(is)</span>
                   </div>
                 </div>
 
-                <!-- 🔥 3. MENSAGEM PARA SELECIONAR CATEGORIA PRIMEIRO -->
                 <div v-else class="form-hint info-box">
                   <span>ℹ️ Selecione uma categoria para ver os serviços disponíveis</span>
                 </div>
 
-                <!-- 4. Descrição -->
+                <!-- 3. Descrição -->
                 <div class="form-group">
                   <label class="form-label"
                     >Descrição do serviço <span class="required">*</span></label
@@ -395,7 +392,7 @@
                   <div class="char-counter">{{ pedidoForm.descricao.length }}/500</div>
                 </div>
 
-                <!-- 5. Data e Hora -->
+                <!-- 4. Data e Hora -->
                 <div class="form-row">
                   <div class="form-group half">
                     <label class="form-label">Data <span class="required">*</span></label>
@@ -412,7 +409,7 @@
                   </div>
                 </div>
 
-                <!-- 6. Endereço -->
+                <!-- 5. Endereço -->
                 <div class="form-group">
                   <label class="form-label">Endereço <span class="required">*</span></label>
                   <input
@@ -451,25 +448,12 @@
           </transition>
         </div>
 
-        <!-- Contato -->
+        <!-- ========================================================== -->
+        <!-- 🔥 CONTATO - SOMENTE EMAIL (SEM TELEFONE) 🔥 -->
+        <!-- ========================================================== -->
         <div class="section">
           <h3 class="section-title">Contato</h3>
           <div class="contato-list">
-            <div v-if="prestadorStore.prestador.telefone" class="contato-item" @click="ligar">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#5B4BF5"
-                stroke-width="2"
-              >
-                <path
-                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
-                />
-              </svg>
-              <span>{{ prestadorStore.prestador.telefone }}</span>
-            </div>
             <div v-if="prestadorStore.prestador.email" class="contato-item" @click="enviarEmail">
               <svg
                 width="20"
@@ -675,20 +659,16 @@ const dataMinima = computed(() => {
 // 🔥 SERVIÇOS FILTRADOS POR CATEGORIA
 // ============================================================
 
-// Computed para filtrar serviços pela categoria selecionada
 const servicosFiltrados = computed(() => {
   if (!pedidoForm.value.categoria_id) return [];
   if (!prestadorStore.prestador?.servicos) return [];
 
-  // 🔥 FILTRAR SERVIÇOS PELA CATEGORIA
   return prestadorStore.prestador.servicos.filter(
     servico => servico.categoria_id === pedidoForm.value.categoria_id
   );
 });
 
-// Função chamada quando a categoria muda
 const onCategoriaChange = () => {
-  // Resetar o serviço selecionado quando mudar a categoria
   pedidoForm.value.servico_id = null;
 };
 
@@ -760,11 +740,7 @@ const toggleFavorito = async () => {
   }
 };
 
-const ligar = () => {
-  if (prestadorStore.prestador?.telefone) {
-    window.location.href = `tel:${prestadorStore.prestador.telefone}`;
-  }
-};
+// 🔥 FUNÇÃO LIGAR REMOVIDA
 
 const enviarEmail = () => {
   if (prestadorStore.prestador?.email) {
